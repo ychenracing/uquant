@@ -1,4 +1,4 @@
-"""Independent stock proof with a current impulse-only mature entry shortcut."""
+"""Independent stock proof with current broad-market confirmation."""
 from __future__ import annotations
 
 import math
@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from ..config import SystemConfig
 from ..types import AccountState, LeaderScore, Opportunity, RiskAssessment
-from .strategic.qualification_candidates import candidate_entry
+from .strategic.qualification_candidates import candidate_entry, independent_market_confirmation
 
 if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
@@ -29,7 +30,7 @@ def ordinary_core_entry(
         certificate = None  # The real repair order still needs its strict own proof.
     elif (certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days
           and market is not None and market.get("as_of") == str(date.date())
-          and market.get("impulse") is True and symbol in market.get("credible_symbols", ())):
+          and market.get("confirmed") is True and symbol in market.get("credible_symbols", ())):
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
             "required_confirmation": self.cfg.leader_tenure_days,
@@ -42,22 +43,16 @@ def ordinary_core_entry(
 
 
 def _market_conditions(*, opportunity: Opportunity, risk: RiskAssessment,
-                       credible_count: int) -> tuple[bool, list[str]]:
-    """Current impulse evidence; persistence belongs to the existing stock routes."""
-    keys = ("broad_ret120", "tech_ret120", "ai_fast_return", "declining_ratio",
-            "below_ma20_ratio", "tech_speed", "broad_speed")
+                       credible_count: int, cfg: SystemConfig) -> tuple[bool, list[str]]:
+    """Reuse current market confirmation without another clock or risk authority."""
+    keys = ("breadth20", "broad_ret20", "tech_ret20", "broad_ret120", "tech_ret120")
     missing = [key for key in keys if not isinstance(risk.evidence.get(key), (int, float))
                or isinstance(risk.evidence.get(key), bool)
                or not math.isfinite(risk.evidence[key])]
-    impulse = False
-    if not missing:
-        broad, tech, fast, declining, below, tech_speed, broad_speed = (
-            float(risk.evidence[key]) for key in keys)
-        impulse = (min(broad, tech) >= -.01 and max(broad, tech) >= .01
-                   and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
-                   and risk.votes <= 1 and credible_count > 0 and fast >= .15
-                   and declining <= .10 and below <= .10 and max(tech_speed, broad_speed) >= .15)
-    return impulse, missing
+    confirmed = (opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
+                 and risk.votes <= 1 and credible_count > 0
+                 and independent_market_confirmation(cfg=cfg, risk=risk))
+    return confirmed, missing
 
 
 def observe_ordinary_market(
@@ -65,14 +60,14 @@ def observe_ordinary_market(
     risk: RiskAssessment, leaders: dict[str, LeaderScore],
     user_panel: dict[str, pd.DataFrame],
 ) -> dict[str, Any]:
-    """Observe today's fast-entry proof without granting shared or strict-route capital."""
+    """Observe current market proof without granting shared or strict-route capital."""
     credible = sorted(symbol for symbol, leader in leaders.items()
                       if symbol in user_panel and date in user_panel[symbol].index
                       and leader.mature and leader.score >= .82
                       and leader.confidence >= self.cfg.leader_min_confidence)
-    impulse, missing = _market_conditions(
-        opportunity=opportunity, risk=risk, credible_count=len(credible))
+    confirmed, missing = _market_conditions(
+        opportunity=opportunity, risk=risk, credible_count=len(credible), cfg=self.cfg)
     return {
-        "as_of": str(date.date()), "confirmed": impulse, "impulse": impulse,
+        "as_of": str(date.date()), "confirmed": confirmed, "confirmation_route": "independent_market",
         "credible_symbols": credible, "missing_market_fields": missing,
     }

@@ -1,7 +1,8 @@
-"""Preregistered research-only monthly trend comparator, never production targets.
+"""Preregistered research-only trend comparators, never production targets.
 
 Keep intact incumbents, admit at monthly reviews, retain valid monthly BUY remainders
 through normal execution expiry, and otherwise hold filled weights. No tuning knobs.
+The separately identified daily variant admits after five eligible sessions.
 """
 from __future__ import annotations
 
@@ -50,7 +51,10 @@ from uquant.types import AccountState, Risk, RiskAssessment, Target
 
 def benchmark_identity(
     case_id: str, start: str, end: str, *, extra_excluded_symbols: tuple[str, ...] = (),
+    daily_confirmed: bool = False,
 ) -> dict[str, Any]:
+    if type(daily_confirmed) is not bool:
+        raise ValueError('daily_confirmed must be boolean')
     case_symbols(case_id, start, extra_excluded_symbols=extra_excluded_symbols)
     identity = case_identity(case_id, start, end)
     identity['extra_excluded_symbols'] = sorted(set(extra_excluded_symbols))
@@ -59,6 +63,11 @@ def benchmark_identity(
         key: identity[key] for key in ('source_sha256', 'runner_sha256', 'benchmark_sha256')
     })).hexdigest()
     identity['benchmark'] = 'monthly_ma60_ma120_ret120_three_names_v1'
+    if daily_confirmed:
+        identity['benchmark'] = 'daily_confirmed5_ma60_ma120_ret120_three_names_v1'
+        identity['research_account_code_sha256'] = hashlib.sha256(canonical_json_bytes({
+            key: identity[key] for key in ('source_sha256', 'runner_sha256', 'benchmark_sha256', 'benchmark')
+        })).hexdigest()
     return identity
 
 
@@ -125,6 +134,7 @@ def benchmark_targets(
     *, engine: ProductionEngine, account: AccountState, date: pd.Timestamp,
     panel: dict[str, pd.DataFrame], tradable: tuple[str, ...], prices: dict[str, float],
     risk: RiskAssessment, state: dict[str, Any],
+    daily_confirmed: bool = False,
 ) -> tuple[tuple[Target, ...], dict[str, Any]]:
     weights, _ = current_weights(account, prices)
     held = {s for s, w in weights.items() if w > 0}
@@ -152,8 +162,22 @@ def benchmark_targets(
         raise ValueError('nonfinite or negative benchmark risk cap')
     if monthly:
         state['review_month'] = date.strftime('%Y-%m')
+    incumbents = set(selected)
+    if daily_confirmed:
+        session = str(date.date())
+        previous = state.get('entry_session', '')
+        if session < previous:
+            raise ValueError('benchmark entry observations must be causal')
+        if session != previous:
+            streaks = state.setdefault('entry_streaks', {})
+            for symbol in sorted(set(streaks) | set(tradable)):
+                eligible = symbol in tradable and _eligible(engine, panel[symbol], date)
+                streaks[symbol] = streaks.get(symbol, 0) + 1 if eligible else 0
+            state['entry_session'] = session
+    if monthly or daily_confirmed:
         candidates = [s for s in tradable if s not in selected and s not in exiting
-                      and _eligible(engine, panel[s], date)]
+                      and (state['entry_streaks'].get(s, 0) >= 5 if daily_confirmed
+                           else _eligible(engine, panel[s], date))]
         candidates.sort(key=lambda s: (-float(_closes(panel[s], date).iloc[-1]
                                               / _closes(panel[s], date).iloc[-121] - 1), s))
         for symbol in candidates:
@@ -167,7 +191,8 @@ def benchmark_targets(
                 blocked[symbol] = 'insufficient_pair_correlation'
                 continue
             selected.append(symbol)
-    proposed = {s: 0.30 if monthly else max(weights.get(s, 0.0), pending.get(s, 0.0)) for s in selected}
+    proposed = {s: 0.30 if monthly or s not in incumbents
+                else max(weights.get(s, 0.0), pending.get(s, 0.0)) for s in selected}
     for symbol in proposed:
         # Freeze cancels any unfilled risk increase, but permits risk and trend sells.
         if freeze:
@@ -203,7 +228,8 @@ def benchmark_targets(
             risk.target_gross_cap < min(0.90, sum(weights.values())) - 1e-12)
         targets.append(Target(
             symbol, weight, 'CORE', 0.0, 1.0,
-            'research risk cap' if risk_trim else 'research trend exit' if symbol in exiting else 'research monthly trend',
+            'research risk cap' if risk_trim else 'research trend exit' if symbol in exiting
+            else 'research confirmed daily trend' if daily_confirmed else 'research monthly trend',
             reduction_policy='RISK_PRIORITY' if risk_trim else 'FIFO',
             reason_code='risk_gross_cap' if risk_trim else 'strategy_target',
             exit_kind='portfolio_risk' if risk_trim else 'strategy',
@@ -234,7 +260,7 @@ def submit_targets(
 
 def benchmark_decision(
     engine: ProductionEngine, account: AccountState, date: pd.Timestamp, roles: dict[str, tuple[str, ...]],
-    state: dict[str, Any], code_hash: str,
+    state: dict[str, Any], code_hash: str, *, daily_confirmed: bool = False,
 ) -> dict[str, Any]:
     date, symbols, durable = validated_decision_symbols(
         symbols=roles['tradable'], as_of=str(date.date()), account=account)
@@ -258,7 +284,7 @@ def benchmark_decision(
                                         risk=risk.state, account=account, cfg=market.cfg, reference_context=None)
     targets, observation = benchmark_targets(engine=engine, account=account, date=date,
                                              panel=market.user_panel, tradable=symbols, prices=market.prices,
-                                             risk=risk, state=state)
+                                             risk=risk, state=state, daily_confirmed=daily_confirmed)
     targets = submit_targets(engine, account, date, targets, market.prices)
     account.last_successful_run = str(date.date())
     account.data_hash, account.data_hash_as_of = inputs.data_digest, str(date.date())
@@ -272,15 +298,17 @@ def benchmark_decision(
 def run_benchmark_case(
     *, case_id: str, start: str, end: str, output_dir: Path,
     extra_excluded_symbols: tuple[str, ...] = (),
+    daily_confirmed: bool = False,
 ) -> dict[str, Any]:
     if not '2023-01-03' <= start <= end <= '2026-08-05':
         raise ValueError('benchmark requires frozen historical interval')
     pd.Timestamp(start)
     pd.Timestamp(end)
     case_symbols(case_id, start, extra_excluded_symbols=extra_excluded_symbols)
+    identity = benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols,
+                                  daily_confirmed=daily_confirmed)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    identity = benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols)
     write_json(output_dir / 'identity.json', identity)
     engine = ProductionEngine(ROOT / 'data/frozen')
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
@@ -309,7 +337,8 @@ def run_benchmark_case(
                 engine.execution.execute_open(date=date, account=account,
                                               panel={s: engine.workspace.raw_frame(s) for s in roles['tradable']})
                 observation = benchmark_decision(engine, account, date, roles, state,
-                                                 identity['research_account_code_sha256'])
+                                                 identity['research_account_code_sha256'],
+                                                 daily_confirmed=daily_confirmed)
                 equity = observation['equity']
                 if not math.isfinite(equity) or not math.isfinite(account.cash) or account.cash < -1e-6:
                     raise RuntimeError('invalid benchmark equity/cash')
@@ -362,7 +391,8 @@ def run_benchmark_case(
             accounting = attribution['accounting']
             if not accounting['reconciled']:
                 raise RuntimeError('benchmark ledger does not reconcile')
-        if identity != benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols):
+        if identity != benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols,
+                                          daily_confirmed=daily_confirmed):
             raise RuntimeError('benchmark identity changed during replay')
     except Exception as exc:
         status, error = 'REPLAY_ERROR', f'{error}; finalization: {type(exc).__name__}: {exc}'
@@ -384,6 +414,7 @@ def read_benchmark_case(
     directory: Path, *, case_id: str, start: str, end: str,
     extra_excluded_symbols: tuple[str, ...] = (),
     producer_sha256: str | None = None,
+    daily_confirmed: bool = False,
 ) -> dict[str, Any]:
     """Read current-input evidence, recomputing economics without another replay.
 
@@ -403,13 +434,15 @@ def read_benchmark_case(
             or result['future_holdout_used'] or not result['accounting']['reconciled']):
         raise ValueError('incomplete or invalid benchmark result')
     identity = result['identity']
-    expected = benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols)
+    expected = benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols,
+                                   daily_confirmed=daily_confirmed)
     if producer_sha256 is not None:
         if len(producer_sha256) != 64 or any(c not in '0123456789abcdef' for c in producer_sha256):
             raise ValueError('invalid benchmark producer seal')
         expected['benchmark_sha256'] = producer_sha256
         expected['research_account_code_sha256'] = hashlib.sha256(canonical_json_bytes({
             key: expected[key] for key in ('source_sha256', 'runner_sha256', 'benchmark_sha256')
+            + (('benchmark',) if daily_confirmed else ())
         })).hexdigest()
     if (set(identity) != set(expected)
             or any(identity[key] != value for key, value in expected.items() if key != 'commit')
@@ -489,9 +522,11 @@ def main() -> int:
     parser.add_argument('--end', default='2026-08-05')
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--exclude-symbol', action='append', default=[])
+    parser.add_argument('--daily-confirmed', action='store_true')
     args = parser.parse_args()
     result = run_benchmark_case(case_id=args.case, start=args.start, end=args.end, output_dir=args.output_dir,
-                                extra_excluded_symbols=tuple(args.exclude_symbol))
+                                extra_excluded_symbols=tuple(args.exclude_symbol),
+                                daily_confirmed=args.daily_confirmed)
     print(f"{result['status']}: {result['sessions']}/{result['expected_sessions']} sessions; {result['error']}")
     return 0 if result['status'] == 'COMPLETE' else 1
 

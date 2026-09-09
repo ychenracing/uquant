@@ -1,0 +1,740 @@
+{
+  "schema_version": 1,
+  "manifest_id": "historical-2022h1-fixed-cohort-v1",
+  "research_only": true,
+  "production_ready": false,
+  "selection_policy": "fixed_disclosed_entry_cohort",
+  "known_by": "2022-08-31",
+  "parent_frozen_manifest_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+  "source_business_ledger_blob_sha": "19abe4fd2b340739fc04beae17aa056a3da98739",
+  "frame": "All90 original2022H1 fund holdings; not index membership or complete AI denominator.",
+  "frame_dispositions": [
+    {
+      "symbol": "sz002415",
+      "status": "unresolved",
+      "reason": "具有存储及服务器经营范围线索；需证明对应实际对外供应及既定分类边界，不能从经营范围直接入池。"
+    },
+    {
+      "symbol": "sh603501",
+      "status": "supported",
+      "reason": "图像传感器等芯片设计业务；属于上游芯片供应。"
+    },
+    {
+      "symbol": "sz002230",
+      "status": "outside_scope",
+      "reason": "AI 软件与行业应用，现有分类无软件类别。"
+    },
+    {
+      "symbol": "sz002920",
+      "status": "unresolved",
+      "reason": "自动驾驶域控制器及车载计算平台已量产，是否纳入既定 compute 范围需独立业务定义，不能根据后续收益决定。"
+    },
+    {
+      "symbol": "sh600588",
+      "status": "outside_scope",
+      "reason": "企业管理软件与云应用，不自动等于基础设施运营。"
+    },
+    {
+      "symbol": "sz002405",
+      "status": "supported",
+      "reason": "报告明确设计并销售智能座舱 SoC、MCU 等芯片。"
+    },
+    {
+      "symbol": "sh603019",
+      "status": "supported",
+      "reason": "高端计算机、存储、云计算产品研发制造。"
+    },
+    {
+      "symbol": "sz002236",
+      "status": "unresolved",
+      "reason": "报告披露智慧存储创新业务，但产品与既定上游 storage 分类的对应关系仍待核实。"
+    },
+    {
+      "symbol": "sh603486",
+      "status": "outside_scope",
+      "reason": "终端家电及服务机器人应用，不能自动当作上游算力供应。"
+    },
+    {
+      "symbol": "sz000938",
+      "status": "supported",
+      "reason": "机架、刀片、关键业务及边缘服务器供应。"
+    },
+    {
+      "symbol": "sh688008",
+      "status": "supported",
+      "reason": "内存接口等数据处理芯片设计供应。"
+    },
+    {
+      "symbol": "sz000977",
+      "status": "supported",
+      "reason": "报告有服务器及部件销售及分产品收入，非仅行业展望。"
+    },
+    {
+      "symbol": "sz300454",
+      "status": "supported",
+      "reason": "提供计算、存储、网络资源及数据中心基础设施托管服务。"
+    },
+    {
+      "symbol": "sh688099",
+      "status": "supported",
+      "reason": "SoC 芯片设计销售，含计算和图像处理功能。"
+    },
+    {
+      "symbol": "sh600845",
+      "status": "supported",
+      "reason": "数据中心基础设施服务与建设运营能力。"
+    },
+    {
+      "symbol": "sh601360",
+      "status": "outside_scope",
+      "reason": "安全及互联网服务；未据此证明供给既定硬件或 IDC 服务。"
+    },
+    {
+      "symbol": "sz002432",
+      "status": "outside_scope",
+      "reason": "家用医疗与诊断产品；该业务证据不满足既定 AI 供应链分类。"
+    },
+    {
+      "symbol": "sh688169",
+      "status": "outside_scope",
+      "reason": "智能清洁终端产品，不自动映射上游供应链。"
+    },
+    {
+      "symbol": "sz300223",
+      "status": "supported",
+      "reason": "实际存储、微处理器及视频芯片产品线。"
+    },
+    {
+      "symbol": "sz002402",
+      "status": "unresolved",
+      "reason": "实际雷达芯片设计与家电控制业务已确认，AI 供应链范围对应尚不明确。"
+    },
+    {
+      "symbol": "sh600536",
+      "status": "outside_scope",
+      "reason": "基础及行业软件，现有分类无软件类别。"
+    },
+    {
+      "symbol": "sz300474",
+      "status": "supported",
+      "reason": "图形处理芯片业务；同时保留雷达等多元业务事实。"
+    },
+    {
+      "symbol": "sh603893",
+      "status": "supported",
+      "reason": "SoC 设计供应，报告明确边端及云服务器应用。"
+    },
+    {
+      "symbol": "sz300458",
+      "status": "supported",
+      "reason": "智能应用处理器 SoC 等设计供应。"
+    },
+    {
+      "symbol": "sh600699",
+      "status": "unresolved",
+      "reason": "汽车安全与电子产品，不足以区分上游计算供应与终端应用。"
+    },
+    {
+      "symbol": "sh603160",
+      "status": "supported",
+      "reason": "传感、触控、连接、音频等芯片设计供应。"
+    },
+    {
+      "symbol": "sz002065",
+      "status": "unresolved",
+      "reason": "软件与系统集成服务，需核实自有服务器或 IDC 的实际供应业务。"
+    },
+    {
+      "symbol": "sz002439",
+      "status": "unresolved",
+      "reason": "网络安全设备与软件混合，需核实是否有既定分类中的实际产品。"
+    },
+    {
+      "symbol": "sz300383",
+      "status": "supported",
+      "reason": "IDC 及云计算实际经营业务。"
+    },
+    {
+      "symbol": "sh688256",
+      "status": "supported",
+      "reason": "云边端 AI 核心芯片、加速卡及训练整机。"
+    },
+    {
+      "symbol": "sh688696",
+      "status": "outside_scope",
+      "reason": "消费投影终端与配件服务。"
+    },
+    {
+      "symbol": "sz002139",
+      "status": "unresolved",
+      "reason": "定制智能控制系统，尚未证明既定芯片或算力供应业务。"
+    },
+    {
+      "symbol": "sz002373",
+      "status": "unresolved",
+      "reason": "交通与安防产品，需核实上游供给与终端应用边界。"
+    },
+    {
+      "symbol": "sh688521",
+      "status": "supported",
+      "reason": "芯片定制及处理器 IP 授权，包含神经网络处理器 IP。"
+    },
+    {
+      "symbol": "sz002152",
+      "status": "unresolved",
+      "reason": "智能终端及行业方案，尚未确认上游芯片或算力供给。"
+    },
+    {
+      "symbol": "sz002151",
+      "status": "unresolved",
+      "reason": "GNSS 芯片、陶瓷和导航产品真实存在，AI 供应链相关范围尚不明确。"
+    },
+    {
+      "symbol": "sz300168",
+      "status": "outside_scope",
+      "reason": "政务及民生软件应用。"
+    },
+    {
+      "symbol": "sh600718",
+      "status": "outside_scope",
+      "reason": "软件及行业应用，未据此认定基础算力供应商。"
+    },
+    {
+      "symbol": "sh688608",
+      "status": "supported",
+      "reason": "AIoT 边缘智能主控芯片供应。"
+    },
+    {
+      "symbol": "sz300613",
+      "status": "supported",
+      "reason": "芯片及模块研发销售，制造外包。"
+    },
+    {
+      "symbol": "sh600728",
+      "status": "unresolved",
+      "reason": "轨道交通及 IT 服务，需核实自有基础设施产品。"
+    },
+    {
+      "symbol": "sz002335",
+      "status": "supported",
+      "reason": "实际自持机柜和数据中心运营，兼营电源及新能源。"
+    },
+    {
+      "symbol": "sz002368",
+      "status": "unresolved",
+      "reason": "云服务与系统集成混合，尚未核实自持 IDC 或专用硬件供给。"
+    },
+    {
+      "symbol": "sh688023",
+      "status": "outside_scope",
+      "reason": "网络安全产品及服务，现有分类无该类别。"
+    },
+    {
+      "symbol": "sz300212",
+      "status": "supported",
+      "reason": "实际存储产品与数据湖建设运营，非仅使用存储。"
+    },
+    {
+      "symbol": "sz300188",
+      "status": "unresolved",
+      "reason": "子公司有服务器和云平台供给线索，需核实产品及实际业务边界。"
+    },
+    {
+      "symbol": "sh688686",
+      "status": "unresolved",
+      "reason": "机器视觉光学与算法部件，现有 optical 类是光通信；不擅自扩展分类语义。"
+    },
+    {
+      "symbol": "sh688088",
+      "status": "outside_scope",
+      "reason": "视觉算法授权和软件方案，不自动等同上游芯片。"
+    },
+    {
+      "symbol": "sz000555",
+      "status": "outside_scope",
+      "reason": "金融科技软件与行业方案。"
+    },
+    {
+      "symbol": "sh688018",
+      "status": "supported",
+      "reason": "物联网 SoC 设计供应。"
+    },
+    {
+      "symbol": "sh688223",
+      "status": "outside_scope",
+      "reason": "光伏组件、电池片及硅片；光伏硅片不等于集成电路晶圆。"
+    },
+    {
+      "symbol": "sh688281",
+      "status": "outside_scope",
+      "reason": "军用隐身、伪装、防护材料。"
+    },
+    {
+      "symbol": "sh688331",
+      "status": "outside_scope",
+      "reason": "抗体药物研发商业化。"
+    },
+    {
+      "symbol": "sh688295",
+      "status": "outside_scope",
+      "reason": "碳纤维复合材料，报告用途不构成既定 AI 供应链业务。"
+    },
+    {
+      "symbol": "sh688322",
+      "status": "unresolved",
+      "reason": "3D 视觉传感器与应用设备，需区分芯片供应和设备集成，不能等同光通信。"
+    },
+    {
+      "symbol": "sh688220",
+      "status": "supported",
+      "reason": "无线通信芯片、SoC 定制与 IP 供应。"
+    },
+    {
+      "symbol": "sz301139",
+      "status": "unresolved",
+      "reason": "通信网络维护与建设服务，不足以证明光通信器件或 IDC 经营。"
+    },
+    {
+      "symbol": "sh601089",
+      "status": "outside_scope",
+      "reason": "药品与医疗器械。"
+    },
+    {
+      "symbol": "sz301236",
+      "status": "outside_scope",
+      "reason": "软件与信息技术服务。"
+    },
+    {
+      "symbol": "sz301200",
+      "status": "unresolved",
+      "reason": "PCB 生产设备已确认；现有 pcb/semicap 分类是否覆盖 PCB 设备未定义。"
+    },
+    {
+      "symbol": "sz301302",
+      "status": "outside_scope",
+      "reason": "军用仿真软件技术服务；原报告为截止日前可得的 2021 年报。"
+    },
+    {
+      "symbol": "sz301150",
+      "status": "unresolved",
+      "reason": "PCB 铜箔与锂电铜箔均已确认；专用 AI 供应链范围仍待划清。"
+    },
+    {
+      "symbol": "sz301206",
+      "status": "outside_scope",
+      "reason": "食品添加剂及复配糖。"
+    },
+    {
+      "symbol": "sz301109",
+      "status": "outside_scope",
+      "reason": "垃圾与污泥处理运营。"
+    },
+    {
+      "symbol": "sz301268",
+      "status": "unresolved",
+      "reason": "多行业结构件，未确认 AI 上游专用产品。"
+    },
+    {
+      "symbol": "sz301122",
+      "status": "outside_scope",
+      "reason": "医疗兽用器械及实验室耗材。"
+    },
+    {
+      "symbol": "sz301219",
+      "status": "outside_scope",
+      "reason": "通用金属冶炼与新能源材料；不能因通用电子用途映射半导体专用材料。"
+    },
+    {
+      "symbol": "sz301102",
+      "status": "outside_scope",
+      "reason": "高铁广告媒体运营，非显示硬件供应。"
+    },
+    {
+      "symbol": "sz301127",
+      "status": "outside_scope",
+      "reason": "环保水处理及固废治理。"
+    },
+    {
+      "symbol": "sz301162",
+      "status": "outside_scope",
+      "reason": "新能源预测及信息化服务。"
+    },
+    {
+      "symbol": "sz301123",
+      "status": "unresolved",
+      "reason": "FPC 与连接器实际供给，主要应用为汽车电池及消费电子，研究范围边界未解决。"
+    },
+    {
+      "symbol": "sz301103",
+      "status": "outside_scope",
+      "reason": "眼科医疗服务。"
+    },
+    {
+      "symbol": "sz301286",
+      "status": "unresolved",
+      "reason": "气体供给覆盖半导体等多个行业，但半导体专用产品及客户业务证据仍待核实。"
+    },
+    {
+      "symbol": "sz301248",
+      "status": "unresolved",
+      "reason": "智慧城市安全及集成业务，需核实是否存在实际自有算力产品。"
+    },
+    {
+      "symbol": "sz301212",
+      "status": "unresolved",
+      "reason": "通用化学品及电子化学品发展方向，尚不能将未来规划当成已经营的半导体材料业务。"
+    },
+    {
+      "symbol": "sz301298",
+      "status": "outside_scope",
+      "reason": "发动机减振器等汽车机械零件。"
+    },
+    {
+      "symbol": "sz301148",
+      "status": "outside_scope",
+      "reason": "污废水处理设备及服务。"
+    },
+    {
+      "symbol": "sz301259",
+      "status": "outside_scope",
+      "reason": "农业农村环保治理。"
+    },
+    {
+      "symbol": "sz301097",
+      "status": "outside_scope",
+      "reason": "医疗高分子耗材。"
+    },
+    {
+      "symbol": "sz001268",
+      "status": "outside_scope",
+      "reason": "压缩机等机械零部件。"
+    },
+    {
+      "symbol": "sz301220",
+      "status": "outside_scope",
+      "reason": "香料研发制造。"
+    },
+    {
+      "symbol": "sz301237",
+      "status": "unresolved",
+      "reason": "多行业功能薄膜，未确认半导体或 AI 专用材料业务。"
+    },
+    {
+      "symbol": "sz301196",
+      "status": "outside_scope",
+      "reason": "模具、注塑件、空气净化等产品；未建立专用 AI 供应链业务。"
+    },
+    {
+      "symbol": "sz301125",
+      "status": "outside_scope",
+      "reason": "建筑五金及射钉器材。"
+    },
+    {
+      "symbol": "sz301163",
+      "status": "outside_scope",
+      "reason": "风电、电力、医疗设备等铸件。"
+    },
+    {
+      "symbol": "sz301130",
+      "status": "outside_scope",
+      "reason": "药品原料与制剂。"
+    },
+    {
+      "symbol": "sz301135",
+      "status": "outside_scope",
+      "reason": "家电控制器，不因智能字样等同算力或芯片供应。"
+    },
+    {
+      "symbol": "sz301181",
+      "status": "outside_scope",
+      "reason": "汽车管路连接件。"
+    },
+    {
+      "symbol": "sz301228",
+      "status": "outside_scope",
+      "reason": "环境食品检测服务。"
+    },
+    {
+      "symbol": "sz301279",
+      "status": "outside_scope",
+      "reason": "工业车辆机械传动。"
+    }
+  ],
+  "members": [
+    {
+      "symbol": "sh600845",
+      "name": "宝信软件",
+      "industry": "datacenter",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-24",
+      "source_sha256": "03b3e4ef645dcde83807f47fdf6433b3eb7ffd870163882a5e68b3def0f33013",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=600845&id=8448824",
+      "source_title": "宝信软件：2022年半年度报告",
+      "evidence_anchor": "进行IDC和云计算节点的布局建设"
+    },
+    {
+      "symbol": "sh603019",
+      "name": "中科曙光",
+      "industry": "compute",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-31",
+      "source_sha256": "7a9f2abe4aa30d9f13efaf868b650b0f38fe77197f03491012a559931890815f",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=603019&id=8505071",
+      "source_title": "中科曙光：2022年半年度报告",
+      "evidence_anchor": "公司主要从事高端计算机"
+    },
+    {
+      "symbol": "sh603160",
+      "name": "汇顶科技",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-30",
+      "source_sha256": "2f5d08c333b99405f81ae39a822985c202a7d4febe36ba1f2c09f417ca4f7fea",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=603160&id=8494909",
+      "source_title": "汇顶科技：2022年半年度报告",
+      "evidence_anchor": "公司是一家驱动万物智联"
+    },
+    {
+      "symbol": "sh603501",
+      "name": "韦尔股份",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-12",
+      "source_sha256": "fd5c3a5e013425b41cc729948c429532f89d5c563b08b72237c348b857672c2f",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=603501&id=8414944",
+      "source_title": "韦尔股份：2022年半年度报告全文",
+      "evidence_anchor": "半导体设计"
+    },
+    {
+      "symbol": "sh603893",
+      "name": "瑞芯微",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-10",
+      "source_sha256": "e13beb72fbf7913be86999bdc65fa00e3791eec1f923ba8bdcc0cf69ba315fc5",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=603893&id=8410203",
+      "source_title": "瑞芯微：2022年半年度报告",
+      "evidence_anchor": "公司的主要产品智能应用处理器芯片"
+    },
+    {
+      "symbol": "sh688008",
+      "name": "澜起科技",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-10",
+      "source_sha256": "bba5bb7d13b1eb84ad8311fac4822f1722948bcf63284e2aec42446d6791aeec",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=688008&id=8410743",
+      "source_title": "澜起科技：2022年半年度报告",
+      "evidence_anchor": "内存接口"
+    },
+    {
+      "symbol": "sh688018",
+      "name": "乐鑫科技",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-23",
+      "source_sha256": "f362503b18319c33e8c613da28d41e258c73c36b533513c45175280134df2a21",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=688018&id=8446874",
+      "source_title": "乐鑫科技：2022年半年度报告",
+      "evidence_anchor": "公司主要从事集成电路产品的研发设计和销售"
+    },
+    {
+      "symbol": "sh688099",
+      "name": "晶晨股份",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-12",
+      "source_sha256": "5496dfc5aeb1829d6d448725970ca9c686491388f89132afc54e7ea214d26db7",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=688099&id=8415019",
+      "source_title": "晶晨股份：2022年半年度报告",
+      "evidence_anchor": "公司主营业务为系统级SoC"
+    },
+    {
+      "symbol": "sh688220",
+      "name": "翱捷科技",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-30",
+      "source_sha256": "3a2e0d3a4c9f784ece21c9b81492e3d8e41316804348a68de29405a783941c13",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=688220&id=8498554",
+      "source_title": "翱捷科技：2022年半年度报告",
+      "evidence_anchor": "公司主营业务是无线通信芯片"
+    },
+    {
+      "symbol": "sh688256",
+      "name": "寒武纪",
+      "industry": "compute",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-13",
+      "source_sha256": "82f3c3dd478ba473a23cdb8d771bd6dbc3bb1613a0cf9683a09e9e22954fe25f",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=688256&id=8418677",
+      "source_title": "寒武纪：2022年半年度报告",
+      "evidence_anchor": "公司的主营业务是各类云服务器"
+    },
+    {
+      "symbol": "sh688521",
+      "name": "芯原股份",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-08",
+      "source_sha256": "bf1e48da5aba1506af8abb5ee268214c9781acbfeaf8ba46db461171b7019489",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=688521&id=8405320",
+      "source_title": "芯原股份：2022年半年度报告",
+      "evidence_anchor": "芯原是一家依托自主半导体IP"
+    },
+    {
+      "symbol": "sh688608",
+      "name": "恒玄科技",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-30",
+      "source_sha256": "032061e9f1ccbcecd2b30448d943757e8b6e415a2368fdfc5c3c001259fd7022",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=688608&id=8494947",
+      "source_title": "恒玄科技：2022年半年度报告",
+      "evidence_anchor": "公司主营业务为智能音视频SoC"
+    },
+    {
+      "symbol": "sz000938",
+      "name": "紫光股份",
+      "industry": "compute",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-20",
+      "source_sha256": "370519f512abec557c321f4c9468f77aa372f3363a5657bb40cc907b10a19a9c",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=000938&id=8437433",
+      "source_title": "紫光股份：2022年半年度报告",
+      "evidence_anchor": "2、服务器"
+    },
+    {
+      "symbol": "sz000977",
+      "name": "浪潮信息",
+      "industry": "compute",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-27",
+      "source_sha256": "64e15a2ea081b379ef3697a6415aca48f609e9c0234f3f4cacd94fec77c979c6",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=000977&id=8480287",
+      "source_title": "浪潮信息：2022年半年度报告",
+      "evidence_anchor": "主要系服务器及部件销售增长"
+    },
+    {
+      "symbol": "sz002335",
+      "name": "科华数据",
+      "industry": "datacenter",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-29",
+      "source_sha256": "f7fc42191bb8ee588e19a46ccaa05013fdb9fb9a5e2a43c60c3fe344d048a6b2",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=002335&id=8485575",
+      "source_title": "科华数据：2022年半年度报告",
+      "evidence_anchor": "目前公司在北、上、广等地拥有8大数据中心"
+    },
+    {
+      "symbol": "sz002405",
+      "name": "四维图新",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-16",
+      "source_sha256": "19ad9ef965884d1bb0e82416eee085e3791e1c103dba8dc61ab49a4bf7e5c46f",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=002405&id=8421723",
+      "source_title": "四维图新：2022年半年度报告",
+      "evidence_anchor": "智芯业务，主要"
+    },
+    {
+      "symbol": "sz300212",
+      "name": "易华录",
+      "industry": "storage",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-19",
+      "source_sha256": "e7037f899b63b8f8250adf894c365f5f6e54a9c8d9657122ad1fd880c5deaee9",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=300212&id=8434432",
+      "source_title": "易华录：2022年半年度报告",
+      "evidence_anchor": "易华录各类超级智能存储产品"
+    },
+    {
+      "symbol": "sz300223",
+      "name": "北京君正",
+      "industry": "storage",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-27",
+      "source_sha256": "531e3802510d57619feb5f0d73ae5120c204ed05988f238a8ff90052d132770a",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=300223&id=8483845",
+      "source_title": "北京君正：2022年半年度报告",
+      "evidence_anchor": "公司为集成电路设计企业"
+    },
+    {
+      "symbol": "sz300383",
+      "name": "光环新网",
+      "industry": "datacenter",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-27",
+      "source_sha256": "8d9ea8675c735704e4b2a053bbe28dc4701358a2032fc11e8dd92ebc05918015",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=300383&id=8476205",
+      "source_title": "光环新网：2022年半年度报告",
+      "evidence_anchor": "主要业务包括互联网数据中心业务"
+    },
+    {
+      "symbol": "sz300454",
+      "name": "深信服",
+      "industry": "datacenter",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-27",
+      "source_sha256": "3fa71e42227b55eb9c703767ef233029c8f14a65ab06c4905e6522508d76e1ec",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=300454&id=8481111",
+      "source_title": "深信服：2022年半年度报告",
+      "evidence_anchor": "基于超融合的技术底座"
+    },
+    {
+      "symbol": "sz300458",
+      "name": "全志科技",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-26",
+      "source_sha256": "9bcae954f9fd8951076feca2ba8be62d870838c99762569809e59c95b7e93c19",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=300458&id=8471681",
+      "source_title": "全志科技：2022年半年度报告",
+      "evidence_anchor": "公司目前的主营业务为智能应用处理器"
+    },
+    {
+      "symbol": "sz300474",
+      "name": "景嘉微",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-09",
+      "source_sha256": "209285e4f3b0eed02920d1bdb7cba8043910c24b4ffaed39fa374c8701cc33aa",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=300474&id=8408017",
+      "source_title": "景嘉微：2022年半年度报告",
+      "evidence_anchor": "图形处理芯片"
+    },
+    {
+      "symbol": "sz300613",
+      "name": "富瀚微",
+      "industry": "design",
+      "effective_from": "2022-09-01",
+      "source_disclosed_date": "2022-08-30",
+      "source_sha256": "7c5e4822a08a4bc5c5b02c2f796f7a526215f2726d6cb9008e83dbb754f8ea77",
+      "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=300613&id=8492467",
+      "source_title": "富瀚微：2022年半年度报告",
+      "evidence_anchor": "无晶圆（Fabless）集成电路设计公司"
+    }
+  ],
+  "lifecycle_annotations": [
+    {
+      "symbol": "sz300212",
+      "event": "2024business_reorientation",
+      "treatment": "Retain originally selected issuer;2024/2025 annual sources still document storage operations. No retrospective winner/loser exclusion."
+    },
+    {
+      "symbol": "sz300212",
+      "effective_date": "2026-04-30",
+      "event": "delisting_and_other_risk_warning",
+      "source_id": "1225239125",
+      "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-29/1225239125.PDF",
+      "treatment": "Retain risk-warning/losing issuer in fixed research cohort. No production admission."
+    }
+  ],
+  "limitations": [
+    "Fixed entry cohort known before2023; not a claim of continuous or exhaustive AI membership.",
+    "94annual versions and observed suspension/IPO sources are archived; do not infer absence of all intrayear exits.",
+    "25unresolved original-frame companies remain explicit and are not treated as non-AI negatives.",
+    "No stock return, fund weight or later profitability selects these23members.",
+    "Research data/decisions must remain hash-bound and are not frozen-production evidence."
+  ]
+}

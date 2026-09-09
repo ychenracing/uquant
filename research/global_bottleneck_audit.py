@@ -6,13 +6,12 @@ not independent opportunities. Historical paths are not fresh holdout evidence.
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 import gzip
 import json
+from collections import Counter
 from pathlib import Path
 
 from research.cross_ai_acceptance import read_case
-
 
 SOURCES = {
     'C': 'b928db51ea6a7bbdfbe79588408717241200d44b3d98b2c39d7668b28e90259d',
@@ -34,7 +33,7 @@ def audit(root: Path, name: str, source: str) -> dict:
     events, freezes, previous_targets = [], [], {}
     prior_freeze = False
     prior_blocked: set[str] = set()
-    blocked_episodes, future_returns, observation_dates = [], {}, []
+    blocked_episodes = []
     flat_run = longest_flat = 0
     previous_row = None
     buys, sells = [], []
@@ -45,11 +44,6 @@ def audit(root: Path, name: str, source: str) -> dict:
             symbols = allocation.get('symbols', {})
             held = row['ledger']['position_weights']
             targets = row['ledger']['target_weights']
-            observation_dates.append(row['date'])
-            future_returns[row['date']] = {
-                s: {h: snap.get('ret' + str(h)) for h in (20, 60)}
-                for s, snap in row['observation']['qualification_snapshots'].items()
-            }
             flat = not any(v > 0 for v in held.values())
             frozen = allocation.get('final_freeze_new_risk', allocation.get('freeze_new_risk', False))
             counts['sessions'] += 1
@@ -99,17 +93,6 @@ def audit(root: Path, name: str, source: str) -> dict:
                     sells.append({k: fill[k] for k in ('symbol', 'signal_date', 'fill_date', 'gross_value', 'mechanism')})
             previous_targets, previous_row, prior_blocked = targets, row, current_blocked
     counts['longest_flat_days'] = longest_flat
-    # Ex-post labels only, never inputs to the strategy or hypothetical profits.
-    # A future snapshot's ret20/ret60 spans from this signal close to that close.
-    indexes = {date: i for i, date in enumerate(observation_dates)}
-    for event in events + blocked_episodes:
-        event['ex_post_close_returns'] = {}
-        for horizon in (20, 60):
-            index = indexes[event['date']] + horizon
-            value = None
-            if index < len(observation_dates):
-                value = future_returns[observation_dates[index]].get(event['symbol'], {}).get(horizon)
-            event['ex_post_close_returns'][str(horizon)] = value
     return {
         'path': str(root), 'source': source, 'native_readback': True,
         'result_seal': sealed['canonical_sha256'], 'raw_sha256': sealed['raw_sha256'],

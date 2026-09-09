@@ -383,11 +383,15 @@ def run_benchmark_case(
 def read_benchmark_case(
     directory: Path, *, case_id: str, start: str, end: str,
     extra_excluded_symbols: tuple[str, ...] = (),
+    producer_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Read current-input evidence, recomputing economics without another replay.
 
     Commit-only changes are neutral; source/config/data/runtime/runner identities
     must match. Historical evidence is never silently relabeled as current.
+    An explicit producer seal is allowed only after the caller has established
+    economic-code equivalence (e.g. a readback-only fix). Never obtain that trust
+    anchor from the evidence being checked. All other input checks still apply.
     """
     result = strict_json_loads((directory / 'result.json').read_bytes())
     if not isinstance(result, dict):
@@ -400,6 +404,13 @@ def read_benchmark_case(
         raise ValueError('incomplete or invalid benchmark result')
     identity = result['identity']
     expected = benchmark_identity(case_id, start, end, extra_excluded_symbols=extra_excluded_symbols)
+    if producer_sha256 is not None:
+        if len(producer_sha256) != 64 or any(c not in '0123456789abcdef' for c in producer_sha256):
+            raise ValueError('invalid benchmark producer seal')
+        expected['benchmark_sha256'] = producer_sha256
+        expected['research_account_code_sha256'] = hashlib.sha256(canonical_json_bytes({
+            key: expected[key] for key in ('source_sha256', 'runner_sha256', 'benchmark_sha256')
+        })).hexdigest()
     if (set(identity) != set(expected)
             or any(identity[key] != value for key, value in expected.items() if key != 'commit')
             or strict_json_loads((directory / 'identity.json').read_bytes()) != identity):
@@ -429,7 +440,15 @@ def read_benchmark_case(
     if len(rows) < 2 or len(rows) != result['sessions'] or [row['date'] for row in rows] != dates:
         raise ValueError('benchmark session schedule mismatch')
     fills = []
+    previous_equity = account.initial_cash
     for row in rows:
+        ledger = row['ledger']
+        if (ledger['date'] != row['date'] or not math.isfinite(row['equity'])
+                or not math.isclose(ledger['equity'], row['equity'], rel_tol=1e-12, abs_tol=1e-6)
+                or not math.isclose(ledger['daily_pnl'], row['equity'] - previous_equity,
+                                    rel_tol=1e-12, abs_tol=1e-6)):
+            raise ValueError('benchmark per-session economics mismatch')
+        previous_equity = row['equity']
         roles = case_symbols(case_id, row['date'], extra_excluded_symbols=extra_excluded_symbols)
         if row['roles'] != diagnostic_json(roles):
             raise ValueError('benchmark daily role mismatch')

@@ -117,3 +117,20 @@ strategic exit route. C's Apr11 capital level was 0; Apr26 was already 1.
 Early capital freeze alone cannot sell; the existing repeated holdings shock
 must also be present. Preserve the acute premium gate and every fixed screen
 and promotion contract. Run H1 first, then the three continuous controls.
+
+E is also rejected. Full returns to 30.74331173106631 / DD
+0.27146973146234554 / 20 orders. Strict removal improves to
+2.668552289269327 / DD 0.15838911160983737 / 32 orders. H1 is
+1.4188358457656896 / DD 0.1733144377446999 / 7 orders. However,
+remove_all_three is only 1.5435429299443004 / DD 0.14490740434397953 /
+15 orders, below 2.397615989680009. No promotion. All four native readbacks
+are retained. The affected 204 tests, Ruff, and the complete risk architecture
+file pass for E; engineering results do not override its economic failure.
+
+Restore D/E production and changed guard tests exactly to C (dd69b96) by a
+normal commit. Retain every rejected source commit and evidence. Current C is
+the best passing four-screen candidate under the user's 32-order authorization,
+but its inherited H1 drawdown failure remains a real nominal failure. Main is
+not merged. Accepting that specific current-main drawdown baseline instead of
+the older frozen limit is a material acceptance decision requiring explicit
+user instruction; neither the order revision nor these experiments authorize it.

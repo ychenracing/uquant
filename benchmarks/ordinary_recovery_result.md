@@ -5,6 +5,14 @@ orders and requests completion and merge to main. Candidate C therefore passes
 the four screens under that revised order ceiling. The original failed
 judgments below remain unchanged; complete acceptance is tracked in PR #56.
 
+Final nominal readback for C is 13/14 PASS. No-optical H1 drawdown
+0.2442425185317515 equals current main but exceeds the older frozen retention
+limit 0.20205429957130803; this failure is not waived. Subsequent risk candidates
+D and E both improve H1 drawdown but fail continuous wealth retention. They
+are rejected and their code is restored to C. All experiment sources and raw
+evidence remain retained; see the continuation record. Main is not merged and
+full L4 is not claimed.
+
 Historical screening, not a future-return claim or full production acceptance.
 The preregistered mechanism sequence and unchanged gates are in
 `ordinary_recovery_continuation.md`. Config, frozen inputs, execution and fees

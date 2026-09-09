@@ -82,7 +82,7 @@ def _leader_lifecycle_exit_confirmed(
     leaders: dict[str, LeaderScore],
     account: AccountState,
 ) -> bool:
-    """Reuse the existing per-symbol damage confirmation across owner gaps."""
+    """Confirm absolute price damage; relative maturity cannot veto an exit."""
     position = account.positions.get(symbol)
     frame = user_panel.get(symbol)
     leader = leaders.get(symbol)
@@ -94,8 +94,7 @@ def _leader_lifecycle_exit_confirmed(
     peak_mfe = position.highest_close / max(position.avg_cost, 1e-12) - 1.0
     protected_winner = peak_mfe >= 0.20
     broken = bool(
-        not leader.mature
-        and scalar(row, "close")
+        scalar(row, "close")
         < scalar(
             row,
             f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",

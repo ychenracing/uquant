@@ -27,9 +27,11 @@ def _damage(panel, leaders, dates):
     return {symbol: replace(leader, mature=False) for symbol, leader in leaders.items()}
 
 
-def test_confirmed_core_structure_exit_keeps_native_identity_until_final_fill():
+@pytest.mark.parametrize('mature', (False, True))
+def test_confirmed_core_structure_exit_keeps_native_identity_until_final_fill(mature):
     allocator, account, dates, panel, leaders, roles = _aged_core()
     leaders = _damage(panel, leaders, dates)
+    leaders = {symbol: replace(leader, mature=mature) for symbol, leader in leaders.items()}
     epoch = account.strategic_epochs[0]
     assert epoch.realized_status == "ACTIVE" and not epoch.terminal
     assert account.strategic_epoch == 0
@@ -80,19 +82,18 @@ def test_structural_confirmation_counts_sessions_once_across_restart():
     assert len(orders) == 1 and orders[0].side == "SELL"
 
 
-@pytest.mark.parametrize("missing", ("maturity", "price", "return", "interrupted", "partial-entry"))
+@pytest.mark.parametrize("missing", ("price", "return", "interrupted", "partial-entry"))
 def test_core_exit_preserves_existing_conjunction_and_entry_completion(missing):
     allocator, account, dates, panel, leaders, roles = _aged_core(partial=missing == "partial-entry")
     damaged = _damage(panel, leaders, dates)
-    if missing == "maturity":
-        damaged = leaders
-    elif missing == "price":
+    if missing == "price":
         panel[OWNER].loc[dates, "ma20"] = panel[OWNER].loc[dates, "close"] * .95
     elif missing == "return":
         panel[OWNER].loc[dates, "ret20"] = -.07
-    for index, date in enumerate(dates[:4]):
-        current = leaders if missing == "interrupted" and index == 1 else damaged
-        assert not _decide_and_submit(allocator, account, date, panel, current, roles)
+    elif missing == "interrupted":
+        panel[OWNER].loc[dates[1], "ret20"] = -.07
+    for date in dates[:4]:
+        assert not _decide_and_submit(allocator, account, date, panel, damaged, roles)
     assert account.positions[OWNER].shares > 0
     assert not account.strategic_epochs[0].terminal
 

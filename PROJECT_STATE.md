@@ -13,7 +13,8 @@
 
 - Current continuation: PR #56, ordinary structural exit, entry simplification and capital recovery. PR #55's standalone comparison and PR #48 are historical; preserve their failed evidence.
 - Resolve PR #56 head/status and candidate decision before continuing; do not redo still-valid evidence.
-- Latest bounded round: `benchmarks/capital_holding_result.md` and receipts. Both fixed arms failed. `benchmarks/industry_mapping_review.json` documents classification issues; recorded no_optical is not reliable economic non-optical isolation. Next priority is versioned input correctness, preserving frozen originals.
+- Previous bounded round: `benchmarks/capital_holding_result.md` and receipts. Both fixed arms failed. `benchmarks/industry_mapping_review.json` documents classification issues; recorded no_optical is not reliable economic non-optical isolation. Next priority is versioned input correctness, preserving frozen originals.
+- Latest input round: `benchmarks/industry_input_v2/result.md`, taxonomy, receipts and native_plan. 34 reviewed business mappings, 14 proposed label changes; historical membership unresolved. Full optical PnL share 91.22%, strict 47.75%. Two all-role optical exclusion H1 probes completed: main=C wealth 1.597983, DD .176467, 6 orders. Other industry logic unchanged; no full taxonomy replay or promotion. Next decision is bounded unified research-input injection, not more score/position tuning.
 - Objective: improve cross-AI trend discovery, holding, recovery, and diversification away from direct dependence on the three optical leaders while simplifying the core allocator.
 - The PR and `benchmarks/ordinary_recovery_continuation.md` record the production baseline, preregistered mechanisms and failed candidate decisions. Existing production contracts remain unchanged. Four screening cases alone are not full acceptance.
 

@@ -37,6 +37,7 @@ from .ordinary import observe_ordinary_market, ordinary_core_entry
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
+from .strategic.grant_lifecycle import completed_strategic_cohort_entry
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
 from .strategic.qualification_candidates import (
     candidate_entry as _candidate_entry,
@@ -297,7 +298,7 @@ def _fund_strategic_owners(book: AllocationBook, *, frozen: bool,
 
 
 def _ordinary_exits(book: AllocationBook) -> None:
-    """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
+    """Use the same confirmed structural exit for natively completed CORE."""
     account = book.account
     for symbol, position in account.positions.items():
         if position.shares <= 0:
@@ -306,8 +307,9 @@ def _ordinary_exits(book: AllocationBook) -> None:
             continue
         grant = account.strategic_grant
         if symbol in book.owned and not (
-            grant is not None and grant.candidate_symbol == symbol
-            and _completed_strategic_core_entry(account, grant)
+            (grant is not None and grant.candidate_symbol == symbol
+             and _completed_strategic_core_entry(account, grant))
+            or completed_strategic_cohort_entry(account, {symbol})
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"

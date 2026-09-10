@@ -46,12 +46,12 @@ Reuse tests/test_core_bounded_risk_restoration.py's actual buy/risk-sale fixture
 - [x] Implement `_held_repair_symbols(book) -> set[str]` and scope
   `_restore_ordinary_holdings(book, permitted_symbols=...)` plus final freeze
   authorization to exactly those symbols. Existing permissions remain separate.
-- [ ] Run the new tests plus existing bounded restoration and tactical control
+- [x] Run the new tests plus existing bounded restoration and tactical control
   modules; Ruff/mypy only affected sources; commit immutable candidate.
 
 ## Task B: economic decision, then contingent continuation
 
-- [ ] Run existing research.cross_ai_strategy no_optical2025-01-02..2026-07-31
+- [x] Run existing research.cross_ai_strategy no_optical2025-01-02..2026-07-31
   under frozen uv0.11.33/Python3.12.13 and unchanged configuration/data; read_case
   verifies real raw/attribution. Compare source-bound selected control, first
   actual differing target/fill, added/restored losses and net wealth/DD/orders.

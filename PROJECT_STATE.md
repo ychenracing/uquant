@@ -3,7 +3,11 @@
 Latest execution: user authorized the narrowed held-restoration route and minor
 comparison tolerances. Candidate implemented on codex/protected-holding-recovery-20260910;
 economic source eac89fcd6fd386d8ca123e8d32ca3e7846c0955404908e9c78d8b301c20584e8.
-45distinct affected tests PASS; native no_optical/later is the next economic gate.
+45distinct affected tests PASS; native no_optical/later FAILED economically:
+wealth1.0508007574 vs control1.125312594, DD.206162 vs .173514; P1 pending
+remainder scope leak also found. Rejected, no retuning or broad matrix.
+Authorized fixed simple ordinary fallback is running on original226ef63/sourceb7f54;
+see benchmarks/protected_holding_recovery_result.md. No policy promotion yet.
 Older NOT_IMPLEMENTED descriptions are preserved history, superseded by the final
 implementation checkpoint. Full goal remains unproven; no main merge.
 

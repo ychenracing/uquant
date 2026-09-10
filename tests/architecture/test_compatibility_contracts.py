@@ -276,14 +276,15 @@ def test_split_validators_preserve_retained_baseline_clauses_in_exact_ast_order(
         60: "leader_cycle_impulse_breadth",
         61: "leader_cycle_min_market_ret120",
         62: "leader_cycle_impulse_min_market_ret120",
+        78: "strategic_reversal_max_tech_ret120",
         79: "strategic_epoch_cooldown_sessions",
         80: "strategic_epoch_min_symbol_change",
     }
     for index, field in RETIRED_VALIDATION_CLAUSES.items():
         assert f"attr='{field}'" in baseline[index]
-    assert len(candidate) == 151
+    assert len(candidate) == 150
     assert candidate == projected_baseline_validation_clause_dumps()
-    assert candidate == baseline[:57] + baseline[63:79] + baseline[81:]
+    assert candidate == baseline[:57] + baseline[63:78] + baseline[81:]
     assert all(left != right for left, right in pairwise(candidate))
 
 
@@ -319,7 +320,7 @@ def test_semantic_gate_rejects_an_additional_validation_clause_deletion() -> Non
     )
     del function.body[-1]
 
-    with pytest.raises(AssertionError, match="candidate validation clause count changed: 150"):
+    with pytest.raises(AssertionError, match="candidate validation clause count changed: 149"):
         candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
 
 
@@ -347,10 +348,10 @@ def test_semantic_gate_rejects_retired_field_and_clause_reintroduction(field: st
     function.body.append(
         ast.parse(f"if config.{field} < 1:\n    raise ValueError('reintroduced')").body[0]
     )
-    with pytest.raises(AssertionError, match="candidate validation clause count changed: 152"):
+    with pytest.raises(AssertionError, match="candidate validation clause count changed: 151"):
         candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
 
-    # A compensating deletion must not hide reintroduction behind the 151 count.
+    # A compensating deletion must not hide reintroduction behind the 150 count.
     del function.body[-2]
     assert candidate_validation_clause_dumps({relative_path: ast.unparse(tree)}) != (
         projected_baseline_validation_clause_dumps()

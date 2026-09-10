@@ -47,8 +47,6 @@ def _validate_strategic_routes(config: Any) -> None:
         raise ValueError("strategic_reversal_min_ret5 must be in (0, 1)")
     if not -1 < config.strategic_reversal_min_median_ret20 <= 0:
         raise ValueError("strategic_reversal_min_median_ret20 must be in (-1, 0]")
-    if not -1 < config.strategic_reversal_max_tech_ret120 <= 0:
-        raise ValueError("strategic_reversal_max_tech_ret120 must be in (-1, 0]")
 
 
 def validate_strategic_discovery(config: Any) -> None:

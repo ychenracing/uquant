@@ -247,7 +247,7 @@ def test_strategy_rule_changes_cannot_use_the_historical_identity_only_migration
     assert migration.strategy_rule_removals == (
         "strategic_epoch_cooldown_sessions", "strategic_epoch_min_symbol_change",
     )
-    assert (migration.current_total_fields, migration.current_economic_fields) == (267, 154)
+    assert (migration.current_total_fields, migration.current_economic_fields) == (266, 153)
     assert migration.before_economic_fields == migration.after_economic_fields == 164
 
 
@@ -466,7 +466,8 @@ def test_current_retirement_projection_rejects_unreviewed_schema_changes(
             field, ParameterCategory.ECONOMIC,
             governance_module.SubsystemOwner.STRATEGIC, "sealed historical strategic field",
         )
-        for field in governance_module.RETIRED_LEADER_CYCLE_FIELDS
+        for field in (*governance_module.RETIRED_LEADER_CYCLE_FIELDS,
+                      *governance_module._retired_reversal_fields())
     )
     live_fields = list(fields(SystemConfig))
     if mutation == "extra-removal":
@@ -485,7 +486,7 @@ def test_current_retirement_projection_rejects_unreviewed_schema_changes(
 
 def test_frozen_sensitivity_parameters_remain_governed_and_serialized() -> None:
     names = {
-        "leader_tenure_days", "strategic_reversal_min_ret5", "strategic_reversal_max_tech_ret120",
+        "leader_tenure_days", "strategic_reversal_min_ret5",
         "strategic_dominant_profit_lock_mfe", "strategic_dominant_retained_gross",
     }
     assert names <= SystemConfig().to_dict().keys()
@@ -493,7 +494,8 @@ def test_frozen_sensitivity_parameters_remain_governed_and_serialized() -> None:
     assert not names.intersection(governance_module.RETIRED_LEADER_CYCLE_FIELDS)
 
 
-@pytest.mark.parametrize("field", governance_module.RETIRED_LEADER_CYCLE_FIELDS)
+@pytest.mark.parametrize("field", (*governance_module.RETIRED_LEADER_CYCLE_FIELDS,
+                                  *governance_module._retired_reversal_fields()))
 def test_retired_leader_cycle_knobs_cannot_reach_candidate_runner(field: str) -> None:
     calls = 0
 

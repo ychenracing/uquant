@@ -29,7 +29,7 @@
                   "default": {
                     "kind": "dataclass",
                     "type": "uquant.config.SystemConfig",
-                    "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                    "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                   }
                 }
               ],
@@ -1026,15 +1026,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.05
-                  }
-                },
-                {
-                  "name": "strategic_reversal_max_tech_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -3384,14 +3375,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.05
-                }
-              },
-              {
-                "name": "strategic_reversal_max_tech_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -5373,7 +5356,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -6369,7 +6352,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -7757,7 +7740,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -8251,7 +8234,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -9070,15 +9053,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.05
-                  }
-                },
-                {
-                  "name": "strategic_reversal_max_tech_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -11428,14 +11402,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.05
-                }
-              },
-              {
-                "name": "strategic_reversal_max_tech_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -12882,7 +12848,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -13701,15 +13667,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.05
-                  }
-                },
-                {
-                  "name": "strategic_reversal_max_tech_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -16059,14 +16016,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.05
-                }
-              },
-              {
-                "name": "strategic_reversal_max_tech_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -21862,7 +21811,7 @@
                   "default": {
                     "kind": "dataclass",
                     "type": "uquant.config.SystemConfig",
-                    "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                    "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                   }
                 }
               ],
@@ -69206,7 +69155,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -86119,7 +86068,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -86179,7 +86128,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -86238,7 +86187,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -86312,7 +86261,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -86623,7 +86572,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -87043,7 +86992,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -87151,7 +87100,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -88429,7 +88378,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -95546,7 +95495,6 @@
         "strategic_reversal_max_ret240",
         "strategic_reversal_min_ret5",
         "strategic_reversal_min_median_ret20",
-        "strategic_reversal_max_tech_ret120",
         "strategic_long_cycle_min_ret20",
         "strategic_long_cycle_min_ret60",
         "strategic_long_cycle_min_ret120",
@@ -95815,7 +95763,6 @@
         "strategic_reversal_max_ret240": -0.15,
         "strategic_reversal_min_ret5": 0.05,
         "strategic_reversal_min_median_ret20": -0.05,
-        "strategic_reversal_max_tech_ret120": -0.01,
         "strategic_long_cycle_min_ret20": -0.05,
         "strategic_long_cycle_min_ret60": 0.0,
         "strategic_long_cycle_min_ret120": 0.0,
@@ -95993,7 +95940,7 @@
         "risk_overlay_enabled": true,
         "fail_closed": true
       },
-      "sha256": "ff491f722c3f84211eda9953cce1309392f7a89bb86bcc1e2cb33232580d4a26"
+      "sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51"
     },
     "account_state_schema": {
       "schema_version": 8,
@@ -96365,7 +96312,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "1cd0454e58710b59434637ff1d70e659ed256e7e74639584299b8d1cc8f861d9",
+  "contract_sha256": "735e0471b8909ecf090a40ef29c814dbde6f122b8577e0e8b525243f2c3706a1",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

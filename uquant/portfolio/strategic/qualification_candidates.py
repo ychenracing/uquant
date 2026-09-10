@@ -406,7 +406,6 @@ def _witness_owner_routes(
         reversal_groups
         and float(pd.Series([snapshots[s]["ret20"] for s in reversal_groups[0][:2]]).median())
         >= self.cfg.strategic_reversal_min_median_ret20
-        and float(risk.evidence.get("tech_ret120", math.inf)) <= self.cfg.strategic_reversal_max_tech_ret120
     )
     anchor_observed = "risk_anchor_symbols" in risk.evidence
     anchors_not_armed = bool(anchor_observed and not risk.evidence.get("risk_anchor_symbols", []))

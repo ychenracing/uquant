@@ -1,3 +1,13 @@
+Scoped reversal-index retirement screen — 2026-09-10:
+
+- NOT_MET; PR56 Draft; main unchanged. The preregistered candidate removes only the macro120-day reversal veto, its configuration and validator; stock evidence, confirmation and all account controls remain. Source f5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994, config adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
+- 135 affected tests PASS, including discovery/revalidation, exact deletion, weak-stock/witness/risk constraints, config governance, schema mutation guards and API identity. Five source files strictmypy PASS; allRuff PASS. Corrected prechange check retained5 failures/7passes; initial weak-stock fixture used0 incorrectly because retained medianfloor is nonpositive, corrected before implementation.
+- Current retirement inventory is separately sealed; frozen governance/validation stimuli remain intact. PublicAPI changes are limited to one actual field and dependent config hashes. Absolute current identity remains integration739 pending stable-candidate economics; no AbsolutePASS claim for the new source.
+- Freeze producer then native champion early-entry and no_optical/H1 sentinels; if valid, fixed full-window cases and champion offsets5/20. Read benchmarks/reversal_structure_plan.md. Prior integration results and114MB saved archive remain intact.
+
+---
+Earlier checkpoints:
+
 15/40 native results and causal next step — 2026-09-10:
 
 - NOT_MET; PR56 Draft; main unchanged. Revisionv4 hard principalwealth15 / at most40orders per account replay retained.
@@ -6,7 +16,7 @@
 - Integrated repaired strict6.426636/DD16.783827%/36orders differs from priorc482candidate2.647784. Firsttarget divergence2023-05-05 comes from currentPR's retained deletion of fresh long-pullback admission; previousresearchmain/candidate still had that entry. This invalidates integration-neutrality premise, not raw validity. CurrentC control2.133953 has same data/config/runtime; its runner differs only by object-type inputvalidation, satisfied in both. Costs43,720.93/initial2M exceed2%; no strictformalPASS claim.
 - Engineering: 331sourcefiles strictmypy PASS; allRuff PASS;99 Absolute currentcontract/policy/nativefixture tests PASS;39 research parser/analysis behavior tests PASS;11 affected architecture/API/lifecycle nodes PASS across recordedruns. Historical Git blobs restored exact through explicit repoREAD (lazyfetchdisabled). Keep original badfixture/source/mypy logs. No whole-engineeringPASS.
 - Recomparison selects scoped removal of macro-index120-day reversal veto, not ordinary entry widening or parameter tuning. Stock-level reversal/quality/witness/confirmation and all account risk remain. Actual code/parameter retirement still pending preregistered implementation. Prove actual deletion, never call inactive P4 overrides robustnessPASS; test fixed nominal/removal/H1 and starts before expensive finalgates. See benchmarks/goal15_40_stage_result.{md,json}. No other goalproposal adopted.
-- New stage archive packaging underway; append verified savedreceipt when available. Original107MB delivery remains closed.
+- New stage archive saved:114,112,050bytes/2840verifiedfiles/SHA256911af737eb1b71e498b8b871271fabbd4c0fa3ec548fec96b86dcb7ce92203aa. See goal15_40_stage_archive.json. Original107MB delivery remains closed.
 
 ---
 Earlier checkpoints:

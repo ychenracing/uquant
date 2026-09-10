@@ -23283,7 +23283,8 @@
         "path": "uquant/holding_history.py",
         "public_names": [
           "holding_spans_date",
-          "protected_weights_for_current_episode"
+          "protected_weights_for_current_episode",
+          "recovery_owner_open"
         ],
         "functions": {
           "holding_spans_date": {
@@ -23327,6 +23328,36 @@
               }
             ],
             "return": "dict[str, float]"
+          },
+          "recovery_owner_open": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "boundary",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              }
+            ],
+            "return": "bool"
           }
         },
         "classes": {},
@@ -46840,7 +46871,8 @@
         "path": "uquant/portfolio/recovery/cohort_admission.py",
         "public_names": [
           "RecoverySelection",
-          "cohort_admission_targets"
+          "cohort_admission_targets",
+          "scan_recovery_evidence"
         ],
         "functions": {
           "cohort_admission_targets": {
@@ -46959,6 +46991,51 @@
               }
             ],
             "return": "tuple[Target, ...] | None"
+          },
+          "scan_recovery_evidence": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "RecoveryPortfolioPolicy",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "tuple[list[LeaderScore], dict[str, float]]"
           }
         },
         "classes": {
@@ -95401,6 +95478,462 @@
           }
         },
         "enums": {}
+      },
+      "uquant.portfolio.allocation_book": {
+        "path": "uquant/portfolio/allocation_book.py",
+        "public_names": [
+          "AllocationBook"
+        ],
+        "functions": {},
+        "classes": {
+          "AllocationBook": {
+            "signature": {
+              "parameters": [
+                {
+                  "name": "policy",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "PortfolioAllocator",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "date",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "pd.Timestamp",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "risk",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "RiskAssessment",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "user_panel",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, pd.DataFrame]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "leaders",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, LeaderScore]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "account",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "AccountState",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "prices",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "weights_now",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "owned",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "set[str]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "strategic_targets",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, Target]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "proposed",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "committed",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "cash_room",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "float",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "reasons",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, str]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "mechanisms",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, AttributionMechanism]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "replacements",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, str]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "trace",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, dict[str, Any]]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "recovery_targets",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, Target]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "recovery_restore_symbols",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "set[str]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                }
+              ],
+              "return": "None"
+            },
+            "methods": {
+              "fund": {
+                "parameters": [
+                  {
+                    "name": "self",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": null,
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "symbol",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": "str",
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "desired",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": "float",
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "phase",
+                    "kind": "KEYWORD_ONLY",
+                    "annotation": "str",
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "minimum",
+                    "kind": "KEYWORD_ONLY",
+                    "annotation": "float",
+                    "default": {
+                      "kind": "value",
+                      "value": 0.0
+                    }
+                  },
+                  {
+                    "name": "symbol_cap",
+                    "kind": "KEYWORD_ONLY",
+                    "annotation": "float | None",
+                    "default": {
+                      "kind": "value",
+                      "value": null
+                    }
+                  },
+                  {
+                    "name": "concentration_cap",
+                    "kind": "KEYWORD_ONLY",
+                    "annotation": "float | None",
+                    "default": {
+                      "kind": "value",
+                      "value": null
+                    }
+                  }
+                ],
+                "return": "bool"
+              },
+              "record": {
+                "parameters": [
+                  {
+                    "name": "self",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": null,
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "symbol",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": "str",
+                    "default": {
+                      "kind": "required"
+                    }
+                  }
+                ],
+                "return": "dict[str, Any]"
+              }
+            },
+            "properties": [
+              "gross_cap"
+            ]
+          }
+        },
+        "dataclasses": {
+          "AllocationBook": {
+            "fields": [
+              {
+                "name": "policy",
+                "type": "PortfolioAllocator",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "type": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "type": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "type": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "type": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "type": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "prices",
+                "type": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "weights_now",
+                "type": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "owned",
+                "type": "set[str]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "strategic_targets",
+                "type": "dict[str, Target]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "proposed",
+                "type": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "committed",
+                "type": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cash_room",
+                "type": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "reasons",
+                "type": "dict[str, str]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "mechanisms",
+                "type": "dict[str, AttributionMechanism]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "replacements",
+                "type": "dict[str, str]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "trace",
+                "type": "dict[str, dict[str, Any]]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "recovery_targets",
+                "type": "dict[str, Target]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "recovery_restore_symbols",
+                "type": "set[str]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.set"
+                }
+              }
+            ]
+          }
+        },
+        "enums": {}
+      },
+      "uquant.portfolio.recovery.current_cohort": {
+        "path": "uquant/portfolio/recovery/current_cohort.py",
+        "public_names": [
+          "allocate_confirmed_recovery"
+        ],
+        "functions": {
+          "allocate_confirmed_recovery": {
+            "parameters": [
+              {
+                "name": "book",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AllocationBook",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "opportunity",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Opportunity",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "frozen",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
       }
     },
     "flat_config_serialization": {
@@ -96312,7 +96845,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "735e0471b8909ecf090a40ef29c814dbde6f122b8577e0e8b525243f2c3706a1",
+  "contract_sha256": "d3f47950627faa696bfca6bfecd5f87533dbd2978a1de0c7ba08a9895f7eb6af",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

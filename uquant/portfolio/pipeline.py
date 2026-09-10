@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -30,9 +30,11 @@ from ..types import (
     RiskAssessment,
     Target,
 )
+from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import observe_ordinary_market, ordinary_core_entry
+from .recovery.current_cohort import allocate_confirmed_recovery
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -213,63 +215,7 @@ def _degraded_transfer(
     return weakest
 
 
-@dataclass
-class _AllocationBook:
-    """One daily working book shared by every sequential allocation step."""
-
-    policy: PortfolioAllocator
-    date: pd.Timestamp
-    risk: RiskAssessment
-    user_panel: dict[str, pd.DataFrame]
-    leaders: dict[str, LeaderScore]
-    account: AccountState
-    prices: dict[str, float]
-    weights_now: dict[str, float]
-    owned: set[str]
-    strategic_targets: dict[str, Target]
-    proposed: dict[str, float]
-    committed: dict[str, float]
-    cash_room: float
-    reasons: dict[str, str] = field(default_factory=dict)
-    mechanisms: dict[str, AttributionMechanism] = field(default_factory=dict)
-    replacements: dict[str, str] = field(default_factory=dict)
-    trace: dict[str, dict[str, Any]] = field(default_factory=dict)
-
-    @property
-    def gross_cap(self) -> float:
-        return min(self.policy.cfg.max_gross, self.risk.target_gross_cap)
-
-    def record(self, symbol: str) -> dict[str, Any]:
-        row = self.trace.setdefault(symbol, {})
-        row.setdefault("held_weight", self.weights_now.get(symbol, 0.0))
-        return row
-
-    def fund(
-        self, symbol: str, desired: float, *, phase: str, minimum: float = 0.0,
-        symbol_cap: float | None = None, concentration_cap: float | None = None,
-    ) -> bool:
-        current = self.weights_now.get(symbol, 0.0)
-        reserved = max(0.0, self.committed.get(symbol, 0.0) - current)
-        diagnostic: dict[str, Any] = {"phase": phase, "minimum_increment": minimum}
-        increment = funded_increment(
-            cfg=self.policy.cfg, symbol=symbol, desired=desired, current=current,
-            committed=self.committed, cash_room=self.cash_room, leaders=self.leaders,
-            user_panel=self.user_panel, date=self.date, gross_cap=self.gross_cap,
-            symbol_cap=symbol_cap, concentration_cap=concentration_cap, diagnostics=diagnostic,
-        )
-        row = self.record(symbol)
-        row.setdefault("budget_checks", []).append(diagnostic)
-        accepted = increment > 0 and increment + 1e-12 >= minimum
-        diagnostic["accepted"] = accepted
-        row["allocation_reason"] = phase if accepted else "CAPITAL_LIMIT"
-        if accepted:
-            self.proposed[symbol] = current + increment
-            self.committed[symbol] = max(self.committed.get(symbol, 0.0), self.proposed[symbol])
-            self.cash_room -= max(0.0, increment - reserved)
-        return accepted
-
-
-def _pending_pullback_open(book: _AllocationBook, order: PendingOrder) -> bool:
+def _pending_pullback_open(book: AllocationBook, order: PendingOrder) -> bool:
     """Only the original unfilled quantity survives; a historical proof is not cash."""
     entry = pullback_order_entry(book.account, order)
     ledger = next((item for item in book.account.order_ledger if item.order_id == order.order_id), None)
@@ -291,7 +237,7 @@ def _pending_pullback_open(book: _AllocationBook, order: PendingOrder) -> bool:
     return bool(proof["block"] == "READY")
 
 
-def _continue_pullback_order(book: _AllocationBook, order: PendingOrder) -> None:
+def _continue_pullback_order(book: AllocationBook, order: PendingOrder) -> None:
     """Retain the entire original intent or close its remaining capital."""
     current = book.weights_now.get(order.symbol, 0.0)
     allowed = _pending_pullback_open(book, order)
@@ -322,7 +268,7 @@ def _prepare_account(self: PortfolioAllocator, *, risk: RiskAssessment,
         account.candidate_tenure["post_shock_restore_complete"] = 0
 
 
-def _fund_strategic_owners(book: _AllocationBook, *, frozen: bool,
+def _fund_strategic_owners(book: AllocationBook, *, frozen: bool,
                            bounded_restore: bool, unresolved: bool) -> None:
     grant = book.account.strategic_grant
     blocked = bool(grant is not None and (grant.status in {"EXPIRED", "CANCELLED"}
@@ -350,11 +296,13 @@ def _fund_strategic_owners(book: _AllocationBook, *, frozen: bool,
                   concentration_cap=founding_cap)
 
 
-def _ordinary_exits(book: _AllocationBook) -> None:
+def _ordinary_exits(book: AllocationBook) -> None:
     """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
     account = book.account
     for symbol, position in account.positions.items():
         if position.shares <= 0:
+            continue
+        if symbol in book.recovery_targets:
             continue
         grant = account.strategic_grant
         if symbol in book.owned and not (
@@ -387,12 +335,16 @@ def _ordinary_exits(book: _AllocationBook) -> None:
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
 
-def _pending_intents(book: _AllocationBook, *, buy_open: bool, market: dict[str, Any],
+def _pending_intents(book: AllocationBook, *, buy_open: bool, market: dict[str, Any],
                      certificates: dict[str, dict[str, Any]] | None = None) -> None:
     for order in book.account.pending_orders:
         if order.side == "SELL":
             book.proposed[order.symbol] = min(book.proposed.get(order.symbol, 0.0), order.target_weight)
             book.record(order.symbol)["allocation_reason"] = "PENDING_REDUCTION"
+        elif order.mechanism == AttributionMechanism.RECOVERY_COHORT.value:
+            # Only the recovery owner can continue its actual original intent.
+            if not book.record(order.symbol).get("recovery_pending_evaluated"):
+                book.proposed[order.symbol] = book.weights_now.get(order.symbol, 0.0)
         elif (order.symbol not in book.owned
               and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value):
             current = book.weights_now.get(order.symbol, 0.0)
@@ -426,9 +378,11 @@ def _pending_intents(book: _AllocationBook, *, buy_open: bool, market: dict[str,
                 book.fund(order.symbol, order.target_weight, phase="PENDING_CORE_BUY")
 
 
-def _restoration_episode_block(book: _AllocationBook, symbol: str) -> str | None:
+def _restoration_episode_block(book: AllocationBook, symbol: str) -> str | None:
     """Restoration belongs only to the live, mature episode crossing the shock."""
     account = book.account
+    if symbol in book.recovery_restore_symbols:
+        return None  # Real cohort receipts and only risk exits still bind this owner.
     entry = holding_pullback_entry(account, symbol)
     if entry is not None and not pullback_graduated(account, entry):
         return "PULLBACK_NOT_GRADUATED"
@@ -439,7 +393,7 @@ def _restoration_episode_block(book: _AllocationBook, symbol: str) -> str | None
     return None
 
 
-def _restore_ordinary_holdings(book: _AllocationBook) -> None:
+def _restore_ordinary_holdings(book: AllocationBook) -> None:
     account, cfg = book.account, book.policy.cfg
     episode = pd.Timestamp(account.last_shock_date).toordinal() if account.last_shock_date else 0
     for symbol, desired in sorted(account.protected_weights.items()):
@@ -480,7 +434,7 @@ def _restore_ordinary_holdings(book: _AllocationBook) -> None:
             book.reasons[symbol] = "core restoration after account risk repair"
 
 
-def _bounded_ordinary_restore_risk_open(book: _AllocationBook) -> bool:
+def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
     """Preserve existing protected-book repair permissions inside Base Risk's cap."""
     risk, account = book.risk, book.account
     if (not account.protected_weights or risk.state not in {Risk.NORMAL, Risk.CAUTION}
@@ -506,7 +460,7 @@ def _bounded_ordinary_restore_risk_open(book: _AllocationBook) -> bool:
     )
 
 
-def _record_completed_transfer(book: _AllocationBook, symbol: str) -> None:
+def _record_completed_transfer(book: AllocationBook, symbol: str) -> None:
     transfers = [key for key, tenure in book.account.replacement_tenure.items()
                  if key.startswith("core_transfer:") and key.endswith("->" + symbol)
                  and tenure >= book.policy.cfg.replacement_confirm_days
@@ -544,7 +498,7 @@ def _failed_deployment_awaits_settlement(account: AccountState) -> bool:
 
 
 def _fresh_core_selection(
-    book: _AllocationBook, candidates: list[str],
+    book: AllocationBook, candidates: list[str],
 ) -> tuple[set[str], list[str], bool]:
     """Select new names without reallocating existing holdings or BUY commitments."""
     occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
@@ -560,7 +514,7 @@ def _fresh_core_selection(
     return occupied, eligible, immature_occupied
 
 
-def _ordinary_admission_budget(book: _AllocationBook) -> float | None:
+def _ordinary_admission_budget(book: AllocationBook) -> float | None:
     """Share initial ordinary capital while the long market basis is not positive."""
     values: list[Any] = [book.risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120")]
     if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -572,7 +526,7 @@ def _ordinary_admission_budget(book: _AllocationBook) -> float | None:
     return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
 
 
-def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
+def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
@@ -622,7 +576,7 @@ def _admit_new_cores(book: _AllocationBook, *, candidates: list[str], opportunit
             break
 
 
-def _retained_order_identity(book: _AllocationBook, target: Target) -> Target:
+def _retained_order_identity(book: AllocationBook, target: Target) -> Target:
     current = book.weights_now.get(target.symbol, 0.0)
     side = "BUY" if target.weight > current + 1e-12 else "SELL"
     retained = next((order for order in book.account.pending_orders
@@ -644,7 +598,7 @@ def _retained_order_identity(book: _AllocationBook, target: Target) -> Target:
     )})
 
 
-def _book_targets(book: _AllocationBook) -> tuple[Target, ...]:
+def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
     book.account.active_leaders = sorted(s for s, weight in book.proposed.items() if weight > 0 and s not in book.owned)
     targets = book.policy._targets(
         proposed=book.proposed, leaders=book.leaders, account=book.account,
@@ -654,6 +608,12 @@ def _book_targets(book: _AllocationBook) -> tuple[Target, ...]:
     )
     merged = []
     for target in targets:
+        if target.symbol in book.recovery_targets:
+            recovery = book.recovery_targets[target.symbol]
+            mechanism = book.mechanisms.get(target.symbol)
+            target = replace(recovery, weight=target.weight,
+                             reason=book.reasons.get(target.symbol, recovery.reason),
+                             mechanism=mechanism.value if mechanism is not None else recovery.mechanism)
         if book.record(target.symbol).get("allocation_reason") == "PULLBACK_CORE":
             target = replace(target, reason_code=PULLBACK_REASON)
         if target.symbol in book.strategic_targets:
@@ -702,7 +662,7 @@ def _allocate_strategy(
     proposed = dict(weights_now)
     proposed.update({s: min(weights_now.get(s, 0.0), target.weight) for s, target in strategic_targets.items()})
     committed, cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
-    book = _AllocationBook(self, date, risk, user_panel, leaders, account, prices, weights_now,
+    book = AllocationBook(self, date, risk, user_panel, leaders, account, prices, weights_now,
                            owned, strategic_targets, proposed, committed, cash_room)
     bounded_restore = self._bounded_strategic_restore_risk_open(risk=risk, account=account) or strategic_cash_rearm_grant_open(
         account=account, risk=risk, cfg=self.cfg)
@@ -719,6 +679,7 @@ def _allocate_strategy(
     )
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
                                   trace=book.trace, certificates=certificates, market=market)
+    recovery_active = False if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
     _ordinary_exits(book)
     _pending_intents(book, buy_open=not frozen and not liabilities,
                      market=market, certificates=certificates)
@@ -727,7 +688,7 @@ def _allocate_strategy(
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
         _restore_ordinary_holdings(book)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
-    if not frozen and not liabilities and not awaiting_settlement:
+    if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
         _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
     else:
         for symbol in candidates:

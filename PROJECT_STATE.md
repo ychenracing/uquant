@@ -1,3 +1,14 @@
+Confirmed recovery implementation ready for native screen — 2026-09-10:
+
+- NOT_MET; PR56 Draft, main unchanged. Source77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e / configadf8 unchanged. Restore existing confirmed recovery admission after current Base Risk reopens, actual filled recovery ownership, and bounded protected restoration in the same cash book. No early frozen April3 probe or new economic thresholds/rank/weights.
+- Real prefix keeps May6/May7 cash under original3-session confirmation; May8 original full3 selects39460%/30816%/50216% and fills next open. Only bound actual recovery receipts/valid native pending create membership; only RISK-origin sells preserve flat owner. Protected rights use the existing post-shock structure checks, never a fresh locked-cohort BUY.
+- 93 affected tests pass before the final route guard; final28 recovery/restore nodes pass including its fail-first native-fill denial (94 unique across runs). 6 API/authority/complexity nodes,2 cycle/complexity nodes,3 source-surface nodes, strictmypy5sourcefiles and Ruff pass. Expensive native breadth perturbation remains deferred, not passed. No complete engineering/economic acceptance.
+- Shared book moved once to allocation_book.py, existing scanner exposed as actual shared interface; current API and exact source surfaces include both new modules. Historical research file inventory added only to full-package provenance. Intermediate fingerprints before module registration are incomplete and must not label economic evidence. All corrected test expectations/failures retained; no production confirmation or structure threshold changed.
+- Freeze this producer and run fixed native a/bull302. It must pass retained11.5443wealth/DD/champion gates; improvement alone is insufficient. If viable, fresh principal15/40, retainedH1, removals/paired/stress and required final acceptance. Read benchmarks/confirmed_recovery_plan.md and confirmed_recovery_implementation.json. Retained b43 full29.717003593409824/22 and H1 1.9085269240679252/8 are controls, not new-source results. New raw/log evidence still needs saving after screen.
+
+---
+Earlier checkpoints:
+
 Persistent-only full and H1 verified — 2026-09-10:
 
 - NOT_MET; PR56 Draft. b43 full869 wealth29.717003593409824 /22orders, DD.27147361646156465; exact native readback verifies all metrics and symbol PnL equal f5. Hard full15/40 restored after deleting the failed ordinary mature-industry shortcut. Fixed a/h1_2024 remains1.9085269240679252 /8, DD.156742775678121, acute+.06390679898215934; all current/original unit gates pass. No full acceptance claim.

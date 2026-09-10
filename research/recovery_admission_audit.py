@@ -19,7 +19,7 @@ from uquant.engine import ProductionEngine, code_fingerprint
 from uquant.portfolio import PortfolioAllocator
 from uquant.portfolio.recovery.cohort_admission import (
     _filter_recovery_candidates,
-    _scan_recovery_evidence,
+    scan_recovery_evidence,
 )
 from uquant.types import AccountState, LeaderScore, Risk, RiskAssessment
 
@@ -51,7 +51,7 @@ def main() -> None:
             account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
             account.replacement_tenure = copy.deepcopy(state["replacement_tenure"])
             date = pd.Timestamp(native["date"])
-            candidates, depth = _scan_recovery_evidence(
+            candidates, depth = scan_recovery_evidence(
                 policy, date=date, user_panel=panel, leaders=scores, account=account,
             )
             weak_market = max(float(risk.evidence["broad_ret120"]), float(risk.evidence["tech_ret120"])) <= DEFAULT_CONFIG.recovery_cohort_weak_market_ret120

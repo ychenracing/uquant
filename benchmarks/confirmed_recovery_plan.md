@@ -36,7 +36,9 @@ Carry the existing recovery owner through its real pending orders and fills.
 Do not apply ordinary trend exits to a still-owned recovery position whose
 economic premise predates ordinary maturity. Keep existing risk cuts and
 protected-book restoration permissions, same cash/concentration constraints,
-and original cohort graduation. No synthetic fill, unbound epoch/grant, or
+and the original cohort age thresholds. At that age hand ownership to the current
+ordinary lifecycle, preserving the handoff day's shares; do not resurrect the
+retired generic leader-cycle arming layer. No synthetic fill, unbound epoch/grant, or
 reference-only member may create ownership or capital. Completed risk restoration
 retains actual price drift; it must not rebalance to saved targets every day.
 
@@ -47,8 +49,11 @@ exit. Failed/cancelled placement cannot leave an unfunded ghost anchor.
 
 ## Fixed verification and falsification
 
-1. Real frozen prefix test: April frozen cash unchanged; two observed recovery
-   sessions May6/May7, actual next-open fills and subsequent cohort construction.
+1. Real frozen prefix test: April frozen cash unchanged; May6/May7 are two
+   observations and must still wait under the original three-day single-member
+   confirmation. May8 supplies the original full three-member admission, followed
+   by actual next-open fills. The earlier two-day test expectation was incorrect
+   and is retained in failed test logs; no production threshold was changed.
    Include same-day repetition, partial fill/proof loss, reference-only evidence,
    no cash/owner overlap, and frozen-risk denials. Preserve affected existing tests.
 2. Fixed native a/bull must pass its retained11.5443 wealth, DD and champion gates.
@@ -60,3 +65,16 @@ exit. Failed/cancelled placement cannot leave an unfunded ghost anchor.
    the actual holding/restoration divergence. Do not tune candidate depth,
    weights or confirmation to fit the window. Broader formal acceptance runs
    only for a stable viable candidate. No protected data or fresh-OOS claim.
+
+## Implementation verification notes
+
+The shared book is moved, without a second budget engine, into allocation_book.py
+so both the ordinary pipeline and recovery can use its explicit public type without
+a circular import. Candidate scanning is a real shared public function; its predicates
+are unchanged. Current API inventory changes only cover these actual interfaces and
+recovery fill ownership, with no account/config/CLI/economic-contract changes.
+
+Protected recovery rights must use the existing post-shock restoration stage, even
+when the opportunity label is RECOVERY. Locked cohort admission may not recreate a
+flat risk-sold position as a fresh buy and bypass the current structure/restore checks.
+A distinct native-fill regression exercises that boundary before the fixed window.

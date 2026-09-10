@@ -90,7 +90,7 @@ def _locked_cohort_targets(
     )
 
 
-def _scan_recovery_evidence(
+def scan_recovery_evidence(
     self: RecoveryPortfolioPolicy,
     *,
     date: pd.Timestamp,
@@ -482,7 +482,7 @@ def cohort_admission_targets(
     )
     if locked is not None:
         return locked
-    candidates, crash_depth = _scan_recovery_evidence(
+    candidates, crash_depth = scan_recovery_evidence(
         self,
         date=date,
         user_panel=user_panel,

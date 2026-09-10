@@ -1,3 +1,7 @@
+# Latest checkpoint — G pair complete and rejected
+
+G native readbacks PASS, economic screen FAIL: H2 wealth0.963584316<1.544453477; later5.792557953 PASS. Both processes exit0, no active G replay. Do not tune G or expand its matrix. See benchmarks/simple_sector_backdrop_result.json and refactor_convergence_20260910.md. Independent review agrees: stop whole ordinary-policy replacement; closest a39 research baseline remains13/14, not production accepted. No proven localized fix yet; do not promise goal completion. Existing v6 tolerances remain once-only. All earlier state below is preserved as history and superseded where it says running. PR56 remains Draft at008e140, no merge.
+
 # Latest decision — E complete, bounded sector-backdrop correction G
 
 E all14 nominal native cases complete:11PASS/3FAIL; cross-window improvement PASS.

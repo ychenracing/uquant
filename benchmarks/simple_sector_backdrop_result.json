@@ -1,0 +1,79 @@
+{
+  "scope": "predeclared_conflict_pair",
+  "status": "FAIL",
+  "promote": false,
+  "producer_local": "07939ebff923f7325088e903c129cb631e6df838",
+  "producer_remote": "a95a8757f743f22728316a64373e7756a1b30876",
+  "producer_tree": "a9b205bb8f07975a3092fde4a235f896efb01c99",
+  "rows": [
+    {
+      "case": "no_optical",
+      "window": "bull_crash_2025_2026",
+      "native_readback": "PASS",
+      "source": "b8fe907c0e185778ece042ea5cb4a269455f41abdb0ae90733cb03792bc58416",
+      "canonical_sha256": "857e205e6cb0f4286d951e60831689a709129858d91f804a80900068cb412b31",
+      "raw_sha256": "b9c811693332fd53f120e1eed7f031df76950dbc657c9de108adfe10cafbccf0",
+      "metrics": {
+        "final_wealth": 5.792557952546652,
+        "max_drawdown": 0.20272713450465696,
+        "account_orders": 30,
+        "fees": 25112.5474067,
+        "slippage_cost": 44539.047499997054,
+        "annual_turnover": 14.104860001655757
+      },
+      "verified_symbol_pnl": {
+        "sh603986": -40946.85638801975,
+        "sh688082": 105347.46520583995,
+        "sh688110": 1058188.6459861202,
+        "sh688146": 214585.35753600113,
+        "sh688200": 46515.36614887822,
+        "sh688256": -88213.757970888,
+        "sh688300": -337281.5832922794,
+        "sh688361": 167853.48112764006,
+        "sh688498": 4535063.04033189,
+        "sh688766": 3051936.0579193207,
+        "sz002281": 872068.6884888001
+      },
+      "current_failures": [],
+      "original_failures": [
+        "later-window order ceiling"
+      ]
+    },
+    {
+      "case": "no_optical",
+      "window": "h2_2024",
+      "native_readback": "PASS",
+      "source": "b8fe907c0e185778ece042ea5cb4a269455f41abdb0ae90733cb03792bc58416",
+      "canonical_sha256": "e697928a52ddc42ebe8821011b17cd4f951381df33420ae62a54da5da91dc364",
+      "raw_sha256": "28c1d3d4056b7f75452f3000be3204fc509879d0a6d80220cd420c7e455b12f5",
+      "metrics": {
+        "final_wealth": 0.9635843160031126,
+        "max_drawdown": 0.04156506328337983,
+        "account_orders": 6,
+        "fees": 1100.855993775,
+        "slippage_cost": 2190.5119999998606,
+        "annual_turnover": 2.1204829307200006
+      },
+      "verified_symbol_pnl": {
+        "sh688146": -9656.065373675008,
+        "sh688268": -35830.096915139955,
+        "sh688361": -27345.205704959808
+      },
+      "current_failures": [
+        "half-year wealth retention"
+      ],
+      "original_failures": [
+        "half-year wealth retention"
+      ]
+    }
+  ],
+  "decision": "Reject G scope hypothesis; no threshold retune or full matrix. Preserve selected a39 control as closest nominal baseline, not accepted production. No claim of whole-goal completion or future returns.",
+  "archive": {
+    "path": "/workspace/scratch/997f3f703ab0/uquant_sector_backdrop_screen_20260910.tar.gz",
+    "size_bytes": 17028228,
+    "sha256": "e10a25da1732485b15d0a2d136177c6c86d760876f436fe68fe2f846b475a7f3",
+    "verified_files": 518,
+    "library_file_id": "libfile_a078e31665288191976b5284b2764276",
+    "file_id": "file_00000000eb7881f5b13ca601a7d0ab55"
+  }
+}

@@ -1,3 +1,14 @@
+Direction decision — 2026-09-10:
+
+- NOT_MET; PR56 Draft, no main merge. See benchmarks/direction_priority_20260910.md for the new evidence/cost ranking and explicit next-result decision table.
+- Primary workstream: executable cross-industry opportunity capture while retaining main as the control. Recovery and holding changes remain conditional on a concrete causal loss; do not reopen rejected D/E, sizing, rank or confirmation variants without new premises.
+- Before cohort economic results are observed, supplement the planned single23-company main replay with one fixed, already-implemented integrated-simple comparator on identical research inputs and execution. Preserve its earlier H1 failure; no retuning. Existing guard, source, neutrality and native sentinel gates remain prerequisites. This is a two-arm research decision, not a new acceptance gate or automatic promotion.
+- Local execution connection recovered (pwd succeeds), but previous /dev/shm/uquant* worktrees/archives are absent. Restore durable sources; pending unsaved C raw evidence requires faithful regeneration from preserved producer and repaired inputs. Do not claim the94MB raw archive was saved.
+- Focused GitHub run34406716003 remains queued at fresh read. No new cohort economic run or latest-code verification completed in this decision review.
+
+---
+Earlier checkpoints:
+
 Execution dependency checkpoint — current:
 
 - Overall NOT_MET; PR56 Draft, no main merge. The task continues from a concrete implementation, not a failed-hypothesis report.

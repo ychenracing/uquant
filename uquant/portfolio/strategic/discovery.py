@@ -39,6 +39,7 @@ from .qualification_candidates import (
     independent_market_confirmation,
     observe_strategic_candidate_eligibility,
     strategic_candidate_confirmation,
+    strategic_candidate_meets_route,
     strategic_route_candidates,
 )
 from .qualification_candidates import (
@@ -926,6 +927,40 @@ def observe_strategic_candidates(
     return eligibility
 
 
+def _confirm_persistent_formation_entries(
+    self: StrategicPortfolioPolicy, *, qualified: QualifiedStrategicRoute,
+    entries: dict[str, dict[str, Any]], snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore], account: AccountState, risk: RiskAssessment,
+    date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+) -> None:
+    """Use current own long-cycle proof for a complete initial formation."""
+    observed = account.strategic_qualification
+    if (qualified.route != "persistent_industry" or qualified.quorum_route != "FULL_COHORT"
+            or qualified.cash_rearm_authorized or not qualified.admission_authorized
+            or len(set(qualified.symbols)) < self.cfg.strategic_cohort_min_size
+            or not observed.qualification_ready
+            or observed.qualification_last_observed_session != str(date.date())):
+        return
+    for symbol in qualified.symbols:
+        entry = entries.get(symbol, {})
+        if (entry.get("block") not in {"READY", "STRUCTURE_NOT_REPAIRED"}
+                or entry.get("as_of") != str(date.date())
+                or entry.get("qualification_route") != "persistent_industry"
+                or entry.get("qualification_quorum") != "FULL_COHORT"
+                or entry.get("qualification_signature") != qualified.signature
+                or entry.get("qualification_evidence_sha256") != observed.qualification_evidence_sha256
+                or symbol not in user_panel or date not in user_panel[symbol].index
+                or not self._liquidity_confirmed(user_panel[symbol], date)
+                or strategic_candidate_confirmation(account=account, symbol=symbol,
+                    route="persistent_industry") < self.cfg.strategic_cohort_confirm_days
+                or not strategic_candidate_meets_route(candidate_symbol=symbol,
+                    qualification_route="persistent_industry", snapshots=snapshots,
+                    leaders=leaders, risk=risk, cfg=self.cfg)):
+            return
+    for symbol in qualified.symbols:
+        entries[symbol].update(block="READY", formation_quality="CONFIRMED_PERSISTENT")
+
+
 def _initialize_strategic_cohort(
     self: StrategicPortfolioPolicy,
     *,
@@ -1030,6 +1065,10 @@ def _initialize_strategic_cohort(
         )
         for symbol in qualified.symbols if symbol in leaders and symbol in user_panel
     }
+    _confirm_persistent_formation_entries(
+        self, qualified=qualified, entries=entry_eligibility, snapshots=snapshots,
+        leaders=resolved_leaders, account=account, risk=risk, date=date, user_panel=user_panel,
+    )
     activate_strategic_cohort(
         self,
         entry_eligibility=entry_eligibility,

@@ -214,7 +214,8 @@ def _prepare_strategic_owner_targets(
     )
     if qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value and dominant_symbol is None:
         desired = {
-            symbol: weight if leaders[symbol].mature else min(weight, self.cfg.core_admission_weight)
+            symbol: weight if (leaders[symbol].mature or entry_eligibility.get(symbol, {}).get(
+                "formation_quality") == "CONFIRMED_PERSISTENT") else min(weight, self.cfg.core_admission_weight)
             for symbol, weight in desired.items()
         }
     if qualified.cash_rearm_authorized:

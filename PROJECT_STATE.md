@@ -1,3 +1,12 @@
+Persistent formation implementation — 2026-09-10:
+
+- NOT_MET; PR56 Draft; main unchanged. Preregistered restoration of original full persistent formation implemented in discovery and initial ownership. Every actual member must retain own current persistent certificate/signature/confirmation and known-industry/history/confidence/liquidity; ordinary MA60/ret60 and maturity remain unchanged elsewhere. New formation uses original desired weights; cash-rearm/partial quorum cannot borrow this treatment. Source b55defea41815e8b1383fce39a55b466cc3301aa1c755ba090f228c970e992cf; config adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
+- Fail-first real Jan3 2024 test confirms missing orders on control. New source produces3 actual next-open buys at original1/3 desired weights before ordinary maturity.48 affected nodes pass across the main run and corrected partial-owner case;3API tests, Ruff and strictmypy2files pass. Earlier test failures retained: peer grants correctly remain empty within one epoch; first-receipt full-cohort ownership retains healthy peer commitments, while the invalid owner remainder is cancelled and fills remain. No lifecycle/attribution contract changed to satisfy these assertions.
+- Freeze producer; fixed native H1 sentinel then retained full a/h1_2024 gates. If viable, principal15/40 and affected weak/start controls. Separate bull recovery path still absent from common-book pipeline. Old exact9bb controls reproduce baseline but are not current acceptance. Read benchmarks/persistent_formation_plan.md and mature_sector_reference_result.json.
+
+---
+Earlier checkpoints:
+
 Mature-sector screen and exact historical-reference recovery — 2026-09-10:
 
 - NOT_MET; PR56 Draft; main unchanged. Native45c ordinary industry shortcut improves fixed a/bull to3.493229/DD16.3964%/14orders, still fails retained11.5443 and champion return. a/h1_2024 remains1.363448/DD12.4292%/8orders and fails wealth/acute retention. Offset5 sentinel actually buysFeb28; no_optical/H1 exactly1.343841/11orders. No full869 principal result for45c.

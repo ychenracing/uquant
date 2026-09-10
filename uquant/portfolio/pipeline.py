@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from copy import deepcopy
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
@@ -15,9 +16,9 @@ from ..models.ordinary_entry import REASON as PULLBACK_REASON
 from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, pullback_order_entry
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..models.trading import late_strategic_fill_allowed
-from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
+from ..ordinary_pullback import current_pullback_proof
 from ..portfolio_core import current_weights, symbol_weight_cap
-from ..risk.pullback import pullback_risk_open
+from ..risk.pullback import pullback_book_settled, pullback_risk_open
 from ..types import (
     AccountState,
     AttributionMechanism,
@@ -32,9 +33,9 @@ from ..types import (
 )
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
-from .leaders.lifecycle import ordinary_pullback_exit
-from .ordinary import observe_ordinary_market, ordinary_core_entry
+from .ordinary import observe_ordinary_market, ordinary_core_entry, ordinary_trend_exit
 from .recovery.current_cohort import allocate_confirmed_recovery
+from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -64,6 +65,7 @@ def _core_candidates(
 ) -> list[str]:
     """Record the same short-circuit predicates that decide core entry eligibility."""
     candidates = []
+    ranks: dict[str, float] = {}
     for symbol, score in leaders.items():
         entry = ordinary_core_entry(self, symbol=symbol, score=score, date=date,
                                  user_panel=user_panel, account=account,
@@ -73,7 +75,8 @@ def _core_candidates(
             trace.setdefault(symbol, {}).update(entry=entry, rank_score=score.score)
         if entry["block"] == "READY":
             candidates.append(symbol)
-    return sorted(candidates, key=lambda symbol: (-leaders[symbol].score, symbol))
+            ranks[symbol] = float(entry.get("ret120", 0.0))
+    return sorted(candidates, key=lambda symbol: (-ranks[symbol], symbol))
 
 
 def _transfer_sell_filled(account: AccountState, key: str, date: pd.Timestamp) -> bool:
@@ -311,14 +314,8 @@ def _ordinary_exits(book: AllocationBook) -> None:
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
-        pullback_exit = ordinary_pullback_exit(
-            book.policy, symbol=symbol, date=book.date, user_panel=book.user_panel,
-            leaders=book.leaders, account=account,
-        )
-        if pullback_exit == "" or (pullback_exit is None and not book.policy._leader_lifecycle_exit_confirmed(
-            symbol=symbol, date=book.date, user_panel=book.user_panel,
-            leaders=book.leaders, account=account,
-        )):
+        frame = book.user_panel.get(symbol)
+        if frame is None or not ordinary_trend_exit(frame, book.date):
             continue
         book.proposed[symbol] = 0.0
         reset_strategic_candidate_eligibility(account=account, symbol=symbol)
@@ -330,7 +327,7 @@ def _ordinary_exits(book: AllocationBook) -> None:
             account.candidate_tenure["tactical_promotable"] = 0
         if account.recovery_conviction_symbol == symbol:
             account.recovery_conviction_symbol = ""
-        book.reasons[symbol] = pullback_exit or STRUCTURAL_EXIT_REASON
+        book.reasons[symbol] = "ordinary trend: two closes below MA120"
         book.mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
@@ -504,14 +501,7 @@ def _fresh_core_selection(
     occupied = (book.owned | {s for s, w in book.weights_now.items() if w > 0}
                 | {s for s, w in book.committed.items() if w > 0}
                 | {order.symbol for order in book.account.pending_orders})
-    fresh = [s for s in candidates if s not in occupied]
-    immature_occupied = any(
-        s not in book.owned and w > 0 and (s not in book.leaders or not book.leaders[s].mature)
-        for s, w in book.committed.items()
-    )
-    early = next((s for s in fresh if not book.leaders[s].mature), None) if not immature_occupied else None
-    eligible = [s for s in fresh if book.leaders[s].mature or s == early]
-    return occupied, eligible, immature_occupied
+    return occupied, [s for s in candidates if s not in occupied], False
 
 
 def _ordinary_admission_budget(book: AllocationBook) -> float | None:
@@ -537,43 +527,16 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
-    occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
-    selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
-    for symbol in candidates:
-        if symbol in occupied:
-            book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
-            continue
-        if symbol not in eligible:
-            book.record(symbol)["entry_gate"] = (
-                "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
-            )
-            continue
-        if symbol not in selected:
-            book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
-            continue
-        weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
-        if not book.leaders[symbol].mature:
-            weight = min(weight, book.policy.cfg.core_admission_weight)
+    occupied, eligible, _ = _fresh_core_selection(book, candidates)
+    selected = eligible[:max(0, min(3, book.policy.cfg.max_positions) - len(occupied))]
+    for symbol in selected:
+        weight = min(0.30, budget / len(selected))
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
             continue
         if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=book.policy.cfg.min_trade_weight):
             book.account.protected_weights.pop(symbol, None)
-            book.reasons[symbol] = "confirmed core admitted from available account capital"
-            _record_completed_transfer(book, symbol)
-            continue
-        weak = _degraded_transfer(
-            book.policy, challenger=symbol, proposed=book.proposed, weights_now=book.weights_now,
-            leaders=book.leaders, user_panel=book.user_panel, date=book.date, account=book.account,
-            committed=book.committed, cash_room=book.cash_room, gross_cap=book.gross_cap,
-            diagnostics=book.record(symbol).setdefault("transfer_budget", {}),
-        )
-        if weak is not None:
-            book.reasons[weak] = "leader rotation: bounded transfer after confirmed deterioration"
-            book.mechanisms[weak] = AttributionMechanism.LEADER_ROTATION
-            book.record(weak)["allocation_reason"] = "CONFIRMED_BOUNDED_TRANSFER"
-            book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"
-            break
+            book.reasons[symbol] = "simple trend core admitted from available account capital"
 
 
 def _retained_order_identity(book: AllocationBook, target: Target) -> Target:
@@ -632,6 +595,48 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
     return tuple(merged)
 
 
+def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> set[str]:
+    """Isolated research permission; reuse the original tactical signal unchanged."""
+    account, risk, policy = book.account, book.risk, book.policy
+    if (risk.state is not Risk.CAUTION or not risk.freeze_new_risk
+            or risk.evidence.get("freeze_new_risk", False)
+            or risk.evidence.get("sentinel_freeze_new_risk", False)
+            or account.capital_budget_level != 0 or account.chronic_level != 0
+            or account.sector_guard_active or account.positions
+            or account.anchor_weights or account.protected_weights or account.strategic_restore_weights
+            or book.owned or not pullback_book_settled(account)):
+        return set()
+    broad, tech = (risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120"))
+    if (not isinstance(broad, (int, float)) or isinstance(broad, bool) or not math.isfinite(broad)
+            or not isinstance(tech, (int, float)) or isinstance(tech, bool) or not math.isfinite(tech)):
+        return set()
+    low, high = min(float(broad), float(tech)), max(float(broad), float(tech))
+    weak = high <= policy.cfg.recovery_cohort_weak_market_ret120
+    transitional = (low <= policy.cfg.recovery_transition_weak_leg_ret120
+                    and high <= policy.cfg.recovery_transition_strong_leg_max_ret120
+                    and high - low >= policy.cfg.recovery_transition_min_divergence)
+    planned = deepcopy(account)
+    targets = tactical_admission_targets(
+        policy, opportunity=opportunity, date=book.date, risk=risk,
+        user_panel=book.user_panel, leaders=book.leaders, account=planned,
+        level1_recovery_repair=False, bounded_recovery_repair=True,
+        tactical_recovery_market=weak or transitional,
+        transitional_recovery_market=transitional, weak_secular_market=weak,
+    )
+    permitted = set()
+    for target in targets or ():
+        if target.weight > 0 and book.fund(target.symbol, target.weight,
+                                          phase="RESEARCH_CAUTION_TACTICAL_PROBE",
+                                          minimum=policy.cfg.min_trade_weight):
+            permitted.add(target.symbol)
+            book.recovery_targets[target.symbol] = target
+    if permitted:
+        account.candidate_tenure.update({key: value for key, value in planned.candidate_tenure.items()
+                                        if key.startswith("tactical_")})
+        account.tactical_anchor_symbol = planned.tactical_anchor_symbol
+    return permitted
+
+
 def _allocate_strategy(
     self: PortfolioAllocator, *, date: pd.Timestamp, opportunity: Opportunity,
     risk: RiskAssessment, user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore],
@@ -642,6 +647,7 @@ def _allocate_strategy(
 ) -> tuple[Target, ...]:
     """Retain each filled owner, then allocate only available common capital."""
     risk.evidence.pop("core_allocation", None)
+    caution_book_was_settled = pullback_book_settled(account)
     weights_now, _ = current_weights(account, prices)
     _prepare_account(self, risk=risk, account=account, weights_now=weights_now)
     frozen = (risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False))
@@ -680,6 +686,9 @@ def _allocate_strategy(
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
                                   trace=book.trace, certificates=certificates, market=market)
     recovery_active = False if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
+    caution_probes = (_research_caution_probe(book, opportunity)
+                     if caution_book_was_settled and not liabilities else set())
+    recovery_active = recovery_active or bool(caution_probes)
     _ordinary_exits(book)
     _pending_intents(book, buy_open=not frozen and not liabilities,
                      market=market, certificates=certificates)
@@ -722,6 +731,7 @@ def _allocate_strategy(
         frozen_targets = self._frozen_existing_targets(
             strategy_targets=targets, leaders=leaders, account=account, weights_now=weights_now)
         permitted = {t.symbol: t for t in targets if t.symbol in owned} if bounded_restore else {}
+        permitted.update({t.symbol: t for t in targets if t.symbol in caution_probes})
         if ordinary_restore and not liabilities:
             permitted.update({t.symbol: t for t in targets
                               if t.symbol not in owned

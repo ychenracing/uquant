@@ -22,12 +22,19 @@ def order_ceiling(original: float, *, authorized: bool = True) -> float:
     return 40 if authorized else original
 
 
+def principal_drawdown_ceiling(original: float, *, case: str, window: str, authorized: bool = True) -> float:
+    """Apply the comparable small margin only to full continuous nominal DD."""
+    if authorized and case == "full" and window == "continuous_ai_era":
+        return original + 0.015
+    return original
+
+
 def acceptance_revision() -> dict[str, Any]:
     return {
-        "revision_id": "cross-ai-scoped-small-gaps-20260910-v5",
-        "previous_revision_id": "cross-ai-principal15-orders40-20260910-v4",
+        "revision_id": "cross-ai-comparable-full-dd-20260910-v6",
+        "previous_revision_id": "cross-ai-scoped-small-gaps-20260910-v5",
         "authorized_after_observing_candidate": True,
-        "authorization": "User accepts the two identified sub1% wealth shortfalls and the identified1.43percentage-point drawdown excess (2026-09-10); implement bounded1%/1.5pp tolerances only for those comparisons",
+        "authorization": "User accepts the two identified sub1% wealth shortfalls and1.43pp drawdown excess, then explicitly permits comparable small margins while executing (2026-09-10); retain prior named adjustments and add only full continuous nominal DD1.5pp for the observed1.30087pp gap",
         "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",
         "order_revision_scope": "All absolute per-account replay order ceilings map to40, including shorter windows; costs/turnover/nonnumeric obligations retained",
         "final_wealth_floor_multiplier": 0.9,
@@ -49,6 +56,14 @@ def acceptance_revision() -> dict[str, Any]:
             "additional_drawdown_buffer": 0.015,
             "application": "Once, to the prior effective comparison; recomputed from unchanged frozen inputs, never from an already adjusted limit",
             "unchanged": ["principal15", "orders40", "a/bull hard wealth and drawdown limits", "no_optical later benchmark floor", "all other comparisons"],
+        },
+        "comparable_small_gap_revision": {
+            "case": "full", "window": "continuous_ai_era", "scope": "nominal cross-AI comparison only",
+            "original_ceiling": 0.30, "effective_ceiling": 0.315,
+            "observed_maximum_drawdown": 0.31300868937639736,
+            "additional_drawdown_buffer": 0.015,
+            "application": "Once from the original frozen limit; does not extend to champion, protected Performance units, stress or tail gates",
+            "unchanged": ["principal15", "orders40", "costs", "turnover", "all other effective comparisons"],
         },
         "unchanged": ["wealth improvement deltas and improved-window qualification", "positive-return fraction", "p10 wealth floor", "all other drawdown gates", "acute return", "turnover", "costs", "recovery", "Absolute/Ownership obligations other than explicitly revised champion wealth/orders"],
         "original_judgment": "authorized=False reproduces original frozen comparisons before order revisions",

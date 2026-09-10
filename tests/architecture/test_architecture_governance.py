@@ -637,15 +637,15 @@ def test_architecture_portfolio_pipeline_has_one_combined_capital_owner() -> Non
     (
         ("uquant/portfolio/pipeline.py", "date=date, risk=risk, user_panel=user_panel", "date=date, risk=account, user_panel=user_panel"),
         ("uquant/portfolio/pipeline.py", "proposed=book.proposed, leaders=book.leaders", "proposed=book.weights_now, leaders=book.leaders"),
-        ("uquant/portfolio/pipeline.py", "committed=self.committed, cash_room=self.cash_room", "committed=self.proposed, cash_room=self.cash_room"),
+        ("uquant/portfolio/allocation_book.py", "committed=self.committed, cash_room=self.cash_room", "committed=self.proposed, cash_room=self.cash_room"),
         ("uquant/portfolio/pipeline.py", "committed_capital(account=account,", "committed_capital(account=None,"),
         ("uquant/portfolio/pipeline.py", "from .capital import committed_capital, funded_increment", "from ..capital import committed_capital, funded_increment"),
         ("uquant/portfolio/capital.py", "{**committed, symbol: current}", "{symbol: current}"),
         ("uquant/portfolio/pipeline.py", "assess_strategic_capital_authority(account)", "assess_strategic_capital_authority(None)"),
         ("uquant/portfolio/pipeline.py", "owned, strategic_targets, proposed, committed, cash_room)", "owned, strategic_targets, dict(proposed), committed, cash_room)"),
-        ("uquant/portfolio/pipeline.py", "gross_cap=self.gross_cap,", "gross_cap=self.policy.cfg.max_gross,"),
-        ("uquant/portfolio/pipeline.py", "return min(self.policy.cfg.max_gross, self.risk.target_gross_cap)", "return self.policy.cfg.max_gross"),
-        ("uquant/portfolio/pipeline.py", "return accepted", "self.account.cash = 0.0\n        return accepted"),
+        ("uquant/portfolio/allocation_book.py", "gross_cap=self.gross_cap,", "gross_cap=self.policy.cfg.max_gross,"),
+        ("uquant/portfolio/allocation_book.py", "return min(self.policy.cfg.max_gross, self.risk.target_gross_cap)", "return self.policy.cfg.max_gross"),
+        ("uquant/portfolio/allocation_book.py", "return accepted", "self.account.cash = 0.0\n        return accepted"),
         ("uquant/portfolio/pipeline.py", "return targets", "return strategic"),
         ("uquant/portfolio/pipeline.py", "return targets", "account.cash = 0.0\n    return targets"),
         ("uquant/portfolio/pipeline.py", "return targets", "account.positions.clear()\n    return targets"),
@@ -686,7 +686,8 @@ def test_combined_allocator_contract_rejects_authority_and_split_book_mutations(
 def test_combined_allocator_feasibility_rejects_unsettled_budget_mutations(
     original: str, mutation: str,
 ) -> None:
-    relative = "uquant/portfolio/pipeline.py"
+    relative = ("uquant/portfolio/allocation_book.py" if "self.committed" in original
+                else "uquant/portfolio/pipeline.py")
     source = (ROOT / relative).read_text(encoding="utf-8")
     assert source.count(original) == 1
     with pytest.raises(AssertionError):

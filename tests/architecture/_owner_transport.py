@@ -696,13 +696,17 @@ def validate_combined_allocator_topology(
         assert len(selected) == 1, method
         keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in selected[0].keywords}
         assert all(keywords.get(argument) == value for argument, value in arguments.items()), method
-    books = [call for call in calls if ast.unparse(call.func) == "_AllocationBook"]
+    books = [call for call in calls if ast.unparse(call.func) == "AllocationBook"]
     assert len(books) == 1 and not books[0].keywords
     assert tuple(ast.unparse(argument) for argument in books[0].args) == (
         "self", "date", "risk", "user_panel", "leaders", "account", "prices", "weights_now",
         "owned", "strategic_targets", "proposed", "committed", "cash_room",
     )
-    for helper in ("_fund_strategic_owners", "_ordinary_exits", "_pending_intents",
+    book_imports = [(node.level, node.module, alias.asname)
+                    for node in ast.parse(source).body if isinstance(node, ast.ImportFrom)
+                    for alias in node.names if alias.name == "AllocationBook"]
+    assert book_imports == [(1, "allocation_book", None)]
+    for helper in ("allocate_confirmed_recovery", "_fund_strategic_owners", "_ordinary_exits", "_pending_intents",
                    "_restore_ordinary_holdings", "_admit_new_cores", "_book_targets"):
         selected = [call for call in calls if ast.unparse(call.func) == helper]
         assert len(selected) == 1
@@ -714,6 +718,15 @@ def validate_combined_allocator_topology(
     for relative, level, helpers in (
         ("uquant/portfolio/pipeline.py", 1, {
             "committed_capital": {"account": "account", "prices": "prices", "proposed": "proposed"},
+            "funded_increment": {
+                "cfg": "self.cfg", "symbol": "challenger", "desired": "self.cfg.core_admission_weight",
+                "current": "weights_now.get(challenger, 0.0)",
+                "committed": "{**committed, weakest: remaining}", "cash_room": "cash_room + released",
+                **{name: name for name in ("leaders", "user_panel", "date", "gross_cap")},
+                "diagnostics": "detail",
+            },
+        }),
+        ("uquant/portfolio/allocation_book.py", 1, {
             "funded_increment": {
                 "cfg": "self.policy.cfg", "symbol": "symbol", "desired": "desired", "current": "current",
                 "committed": "self.committed", "cash_room": "self.cash_room", "leaders": "self.leaders",
@@ -745,29 +758,19 @@ def validate_combined_allocator_topology(
             ]
             assert helper_calls
             if helper == "funded_increment":
-                transfer = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
-                                and node.name == "_degraded_transfer")
-                book_type = next(node for node in tree.body if isinstance(node, ast.ClassDef)
-                                 and node.name == "_AllocationBook")
-                fund = next(node for node in book_type.body if isinstance(node, ast.FunctionDef)
-                            and node.name == "fund")
-                # Match calls by their actual owning AST, not just argument shape.
-                actual_funding = [call for call in ast.walk(fund) if call in helper_calls]
-                transfer_funding = [call for call in ast.walk(transfer) if call in helper_calls]
-                assert len(actual_funding) == len(transfer_funding) == 1
-                assert set(helper_calls) == {*actual_funding, *transfer_funding}
+                if relative.endswith("pipeline.py"):
+                    owner = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                                 and node.name == "_degraded_transfer")
+                else:
+                    book_type = next(node for node in tree.body if isinstance(node, ast.ClassDef)
+                                     and node.name == "AllocationBook")
+                    owner = next(node for node in book_type.body if isinstance(node, ast.FunctionDef)
+                                 and node.name == "fund")
+                owned_calls = [call for call in ast.walk(owner) if call in helper_calls]
+                assert len(owned_calls) == len(helper_calls) == 1
             for call in helper_calls:
                 keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in call.keywords}
-                if helper == "funded_increment" and call in transfer_funding:
-                    expected = {
-                        "cfg": "self.cfg", "symbol": "challenger", "desired": "self.cfg.core_admission_weight",
-                        "current": "weights_now.get(challenger, 0.0)",
-                        "committed": "{**committed, weakest: remaining}", "cash_room": "cash_room + released",
-                        **{name: name for name in ("leaders", "user_panel", "date", "gross_cap")},
-                        "diagnostics": "detail",
-                    }
-                    assert not call.args and keywords == expected
-                elif helper == "funded_increment":
+                if helper == "funded_increment":
                     assert not call.args and keywords == arguments
                 else:
                     assert all(keywords.get(name) == value for name, value in arguments.items()), helper
@@ -779,7 +782,8 @@ def validate_combined_allocator_topology(
         **{name: name for name in ("cfg", "symbol", "leaders", "user_panel", "date", "gross_cap", "symbol_cap", "concentration_cap")},
         "committed": "{**committed, symbol: current}", "diagnostics": "detail",
     }
-    book = next(node for node in ast.parse(source).body if isinstance(node, ast.ClassDef) and node.name == "_AllocationBook")
+    book_source = reviewed["uquant/portfolio/allocation_book.py"]
+    book = next(node for node in ast.parse(book_source).body if isinstance(node, ast.ClassDef) and node.name == "AllocationBook")
     gross_cap = next(node for node in book.body if isinstance(node, ast.FunctionDef) and node.name == "gross_cap")
     assert len(gross_cap.body) == 1 and isinstance(gross_cap.body[0], ast.Return)
     assert ast.unparse(gross_cap.body[0].value) == "min(self.policy.cfg.max_gross, self.risk.target_gross_cap)"
@@ -796,6 +800,7 @@ def validate_combined_allocator_topology(
     mutation_methods = {"append", "clear", "extend", "insert", "pop", "remove", "setdefault", "update"}
     capital_sources = (
         source,
+        book_source,
         reviewed["uquant/portfolio/capital.py"],
         reviewed["uquant/portfolio/strategic/ownership.py"],
     )

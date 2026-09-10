@@ -64,8 +64,8 @@ old tactical helper has no earlier eligible unfrozen target; preserved breakout
 
 Read benchmarks/recovery_permission_decision.md. The next directly evidenced
 research candidate would inspect the old CAUTION empty-book exception, whose
-original first target is60%. Current guards explicitly forbid it. New explicit
-user permission is required; it has NOT been implemented. No claim of global
+original first target is60%. Current guards explicitly forbid it. User subsequently authorized ONLY an isolated research copy; see the latest checkpoint below.
+It has NOT been installed in production. No claim of global
 mathematical infeasibility, no automatic risk/threshold/ranking relaxation.
 
 ## Engineering and durable evidence
@@ -104,3 +104,27 @@ Use GIT_NO_LAZY_FETCH=1 for all Git/test/native commands. Missing objects requir
 exact approved GitHub reads plus independent Git blob verification; never implicit
 lazyfetch. No reset/clean/rebase/forcepush. One writer per native producer; local
 and remote commit IDs differ and must be connected by exact tree equivalence.
+
+## Authorized CAUTION research checkpoint
+
+User explicitly authorizes the original exception only in an independent research
+copy, and ongoing implementation without repeat confirmation. Production77003 and
+main stay unchanged. Entry-only isolated sourcee1d7d75f/local877711b0a1f5eec45a7d2bec49242a34d86fbd64
+(remote37b57f0c3ad1a326853ca595653285a522855537, tree6634998f24a78c5936175b20049f7522ee88fb99)
+is saved at branch codex/caution-exception-research-20260910. Native fixedbull
+FAILS7.554353334398154/DD.2424961569299301/10orders. Apr3/Apr7 real15300share
+sz300308 entry matches old mechanism; ordinary exit closes it Apr21.16boundaries
+PASS;30/31original freeze checksPASS and the intentional prohibition conflict is
+retained. No full economic matrix is started on this rejected entry-only arm.
+Read benchmarks/caution_exception_research_result.json.
+
+Next independent research copy uquant-caution-lifecycle examines original tactical
+holding life and actual-fill same-share recovery handoff, not entry thresholds.
+Original30/12session expiry and profit rules; no added frozen BUY or risk bypass.
+Native prefix and ownership/risk checks are in progress; no economic result yet.
+
+Independent engineering repair: stale tests now use public research_data_root and
+AllocationBook at its actual module. Combined-capital architecture gate follows
+the relocated sole book while preserving exact authority, cash, gross, liability
+and mutation rejection checks, including the recovery stage.9application tests
+and28combined-owner testsPASS; focusedRuffPASS. No trading-source change.

@@ -41,3 +41,44 @@ Preserved remote branch codex/simple-policy-recheck-20260910 points to that
 original commit. Read-only review found a P1 missing-frame KeyError newly
 introduced at pipeline.py367; fix with guarded lookup if economics justify
 advancing. No active producer edits; no other important scoped review findings.
+
+Missing-frame fix completed in separate branch codex/simple-policy-data-guard-20260910,
+local29d5ced / remotee065b039739e93602ff1a082512fdabfc7f85288, equal tree
+61f10d6973cdebc6173d845af4dbc77f334545c6; source
+38f9c1e085299fb5c27a85e8c3a0cd878db56fb9001b205f323b85308fae7f02.
+Two existing missing-panel cases first FAIL with KeyError, then PASS. Six simple
+policy plus four missing-panel/session checks PASS. Expanded retained-intent
+subset has8PASS/4FAIL; all4 routes_lost/not_mature assertions fail identically
+on original226ef63 and remain visible. Ruff/mypy PASS. Present-frame execution
+is unchanged; these original native runs must retain their original source IDs.
+
+## Completed continuous result and bounded continuation
+
+| Continuous case | Wealth | Max DD | Orders | Current result |
+| --- | ---: | ---: | ---: | --- |
+| full | 15.499217281722185 | .31300868937639736 | 15 | v5 DD FAIL; scoped v6 PASS |
+| champion | 10.984313209065583 | .2681438266627254 | 13 | FAIL wealth15 |
+| no_optical | 4.324148719546798 | .24857540736352524 | 21 | PASS including cost/turnover |
+
+All three complete869-session raw/native readbacks PASS. No-optical annual
+turnover2.8226545015746836, fees12003.688906404, slippage20278.471999999554.
+Original whole challenger rejected because champion materially misses15. It is
+not a minor gap and is not discounted. Full DD exceeds30% by1.3008689376pp,
+within the user's comparable small-gap authorization: v6 adds1.5pp only to full
+continuous nominal comparison, effective31.5%. Original and v5 failures retained.
+Principal15/orders40, other DD, costs, turnover, tail/stress/Performance unchanged.
+Two new scope/boundary acceptance tests observed RED, then all22 PASS; Ruff/mypy
+PASS. No economic replay repeated for this acceptance-only revision.
+
+Additional remove-three and fixedbull jobs were interrupted with exit130 when
+champion failed. Their partial evidence is saved and is not a completed result.
+First champion fill difference: extra ordinary502 on2023-04-25 after the common
+308 strategic profit lock, followed by risk-off loss and altered account cuts;
+603986 admission similarly changes later308 recovery. These coupled trades do
+not isolate a signal parameter's causal profit. No MA/rank/cap tuning follows.
+
+One existing-component integration is authorized next: original fixed ordinary
+functions on selected CAUTION/recovery/retention controla39a9542, with its recovery
+target ownership and the missing-frame fix. Not the rejected held-repair policy.
+First champion continuous + no-optical/later only; major failure rejects it.
+Do not combine originalB passes with selectedcontrol passes as one candidate.

@@ -1,0 +1,226 @@
+{
+  "reused_h1.json": {
+    "source": "b7f54f137576ba15787827103103d4710369d105519c463f4289b1251dbf2942",
+    "readback": "PASS",
+    "inputs": "MATCH data/universe/runtime; original source/config/runner intentionally preserved",
+    "metrics": {
+      "final_wealth": 1.27222751175821,
+      "max_drawdown": 0.23553096798090134,
+      "account_orders": 8
+    },
+    "previous_preregistered_screen": "FAIL wealth < 1.3753099655116032",
+    "config_note": "Original retains strategic_reversal_max_tech_ret120=-0.01; current default removed this field. Whole original challenger, not single-policy ablation.",
+    "current_contract_failures": [],
+    "original_contract_failures": [
+      "half-year drawdown retention"
+    ]
+  },
+  "verified_later.json": {
+    "source": "b7f54f137576ba15787827103103d4710369d105519c463f4289b1251dbf2942",
+    "readback": "PASS",
+    "inputs": "MATCH data/universe/runtime; original source/config/runner",
+    "metrics": {
+      "final_wealth": 5.2717346142966575,
+      "max_drawdown": 0.20255307279465584,
+      "account_orders": 28,
+      "annual_turnover": 12.076380771967276,
+      "fees": 21585.23470669,
+      "slippage_cost": 38134.03669999741
+    },
+    "seal": "b83a5307bbc6f6b585cad91f62958a5a30f78b9f19feaa6849f6e1e0b036ae1d",
+    "raw_sha256": "c1109d3d5b0f725c63c2fd3e153abeec6b91c3164dd19bb40d6937950fbb127d",
+    "pnl_by_symbol": {
+      "sh603986": -38090.09896559984,
+      "sh688037": 47383.706165399984,
+      "sh688110": 969941.0373879604,
+      "sh688146": 194623.9289280004,
+      "sh688200": 41278.362436674215,
+      "sh688256": -80862.61147331394,
+      "sh688300": -306870.9487331398,
+      "sh688498": 4179371.82148233,
+      "sh688766": 2772510.1290810006,
+      "sz002281": 764183.9022840004
+    },
+    "current_contract_failures": [],
+    "original_contract_failures": [
+      "later-window order ceiling"
+    ]
+  },
+  "verified_full.json": {
+    "case": "full",
+    "window": "continuous_ai_era",
+    "readback": "PASS",
+    "source": "b7f54f137576ba15787827103103d4710369d105519c463f4289b1251dbf2942",
+    "metrics": {
+      "final_wealth": 15.499217281722185,
+      "max_drawdown": 0.31300868937639736,
+      "account_orders": 15,
+      "annual_turnover": 11.311338682154432,
+      "fees": 48692.130355632,
+      "slippage_cost": 81265.10619999666
+    },
+    "seal": "40734c5b893e691806109ef0eae1d10e8f0613975fb9397546bdcfb1c5348562",
+    "raw_sha256": "4d62c402347ea74b7061a36a1e2f23d3121eaa7bccd46d49cbab92870e6f11af",
+    "current_contract_failures": [
+      "champion/full drawdown ceiling"
+    ],
+    "original_contract_failures": [
+      "champion/full wealth floor",
+      "champion/full drawdown ceiling"
+    ]
+  },
+  "verified_full_v6.json": {
+    "case": "full",
+    "window": "continuous_ai_era",
+    "readback": "PASS",
+    "source": "b7f54f137576ba15787827103103d4710369d105519c463f4289b1251dbf2942",
+    "metrics": {
+      "final_wealth": 15.499217281722185,
+      "max_drawdown": 0.31300868937639736,
+      "account_orders": 15,
+      "annual_turnover": 11.311338682154432,
+      "fees": 48692.130355632,
+      "slippage_cost": 81265.10619999666
+    },
+    "seal": "40734c5b893e691806109ef0eae1d10e8f0613975fb9397546bdcfb1c5348562",
+    "raw_sha256": "4d62c402347ea74b7061a36a1e2f23d3121eaa7bccd46d49cbab92870e6f11af",
+    "current_contract_failures": [],
+    "original_contract_failures": [
+      "champion/full wealth floor",
+      "champion/full drawdown ceiling"
+    ],
+    "acceptance_revision": {
+      "revision_id": "cross-ai-comparable-full-dd-20260910-v6",
+      "previous_revision_id": "cross-ai-scoped-small-gaps-20260910-v5",
+      "authorized_after_observing_candidate": true,
+      "authorization": "User accepts the two identified sub1% wealth shortfalls and1.43pp drawdown excess, then explicitly permits comparable small margins while executing (2026-09-10); retain prior named adjustments and add only full continuous nominal DD1.5pp for the observed1.30087pp gap",
+      "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",
+      "order_revision_scope": "All absolute per-account replay order ceilings map to40, including shorter windows; costs/turnover/nonnumeric obligations retained",
+      "final_wealth_floor_multiplier": 0.9,
+      "wealth_scope": "Existing90% tolerance applies only to nonprincipal nominal, comparison and shorter-window floors; principal full/champion floors are exactly15, including capital",
+      "orders": {
+        "all_absolute_per_account_replay_ceilings": 40
+      },
+      "principal_final_wealth_floor": 15.0,
+      "principal_wealth_authorization": "User accepts the former23.28-fold full/champion floor at15, never below15; no compounded90% tolerance (2026-09-10)",
+      "drawdown_baseline_revision": {
+        "authorization": "User explicitly authorizes only this window to use current main drawdown as the non-regression baseline, retain old failure, and merge C after remaining acceptance",
+        "case": "no_optical",
+        "window": "h1_2023",
+        "baseline_commit": "960539a89408cc7c1fc3937bda19c9f760095012",
+        "maximum_drawdown": 0.2442425185317515,
+        "additional_buffer": 0.0
+      },
+      "small_gap_revision": {
+        "wealth_comparisons": [
+          "a/bull:champion",
+          "remove_all_three/bull_crash_2025_2026"
+        ],
+        "additional_wealth_floor_multiplier": 0.99,
+        "drawdown_case": "remove_all_three",
+        "drawdown_window": "h1_2023",
+        "additional_drawdown_buffer": 0.015,
+        "application": "Once, to the prior effective comparison; recomputed from unchanged frozen inputs, never from an already adjusted limit",
+        "unchanged": [
+          "principal15",
+          "orders40",
+          "a/bull hard wealth and drawdown limits",
+          "no_optical later benchmark floor",
+          "all other comparisons"
+        ]
+      },
+      "comparable_small_gap_revision": {
+        "case": "full",
+        "window": "continuous_ai_era",
+        "scope": "nominal cross-AI comparison only",
+        "original_ceiling": 0.3,
+        "effective_ceiling": 0.315,
+        "observed_maximum_drawdown": 0.31300868937639736,
+        "additional_drawdown_buffer": 0.015,
+        "application": "Once from the original frozen limit; does not extend to champion, protected Performance units, stress or tail gates",
+        "unchanged": [
+          "principal15",
+          "orders40",
+          "costs",
+          "turnover",
+          "all other effective comparisons"
+        ]
+      },
+      "unchanged": [
+        "wealth improvement deltas and improved-window qualification",
+        "positive-return fraction",
+        "p10 wealth floor",
+        "all other drawdown gates",
+        "acute return",
+        "turnover",
+        "costs",
+        "recovery",
+        "Absolute/Ownership obligations other than explicitly revised champion wealth/orders"
+      ],
+      "original_judgment": "authorized=False reproduces original frozen comparisons before order revisions"
+    },
+    "v5_failures": [
+      "champion/full drawdown ceiling"
+    ]
+  },
+  "verified_champion.json": {
+    "case": "champion",
+    "window": "continuous_ai_era",
+    "readback": "PASS",
+    "source": "b7f54f137576ba15787827103103d4710369d105519c463f4289b1251dbf2942",
+    "metrics": {
+      "final_wealth": 10.984313209065583,
+      "max_drawdown": 0.2681438266627254,
+      "account_orders": 13,
+      "annual_turnover": 7.39259681043038,
+      "fees": 32077.24186884,
+      "slippage_cost": 53112.33999999698
+    },
+    "seal": "2de04f8492f0039161f72e5c54be0cf645ceb27386dfd8f0b3b6f7b75a304243",
+    "raw_sha256": "95221e1c72c38ac606fd4c8d11766183bea17f23aa76cc5cb503c26dd222e607",
+    "current_contract_failures": [
+      "champion/full wealth floor"
+    ],
+    "original_contract_failures": [
+      "champion/full wealth floor"
+    ]
+  },
+  "verified_no_optical.json": {
+    "case": "no_optical",
+    "window": "continuous_ai_era",
+    "readback": "PASS",
+    "source": "b7f54f137576ba15787827103103d4710369d105519c463f4289b1251dbf2942",
+    "metrics": {
+      "final_wealth": 4.324148719546798,
+      "max_drawdown": 0.24857540736352524,
+      "account_orders": 21,
+      "annual_turnover": 2.8226545015746836,
+      "fees": 12003.688906404,
+      "slippage_cost": 20278.471999999554
+    },
+    "seal": "eba116218a0a7719850a6019035634bf97b84826147e356402760ed878667475",
+    "raw_sha256": "71ac9f6b7bd9ba82fa887fa4559f82b9f985f71d2eacae371ceda3ac862401f2",
+    "current_contract_failures": [],
+    "original_contract_failures": [
+      "removal order ceiling"
+    ]
+  },
+  "stopped_screens.json": {
+    "reason": "Whole original challenger rejected by champion wealth10.984313209 < principal15; stop expanded screens, retain partial evidence",
+    "screens": [
+      "remove_all_three",
+      "fixed-bull"
+    ],
+    "terminated_pids": [],
+    "stopped": true,
+    "method": "exec session interrupt",
+    "sessions": {
+      "remove_all_three": 40460,
+      "fixed-bull": 57359
+    },
+    "exit_codes": [
+      130,
+      130
+    ]
+  }
+}

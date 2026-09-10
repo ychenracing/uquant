@@ -26,6 +26,7 @@ from uquant.validation.acceptance_tolerance import (
     acceptance_revision,
     half_year_drawdown_ceiling,
     order_ceiling,
+    principal_drawdown_ceiling,
     principal_wealth_floor,
     wealth_floor,
 )
@@ -169,7 +170,9 @@ def check_metrics(
             failures.append(message)
     if case in ('champion', 'full'):
         require(wealth >= principal_wealth_floor(t[f'{case}_minimum_final_wealth'], authorized=authorized), 'champion/full wealth floor')
-        require(drawdown <= t[f'{case}_maximum_drawdown'], 'champion/full drawdown ceiling')
+        require(drawdown <= principal_drawdown_ceiling(
+            t[f'{case}_maximum_drawdown'], case=case, window=window, authorized=authorized),
+            'champion/full drawdown ceiling')
         require(orders <= order_ceiling(t[f'{case}_maximum_orders'], authorized=authorized), 'champion/full order ceiling')
         return failures
     require(drawdown <= t['removal_maximum_drawdown'], 'removal drawdown ceiling')

@@ -156,6 +156,32 @@ def test_small_gap_h1_drawdown_has_one_case_scoped_buffer() -> None:
     assert check_metrics(**args) == ['half-year drawdown retention']
 
 
+def test_comparable_full_nominal_drawdown_gap_is_bounded_and_scoped() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    metrics = {'final_wealth': 24., 'max_drawdown': .31300868937639736,
+               'account_orders': 15}
+    args = dict(case='full', window='continuous_ai_era', metrics=metrics,
+                baseline={}, benchmark={}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert check_metrics(**args) == []
+    assert check_metrics(**args, authorized=False) == ['champion/full drawdown ceiling']
+    assert check_metrics(**{**args, 'case': 'champion'}) == ['champion/full drawdown ceiling']
+    assert check_metrics(**{**args, 'window': 'h1_2023'}) == ['champion/full drawdown ceiling']
+    metrics['max_drawdown'] = .315 + 1e-9
+    assert check_metrics(**args) == ['champion/full drawdown ceiling']
+
+
+def test_full_drawdown_margin_does_not_discount_principal_wealth_or_orders() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    args = dict(case='full', window='continuous_ai_era',
+                metrics={'final_wealth': 15., 'max_drawdown': .315, 'account_orders': 40},
+                baseline={}, benchmark={}, thresholds=t)
+    assert check_metrics(**args) == []
+    args['metrics']['final_wealth'] = 15. - 1e-9
+    args['metrics']['account_orders'] = 41
+    assert check_metrics(**args) == ['champion/full wealth floor', 'champion/full order ceiling']
+
+
 def test_robustness_reads_once_reports_both_and_keeps_p10_floor(tmp_path, monkeypatch) -> None:
     import research.cross_ai_robustness as module
 

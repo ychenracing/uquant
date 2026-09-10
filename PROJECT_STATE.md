@@ -1,5 +1,14 @@
 # Current task state — 2026-09-10
 
+Latest decision: original simple challenger B is not promoted: champion10.9843
+misses15. No-optical later5.2717 and continuous4.3241 PASS; full15.4992/DD31.3009%
+passes new scoped v6 full-nominal DD31.5% (original/v5 failure retained).
+All native jobs finished or explicitly interrupted; no background old jobs.
+Next: one selected-CAUTION + fixed-simple integration, source d122a7e675dea2f3bc228b420a0f840a09ef2a725200c1e61fdc45a8dd49a82d,
+workspace uquant-simple-caution.39 relevant tests/Ruff/mypy PASS, native screen next.
+See simple_policy_recheck_result/receipts/archive and simple_caution_integration_plan.
+Earlier running statuses below are superseded by this checkpoint.
+
 Latest execution: user authorized the narrowed held-restoration route and minor
 comparison tolerances. Candidate implemented on codex/protected-holding-recovery-20260910;
 economic source eac89fcd6fd386d8ca123e8d32ca3e7846c0955404908e9c78d8b301c20584e8.

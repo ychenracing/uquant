@@ -1,0 +1,13 @@
+{
+  "archive": "uquant_slow_exit_original_comparison_20260910.tar.gz",
+  "size_bytes": 201351920,
+  "sha256": "40963904bde7dd0e9e5869dc08f7574493ad05b42d7092024e79d0d4c0d0a002",
+  "verified_files": 5277,
+  "all_eight_native_readbacks": true,
+  "full_accounts": 6,
+  "sentinels": 2,
+  "persistent_save": "SUCCEEDED",
+  "library_file_id": "libfile_a1dc08d0e660819196712c62e73c59ab",
+  "file_id": "file_0000000089cc81fda20e552d5bd8de4c",
+  "local_metadata_applied": true
+}

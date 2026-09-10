@@ -1,3 +1,15 @@
+Completed slow-exit controls / goal review — 2026-09-10:
+
+- NOT_MET; PR56 Draft, no main merge. All6original paired869-session accounts plus2sentinels COMPLETE/native-readback/sealed/PnL-reconciled. New main controls exactly reproduce prior repaired-data wealth. No economic job remains running.
+- Main -> slow candidate: full31.4497257169 ->30.1646702227, DD27.1222% ->27.1542%,23/23orders; remove3 1.8793222919 ->2.4566077412, DD19.8545% ->12.9853%,25/29orders; strict2.5374056392 ->2.6477837012, DD12.5532% ->12.1869%,19/22orders. The separate23cohort improves1.223 ->1.652 and DD23.31% ->17.75%. Keep a supported candidate with a full-pool4.0861% wealth tradeoff; no claim of dominance, formal acceptance or fresh OOS. See slow_damage_original_result.{md,json}.
+- IMPORTANT current acceptance uses latest PR v3: prior user explicitly authorized32continuous orders (not old20/22), applicablewealthfloors*.9, one no_optical/h1_2023 main-DD baseline. Absolute/Ownership and all other retained obligations remain. Research main producer contains oldv1 acceptance comparison helper; it does not supersede currentPR authorization. Current23/29/22orders do not exceed32. Earlier commentary citing22 as current was corrected; do not manufacture an order failure or ask again for existing32authorization. Later no-main-merge prompt controls over historical merge language.
+- Original controls archive saved:201,351,920bytes/5277verifiedfiles/SHA25640963904bde7dd0e9e5869dc08f7574493ad05b42d7092024e79d0d4c0d0a002; see slow_damage_original_archive.json. All new raw results saved. Original107MB and lostCraw delivery gaps closed.
+- User asks whether goals should change. Concrete goal_revision_proposal_20260910.md prepared, not enacted: keeprisk/correctness/currentauthorizations; define priority of net economic advantage, conditional opportunity participation, actual manualwork; distinguish historical research delivery from independently validated investment readiness; propose an evidence-based no-edge research outcome only with explicit user adoption. No retroactive threshold change or convertedPASS.
+- Candidate remains immutable main-policy+onevelocity-veto deletion at remote52790e4edd77aadfd14340853fda81f3d98b4198 (sourcec4822c99...). PR production remainsC54900a9..., no economic promotion made. Next candidate validation must resolve intended old-return-assertion incompatibility with retained evidence, apply current authorized evaluation semantics, and use frozen-input affected sentinels before necessary formal gates. Do not rerun current6economiccontrols or initiate another rule carousel without a new premise.
+
+---
+Earlier checkpoints:
+
 Slow structural exit first screen — 2026-09-10:
 
 - NOT_MET; PR56 Draft, no main merge. Immutable one-condition candidate passes preregistered23-company cohort screen: wealth1.6519178484 vs1.2229698191; DD17.7456% vs23.3099%;32orders vs22. Paired runtime/input/execution and native seals/PnL pass. See slow_damage_cohort_result.{md,json}. This is in-sample research, not formal acceptance.

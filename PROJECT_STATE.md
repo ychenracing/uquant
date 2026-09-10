@@ -118,13 +118,42 @@ PASS;30/31original freeze checksPASS and the intentional prohibition conflict is
 retained. No full economic matrix is started on this rejected entry-only arm.
 Read benchmarks/caution_exception_research_result.json.
 
-Next independent research copy uquant-caution-lifecycle examines original tactical
-holding life and actual-fill same-share recovery handoff, not entry thresholds.
-Original30/12session expiry and profit rules; no added frozen BUY or risk bypass.
-Native prefix and ownership/risk checks are in progress; no economic result yet.
+Lifecycle copy local7b9d0c8/remotecca5723, source7bbdf954, tree13ac379a,
+retains actual tactical shares through Apr21 and performs a bound same-share
+May6 handoff.19focused checksPASS. Fixedbull11.197564929/DD.156694888/8orders
+FAILS wealth. Four869-session nominal accounts COMPLETE and principal-only
+comparison PASS: full29.717003593/22, champion25.109594313/14,
+remove_all_three3.678408527/20, no_optical1.633907036/19filled20submitted.
+Allfour contain zeroTACTICAL_REBOUND fills and zeroactive/cooldown sessions:
+this protects the continuous control but does not validate tactical generalization.
+Fullraw156804479bytes/3519members saved and verified; see
+benchmarks/caution_lifecycle_archive.json and caution_lifecycle_research_result.json.
+Entry-only archive also saved; receipt benchmarks/caution_entry_archive.json.
+
+Exact native prefix traces show May8 funding respects .92 concentration with
+actual308 price drift; Oct16 restoration respects .75gross and .04minimum trade.
+No missing recovery rights or staleMAE penalty. Do not increase either cap.
+The observed risk reducer instead prioritized one fewerSELL over stronger
+retention among safety-equivalent plans. Independent branch
+codex/risk-retention-research-20260910/local e2245e876265ed2abff3b4356c8f60526c4e1e2c,
+remote2db881e5619681bb4df363d3a2de6bb42ba263f4, tree8c82e792bc8a7a31b31257b4e64eff50398dc620
+swaps only existing utility/unchanged tuple priorities.8focused checksPASS.
+Fixedbull11.658254652384228/DD.1566948879626876/10orders: absolutefloor11.5443
+passes, but relative champion floor11.731316520301316 FAILS. Retain all original
+failures. This is not full acceptance and not justification for tuning to the gap.
+
+A separate implementation repair restores the original tactical cooldown countdown
+and overheat-only reset once per actual observed session. Current allocator set
+cooldown but never decremented it. Working copy uquant-tactical-clock-research;
+three clock tests nowPASS, with23/24 earliercombined checksPASS (the remaining
+synthetic overheat fixture lacked originalret20 qualification and is corrected).
+No long matrix on unstable code. Remaining actual-liquidation settlement needs
+checking before research readiness. Production trading source unchanged.
 
 Independent engineering repair: stale tests now use public research_data_root and
 AllocationBook at its actual module. Combined-capital architecture gate follows
 the relocated sole book while preserving exact authority, cash, gross, liability
 and mutation rejection checks, including the recovery stage.9application tests
 and28combined-owner testsPASS; focusedRuffPASS. No trading-source change.
+
+Source-surface transport repair now includes reviewed physical AllocationBook/current_cohort and17full-package-only research files; exact five-surface test andRuffPASS. Other historical architecture/Absolute/Ownership failures remain unresolved.

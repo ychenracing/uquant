@@ -44,8 +44,10 @@ _ECONOMIC_ADDITIONS = frozenset(
         "uquant/attribution/validation_lots.py",
         "uquant/holding_history.py",
         "uquant/portfolio/capital.py",
+        "uquant/portfolio/allocation_book.py",
         "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/recovery/cohort_admission.py",
+        "uquant/portfolio/recovery/current_cohort.py",
         "uquant/portfolio/recovery/tactical_admission.py",
         "uquant/portfolio/strategic/authority.py",
         "uquant/portfolio/strategic/grant_lifecycle.py",
@@ -195,6 +197,25 @@ ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
             | _EXECUTION_ADDITIONS
             | _SENTINEL_ADDITIONS
             | _VALIDATION_ADDITIONS
+            | {
+                "research/capital_holding_attribution.py",
+                "research/causal_price_series.py",
+                "research/fixed_promotion_screen.py",
+                "research/global_bottleneck_audit.py",
+                "research/historical_cohort_audit.py",
+                "research/historical_prices.py",
+                "research/https_input.py",
+                "research/industry_input_audit.py",
+                "research/industry_input_compare.py",
+                "research/industry_input_replay.py",
+                "research/opportunity_capture_audit.py",
+                "research/ordinary_sector_audit.py",
+                "research/qualification_episode_audit.py",
+                "research/revenue_reports.py",
+                "research/revenue_signal_audit.py",
+                "research/slow_damage_exit_audit.py",
+                "research/source_unit_replay.py",
+            }
         )
         - {
             "scripts/build_reproducible_wheel.py",

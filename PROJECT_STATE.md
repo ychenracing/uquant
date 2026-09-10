@@ -1,3 +1,13 @@
+Persistent-only full and H1 verified — 2026-09-10:
+
+- NOT_MET; PR56 Draft. b43 full869 wealth29.717003593409824 /22orders, DD.27147361646156465; exact native readback verifies all metrics and symbol PnL equal f5. Hard full15/40 restored after deleting the failed ordinary mature-industry shortcut. Fixed a/h1_2024 remains1.9085269240679252 /8, DD.156742775678121, acute+.06390679898215934; all current/original unit gates pass. No full acceptance claim.
+- Exact45c full12.352749369187105 equals b55 full in every metric/PnL, isolating the failure to the removed ordinary shortcut. Current b43 production producer96dbc48 equals remoteabb7be46 tree26549a27. All producer jobs completed.
+- Current verified April1-May9 2025 prefix remains cash; current Base Risk freezesApril3, so do not restore old early tactical buy. Actual May6/May7 NORMAL/unfrozen/RECOVERY supplies existing deep candidate; May8 three actual tradables qualify. Original cohort selection/admission exists but is disconnected. Preregister confirmed recovery under current risk/cash ownership in confirmed_recovery_plan.md. No frozen-risk exception, parameter search or wholesale legacy allocator.
+- New74,268,061-byte/1786-file evidence archive saved, SHA81f8fef0e42ac63e91b17b5ff937ccb06387f70b5d45e5452acfacc26b1946c5; includes b43 full/H1/current recovery prefix/audit and exact45c full control. Read persistent_only_result.json and persistent_only_archive.json. Remaining bull/removal/paired/stress/formal engineering gates persist.
+
+---
+Earlier checkpoints:
+
 Persistent-only narrowing implemented — 2026-09-10:
 
 - NOT_MET; PR56 Draft, main unchanged. Exact45c full869 control verifies12.352749369187105 /28 and ALL metrics and symbol PnL equal b55 full. The added ordinary mature-industry shortcut causes this hard15 regression; confirmed persistent formation is separately useful in H1.

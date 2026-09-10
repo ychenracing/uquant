@@ -5,8 +5,10 @@ production freeze rules, effective numerical gates and main are unchanged.
 
 The nominal principal accounts already meet the user's hard15wealth/40orders:
 full29.717003593409824/22, champion25.109594313238023/14. Both maximum drawdowns
-are about27.15%, below their retained30% ceilings. These historical scalars do
-not mean complete promotion or independent generalization has passed.
+are about27.15%, below their retained30% ceilings. Matching the full frozen runtime with actualuv0.11.33 now gives PASS for all4
+continuous nominal cases through the unchanged comparator; all native metrics
+equal the previous runs. Original old20order failure remains. This does not mean
+complete promotion or independent generalization has passed.
 
 The decisive controlled evidence concerns the same fixed a/bull recovery window,
 2025-04-01 through2026-06-30, not the principal15fold floor:

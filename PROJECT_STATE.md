@@ -1,279 +1,106 @@
-Evidence-tool repair checkpoint — 2026-09-10:
-
-- NOT_MET. Trading source77003 unchanged. Frozen native858c71/equivalentd894 raw remains separate from this delivery revision. Both principal accounts satisfy15/40; fixedbull7.5536/DD24.25% still FAIL. Historical no-frozen-probe control8.6062/DD28.24% also FAIL. No justification to restore forbidden freeze probe or raise restoration concentration.
-- All current native/log evidence saved:158440057bytes/3565verifiedmembers/SHA3b9951bea73b847bf7c23346c09563bc0cc305a54f4b43454085fcff8405e7f9; confirmed_recovery_archive.json. Prior107MB save already resolved.
-- Fix explicit evidence exceptions, HTTPS input transport, public fixed diagnostic owner and shared data-root API. Retire3completed historical-only active scripts; originals remain at aef6be1c.41research tests, affected API/import/source/market checks, allRuff and mypy336 pass.40new Bandit findings removed,8exact unchanged baseline findings remain. Native5session diagnostic COMPLETE with3actual orders;2scope/overwrite tests PASS.37existing promotion functions AST-identical; public data-root rename is whole-runner AST-equivalent. New20,981byte/15member engineering evidence saved; receipt in recovery_evidence_repair_result.json. Read recovery_evidence_repair_plan.md/result.json.
-- Next evidenced economic route requires explicit permission to research the old empty-book CAUTION freeze exception (original60% target); not implemented. Read recovery_permission_decision.md. No claim that every possible strategy is infeasible; the selected next experiment crosses the preserved guard boundary.
-- Formal nominal comparison remains FAIL on uv version0.12.8 vs frozen0.11.33; numerical packages/lock match. Future matched-runtime replay must use real matching executable. Current runner is renamed neutrally; do not silently reuse858 runner hashes as current. Remaining full engineering/Ownership/Grant/Absolute/economic gates unproven or failed. PR56Draft,mainunchanged.
-
----
-Earlier checkpoints:
-
-Confirmed recovery economic screen — 2026-09-10:
-
-- NOT_MET; PR56 Draft, main unchanged. Immutable producer858c71ac / equivalent remoted894c31c / treec545af65, source77003c98 and configadf8. Native full86929.717003593409824/22/DD.27147361646156465 and champion86925.109594313238023/14/DD.27146973146234554 complete with read_case verification. Principal15/40 preserved. FixedH1 remains1.9085269240679252/8/DD.156742775678121; all current/original unit gates pass.
-- Fixedbull3027.553639631084535/8/DD.24253804885922547 FAILS retained11.5443/.18 and champion gates. May9 fresh39460%/30816%/50216%, Sept10 risk-cut394, Sept12 actual partial restoration, June24 liquidation; maxDD Sept1-Oct14 2025. Raw native cache seals verified. Do not call late confirmed recovery a complete solution.
-- CORRECTION: old9bb risk_summary.freeze_new_risk=false was only overlay evidence. Actual CAUTION RiskAssessment froze new risk; old portfolio explicitly permitted a bounded empty-book caution probe. Current tests prohibit that path. Do not revive it or claim old Base Risk had fully reopened. Ordinary current market/score evidence matches; earlier interpretation was wrong.
-- Read-only alternatives closed without production changes: existing tactical helper produces no earlier targets on unfrozen sessions; breakout-event persistence yields502confirmation but it fails original-.30 depth onMay6/7, while308 loses its April25 breakout and confirms onlyMay8. No threshold/rank/CHOPPY/frozen-risk workaround justified. Read confirmed_recovery_assessment.md and confirmed_recovery_result.json.
-- Nominal removal controls COMPLETE and read_case PASS: remove_all_three8693.6784085274816762/20/DD.23402721910419388; no_optical8691.6339070356874204/19filled(20submitted)/DD.2440020771164343. These scalars equal retainedf5. Formal nominal comparison FAILS solely at runtime binding uv0.12.8 vs frozen0.11.33 (other recorded numerical stack/lock identical); no PASS claimed. Raw/log archive pending.
-- Historical permission ablation ac75b146 deletes only old9bb empty-book CAUTION probe: sentinel5cash/noorders, bull3028.606228148424972/8/DD.2824377521515553. First3buys and Sept9riskcut match77003; old restores23600shares394 vs current11700. Both fixed-unit gates FAIL. Major original13.16646 advantage depends on removed April3freeze exception; no permission to revive it or raise concentration limits. Read assessment and compact result.
-- Final28 recovery/restore tests + earlier93 affected (94unique),6 API/authority/complexity,2cycle/complexity,3source-surface pass. AllRuff PASS; allmypy338sourcefiles PASS after delivery-only direct imports of identical AI-era window objects. Producer/runner identities remain distinct; no re-labeling earlier native evidence. Complete engineering/Absolute/Ownership/Grant acceptance still pending; Absolute currently has the older739 binding and its latest CI fails.
-
----
-Earlier checkpoints:
-
-Confirmed recovery implementation ready for native screen — 2026-09-10:
-
-- NOT_MET; PR56 Draft, main unchanged. Source77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e / configadf8 unchanged. Restore existing confirmed recovery admission after current Base Risk reopens, actual filled recovery ownership, and bounded protected restoration in the same cash book. No early frozen April3 probe or new economic thresholds/rank/weights.
-- Real prefix keeps May6/May7 cash under original3-session confirmation; May8 original full3 selects39460%/30816%/50216% and fills next open. Only bound actual recovery receipts/valid native pending create membership; only RISK-origin sells preserve flat owner. Protected rights use the existing post-shock structure checks, never a fresh locked-cohort BUY.
-- 93 affected tests pass before the final route guard; final28 recovery/restore nodes pass including its fail-first native-fill denial (94 unique across runs). 6 API/authority/complexity nodes,2 cycle/complexity nodes,3 source-surface nodes, strictmypy5sourcefiles and Ruff pass. Expensive native breadth perturbation remains deferred, not passed. No complete engineering/economic acceptance.
-- Shared book moved once to allocation_book.py, existing scanner exposed as actual shared interface; current API and exact source surfaces include both new modules. Historical research file inventory added only to full-package provenance. Intermediate fingerprints before module registration are incomplete and must not label economic evidence. All corrected test expectations/failures retained; no production confirmation or structure threshold changed.
-- Freeze this producer and run fixed native a/bull302. It must pass retained11.5443wealth/DD/champion gates; improvement alone is insufficient. If viable, fresh principal15/40, retainedH1, removals/paired/stress and required final acceptance. Read benchmarks/confirmed_recovery_plan.md and confirmed_recovery_implementation.json. Retained b43 full29.717003593409824/22 and H1 1.9085269240679252/8 are controls, not new-source results. New raw/log evidence still needs saving after screen.
-
----
-Earlier checkpoints:
-
-Persistent-only full and H1 verified — 2026-09-10:
-
-- NOT_MET; PR56 Draft. b43 full869 wealth29.717003593409824 /22orders, DD.27147361646156465; exact native readback verifies all metrics and symbol PnL equal f5. Hard full15/40 restored after deleting the failed ordinary mature-industry shortcut. Fixed a/h1_2024 remains1.9085269240679252 /8, DD.156742775678121, acute+.06390679898215934; all current/original unit gates pass. No full acceptance claim.
-- Exact45c full12.352749369187105 equals b55 full in every metric/PnL, isolating the failure to the removed ordinary shortcut. Current b43 production producer96dbc48 equals remoteabb7be46 tree26549a27. All producer jobs completed.
-- Current verified April1-May9 2025 prefix remains cash; current Base Risk freezesApril3, so do not restore old early tactical buy. Actual May6/May7 NORMAL/unfrozen/RECOVERY supplies existing deep candidate; May8 three actual tradables qualify. Original cohort selection/admission exists but is disconnected. Preregister confirmed recovery under current risk/cash ownership in confirmed_recovery_plan.md. No frozen-risk exception, parameter search or wholesale legacy allocator.
-- New74,268,061-byte/1786-file evidence archive saved, SHA81f8fef0e42ac63e91b17b5ff937ccb06387f70b5d45e5452acfacc26b1946c5; includes b43 full/H1/current recovery prefix/audit and exact45c full control. Read persistent_only_result.json and persistent_only_archive.json. Remaining bull/removal/paired/stress/formal engineering gates persist.
-
----
-Earlier checkpoints:
-
-Persistent-only narrowing implemented — 2026-09-10:
-
-- NOT_MET; PR56 Draft, main unchanged. Exact45c full869 control verifies12.352749369187105 /28 and ALL metrics and symbol PnL equal b55 full. The added ordinary mature-industry shortcut causes this hard15 regression; confirmed persistent formation is separately useful in H1.
-- Remove only that shortcut: ordinary.py byte-identical f5 blob761b2eb; retain b55 confirmed persistent formation. New sourceb43f3f796aa16a54cb2a0bc009bf14db049df9291100d951127fc346c5bb6046; configadf8 unchanged. Real denial regression fails before deletion,39affected nodes pass afterward; Ruff/strictmypy pass. Freeze producer for fresh full15/40 and retained fixedH1 gates.
-- All b55 raw failed accounts and old recovery trace saved in126,059,981-byte/2764-file archive, see persistent_formation_archive.json. Later45c full control awaits next checkpoint. Read persistent_only_plan.md and persistent_only_implementation.json. Separate old recovery lifecycle integration remains unimplemented; no baseline/risk/threshold relaxation.
-
----
-Earlier checkpoints:
-
-Persistent formation complete screen — 2026-09-10:
-
-- NOT_MET; PR56 Draft, main unchanged. b55 full869 wealth12.352749369187105 / 28orders FAILS hard15. Champion869 remains25.109594313238023 /14; offset5 864sessions3.0836897515185404 /20 (paired original-source gate pending). All native readbacks/seals/ledger verified.
-- Fixed a/h1_2024 improves to1.9085269240679252 /8, DD.156742775678121, acute.06390679898215934; all current and original unit gates pass. a/bull3.4932287573203786 /14 still fails. NooptH1 unchanged1.34384059449498 /11; original authorized main DD baseline applies.
-- First full divergence is new ordinary mature-industry buyingJuly16 2024; losses trigger account-wide core reduction. Run exact45c full control and preregister removal of this new shortcut while retaining original persistent formation. Read benchmarks/persistent_formation_result.json and persistent_only_plan.md. No parameter/threshold change.
-- Exact9bb daily recovery trace COMPLETE302sessions, wealth13.166460741078918 /10: Apr7 probe fill, May6 promotion of same shares, May9 cohort fills, Oct14 risk cut/Oct17 restoration. Existing recovery helper is disconnected from current common-book pipeline; later integration requires actual ownership continuation, not just a BUY signal.
-
----
-Earlier checkpoints:
-
-Persistent formation implementation — 2026-09-10:
-
-- NOT_MET; PR56 Draft; main unchanged. Preregistered restoration of original full persistent formation implemented in discovery and initial ownership. Every actual member must retain own current persistent certificate/signature/confirmation and known-industry/history/confidence/liquidity; ordinary MA60/ret60 and maturity remain unchanged elsewhere. New formation uses original desired weights; cash-rearm/partial quorum cannot borrow this treatment. Source b55defea41815e8b1383fce39a55b466cc3301aa1c755ba090f228c970e992cf; config adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
-- Fail-first real Jan3 2024 test confirms missing orders on control. New source produces3 actual next-open buys at original1/3 desired weights before ordinary maturity.48 affected nodes pass across the main run and corrected partial-owner case;3API tests, Ruff and strictmypy2files pass. Earlier test failures retained: peer grants correctly remain empty within one epoch; first-receipt full-cohort ownership retains healthy peer commitments, while the invalid owner remainder is cancelled and fills remain. No lifecycle/attribution contract changed to satisfy these assertions.
-- Freeze producer; fixed native H1 sentinel then retained full a/h1_2024 gates. If viable, principal15/40 and affected weak/start controls. Separate bull recovery path still absent from common-book pipeline. Old exact9bb controls reproduce baseline but are not current acceptance. Read benchmarks/persistent_formation_plan.md and mature_sector_reference_result.json.
-
----
-Earlier checkpoints:
-
-Mature-sector screen and exact historical-reference recovery — 2026-09-10:
-
-- NOT_MET; PR56 Draft; main unchanged. Native45c ordinary industry shortcut improves fixed a/bull to3.493229/DD16.3964%/14orders, still fails retained11.5443 and champion return. a/h1_2024 remains1.363448/DD12.4292%/8orders and fails wealth/acute retention. Offset5 sentinel actually buysFeb28; no_optical/H1 exactly1.343841/11orders. No full869 principal result for45c.
-- Restored exact9bb58420365b471ee11b4cdfe31793008233ad50 from verified historical bundle plus exact-SHA1 GitHub blobs; no implicit lazyfetch. Original native backtest reproduces EVERY frozen metric in a/bull13.166461/DD16.3911%/10orders and a/h1_2024 1.904253/DD15.6743%/8orders/acute6.39068%. Same36 frozenfiles and uv.lock/runtime. See benchmarks/mature_sector_reference_result.json.
-- First causal divergence: Jan3 2024 persistent FULL_COHORT is confirmed but current common-core MA60/ret60 condition blocks its owner. Old buysJan4, currentFeb21. Bull old buysApr7 via existing oversold/recovery mechanism, currentJul4; current common-book pipeline no longer invokes legacy recovery admission. Shared retained numeric config values are identical. This is economic eligibility/lifecycle loss, not a numerical-runtime or stale-clock bug.
-- Next bounded challenge: original persistent full-cohort economic entry quality, retaining ordinary structural admission and strict actual account repair. Validate own current confirmed persistence, data/known industry/liquidity plus all grant/epoch/cash/risk guards; no parameter or rank changes. Test fixedH1 first, then principal and stress controls only if viable. Legacy recovery integration is a separate supported option with larger lifecycle cost; do not restore wholesale.
-
----
-Earlier checkpoints:
-
-Mature-sector ordinary entry implementation — 2026-09-10:
-
-- NOT_MET; PR56 Draft, no main merge. New preregistered ordinary-only sector proof implemented in one production file; existing impulse/shared/strict repair paths remain. Exact same-industry current tradable quorum3, existing credible.82, all member maturity and tenure5, current structure/history/liquidity plus complete market data. No sizing/exit/risk/config change. Source45c3416dcba3396307745f69cd723db543240a4b669bed9925ca0a82fb8b1ef6; configadf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
-- Distinguishing original7tests:2fail/5pass on control. After implementation77affected tests PASS;3API tests PASS; final10focused tests PASS including peer illiquidity and missing/stale market data. Counts overlap. Ruff and strictmypy pass. Native partial-fill/cancel/held-rights and risk-freeze checks pass. No full engineering/acceptance claim.
-- Freeze this producer, run native champion offset5 through2023-03-10 and no_optical/H1 with exact readback. Then fixed a/bull and a/h1_2024 failed units. Only a viable direction proceeds to complete frozen accounts and required acceptance. Keep all prior failures and accepted15/40 scope. Read benchmarks/mature_sector_entry_plan.md.
-- All reversal-stage raw evidence saved:253,104,337bytes/5415verifiedfiles; see reversal_structure_archive.json. Prior107MB/114MB evidence saved. New mature-sector evidence still in progress.
-
----
-Earlier checkpoints:
-
-Reversal structure complete screen / scoped acceptance correction — 2026-09-10:
-
-- NOT_MET; PR56 Draft; main unchanged. Immutable producer a56a43f954bf4ada4027836c108d4ca6051b5f20, tree f5f9a86172dce922916bbc1c6f69e1aa05d4c700, remote equivalent766a832bcbd4debc11b34bc2b79b553fa6f922d5; sourcef5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994/configadf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
-- Eight native accounts COMPLETE with readbacks. Frozen principal champion25.109594/DD27.146973%/14orders; full29.717004/DD27.147362%/22orders. Both meet user15/40. remove_all_three3.678409/DD23.402722%/20orders/cost1.4144%initial; no_optical1.633907/DD24.400208%/19orders/cost0.7022%. No principal15 floor is imposed on reduced pools.
-- Offsets5/20 both3.632625/DD17.235089%/22orders; first positive target2024-02-22. This is a capture concern. Paired startup acceptance remains UNPROVEN without valid frozen old-source comparator. V4 accidentally applied15 to all stress cases namedchampion. Correct evaluator to nominal principal only; retain original cost/neighbor/paired/contributor formulas and existing90% tolerance. Added boundary tests preserve14.99 principal failure and both sides of paired/removal checks. Original P4 still independently fails retainedneighbor ratio; no frozen contract changed. Twelve affected evaluationtests andRuff/mypy PASS.
-- Independent frozen native Performance screens FAIL: a/bull1.496607/DD18.733581%/7orders vs retained11.5443wealth/18%DD plus champion regression; a/h1_2024 1.363448/DD12.429226%/8orders vs1.512wealth plus wealth/acute champion regression. Both nativecache units preserved. No full45 Performance, Robustness or AbsolutePASS. These actual retained failures justify further work even after correcting stress scope.
-- H1 no_optical1.343841/DD22.979528%/11orders versus integration1.469671/DD23.197003%/7orders. First extra targetsJan19 sh688072/sz300223 each20%; both jointly profitable259k but consume capital, reducing March6 sh68825640% to19.26% and its PnL by510k. No justification to raise gross exposure.
-- Next bounded hypothesis: same-industry corroboration for the existing mature ordinary shortcut, preserving the existing impulse path and strict repair/other routes. Use existing credible score.82, actual maturity, own and peer leader_tenure_days5, current structure/liquidity/known-industry evidence and strategic_cohort_min_size3; no new numerical parameters, ranks or sizing. Read-only initial feasibility finds3optical peersFeb28 and no3-peer no_optical/H1 event; restrict every supporting member to the actual tradable/current panel before implementing. This is new sector evidence, not reopening the failed generic broad-market shortcut. Preregister before edits, fail-first tests; native offset early-entry/no_opticalH1 and fixed a/bull/a/h1_2024 before full cases. Do not tune3/5/.82 if it fails.
-- Current stage archive locallyverified253,104,337bytes/5415files/SHA256755ce44989e3c0fe2824f07222e7095c9c523823110e0bbfdcbcfb1bf1b4ae8d; saved with verified receipt in reversal_structure_archive.json. Prior107MB and114MB deliveries already closed. Current Absolute remains pinned to739 until a stable final candidate warrants actual reseal/new native fixture.
-
----
-Earlier checkpoints:
-
-Scoped reversal-index retirement screen — 2026-09-10:
-
-- NOT_MET; PR56 Draft; main unchanged. The preregistered candidate removes only the macro120-day reversal veto, its configuration and validator; stock evidence, confirmation and all account controls remain. Source f5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994, config adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
-- 135 affected tests PASS, including discovery/revalidation, exact deletion, weak-stock/witness/risk constraints, config governance, schema mutation guards and API identity. Five source files strictmypy PASS; allRuff PASS. Corrected prechange check retained5 failures/7passes; initial weak-stock fixture used0 incorrectly because retained medianfloor is nonpositive, corrected before implementation.
-- Current retirement inventory is separately sealed; frozen governance/validation stimuli remain intact. PublicAPI changes are limited to one actual field and dependent config hashes. Absolute current identity remains integration739 pending stable-candidate economics; no AbsolutePASS claim for the new source.
-- Freeze producer then native champion early-entry and no_optical/H1 sentinels; if valid, fixed full-window cases and champion offsets5/20. Read benchmarks/reversal_structure_plan.md. Prior integration results and114MB saved archive remain intact.
-
----
-Earlier checkpoints:
-
-15/40 native results and causal next step — 2026-09-10:
-
-- NOT_MET; PR56 Draft; main unchanged. Revisionv4 hard principalwealth15 / at most40orders per account replay retained.
-- Integration producer9be0a135, source73969473, remote-equivalent a20a7484: nominal champion25.109594/DD27.146973%/14orders; frozen no_optical/H1 1.469671/DD23.197003%/7orders. Native readbacks complete. Absolute champion/report-13 shard COMPLETE, not allAbsolutePASS.
-- Fixed P4 lower champion FAIL: wealth3.632625/DD17.235089%/22orders; same nominal25.109594. First buy signal still deferred from2023-01-04 to2024-02-22. Exit-only direction cannot solve totalgoal; stop remaining Performance fullmatrix with completedunits preserved, noPASS.
-- Integrated repaired strict6.426636/DD16.783827%/36orders differs from priorc482candidate2.647784. Firsttarget divergence2023-05-05 comes from currentPR's retained deletion of fresh long-pullback admission; previousresearchmain/candidate still had that entry. This invalidates integration-neutrality premise, not raw validity. CurrentC control2.133953 has same data/config/runtime; its runner differs only by object-type inputvalidation, satisfied in both. Costs43,720.93/initial2M exceed2%; no strictformalPASS claim.
-- Engineering: 331sourcefiles strictmypy PASS; allRuff PASS;99 Absolute currentcontract/policy/nativefixture tests PASS;39 research parser/analysis behavior tests PASS;11 affected architecture/API/lifecycle nodes PASS across recordedruns. Historical Git blobs restored exact through explicit repoREAD (lazyfetchdisabled). Keep original badfixture/source/mypy logs. No whole-engineeringPASS.
-- Recomparison selects scoped removal of macro-index120-day reversal veto, not ordinary entry widening or parameter tuning. Stock-level reversal/quality/witness/confirmation and all account risk remain. Actual code/parameter retirement still pending preregistered implementation. Prove actual deletion, never call inactive P4 overrides robustnessPASS; test fixed nominal/removal/H1 and starts before expensive finalgates. See benchmarks/goal15_40_stage_result.{md,json}. No other goalproposal adopted.
-- New stage archive saved:114,112,050bytes/2840verifiedfiles/SHA256911af737eb1b71e498b8b871271fabbd4c0fa3ec548fec96b86dcb7ce92203aa. See goal15_40_stage_archive.json. Original107MB delivery remains closed.
-
----
-Earlier checkpoints:
-
-Latest15/40 authorization and candidate integration — 2026-09-10:
-
-- NOT_MET; PR56 Draft, no main merge. User explicitly accepts principal full/champion wealth >=15.0 including capital, never lower, and <=40 cumulative account orders per replay, including shorter windows. Revisionv4 preserves original judgments; no further90% discount of15. All other effective requirements remain. Prior goal-change proposal is not otherwise adopted.
-- Selected slow structural exit now integrated on currentPR infrastructure: retain maturity protection, existing structural/confirmation/holding predicates; remove only the ordinary ret20 velocity veto. No new entry/recovery/sizing/ranking rules. Source73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b. See benchmarks/goal15_40_integration_plan.md.
-- Earlier212 affected tests pass; distinguishing7 tests were6red/1green on oldproducer and7green after change. Ruff and strict mypy10 modified sourcefiles pass. Additional Absolute checks remain in progress; old compiledcandidate binding was stale. Current Absolute identity resealed to measuredsource only; frozen17ce policy, thresholds, baseline and inputs unchanged. Historical source blobs recovered through explicit repository reads with exact Git blob hash verification; disable implicit lazyfetch locally.
-- This is an integration checkpoint, not formal acceptance. Next: immutable native repaired strict integration check and frozen no_optical/H1; resolve remaining Absolute historicalfixture binding correctly without relabeling raw accounts; stablecandidate proceeds to required frozen Performance/Robustness/Absolute/Grant/Ownership checks. Do not count research outcomes as formalPASS or freshOOS.
-- Original107MB delivery and all previous expensive raw archive gaps were closed. New integration logs/results need separate saving after completion.
-
----
-Earlier checkpoints:
-
-Completed slow-exit controls / goal review — 2026-09-10:
-
-- NOT_MET; PR56 Draft, no main merge. All6original paired869-session accounts plus2sentinels COMPLETE/native-readback/sealed/PnL-reconciled. New main controls exactly reproduce prior repaired-data wealth. No economic job remains running.
-- Main -> slow candidate: full31.4497257169 ->30.1646702227, DD27.1222% ->27.1542%,23/23orders; remove3 1.8793222919 ->2.4566077412, DD19.8545% ->12.9853%,25/29orders; strict2.5374056392 ->2.6477837012, DD12.5532% ->12.1869%,19/22orders. The separate23cohort improves1.223 ->1.652 and DD23.31% ->17.75%. Keep a supported candidate with a full-pool4.0861% wealth tradeoff; no claim of dominance, formal acceptance or fresh OOS. See slow_damage_original_result.{md,json}.
-- IMPORTANT current acceptance uses latest PR v3: prior user explicitly authorized32continuous orders (not old20/22), applicablewealthfloors*.9, one no_optical/h1_2023 main-DD baseline. Absolute/Ownership and all other retained obligations remain. Research main producer contains oldv1 acceptance comparison helper; it does not supersede currentPR authorization. Current23/29/22orders do not exceed32. Earlier commentary citing22 as current was corrected; do not manufacture an order failure or ask again for existing32authorization. Later no-main-merge prompt controls over historical merge language.
-- Original controls archive saved:201,351,920bytes/5277verifiedfiles/SHA25640963904bde7dd0e9e5869dc08f7574493ad05b42d7092024e79d0d4c0d0a002; see slow_damage_original_archive.json. All new raw results saved. Original107MB and lostCraw delivery gaps closed.
-- User asks whether goals should change. Concrete goal_revision_proposal_20260910.md prepared, not enacted: keeprisk/correctness/currentauthorizations; define priority of net economic advantage, conditional opportunity participation, actual manualwork; distinguish historical research delivery from independently validated investment readiness; propose an evidence-based no-edge research outcome only with explicit user adoption. No retroactive threshold change or convertedPASS.
-- Candidate remains immutable main-policy+onevelocity-veto deletion at remote52790e4edd77aadfd14340853fda81f3d98b4198 (sourcec4822c99...). PR production remainsC54900a9..., no economic promotion made. Next candidate validation must resolve intended old-return-assertion incompatibility with retained evidence, apply current authorized evaluation semantics, and use frozen-input affected sentinels before necessary formal gates. Do not rerun current6economiccontrols or initiate another rule carousel without a new premise.
-
----
-Earlier checkpoints:
-
-Slow structural exit first screen — 2026-09-10:
-
-- NOT_MET; PR56 Draft, no main merge. Immutable one-condition candidate passes preregistered23-company cohort screen: wealth1.6519178484 vs1.2229698191; DD17.7456% vs23.3099%;32orders vs22. Paired runtime/input/execution and native seals/PnL pass. See slow_damage_cohort_result.{md,json}. This is in-sample research, not formal acceptance.
-- Six original repaired-data full/remove3/strict native accounts now running (main71ab063e vs slowc4822c99), after each arm passed6day original-input sentinel. Do not promote until these resolve; preserve costs and trading-burden failures.
-- Cohort candidate evidence saved:26,155,282bytes/877verifiedfiles/SHA256e696cfb66ba42609cd2c0381fc6694e3e8999eac0f165597bf510e289d481d62. See slow_damage_cohort_archive.json.
-- Lost C raw reconstruction completed all3x869 with native readbacks and prior exact wealth values;118,077,214bytes/2625verifiedfiles saved, SHA256f7a72e19c5a1c7f16767cbfdc4bce9f91b8a09a13bda7761cab7150928b77d99. See c_regenerated_archive.json. This is a new archive, not the old missing94MBbytes. Evidence-delivery gaps are closed.
-
----
-Earlier checkpoints:
-
-Historical cohort executed — 2026-09-10:
-
-- NOT_MET; PR56 Draft, no main merge. Paired native869-session accounts completed with identical inputs/runtime/execution: main wealth1.2229698191/DD23.3099%/22orders; simple0.9386578455/DD27.6521%/16orders. RETAIN_MAIN_REJECT_SIMPLE_REPLACEMENT. See benchmarks/industry_input_v2/historical_cohort_paired_result.{md,json}.
-- Native readback, raw/account seals and symbol-PnL reconciliation pass. Main default sentinel metrics unchanged. Research cohort binding31tests plus Ruff/mypy pass; simple42tests plus static checks pass. Local producers main deb245877c448b5d028ddcedcbc438cafaaf2d58 and simple69803c1 have remotely preserved equivalent trees on codex/cohort-paired-execution-20260910 and codex/cohort-simple-control-20260910. Recorded native commit ids remain local producer ids, not remote-equivalent substitutions.
-- Recovery audit: no eligible route-consistent confirmed strategic candidate on22flat repair-READY days. Maturity-only exit audit adds no earlier confirmed exit. Do not reopen either premise from READY counts alone.
-- Active supported next hypothesis: remove only ordinary lifecycle ret20 velocity veto, retaining not-mature, original MA20/MA60,3confirmations,10minimumhold and all other policy. Four diagnosed early structural events;39day native sentinel confirms2023-02-27signal/02-28fill. Immutable producer1016221552a4fcc4540129903b906ad3e6d9ca42, remote52790e4edd77aadfd14340853fda81f3d98b4198, identical tree89a80efad0c05c638b7e26b3dc398b30bf25f3a7, sourcec4822c992c23d4feef1532402e943d93e09608781d4b9c93aeb5344c54aaf2f2 on codex/slow-damage-exit-20260910. Full cohort running. Preregistered wealth-improve/DD-nonworsening screen before original repaired-data controls. Distinguishing3tests pass; affected16pass/1retained old-return-veto assertion failure. No full engineering PASS claim.
-- Paired raw/dataset/sentinel/audit archive saved:78,998,165bytes/1876verifiedfiles/SHA2564abcd1d62e687172c592823d8cacdf8e3e956544081baefab07b6bc21a6037c2. See historical_cohort_archive.json. Slow full and C regeneration are separate pending evidence.
-- Runtime restored with locked Python3.12.13 dependencies offline/no-install-project; no dependency/lock change. Original107MB saved delivery remains closed. Lost unsaved C raw being faithfully regenerated from744eea29 and sealedd4d7e4c7 inputs; do not claim old94MBarchive saved.
-
----
-Earlier checkpoints:
-
-Direction decision — 2026-09-10:
-
-- NOT_MET; PR56 Draft, no main merge. See benchmarks/direction_priority_20260910.md for the new evidence/cost ranking and explicit next-result decision table.
-- Primary workstream: executable cross-industry opportunity capture while retaining main as the control. Recovery and holding changes remain conditional on a concrete causal loss; do not reopen rejected D/E, sizing, rank or confirmation variants without new premises.
-- Before cohort economic results are observed, supplement the planned single23-company main replay with one fixed, already-implemented integrated-simple comparator on identical research inputs and execution. Preserve its earlier H1 failure; no retuning. Existing guard, source, neutrality and native sentinel gates remain prerequisites. This is a two-arm research decision, not a new acceptance gate or automatic promotion.
-- Local execution connection recovered (pwd succeeds), but previous /dev/shm/uquant* worktrees/archives are absent. Restore durable sources; pending unsaved C raw evidence requires faithful regeneration from preserved producer and repaired inputs. Do not claim the94MB raw archive was saved.
-- Focused GitHub run34406716003 remains queued at fresh read. No new cohort economic run or latest-code verification completed in this decision review.
-
----
-Earlier checkpoints:
-
-Execution dependency checkpoint — current:
-
-- Overall NOT_MET; PR56 Draft, no main merge. The task continues from a concrete implementation, not a failed-hypothesis report.
-- Original107MB evidence delivery is closed with saved-file hash readback. Saved source/unit161,703,516-byte and coverage/price191,039,012-byte archives preserve all9 main-policy input-diagnostic paths and expensive original sources. See source_integrity_archive.json and source_coverage_price_archive.json.
-- C on the identical repaired research data is rejected: full31.44972572 and removal1.87932229 equal main; strict2.13395344/DD14.4345%/29orders versus main2.53740564/DD12.5532%/19orders. All3 native869-day readbacks passed. Earlier formal C failures remain. See c_source_data_result.json.
-- C raw archive94,563,799bytes/2634files was locally verified, SHA256c2a2aa544a43aab941a5f689adcf49043e3fef6e6eef5b167aac86cd51776086. Persistent save did NOT complete before runtime outage; do not claim saved. Resume by saving the existing archive or regenerating from remote C744eea29 and saved repaired inputs if local bytes vanished.
-- Chosen next route: fixed23-company research cohort disclosed before2022-09-01, from the already reviewed full90-company2022H1 frame (23supported/42outside/25unresolved). No return-based member selection, production expansion or threshold search.
-- Implementation preserved and remotely readback-verified on codex/historical-cohort-replay-20260909 at145e2a6d37c5f4fb36ba5bad58e63d563556dd4b: explicit dated cohort context, dynamic research reference binding, source/frame manifest, reused bounded parser, dataset builder and native readback CLI. The README at benchmarks/historical_cohort_input_v1 gives exact saved source restoration and gated commands.
-- Initial10 cohort-boundary+7 data-binding tests passed locally. Latest formatting, real-manifest test and dataset/replay code still require static and native verification. Focused CI34406716003 is pending on145e2a6; preceding initial focused run34405869454 remained queued. Queued/pending is not PASS. No full economic matrix requested.
-- Actual execution blocker: old Python runtime disappeared, followed by repeated exec-server409 environment_offline / Environment is not connected. Even pwd fails. No other local code executor is exposed. Repository-native focused CI is the implemented alternative but has not started; next work depends on a functioning local runtime or CI executor.
-- After execution returns: save pending C archive; finish focused guards/lint/typing; build from saved109 action notices/23raw responses; verify frozen-default and23-member native sentinels; then execute the one preregistered869-day cohort account and reassess all goal gaps. Do not restart completed input diagnostics, modify frozen contracts, use protected2026-08-06+ market data, or waive the recorded source-header incident.
-
----
-Earlier checkpoints:
-
-Source-integrity and coverage checkpoint — current:
-- NOT_MET; PR56 remains Draft, main960539a unchanged. Original107MB delivery closed; new161,703,516-byte checkpoint saved,3318 evidence files verified, SHA256f17ae691d45beea506350ab553898865756246ca28954d749f781dc3eb478c5e (source_integrity_archive.json).
-- Original34 stocks: all bounded raw prices obtained;181 effective original-notice cash/share reference coefficients verified from183 PDFs.31 symbols' full overlap OHLC matches within cent;3 price-source exceptions explained, separately preregistered.
-- Unit-only correction replaces volume+amount on41,506 rows. All3 native869-session paths reproduce entire baseline metrics, equity, ledger and attribution. Scores/state/identifiers can differ. Close unit-error-as-profit-cause hypothesis.
-- Missing history: sh68834799sessions and sz000636484sessions inserted only in a versioned research copy. Three869-session native readbacks pass. Full wealth31.43602578→31.44972572; remove3 1.17794432→1.87932412, DD20.6961%→19.8545%, orders15→25; strict wealth2.53740564/DD12.5532% unchanged. This is data repair, not strategy alpha or an acceptance waiver.
-- First remove3 economic divergence2023-01-18: corrected breadth60 .44643 vs .38889 changes CHOPPY to TREND with unchanged NORMAL risk/cap1.0; admits existing sh688200/sh688766. Neither repaired symbol creates direct trade profit. Later profits/positions are fully native-replayed.
-- 23 historical research candidates:109 original action coefficients verified,6suspensions+IPO explained,94 annual business observations and1264 causal-signal prefix checks complete. Annual observations do not establish exhaustive intrayear membership. Losing/risk-warning issuer retained;25 initial boundary cases remain unresolved.
-- Active: three price-consistency native paths on immutable local9f8c73af/main-policy3ad3..., versioned research datad4d7e4c7..., correcting only3 preregistered source exceptions. Fixed-end affine convention is a diagnostic, not a causal raw-share execution engine.
-- All production/frozen membership, inputs and contracts unchanged. Previous source-isolation quote-header incident and rejected economic hypotheses retained. No threshold/rank search; no full acceptance or CI PASS claim.
-
----
-Earlier checkpoints:
-
-# PROJECT_STATE
-
-> Low-token recovery index. This file is a routing aid, not authority for mutable branch, SHA, CI, artifact, or acceptance facts. Resolve those from GitHub when they matter. Do not preload historical handoffs, logs, or evidence unless the active task requires them.
-
-## Resume path
-
-1. Read `AGENTS.md` and applicable nested instructions.
-2. Use this file to identify the active workstream.
-3. Read `.github/CHATGPT_PROJECT_BRIEF.md` only for stable architecture, commands, or boundaries that are not already in context.
-4. Read the active PR's latest state plus only the affected code, tests, contracts, and workflows needed for the next decision.
-
-## Active workstream
-
-Historical-source and data-unit checkpoint — current:
-- NOT_MET; PR56 Draft, no main merge. Original107MB delivery issue closed with fresh-download hash verification.
-- Original2022H1 full90-holding frame reviewed using dated issuer reports:23 supported research candidates,42 outside existing supply categories,25 unresolved. Holdings are not index membership. Production universe unchanged.
-- Collected94 subsequent annual-report versions across23 candidates; three incomplete Unis HTML bodies repaired from original PDFs. Longitudinal business/exit audit remains incomplete.
-- Official Sohu client JSONP protocol resolved prior full-range/2026 failures. All23 raw OHLCV+amount series now complete to2026-08-05:30,849 observations. Eight parser/source tests and Ruff pass. Saved original responses, retries and exact producer versions.
-- Collected109 original corporate-action implementation notices through bounded official quote-free API. All109 reference-change candidate dates match notice ex-dates; two merged PDF date cells visually repaired. Exact cash/split adjustment coefficients and suspension/IPO audit remain in progress; raw prices are NOT executable QFQ inputs.
-- Found inconsistent frozen volume units for three overlapping names. Fixed DataStore.refresh_akshare hands→shares conversion through pure helper;8 affected tests, Ruff and mypy pass. Frozen CSVs unchanged, no live refresh. Diagnostic source-volume replacement changes volume_expansion materially on19/19/25 dates, concentrated at feed joins. Profitability/account impact unproven; execution already has a separate compatibility heuristic.
-- Source-isolation incident: public search/third-party announcement list exposed current sz000555 quote headers. No protected series queried or quote values used in research; incident retained, cannot claim absolutely untouched holdout. Business eligibility was fixed before exposure. Subsequent sources use bounded quote-free disclosure API/direct PDFs.
-- Complete source checkpoint105,899,524bytes,1055 evidence files plus manifest, SHA2562fb161d6f0fd8e4ae53a7ed44d2f61a03dbb55b74ff7f7413b5d18ca07fac0b4 saved. See historical_source_archive.json. Later gap investigations are not yet in this immutable checkpoint.
-- Continue exact adjustment/lifecycle audit and quantify actual decision impact before selecting an economic intervention. Preserve rejected allocation/revenue/counter hypotheses; no threshold/rank search or acceptance waiver.
-
-Earlier checkpoints below are historical.
-
-## Continuous implementation — current evidence
-
-Overall NOT_MET; PR56 remains Draft, main unchanged. A failed hypothesis closes that hypothesis, not this task. Current work: reconstruct dated external historical opportunity coverage now that original document downloads work.
-
-- Original107,316,291-byte integration archive saved and fresh-download SHA verified (evidence_archive.json).
-- Admission redistribution isolation: valid869-day removal wealth4.24835464 vs1.17794432, but full25.15692702 vs31.43602578 and strict1.83636855 vs2.53740564. Reject broad replacement; no divisor/cap/ranking retune. Four valid native paths plus invalid mid-run-commit attempt preserved in46,531,011-byte saved archive. No economic producer job remains pending.
-- Revenue research:506 original report records collected;504 A-share versions across502 symbol-periods,2 H-share versions excluded. Original PDFs repair30 HTML layouts,2 more A-share PDFs corroborate already-discovered originals. Nine focused tests and Ruff pass;100 fixed signal records independently reproduced with pandas/partial-correlation formula. No return join before input audit.
-- Both revenue signals fail the broad research screen: early full60-session partial direction negative; late60 only3 anchors. Nonoptical directions positive but sparse conditional evidence is not a waiver or executable profit. No financial rule added. Full162,361,977-byte raw/source/audit archive saved (revenue_archive.json).
-- Qualification episode audit:1338 overlapping maturity episodes across three corrected-main paths. No stale positive streak on a failed current predicate and no missed progression with all predicates true in inspected mature/unheld observations. Close initialization-counter-bug claim; no pre-window warmup, synthetic state or admission relaxation. Losing events retained; price labels are not executable account returns. Source and saved104,408-byte receipt alongside qualification_episode_result.json.
-- Global choice: more allocation/rank tuning contradicted by completed paths; new financial transforms prohibited after the registered failed screen; specific initialization premise not supported. Historical coverage is reopened because its previous network premise changed. Original2021H1 and2022H1/FY ETF reports and2021/2022 methodology obtained. Holdings are not automatically index members or an eligible AI denominator. Membership/exit/price/causal adjustment validation is active; production pool unchanged.
-- Existing C formal Performance/Robustness/Absolute failures and unfinished gates persist. Reused research slices are not fresh OOS. No merge or full acceptance claim.
-
-Read benchmarks/industry_input_v2 allocation_isolation_result, revenue_signal_summary, revenue_coverage, qualification_episode_result and adjacent archive receipts. Continue implementation from the supported branch; do not repeat completed economic runs.
-
-Historical checkpoints below are superseded where the current evidence above differs.
-
-- Follow-up: the 107,316,291-byte integration archive is SAVED, libfile_399d88b00ee48191aa4ffd31a1f0979e, exact SHA-256 verified after fresh download. evidence_archive.json supersedes older failed-upload status. Historical coverage gaps block expanded-universe replay, not all within-pool diagnosis. See continuous_result.md follow-up correction; admissions versus induced concentration is proposed, not run.
-
-- Latest continuous-goal continuation: `benchmarks/industry_input_v2/continuous_result.md`. Scoring-only reference isolation reproduces strict wealth2.53740564/DD.12553223 with risk addition retained; causal diagnosis, not ordinary-account profit improvement. Fixed industry-first native removal candidate rejected: wealth.89246649 vs1.17794432 control, DD.19077273 vs.20696073. Both new raw archives saved with adjacent receipts. Historical174-code fund inventory is NOT an eligible AI universe; dated membership/exit and complete new-member data remain unresolved; original2022 sources inaccessible. Separately fixed a reproduced same-day reference-membership score-cache collision;4focused checks/Ruff/mypy pass. PR56 remains Draft/NOT_MET; no new full acceptance or local economic run pending. Read new report first; do not repeat completed experiments or use them as new-cache-source economic acceptance.
-
-- Current continuation: PR #56, ordinary structural exit, entry simplification and capital recovery. PR #55's standalone comparison and PR #48 are historical; preserve their failed evidence.
-- Resolve PR #56 head/status and candidate decision before continuing; do not redo still-valid evidence.
-- Previous bounded round: `benchmarks/capital_holding_result.md` and receipts. Both fixed arms failed. `benchmarks/industry_mapping_review.json` documents classification issues; recorded no_optical is not reliable economic non-optical isolation. Next priority is versioned input correctness, preserving frozen originals.
-- Latest input round: `benchmarks/industry_input_v2/result.md`, taxonomy, receipts and native_plan. 34 reviewed business mappings, 14 proposed label changes; historical membership unresolved. Full optical PnL share 91.22%, strict 47.75%. Two all-role optical exclusion H1 probes completed: main=C wealth 1.597983, DD .176467, 6 orders. Other industry logic unchanged; no full taxonomy replay or promotion. Next decision is bounded unified research-input injection, not more score/position tuning.
-- Unified-input implementation COMPLETE for this bounded round: `benchmarks/industry_input_v2/integration_result.md`, paired receipts, verification, risk_role_result, coverage gaps. Main-policy old→revised wealth: full30.7433→31.4360, remove3 2.3976→1.17794, strict .91093→2.53741. Six869-day native readbacks pass, all default controls reproduce main. A single extra risk-reference-only arm (Jiangfeng never traded or qualified) exactly reproduces remove3 metrics at1.17794; risk input enters scoring too. Corrected industry-first gross ranking is positive in both horizons/periods, but small samples and late small margins are not net-account/OOS validation. No new portfolio rule or production taxonomy promotion; overall NOT_MET. All local native runs have finished. Native archive107,316,291bytes SHA01cbb2ef... exists under `/dev/shm/uquant_taxonomy_integration_evidence_20260909.tar.gz`; persistent upload FAILED (proxy connection refused/timeouts), see evidence_archive.json. Preserve it if environment remains; do not claim durable raw evidence. Source control3ad3f4b7... at remote664b1ec9..., PR56 remains Draft. Next: bounded scoring-reference/industry-first executable candidate, no blacklist/threshold search; historical membership/coverage remains unresolved.
-
-- Objective: improve cross-AI trend discovery, holding, recovery, and diversification away from direct dependence on the three optical leaders while simplifying the core allocator.
-- The PR and `benchmarks/ordinary_recovery_continuation.md` record the production baseline, preregistered mechanisms and failed candidate decisions. Existing production contracts remain unchanged. Four screening cases alone are not full acceptance.
-
-## Guardrails
-
-- Preserve frozen economic contracts, data, seeds, comparison conditions, failure evidence, and Future Holdout boundaries.
-- Do not use parameter search, threshold relaxation, synthetic proof, or unrelated refactoring to make acceptance pass.
-- Reuse still-valid deterministic evidence; expand verification by impact and run full L4 only for a stable final candidate.
-
-## Freshness rule
-
-Before acting on mutable state, verify the current `main`, PR #56 head/status, latest relevant PR comments, and applicable checks. If this index conflicts with current GitHub state or the task's explicit contract, GitHub/task authority wins and this file should be updated narrowly.
-
-_Last reviewed: 2026-09-09._
+# Current task state — 2026-09-10
+
+Status: NOT_MET. PR56 Draft; no merge. Follow the user continuous-goal prompt;
+failed candidates and checkpoints do not complete the goal. Principal full/champion
+nominal wealth floor15 exactly, all account orders40; retain other effective gates.
+No15floor on removals/restarts/stress. Future Holdout2026-08-06 onward remains closed.
+
+## Source and verified delivery
+
+- GitHub repository ychenracing/uquant; branch codex/ordinary-recovery-20260909.
+- Matched-runtime producer local9a53becc4882ff8f5919f31dac3b22abd772977f equals
+  remote9572853aed90dedbd210525b30459e1dbd720ce6 at tree9d3f5acfcaa9e3142e2ccdad718cac0282a82183.
+  Later delivery changes are documentation/receipts; resolve latest branch SHA from PR56.
+- Main960539a89408cc7c1fc3937bda19c9f760095012 remains unchanged.
+- Trading source77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e;
+  configadf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
+- Native original candidate producer858c71ac6616097da62657fd2e600ad4ca5c1456 has
+  equivalent remoted894c31c/treec545af65. Do not relabel it as later commits.
+
+## Economic evidence
+
+Native869sessions2023-01-03 through2026-08-05, actual costs/next-open execution;
+raw/account/role/source/config/attribution readback verified:
+
+| Case | Wealth | MaxDD | Filled/submitted orders |
+| --- | ---: | ---: | ---: |
+| full | 29.717003593409824 | .27147361646156465 | 22/22 |
+| champion | 25.109594313238023 | .27146973146234554 | 14/14 |
+| remove_all_three | 3.6784085274816762 | .23402721910419388 | 20/20 |
+| no_optical frozen classification | 1.6339070356874204 | .2440020771164343 | 19/20 |
+
+Principal15/40 scalars hold. Removals have no incremental gain versus retainedf5.
+Fixed a/h1_2024:1.9085269240679252/8/DD.156742775678121/acute.06390679898215934;
+all original/current unit gates pass. Fixed a/bull302:7.553639631084535/8/
+DD.24253804885922547; FAIL retained11.5443/.18 and champion requirements.
+All are reused historical research, not independent generalization or full acceptance.
+
+The original nominal comparator rejected actualuv0.12.8 vs frozenuv0.11.33,
+while Python3.12.13/numpy2.5.1/pandas3.0.5/uv.lock matched. Failure is retained.
+A genuineuv0.11.33 executable now matches the complete frozen runtime. Four fresh
+native869accounts on local9a53bec/equivalent remote9572853a COMPLETE; all rich native
+metrics equal858c71 results. The unchanged principal-only comparator passes ALL4
+under current15/40; original literal judgment still fails full's old20order ceiling.
+See benchmarks/matched_runtime_nominal_result.json. This closes the runtime issue,
+not the fixedbull or complete promotion failures. Outputs at
+runs-20260910/matched-runtime-nominal; raw archive145460167bytes/3503members saved, SHA
+b54082036d3957aa2360230e73e868364b6501ab94c37651104462dce3c6c595.
+Receipt: benchmarks/matched_runtime_nominal_archive.json.
+All native jobs complete. Do not relabel original858 or new9a53producer identities.
+
+## Decisive recovery control and authorization boundary
+
+Original9bb actual CAUTION assessment freezes new risk; its portfolio deliberately
+allowed a bounded empty-book caution probe. risk_summary.freeze_new_risk=false was
+only overlay evidence; the earlier contrary interpretation was corrected.
+
+Historical researchac75b1467deb1bb002876bb581a27d0e058943a7 deletes only11lines
+for that permission. Original13.1664607411/DD.1639105895/10 becomes
+8.6062281484/DD.2824377522/8. First3buys and first crisis sale exactly match77003;
+first differing fill Sept12 restores23600shares394 vs current11700. Both fail.
+Larger old restoration raises wealth and DD. No supported further earlier entry:
+old tactical helper has no earlier eligible unfrozen target; preserved breakout
+502 fails original-.30depth onMay6/7,308 confirms onlyMay8.
+
+Read benchmarks/recovery_permission_decision.md. The next directly evidenced
+research candidate would inspect the old CAUTION empty-book exception, whose
+original first target is60%. Current guards explicitly forbid it. New explicit
+user permission is required; it has NOT been implemented. No claim of global
+mathematical infeasibility, no automatic risk/threshold/ranking relaxation.
+
+## Engineering and durable evidence
+
+- Affected recovery checks:93earlier plus28final(94unique), relevant API/source checks.
+- Evidence-tool repair:41research tests,20API/import/surface/market checks,
+  2scope/overwrite tests, allRuff and mypy336 PASS.40new Bandit findings removed;
+  8exact unchanged main findings remain.5session native diagnostic3actual orders.
+-37existing promotion functions AST-identical; data-root validator public rename is
+  whole-runner AST-equivalent. Trading source unchanged; runner bytes differ, so
+  historical hashes are preserved.3completed historical-only active scripts were
+  retired; originals remain at remoteaef6be1c and prior evidence.
+- Full engineering/Ownership/Absolute/economic acceptance failed or unproven.
+  Absolute still binds older739. Historical repeated-ownership and architecture
+  transport failures are not waived. Grant passed on remoted894, not latest HEAD.
+- Raw confirmed-recovery archive158440057bytes/3565members saved, SHA
+  3b9951bea73b847bf7c23346c09563bc0cc305a54f4b43454085fcff8405e7f9.
+  Receipt: benchmarks/confirmed_recovery_archive.json.
+- Engineering archive20981bytes/15members saved, SHA
+  9f01a98a4a73b9c48e714391acdebfc61d34dcd7971dc9e0ca736aa36a55743c.
+  Receipt: benchmarks/recovery_evidence_repair_result.json.
+- Original failed107MB upload is fully resolved and verified. Prior stage receipts
+  remain in benchmarks; do not repeat those uploads or recompute valid controls.
+
+## Recovery references
+
+Read only the next relevant evidence: confirmed_recovery_assessment.md,
+confirmed_recovery_result.json, recovery_permission_decision.md,
+recovery_evidence_repair_plan.md/result.json. Earlier stage decisions are in
+persistent_only_result.json, persistent_formation_result.json,
+mature_sector_reference_result.json and their paired plans/archives.
+Full earlier PROJECT_STATE history is preserved at local9a53bec/remote9572853a;
+this index replaces repeated checkpoint text, not frozen evidence.
+
+Use GIT_NO_LAZY_FETCH=1 for all Git/test/native commands. Missing objects require
+exact approved GitHub reads plus independent Git blob verification; never implicit
+lazyfetch. No reset/clean/rebase/forcepush. One writer per native producer; local
+and remote commit IDs differ and must be connected by exact tree equivalence.

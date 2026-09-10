@@ -21,7 +21,8 @@ def test_actual_strategic_owner_requires_existing_independent_companion_qualific
     frame = _frame()
     frame.index = pd.bdate_range(end=dates[0], periods=len(frame))
     args = dict(symbol=symbol, score=score, date=dates[0], user_panel={symbol: frame},
-                confirmation_days=policy.cfg.leader_tenure_days)
+                confirmation_days=policy.cfg.leader_tenure_days,
+                market={'as_of': str(dates[0].date()), 'simple_backdrop_confirmed': True})
     assert ordinary_core_entry(policy, account=AccountState.empty(2_000_000.), **args)['block'] == 'READY'
     result = ordinary_core_entry(policy, account=account, **args)
     assert result['block'] == 'CONFIRMATION_INCOMPLETE'
@@ -70,5 +71,6 @@ def test_only_current_pending_full_formation_requires_strict_ordinary_proof(chan
     result = ordinary_core_entry(PortfolioAllocator(DEFAULT_CONFIG), symbol='sh688110',
                                  score=_leader('sh688110', .9, industry='foundry'),
                                  date=date, user_panel={'sh688110': frame}, account=account,
-                                 confirmation_days=DEFAULT_CONFIG.leader_tenure_days)
+                                 confirmation_days=DEFAULT_CONFIG.leader_tenure_days,
+                                 market={'as_of': str(date.date()), 'simple_backdrop_confirmed': True})
     assert result['block'] == expected

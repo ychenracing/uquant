@@ -1,3 +1,22 @@
+# Latest decision — E complete, bounded sector-backdrop correction G
+
+E all14 nominal native cases complete:11PASS/3FAIL; cross-window improvement PASS.
+Principal champion25.34128/full28.21179 and both continuous removals PASS; later
+5.72168/1.83541 PASS. remove3H1DD23.374% exceeds21.705%; both H2-2024wealth1.28/1.24
+andDD20.403% miss1.544/10.583% materially. No further tolerance, no E promotion.
+Fixedbull11.65825/DD15.669%/10orders currentPASS; original failures retained.
+All native source readbacks PASS. E raw archive saved; see simple_full_lifecycle_*
+reports/receipt for full history.267 missing historical blobs restored byte-exact;
+first governance test now PASS. Full engineering attempts were interrupted after
+failures; stale ordinary assertions and immutable739 champion fixture remain.
+
+G preserves original strict READY, and narrows the simple fallback to current
+positive techret120 above broadret120. No MA/cap/clock changes. Common causal ret120 ranking repaired for strict certificates.90 relevant
+tests/Ruff/mypyPASS. First only H2-2024/later no-optical conflict pair. See
+simple_sector_backdrop_plan.md. E Absolute binding is intentionally not presented
+as G validation. Prior running-E claims below are historical and superseded.
+PR56 executable head008e140 remains Draft, no merge/whole-goal claim.
+
 # Latest validation-only checkpoint
 
 E economics remains immutable LOCAL29971d4 / REMOTE997b6bc8293a66c8bde164eef6e5a4b2c45892d9,

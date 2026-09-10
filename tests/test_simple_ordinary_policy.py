@@ -54,7 +54,8 @@ def test_ret120_ranking_is_independent_of_trace_collection():
     date = panel[symbols[0]].index[-1]
     policy = PortfolioAllocator(DEFAULT_CONFIG)
     args = dict(date=date, user_panel=panel, leaders=leaders,
-                account=AccountState.empty(2_000_000.0))
+                account=AccountState.empty(2_000_000.0),
+                market={"as_of": str(date.date()), "simple_backdrop_confirmed": True})
     assert _core_candidates(policy, **args) == list(reversed(symbols))
     assert _core_candidates(policy, **args, trace={}) == list(reversed(symbols))
 
@@ -78,7 +79,8 @@ def test_simple_signal_does_not_bypass_freeze_or_create_grant_authority():
     prices = {s: float(f.loc[date, "close"]) for s, f in panel.items()}
     for frozen in (False, True):
         account = AccountState.empty(2_000_000.0)
-        current_risk = replace(risk, evidence=dict(risk.evidence), freeze_new_risk=frozen)
+        current_risk = replace(risk, evidence={**risk.evidence, "broad_ret120": .1, "tech_ret120": .2},
+                               freeze_new_risk=frozen)
         targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
             date=date, opportunity=Opportunity.TREND, user_panel=panel, leaders=leaders,
             risk=current_risk, account=account, prices=prices)

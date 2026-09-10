@@ -1,6 +1,7 @@
 """Fixed causal trend policy for ordinary positions; no recovery authority."""
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -63,13 +64,17 @@ def ordinary_core_entry(
         or any(p.shares > 0 and (p.grant_id or p.epoch_id) for p in account.positions.values())
         or any(o.grant_id or o.epoch_id for o in account.pending_orders)
     )
-    if strategic_claims or forming_full:
-        return candidate_entry(self, symbol=symbol, score=score, date=date,
-                               user_panel=user_panel, account=account,
-                               confirmation_days=confirmation_days, certificate=certificate)
+    strict = candidate_entry(self, symbol=symbol, score=score, date=date,
+                             user_panel=user_panel, account=account,
+                             confirmation_days=confirmation_days, certificate=certificate)
+    if strategic_claims or forming_full or strict["block"] == "READY":
+        return strict
     block = candidate_market_block(self, symbol=symbol, score=score, date=date, user_panel=user_panel)
     if block != "READY":
         return {"block": block}
+    if (market is None or market.get("as_of") != str(date.date())
+            or market.get("simple_backdrop_confirmed") is not True):
+        return {"block": "SIMPLE_MARKET_NOT_CONFIRMED"}
     return ordinary_trend(user_panel[symbol], date)
 
 
@@ -78,4 +83,11 @@ def observe_ordinary_market(
     risk: RiskAssessment, leaders: dict[str, LeaderScore],
     user_panel: dict[str, pd.DataFrame],
 ) -> dict[str, Any]:
-    return {"as_of": str(date.date()), "policy": "simple_ordinary_trend"}
+    broad, tech = (risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120"))
+    confirmed = (
+        isinstance(broad, (int, float)) and isinstance(tech, (int, float))
+        and not isinstance(broad, bool) and not isinstance(tech, bool)
+        and math.isfinite(broad) and math.isfinite(tech) and tech > max(0.0, broad)
+    )
+    return {"as_of": str(date.date()), "policy": "simple_ordinary_trend",
+            "simple_backdrop_confirmed": confirmed}

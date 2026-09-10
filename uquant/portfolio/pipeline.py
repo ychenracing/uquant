@@ -77,7 +77,10 @@ def _core_candidates(
             trace.setdefault(symbol, {}).update(entry=entry, rank_score=score.score)
         if entry["block"] == "READY":
             candidates.append(symbol)
-            ranks[symbol] = float(entry.get("ret120", 0.0))
+            # Qualification certificates need not contain price-ranking fields.
+            close = user_panel[symbol].loc[:date, "close"].tail(121)
+            ret120 = float(close.pct_change(120, fill_method=None).iloc[-1])
+            ranks[symbol] = ret120 if math.isfinite(ret120) else -math.inf
     return sorted(candidates, key=lambda symbol: (-ranks[symbol], symbol))
 
 

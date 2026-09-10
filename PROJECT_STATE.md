@@ -1,3 +1,13 @@
+Persistent formation complete screen — 2026-09-10:
+
+- NOT_MET; PR56 Draft, main unchanged. b55 full869 wealth12.352749369187105 / 28orders FAILS hard15. Champion869 remains25.109594313238023 /14; offset5 864sessions3.0836897515185404 /20 (paired original-source gate pending). All native readbacks/seals/ledger verified.
+- Fixed a/h1_2024 improves to1.9085269240679252 /8, DD.156742775678121, acute.06390679898215934; all current and original unit gates pass. a/bull3.4932287573203786 /14 still fails. NooptH1 unchanged1.34384059449498 /11; original authorized main DD baseline applies.
+- First full divergence is new ordinary mature-industry buyingJuly16 2024; losses trigger account-wide core reduction. Run exact45c full control and preregister removal of this new shortcut while retaining original persistent formation. Read benchmarks/persistent_formation_result.json and persistent_only_plan.md. No parameter/threshold change.
+- Exact9bb daily recovery trace COMPLETE302sessions, wealth13.166460741078918 /10: Apr7 probe fill, May6 promotion of same shares, May9 cohort fills, Oct14 risk cut/Oct17 restoration. Existing recovery helper is disconnected from current common-book pipeline; later integration requires actual ownership continuation, not just a BUY signal.
+
+---
+Earlier checkpoints:
+
 Persistent formation implementation — 2026-09-10:
 
 - NOT_MET; PR56 Draft; main unchanged. Preregistered restoration of original full persistent formation implemented in discovery and initial ownership. Every actual member must retain own current persistent certificate/signature/confirmation and known-industry/history/confidence/liquidity; ordinary MA60/ret60 and maturity remain unchanged elsewhere. New formation uses original desired weights; cash-rearm/partial quorum cannot borrow this treatment. Source b55defea41815e8b1383fce39a55b466cc3301aa1c755ba090f228c970e992cf; config adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.

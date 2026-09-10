@@ -1,3 +1,15 @@
+# Resumed: economic acceptance first
+
+Latest user instruction lowers engineering quality and CI priority. Noncritical architecture/style/coverage/full engineering checks are deferred; do not wait for GitHub Actions over10minutes. This supersedes the previous engineering prerequisite. Accounting, real execution/data/source integrity, risk guards and frozen economic gates remain. The known source-surface test omission is deferred, not passed. No production strategy/parameter changes on resume.
+
+M production source44901d9f7229e56837ee666157fa852c87a354d0b94216b06f9ebeb71715b1fe unchanged. Native champion869 sessions completed:50219188.62647605 equity/14orders;report13pending. Native nooptcontinuous COMPLETE/fullreadbackPASS:wealth1.6315909158770203/DD.26022516791427264/21orders, exactJmetrics. remove3running. No overallgoal/mergeclaim.
+
+Frozen robustness plan benchmarks/m_economic_execution_plan.json preserves all64specs and economic thresholds. Current runner f8936828 unchanged. Old503fa production restored103missingblobs with independentGitSHA1 verification; source1b1b9e2a/config exactly baseline. Old version lacks decision_ai_universe. Its research-only runner binds default_ai_universe explicitly (one import statement only), hash8d75e313d407762c8aafacdddcca2c01c77fad82657152710d9753ab4c1cfc33. Reader imports that binding; orchestrator seals both role-specific runner hashes and rejects wrong-role execution. No production monkeypatch, universe extension or raw relabelling.5orchestratorchecksPASS; nativeoldsentinelpending. Priorpre-adapterplan remains in originalrunroot, never overwritten.
+
+Execution roots:/workspace/scratch/4f31235e78e6/runs/m-economic; originalMproducer/workspace/scratch/997f3f703ab0/uquant-final-engineering; currentdelivery/workspace/scratch/4f31235e78e6/uquant-delivery; oldpaired/workspace/scratch/4f31235e78e6/uquant-old-paired. One immutableproducer/multiple disjoint outputs. Priority: actualbest-contributorremoval (bothJnominals largestsh688256), then remaining fixedrobustness/economic obligations. Do not revive engineering prerequisites or repeat verifiedJresearch.
+
+Prior stop and historical checkpoints below retained as history only.
+
 # USER STOP — 2026-09-10T16:33:56Z
 
 User explicitly stopped ALL work and requested complete Markdown handoff/prompt. No further strategy edits, tests, replays, CI, merge or optimization authorized until user resumes. Only preservation performed after stop. All registered native/test jobs are closed; reviewer completed. Do not revive queues automatically.

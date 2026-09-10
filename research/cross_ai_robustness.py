@@ -90,6 +90,18 @@ def scenario_specs(contract: dict[str, Any], candidate_config: dict[str, Any]) -
     return specs
 
 
+def _runner_bindings() -> tuple[str, str]:
+    """Bind the historical default-universe import without altering old production."""
+    current = b'from uquant.contracts.universe import decision_ai_universe, default_ai_universe'
+    baseline = b'from uquant.contracts.universe import default_ai_universe, default_ai_universe as decision_ai_universe'
+    raw = (ROOT / 'research/cross_ai_strategy.py').read_bytes()
+    if raw.count(current) + raw.count(baseline) != 1:
+        raise ValueError('runner universe import must have one explicit binding')
+    canonical = raw.replace(baseline, current)
+    return (hashlib.sha256(canonical).hexdigest(),
+            hashlib.sha256(canonical.replace(current, baseline)).hexdigest())
+
+
 def make_plan(*, candidate_source: str, old_config: dict[str, Any] | None = None) -> dict[str, Any]:
     contract, old = _contract()
     original_config = DEFAULT_CONFIG.to_dict() if old_config is None else old_config
@@ -100,7 +112,8 @@ def make_plan(*, candidate_source: str, old_config: dict[str, Any] | None = None
     candidate_config = DEFAULT_CONFIG.to_dict()
     return _seal({
         'schema_version': 1, 'contract_sha256': _sha(CONTRACT_PATH), 'contract_id': contract['contract_id'],
-        'runner_sha256': _sha(ROOT / 'research/cross_ai_strategy.py'),
+        'runner_sha256': _runner_bindings()[0],
+        'baseline_runner_sha256': _runner_bindings()[1],
         'evaluator_sha256': _sha(ROOT / 'research/cross_ai_acceptance.py'),
         'orchestrator_sha256': _sha(Path(__file__)),
         'sources': {'new': {'source_sha256': candidate_source, 'config': candidate_config},
@@ -117,7 +130,7 @@ def make_plan(*, candidate_source: str, old_config: dict[str, Any] | None = None
 def validate_plan(plan: dict[str, Any]) -> None:
     contract, old = _contract()
     if (plan['contract_sha256'] != _sha(CONTRACT_PATH)
-            or plan['runner_sha256'] != _sha(ROOT / 'research/cross_ai_strategy.py')
+            or (plan['runner_sha256'], plan['baseline_runner_sha256']) != _runner_bindings()
             or plan['evaluator_sha256'] != _sha(ROOT / 'research/cross_ai_acceptance.py')
             or plan['orchestrator_sha256'] != _sha(Path(__file__))
             or plan['interval'] != contract['windows']['continuous_ai_era']
@@ -177,7 +190,7 @@ def read_shard(root: Path, plan: dict[str, Any], spec: dict[str, Any]) -> dict[s
     report = read_case(root / spec['id'], case=spec['case'], interval=plan['interval'],
                        source=plan['sources'][spec['source_role']]['source_sha256'],
                        effective_config=effective_config(plan, spec), start_session_offset=spec['offset'],
-                       extra_excluded_symbols=exclusions, runner_sha256=plan['runner_sha256'])
+                       extra_excluded_symbols=exclusions, runner_sha256=plan['baseline_runner_sha256' if spec['source_role'] == 'old' else 'runner_sha256'])
     if any(report['identity'][key] != value for key, value in plan['input_identity'].items()):
         raise ValueError('shard data/universe/runtime differs from paired frozen input')
     return report
@@ -194,6 +207,9 @@ def run_shard(root: Path, plan: dict[str, Any], shard: str) -> dict[str, Any]:
         source = plan['sources'][spec['source_role']]['source_sha256']
         if code_fingerprint() != source or DEFAULT_CONFIG.to_dict() != plan['sources'][spec['source_role']]['config']:
             raise ValueError('execute this shard in its matching source/config checkout')
+        expected_runner = plan['baseline_runner_sha256' if spec['source_role'] == 'old' else 'runner_sha256']
+        if _sha(ROOT / 'research/cross_ai_strategy.py') != expected_runner:
+            raise ValueError('runner does not match its explicit source-role binding')
         if spec.get('deleted_fields'):
             proof = deletion_evidence(spec['deleted_fields'], source)
             directory = root / shard

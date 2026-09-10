@@ -1,3 +1,13 @@
+Mature-sector ordinary entry implementation — 2026-09-10:
+
+- NOT_MET; PR56 Draft, no main merge. New preregistered ordinary-only sector proof implemented in one production file; existing impulse/shared/strict repair paths remain. Exact same-industry current tradable quorum3, existing credible.82, all member maturity and tenure5, current structure/history/liquidity plus complete market data. No sizing/exit/risk/config change. Source45c3416dcba3396307745f69cd723db543240a4b669bed9925ca0a82fb8b1ef6; configadf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
+- Distinguishing original7tests:2fail/5pass on control. After implementation77affected tests PASS;3API tests PASS; final10focused tests PASS including peer illiquidity and missing/stale market data. Counts overlap. Ruff and strictmypy pass. Native partial-fill/cancel/held-rights and risk-freeze checks pass. No full engineering/acceptance claim.
+- Freeze this producer, run native champion offset5 through2023-03-10 and no_optical/H1 with exact readback. Then fixed a/bull and a/h1_2024 failed units. Only a viable direction proceeds to complete frozen accounts and required acceptance. Keep all prior failures and accepted15/40 scope. Read benchmarks/mature_sector_entry_plan.md.
+- All reversal-stage raw evidence saved:253,104,337bytes/5415verifiedfiles; see reversal_structure_archive.json. Prior107MB/114MB evidence saved. New mature-sector evidence still in progress.
+
+---
+Earlier checkpoints:
+
 Reversal structure complete screen / scoped acceptance correction — 2026-09-10:
 
 - NOT_MET; PR56 Draft; main unchanged. Immutable producer a56a43f954bf4ada4027836c108d4ca6051b5f20, tree f5f9a86172dce922916bbc1c6f69e1aa05d4c700, remote equivalent766a832bcbd4debc11b34bc2b79b553fa6f922d5; sourcef5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994/configadf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.

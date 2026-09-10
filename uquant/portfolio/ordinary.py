@@ -1,4 +1,4 @@
-"""Independent stock proof with a current impulse-only mature entry shortcut."""
+"""Independent stock proof with current impulse or mature-industry corroboration."""
 from __future__ import annotations
 
 import math
@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 
 from ..types import AccountState, LeaderScore, Opportunity, RiskAssessment
-from .strategic.qualification_candidates import candidate_entry
+from .strategic.qualification_candidates import candidate_entry, candidate_market_block
 
 if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
@@ -25,16 +25,26 @@ def ordinary_core_entry(
         and order.event_id == reference.event_id for order in account.pending_orders
     )
     tenure = account.leader_tenure.get(symbol, 0)
+    industry_witnesses: tuple[str, ...] = ()
+    if (market is not None and market.get("as_of") == str(date.date())
+            and not market.get("missing_market_fields", ("unavailable",))):
+        members = market.get("mature_industry_groups", {}).get(score.industry, ())
+        if (symbol in members and len(members) >= self.cfg.strategic_cohort_min_size
+                and all(account.leader_tenure.get(peer, 0) >= self.cfg.leader_tenure_days for peer in members)):
+            industry_witnesses = tuple(members)
     if repair_pending:
         certificate = None  # The real repair order still needs its strict own proof.
     elif (certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days
           and market is not None and market.get("as_of") == str(date.date())
-          and market.get("impulse") is True and symbol in market.get("credible_symbols", ())):
+          and ((market.get("impulse") is True and symbol in market.get("credible_symbols", ()))
+               or industry_witnesses)):
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
             "required_confirmation": self.cfg.leader_tenure_days,
             "confirmations": {"leader_tenure": tenure}, "as_of": str(date.date()),
         }
+        if market.get("impulse") is not True:
+            certificate.update(confirmation_basis="mature_industry", industry_witnesses=list(industry_witnesses))
     return candidate_entry(
         self, symbol=symbol, score=score, date=date, user_panel=user_panel,
         account=account, confirmation_days=confirmation_days, certificate=certificate,
@@ -65,14 +75,21 @@ def observe_ordinary_market(
     risk: RiskAssessment, leaders: dict[str, LeaderScore],
     user_panel: dict[str, pd.DataFrame],
 ) -> dict[str, Any]:
-    """Observe today's fast-entry proof without granting shared or strict-route capital."""
+    """Observe current ordinary witnesses without granting shared or strict-route capital."""
     credible = sorted(symbol for symbol, leader in leaders.items()
                       if symbol in user_panel and date in user_panel[symbol].index
                       and leader.mature and leader.score >= .82
                       and leader.confidence >= self.cfg.leader_min_confidence)
     impulse, missing = _market_conditions(
         opportunity=opportunity, risk=risk, credible_count=len(credible))
+    industries: dict[str, list[str]] = {}
+    for symbol in credible:
+        if candidate_market_block(self, symbol=symbol, score=leaders[symbol], date=date,
+                                  user_panel=user_panel) == "READY":
+            industries.setdefault(leaders[symbol].industry, []).append(symbol)
     return {
         "as_of": str(date.date()), "confirmed": impulse, "impulse": impulse,
         "credible_symbols": credible, "missing_market_fields": missing,
+        "mature_industry_groups": {industry: tuple(symbols) for industry, symbols in sorted(industries.items())
+                                   if len(symbols) >= self.cfg.strategic_cohort_min_size},
     }

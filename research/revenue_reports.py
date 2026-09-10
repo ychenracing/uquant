@@ -10,7 +10,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin
-from urllib.request import urlopen
+
+from research.https_input import read_https
 
 
 class ReportHTML(HTMLParser):
@@ -118,8 +119,7 @@ def collect(output: Path, manifest: Path, workers: int) -> None:
     def fetch(url: str) -> tuple[bytes, str, str]:
         path = raw_dir / (hashlib.sha256(url.encode()).hexdigest() + ".html")
         if not path.exists():
-            with urlopen(url, timeout=25) as response:
-                raw = response.read()
+            raw = read_https(url, allowed_hosts=("money.finance.sina.com.cn", "vip.stock.finance.sina.com.cn"))
             if len(raw) < 1000:
                 raise ValueError("empty or truncated source")
             path.write_bytes(raw)

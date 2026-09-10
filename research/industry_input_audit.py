@@ -96,7 +96,8 @@ def analyze(receipt: dict[str, Any], taxonomy: dict[str, Any]) -> dict[str, Any]
             if ea or eb:
                 excluded.append({'base_cohort': row['cohort'], 'old': ea, 'new': eb})
                 continue
-            assert a is not None and b is not None
+            if not (a is not None and b is not None):
+                raise RuntimeError('Evidence validation failed: a is not None and b is not None')
             old.append(a)
             new.append(b)
         result['cases'][name] = {

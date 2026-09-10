@@ -37,16 +37,16 @@ def main(args: argparse.Namespace) -> None:
         p = args.native_root / (case + "_revised")
         result = json.loads((p / "result.json").read_text())
         seal = result.pop("canonical_sha256")
-        assert (
-            hashlib.sha256(canonical_json_bytes(result)).hexdigest() == seal
-            and result["status"] == "COMPLETE"
-        )
-        assert (
-            result["identity"]["source_sha256"]
-            == "3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc"
-        )
-        assert result["identity"]["data"] == fingerprint
-        assert hashlib.sha256((p / "observations.jsonl.gz").read_bytes()).hexdigest() == result["raw_sha256"]
+        if not (hashlib.sha256(canonical_json_bytes(result)).hexdigest() == seal
+            and result["status"] == "COMPLETE"):
+            raise RuntimeError("Evidence validation failed: hashlib.sha256(canonical_json_bytes(result)).hexdigest() == seal and result['status'] == 'COMPLETE'")
+        if not (result["identity"]["source_sha256"]
+            == "3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc"):
+            raise RuntimeError("Evidence validation failed: result['identity']['source_sha256'] == '3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc'")
+        if not (result["identity"]["data"] == fingerprint):
+            raise RuntimeError("Evidence validation failed: result['identity']['data'] == fingerprint")
+        if not (hashlib.sha256((p / "observations.jsonl.gz").read_bytes()).hexdigest() == result["raw_sha256"]):
+            raise RuntimeError("Evidence validation failed: hashlib.sha256((p / 'observations.jsonl.gz').read_bytes()).hexdigest() == result['raw_sha256']")
         cfg: Any = NS(**result["identity"]["effective_config"])
         dates = []
         events: list[dict[str, Any]] = []
@@ -79,7 +79,8 @@ def main(args: argparse.Namespace) -> None:
                     "long_market_upper": max(e["broad_ret120"], e["tech_ret120"])
                     <= cfg.strategic_long_cycle_max_tech_ret120,
                 }
-                assert market == all(market_checks.values())
+                if not (market == all(market_checks.values())):
+                    raise RuntimeError('Evidence validation failed: market == all(market_checks.values())')
                 for symbol in allowed:
                     leader = leaders.get(symbol)
                     t = trace["symbols"].get(symbol, {})

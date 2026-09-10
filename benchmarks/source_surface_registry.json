@@ -563,6 +563,7 @@
         "research/global_bottleneck_audit.py",
         "research/historical_cohort_audit.py",
         "research/historical_prices.py",
+        "research/https_input.py",
         "research/industry_input_audit.py",
         "research/industry_input_compare.py",
         "research/industry_input_replay.py",
@@ -570,13 +571,10 @@
         "research/ordinary_sector_audit.py",
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
-        "research/phase1_recovery_trace.py",
-        "research/phase1_reference_replay.py",
         "research/post_generalization_trust_closure_checkpoint_b.py",
         "research/post_generalization_trust_closure_checkpoint_c.py",
         "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/qualification_episode_audit.py",
-        "research/recovery_admission_audit.py",
         "research/revenue_reports.py",
         "research/revenue_signal_audit.py",
         "research/risk_counterfactual.py",
@@ -860,5 +858,5 @@
       ]
     }
   ],
-  "canonical_sha256": "fdf44a9f561d0df84a7ad6ff8f878cde6de222418346faac7bb808c8e3cea975"
+  "canonical_sha256": "7d2c4b8143f54e4f002a1450923bf1bf59eb678f125d446fbee10fbf7026d074"
 }

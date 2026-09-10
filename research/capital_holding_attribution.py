@@ -61,23 +61,30 @@ def main() -> None:
     for name in ("C", "simple"):
         fills = [f for f in accounts[name]["fills"] if f["symbol"] == "sh688256"]
         buys, sells = ([f for f in fills if f["side"] == side] for side in ("BUY", "SELL"))
-        assert len(buys) == len(sells) == 1
+        if not (len(buys) == len(sells) == 1):
+            raise RuntimeError('Evidence validation failed: len(buys) == len(sells) == 1')
         buy, sell = buys[0], sells[0]
-        assert sell["fill_date"] == "2023-05-08" and sell["mechanism"] == "CRISIS"
-        assert buy["shares"] - sell["shares"] == accounts[name]["positions"]["sh688256"]["shares"]
+        if not (sell["fill_date"] == "2023-05-08" and sell["mechanism"] == "CRISIS"):
+            raise RuntimeError("Evidence validation failed: sell['fill_date'] == '2023-05-08' and sell['mechanism'] == 'CRISIS'")
+        if not (buy["shares"] - sell["shares"] == accounts[name]["positions"]["sh688256"]["shares"]):
+            raise RuntimeError("Evidence validation failed: buy['shares'] - sell['shares'] == accounts[name]['positions']['sh688256']['shares']")
         states[name] = (buy["shares"], buy["price"], sell["shares"] / buy["shares"])
         fees[name] = sum(f[k] for f in fills for k in ("commission", "stamp_duty", "transfer_fee"))
         sale_prices.append(sell["price"])
-        assert math.isclose(value(states[name], sell["price"], terminal) - fees[name], results[name]["pnl"]["sh688256"], abs_tol=1e-6)
-    assert sale_prices[0] == sale_prices[1]
+        if not (math.isclose(value(states[name], sell["price"], terminal) - fees[name], results[name]["pnl"]["sh688256"], abs_tol=1e-6)):
+            raise RuntimeError("Evidence validation failed: math.isclose(value(states[name], sell['price'], terminal) - fees[name], results[name]['pnl']['sh688256'], abs_tol=1e-06)")
+    if not (sale_prices[0] == sale_prices[1]):
+        raise RuntimeError('Evidence validation failed: sale_prices[0] == sale_prices[1]')
     decomposition = shapley(states["C"], states["simple"], sale_prices[0], terminal)
     decomposition["cash_fees"] = fees["C"] - fees["simple"]
     delta = results["simple"]["pnl"]["sh688256"] - results["C"]["pnl"]["sh688256"]
-    assert math.isclose(sum(decomposition.values()), delta, abs_tol=1e-6)
+    if not (math.isclose(sum(decomposition.values()), delta, abs_tol=1e-6)):
+        raise RuntimeError('Evidence validation failed: math.isclose(sum(decomposition.values()), delta, abs_tol=1e-06)')
     for name in ("simple", "S", "H"):
         base = "C" if name == "simple" else "simple"
         results[name]["pnl_difference"] = {s: results[name]["pnl"].get(s, 0) - results[base]["pnl"].get(s, 0) for s in sorted(set(results[name]["pnl"]) | set(results[base]["pnl"]))}
-        assert math.isclose(sum(results[name]["pnl_difference"].values()), 2_000_000 * (results[name]["metrics"]["final_wealth"] - results[base]["metrics"]["final_wealth"]), abs_tol=1e-6)
+        if not (math.isclose(sum(results[name]["pnl_difference"].values()), 2_000_000 * (results[name]["metrics"]["final_wealth"] - results[base]["metrics"]["final_wealth"]), abs_tol=1e-6)):
+            raise RuntimeError("Evidence validation failed: math.isclose(sum(results[name]['pnl_difference'].values()), 2000000 * (results[name]['metrics']['final_wealth'] - results[base]['metrics']['final_wealth']), abs_tol=1e-06)")
     output = {"diagnostic_only": True, "paths": results, "sh688256_accounting": {
         "states": states, "sale_price": sale_prices[0], "terminal_price": terminal,
         "price_file_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "contributions": decomposition,

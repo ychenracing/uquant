@@ -263,5 +263,211 @@
   },
   "remote_equivalent_commit": "d894c31ce75c0f9bf4e1904494c7cd89f2f84470",
   "source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
-  "status": "NOT_MET_REMOVAL_CONTROLS_IN_PROGRESS"
+  "status": "NOT_MET_REMOVAL_CONTROLS_IN_PROGRESS",
+  "removal_native": {
+    "remove_all_three": {
+      "status": "COMPLETE",
+      "sessions": 869,
+      "canonical_sha256": "01eb6f254c29564305f7cb26e8efb3881941ed92cea2e6e3f0a56c340cdf5082",
+      "raw_sha256": "9c6312efbef9d5165c7ec0e130c02c38c70337bed3b5cbfd305e1690b1fabc5e",
+      "final_account_sha256": "28a22ade927e18681553b18f34183c3b2b74f539a297da3f12b4a1a9465c68cb",
+      "metrics": {
+        "final_wealth": 3.6784085274816762,
+        "max_drawdown": 0.23402721910419388,
+        "account_orders": 20,
+        "submitted_account_orders": 20,
+        "annual_turnover": 2.484285349908861,
+        "fees": 10441.074236648,
+        "slippage_cost": 17847.070799999176
+      },
+      "readback": "PASS; raw, account, role, next-open, metrics, attribution, identity verified",
+      "principal_wealth_floor_applies": false,
+      "retained_f5_scalar_comparison": "final wealth, drawdown and account orders unchanged"
+    },
+    "no_optical": {
+      "status": "COMPLETE",
+      "sessions": 869,
+      "canonical_sha256": "72209ac993368a9af460d905ddc4eabd6efdee949e58557095e8a0f97b1347a6",
+      "raw_sha256": "b30de7ad8080677bee47df7e7e327b8ccc0416d0fc2476791461d80d8e2a3ef3",
+      "final_account_sha256": "b6db167bf05796ae42ed43d47de8644572a5d130c9f91bc0453601889855160e",
+      "metrics": {
+        "final_wealth": 1.6339070356874204,
+        "max_drawdown": 0.2440020771164343,
+        "account_orders": 19,
+        "submitted_account_orders": 20,
+        "annual_turnover": 1.26565514621519,
+        "fees": 4953.94162516,
+        "slippage_cost": 9090.986999999353
+      },
+      "readback": "PASS; raw, account, role, next-open, metrics, attribution, identity verified",
+      "principal_wealth_floor_applies": false,
+      "retained_f5_scalar_comparison": "final wealth, drawdown and account orders unchanged"
+    }
+  },
+  "historical_permission_ablation": {
+    "complete_acceptance": false,
+    "future_holdout_used": false,
+    "interval": [
+      "2025-04-01",
+      "2026-06-30"
+    ],
+    "legacy_engine_code_fingerprint": "c28d3d1da15a43aa5ff06987401341dde7ecc5bf4d45f8504100555e0afef738",
+    "metrics": {
+      "account_orders": 8,
+      "annual_turnover": 10.092329570720528,
+      "fees": 16653.728750055998,
+      "final_wealth": 8.606228148424972,
+      "max_drawdown": 0.2824377521515553,
+      "sharpe": 2.992636218584221,
+      "slippage_cost": 25204.37439999984,
+      "submitted_account_orders": 8
+    },
+    "raw_sha256": "365bd44fe680cea1534082a6233dcbd7a4de5d2f47bbcc529cb7d3b531b3723c",
+    "readback": "PASS; native source/data/config/runtime and wealth/DD/filled orders/next-open reconciled",
+    "reference_commit": "9bb58420365b471ee11b4cdfe31793008233ad50",
+    "reference_result_sha256": "cf5dd44dcb3fd06b0b33b7620fbb1525d21b19fa92540b80f4ff050f3da766b8",
+    "runner_sha256": "ede98b8a5dd5d28534b8b055f63468eb3cbab85634d8846f669d6321311cb915",
+    "runtime": {
+      "data": {
+        "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+        "files_verified": 36,
+        "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+        "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+      },
+      "effective_config_sha256": "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20",
+      "environment": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.12.8"
+      },
+      "production": {
+        "commit": "ac75b1467deb1bb002876bb581a27d0e058943a7",
+        "repository": "ychenracing/uquant",
+        "source_sha256": "7961a9b94c0d8a92e611ff44ba673392bd88bb921d8764530baabcd4754f15d4"
+      }
+    },
+    "scope": "historical_permission_ablation_not_current_acceptance",
+    "sessions": 302,
+    "status": "COMPLETE",
+    "symbols": [
+      "sz300308",
+      "sz300502",
+      "sz300394"
+    ]
+  },
+  "formal_nominal_comparison": {
+    "contract_id": "cross-ai-core-strategy-20260905-v1",
+    "contract_sha256": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
+    "acceptance_revision": {
+      "revision_id": "cross-ai-principal15-orders40-20260910-v4",
+      "previous_revision_id": "cross-ai-h1-drawdown-baseline-20260909-v3",
+      "authorized_after_observing_candidate": true,
+      "authorization": "User explicitly authorizes a hard15-fold principal wealth floor and at most40orders per account replay (2026-09-10)",
+      "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",
+      "order_revision_scope": "All absolute per-account replay order ceilings map to40, including shorter windows; costs/turnover/nonnumeric obligations retained",
+      "final_wealth_floor_multiplier": 0.9,
+      "wealth_scope": "Existing90% tolerance applies only to nonprincipal nominal, comparison and shorter-window floors; principal full/champion floors are exactly15, including capital",
+      "orders": {
+        "all_absolute_per_account_replay_ceilings": 40
+      },
+      "principal_final_wealth_floor": 15.0,
+      "principal_wealth_authorization": "User accepts the former23.28-fold full/champion floor at15, never below15; no compounded90% tolerance (2026-09-10)",
+      "drawdown_baseline_revision": {
+        "authorization": "User explicitly authorizes only this window to use current main drawdown as the non-regression baseline, retain old failure, and merge C after remaining acceptance",
+        "case": "no_optical",
+        "window": "h1_2023",
+        "baseline_commit": "960539a89408cc7c1fc3937bda19c9f760095012",
+        "maximum_drawdown": 0.2442425185317515,
+        "additional_buffer": 0.0
+      },
+      "unchanged": [
+        "wealth improvement deltas and improved-window qualification",
+        "positive-return fraction",
+        "p10 wealth floor",
+        "all other drawdown gates",
+        "acute return",
+        "turnover",
+        "costs",
+        "recovery",
+        "Absolute/Ownership obligations other than explicitly revised champion wealth/orders"
+      ],
+      "original_judgment": "authorized=False reproduces original frozen comparisons before order revisions"
+    },
+    "original_status": "FAIL",
+    "scope": "principal_diagnostic",
+    "status": "FAIL",
+    "authoritative_promotion": false,
+    "source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+    "rows": [
+      {
+        "case": "champion",
+        "window": "continuous_ai_era",
+        "path": "/workspace/scratch/100af34dc020/runs-20260910/confirmed-recovery/champion",
+        "status": "FAIL",
+        "failures": [
+          "ValueError: baseline comparison input mismatch: runtime"
+        ],
+        "old_status": "COMPLETE",
+        "original_failures": [
+          "ValueError: baseline comparison input mismatch: runtime"
+        ],
+        "original_status": "FAIL"
+      },
+      {
+        "case": "full",
+        "window": "continuous_ai_era",
+        "path": "/workspace/scratch/100af34dc020/runs-20260910/confirmed-recovery/full",
+        "status": "FAIL",
+        "failures": [
+          "ValueError: baseline comparison input mismatch: runtime"
+        ],
+        "old_status": "COMPLETE",
+        "original_failures": [
+          "ValueError: baseline comparison input mismatch: runtime"
+        ],
+        "original_status": "FAIL"
+      },
+      {
+        "case": "remove_all_three",
+        "window": "continuous_ai_era",
+        "path": "/workspace/scratch/100af34dc020/runs-20260910/confirmed-recovery/remove_all_three",
+        "status": "FAIL",
+        "failures": [
+          "ValueError: baseline comparison input mismatch: runtime"
+        ],
+        "old_status": "COMPLETE",
+        "original_failures": [
+          "ValueError: baseline comparison input mismatch: runtime"
+        ],
+        "original_status": "FAIL"
+      },
+      {
+        "case": "no_optical",
+        "window": "continuous_ai_era",
+        "path": "/workspace/scratch/100af34dc020/runs-20260910/confirmed-recovery/no_optical",
+        "status": "FAIL",
+        "failures": [
+          "ValueError: baseline comparison input mismatch: runtime"
+        ],
+        "old_status": "COMPLETE",
+        "original_failures": [
+          "ValueError: baseline comparison input mismatch: runtime"
+        ],
+        "original_status": "FAIL"
+      }
+    ],
+    "cross_window_failures": [],
+    "remaining_final_gates": [
+      "cost_stress",
+      "parameter_neighbors",
+      "paired_initial_conditions",
+      "best_contributor_removal",
+      "complete_L4",
+      "focused_review",
+      "simplification_inventory",
+      "operator_cutover_instructions"
+    ]
+  }
 }

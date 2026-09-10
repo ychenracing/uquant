@@ -13,7 +13,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
-from urllib.request import urlopen
+
+from research.https_input import read_https
 
 
 def request_url(symbol: str, start: str, end: str) -> str:
@@ -97,8 +98,7 @@ def main() -> None:
         result: dict[str, Any] = {"symbol": symbol, "url": urls[symbol], "research_only": True}
         try:
             if not raw_path.exists():
-                with urlopen(urls[symbol], timeout=25) as response:
-                    raw = response.read()
+                raw = read_https(urls[symbol], allowed_hosts=("q.stock.sohu.com",))
                 raw_path.write_bytes(raw)
             raw = raw_path.read_bytes()
             result["sha256"] = hashlib.sha256(raw).hexdigest()

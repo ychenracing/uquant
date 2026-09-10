@@ -4,7 +4,7 @@ import hashlib
 from pathlib import Path
 
 from research.cross_ai_acceptance import read_case
-from research.cross_ai_strategy import _data_root, run_production_case, write_json
+from research.cross_ai_strategy import research_data_root, run_production_case, write_json
 from uquant.contracts.universe import research_industry_input
 from uquant.engine import code_fingerprint
 from uquant.validation.manifest import verify_data_manifest
@@ -25,7 +25,7 @@ def main() -> None:
         raise ValueError('producer source differs from preregistration')
     if hashlib.sha256(args.review.read_bytes()).hexdigest() != args.review_sha256:
         raise ValueError('taxonomy source differs from preregistration')
-    root = _data_root(args.research_data_dir, args.research_data_sha256)
+    root = research_data_root(args.research_data_dir, args.research_data_sha256)
     expected_data = verify_data_manifest(root)
     case = 'remove_all_three' if args.case == 'strict' else args.case
     excluded = ('sz300666',) if args.case == 'strict' else ()

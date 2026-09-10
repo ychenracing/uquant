@@ -64,7 +64,8 @@ def label(prices: dict[str, dict[str, float]], symbol: str, dates: list[str], in
     if index + horizon + 1 >= len(dates):
         return None
     start, end = dates[index + 1], dates[index + horizon + 1]
-    assert start > dates[index] and end <= END
+    if not (start > dates[index] and end <= END):
+        raise RuntimeError('Evidence validation failed: start > dates[index] and end <= END')
     a, b = prices[symbol].get(start), prices[symbol].get(end)
     if a is None or b is None or not all(math.isfinite(v) and v > 0 for v in (a, b)):
         return None
@@ -114,7 +115,8 @@ def analyze(root: Path, name: str, prices: dict[str, dict[str, float]]) -> dict[
         for index, line in enumerate(stream):
             row = json.loads(line)
             dates.append(row["date"])
-            assert dates[-1] <= end
+            if not (dates[-1] <= end):
+                raise RuntimeError('Evidence validation failed: dates[-1] <= end')
             observation, ledger = row["observation"], row["ledger"]
             leaders = observation["leader_scores"]
             tradable = set(observation["strategic_universe_roles"]["tradable_symbols"])
@@ -136,7 +138,8 @@ def analyze(root: Path, name: str, prices: dict[str, dict[str, float]]) -> dict[
                 exposures[symbol] += weight
             events.extend({k: fill[k] for k in ("symbol", "signal_date", "fill_date", "side", "mechanism", "gross_value")}
                           for fill in row["new_fills"])
-    assert dates == sorted(set(dates))
+    if not (dates == sorted(set(dates))):
+        raise RuntimeError('Evidence validation failed: dates == sorted(set(dates))')
     missing: list[dict[str, Any]] = []
     feature_exclusions: list[dict[str, Any]] = []
     for index, leaders in anchors:

@@ -94697,12 +94697,34 @@
           "_SHA256",
           "_TOP_LEVEL_FIELDS",
           "current_promotion_acceptance_basis",
+          "diagnose_promotion_unit",
           "run_promotion",
           "validate_promotion_artifact"
         ],
         "functions": {
           "current_promotion_acceptance_basis": {
             "parameters": [],
+            "return": "dict[str, Any]"
+          },
+          "diagnose_promotion_unit": {
+            "parameters": [
+              {
+                "name": "case",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "output",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
             "return": "dict[str, Any]"
           },
           "run_promotion": {
@@ -96845,7 +96867,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "d3f47950627faa696bfca6bfecd5f87533dbd2978a1de0c7ba08a9895f7eb6af",
+  "contract_sha256": "861fa5d59b2cd9fb726b78f423b5f6f6145a48d4138c5f6add131110eee831db",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

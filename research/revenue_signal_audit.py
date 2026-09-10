@@ -73,7 +73,8 @@ def analyze(panel: list[dict[str, Any]], native: Path, prices_dir: Path) -> dict
         for index, line in enumerate(stream):
             row = json.loads(line)
             dates.append(row["date"])
-            assert row["date"] <= "2026-08-05"
+            if not (row["date"] <= "2026-08-05"):
+                raise RuntimeError("Evidence validation failed: row['date'] <= '2026-08-05'")
             if index % 60 == 0:
                 obs = row["observation"]
                 allowed = set(obs["strategic_universe_roles"]["tradable_symbols"])

@@ -88,3 +88,52 @@ as controls for the actual cross-mainline objective. These determine whether
 the generic recovery addition helps the known weak portfolios or merely the
 used three-name recovery window. No principal15 floor is applied to removals.
 The fixed bull failure persists regardless of those results; no full matrix yet.
+
+Both nominal removals869 COMPLETE with independent read_case verification:
+remove_all_three3.6784085274816762/20/DD.23402721910419388;
+no_optical1.6339070356874204/19filled-orders/20submitted/DD.2440020771164343.
+Those scalars equal the retainedf5 control. Confirmed recovery has not shown an
+incremental cross-mainline benefit in these full-period removal accounts.
+
+## Next discriminating control: historical permission ablation
+
+Newly corrected evidence establishes that the old9bb high-return control bought
+under an explicit empty-book CAUTION freeze exception. Before concluding that
+the current recovery algorithm is intrinsically inferior, isolate that permission
+in one immutable historical research worktree. Delete only the definition and
+use of bounded_caution_recovery_probe from9bb portfolio.py. Preserve the original
+recovery algorithms, prices, config, ranking, timing, allocations and risk logic.
+This tightens the historical research arm; it does not weaken current production
+guards, alter frozen references, or relabel the original13.16646 result.
+
+Run the fixed3-stock a/bull interval2025-04-01 through2026-06-30 with the original
+native backtest and actual costs. Record exact original/modified blob identities,
+runtime, data, account and equity seals. First inspect actual April entry evidence;
+if another historical exception still buys an empty frozen book, preserve and
+report that confound rather than changing more permissions in this arm.
+
+Decision: if the original recovery still meets the retained fixed-unit gates
+without that probe, trace its first permitted divergence from77003 as a candidate
+integration gap. If it collapses comparably, that supports a permission tradeoff
+for these observed paths, not a proof of global infeasibility. Do not compensate
+by reopening the forbidden probe, tuning rankings/weights, or changing gates.
+If it differs for another reason, identify the actual native path before selecting
+any production change. This is one causal control, not a new strategy search.
+
+Control COMPLETE: ac75b1467deb1bb002876bb581a27d0e058943a7 changes only11
+deleted lines in old portfolio.py. Sentinel5sessions has no orders. Native302
+wealth8.606228148424972/DD.2824377521515553/8orders. The first3May8signals /
+May9fills and Sept9crisis reduction exactly match current77003 quantities.
+First differing order is Sept11restoration: old control restores23600shares394,
+current11700 under the shared concentration budget. Both exitJune24. No other
+empty-book frozen entry appears. Both violate the retained bull wealth/DD gates.
+This isolates a substantial historical effect of the forbidden April3probe;
+it supplies no evidence that further entry-clock integration closes the gap.
+Larger old restoration raises both wealth and DD, so it is not a supported fix
+for the current failed risk gate. Do not restore either exception automatically.
+
+The nominal comparison runner additionally FAILS the runtime identity check:
+currentuv0.12.8 versus frozenuv0.11.33; Python3.12.13, numpy2.5.1, pandas3.0.5
+and uv.lock are identical. Preserve the failure; raw15/40 scalars remain verified,
+but no formal nominal PASS. A stable final candidate needs an actual matched
+runtime, never a substituted version string or acceptance-check removal.

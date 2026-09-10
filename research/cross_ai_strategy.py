@@ -169,7 +169,7 @@ def rebuild_observation_archive(
             raise ValueError("rebuilt observation archive differs from saved days")
 
 
-def _data_root(research_data_dir: Path | None, manifest_sha256: str | None) -> Path:
+def research_data_root(research_data_dir: Path | None, manifest_sha256: str | None) -> Path:
     """Bind an explicitly sealed research snapshot without changing frozen defaults."""
     if (research_data_dir is None) != (manifest_sha256 is None):
         raise ValueError("research data directory and manifest seal are required together")
@@ -204,7 +204,7 @@ def case_identity(
         "source_sha256": code_fingerprint(),
         "config_sha256": config_fingerprint(cfg),
         "runtime": runtime_environment_provenance(ROOT),
-        "data": verify_data_manifest(_data_root(research_data_dir, research_data_sha256)),
+        "data": verify_data_manifest(research_data_root(research_data_dir, research_data_sha256)),
         **({"research_data_manifest_sha256": research_data_sha256}
            if research_data_dir is not None else {}),
         "universe_sha256": hashlib.sha256(
@@ -243,7 +243,7 @@ def run_production_case(
     case_symbols(case_id, start, extra_excluded_symbols=exclusions, risk_reference_additions=risk_additions)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    data_root = _data_root(research_data_dir, research_data_sha256)
+    data_root = research_data_root(research_data_dir, research_data_sha256)
     identity = case_identity(case_id, start, end, cfg, research_data_dir=research_data_dir,
                              research_data_sha256=research_data_sha256)
     identity.update(effective_config=cfg.to_dict(), initial_cash=cfg.initial_cash,

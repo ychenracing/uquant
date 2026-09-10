@@ -1,3 +1,15 @@
+Historical cohort executed — 2026-09-10:
+
+- NOT_MET; PR56 Draft, no main merge. Paired native869-session accounts completed with identical inputs/runtime/execution: main wealth1.2229698191/DD23.3099%/22orders; simple0.9386578455/DD27.6521%/16orders. RETAIN_MAIN_REJECT_SIMPLE_REPLACEMENT. See benchmarks/industry_input_v2/historical_cohort_paired_result.{md,json}.
+- Native readback, raw/account seals and symbol-PnL reconciliation pass. Main default sentinel metrics unchanged. Research cohort binding31tests plus Ruff/mypy pass; simple42tests plus static checks pass. Local producers main deb245877c448b5d028ddcedcbc438cafaaf2d58 and simple69803c1 have remotely preserved equivalent trees on codex/cohort-paired-execution-20260910 and codex/cohort-simple-control-20260910. Recorded native commit ids remain local producer ids, not remote-equivalent substitutions.
+- Recovery audit: no eligible route-consistent confirmed strategic candidate on22flat repair-READY days. Maturity-only exit audit adds no earlier confirmed exit. Do not reopen either premise from READY counts alone.
+- Active supported next hypothesis: remove only ordinary lifecycle ret20 velocity veto, retaining not-mature, original MA20/MA60,3confirmations,10minimumhold and all other policy. Four diagnosed early structural events;39day native sentinel confirms2023-02-27signal/02-28fill. Immutable producer1016221552a4fcc4540129903b906ad3e6d9ca42, remote52790e4edd77aadfd14340853fda81f3d98b4198, identical tree89a80efad0c05c638b7e26b3dc398b30bf25f3a7, sourcec4822c992c23d4feef1532402e943d93e09608781d4b9c93aeb5344c54aaf2f2 on codex/slow-damage-exit-20260910. Full cohort running. Preregistered wealth-improve/DD-nonworsening screen before original repaired-data controls. Distinguishing3tests pass; affected16pass/1retained old-return-veto assertion failure. No full engineering PASS claim.
+- Paired raw/dataset/sentinel/audit archive saved:78,998,165bytes/1876verifiedfiles/SHA2564abcd1d62e687172c592823d8cacdf8e3e956544081baefab07b6bc21a6037c2. See historical_cohort_archive.json. Slow full and C regeneration are separate pending evidence.
+- Runtime restored with locked Python3.12.13 dependencies offline/no-install-project; no dependency/lock change. Original107MB saved delivery remains closed. Lost unsaved C raw being faithfully regenerated from744eea29 and sealedd4d7e4c7 inputs; do not claim old94MBarchive saved.
+
+---
+Earlier checkpoints:
+
 Direction decision — 2026-09-10:
 
 - NOT_MET; PR56 Draft, no main merge. See benchmarks/direction_priority_20260910.md for the new evidence/cost ranking and explicit next-result decision table.

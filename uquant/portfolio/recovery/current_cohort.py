@@ -11,6 +11,7 @@ from ...features import scalar
 from ...holding_history import recovery_owner_open, tactical_owner_entry
 from ...risk.pullback import pullback_book_settled
 from ...types import (
+    AccountState,
     AttributionMechanism,
     LeaderScore,
     Lifecycle,
@@ -203,15 +204,19 @@ def _advance_tactical_clock(book: AllocationBook) -> None:
         account.candidate_tenure["tactical_overheat_cooldown"] = 0
 
 
-def _settle_tactical_holding(book: AllocationBook) -> None:
-    """Retire an actually closed, unowned tactical episode after native execution."""
-    account = book.account
-    if (account.candidate_tenure.get("tactical_active", 0) != 1
+def _tactical_book_closed(account: AccountState) -> bool:
+    return not (account.candidate_tenure.get("tactical_active", 0) != 1
             or any(position.shares > 0 for position in account.positions.values())
             or account.pending_orders
             or any(order.status not in {"FILLED", "CANCELLED", "REPLACED"} for order in account.order_ledger)
             or any(weight > 0 for rights in (account.anchor_weights, account.protected_weights,
-                                             account.strategic_restore_weights) for weight in rights.values())):
+                                             account.strategic_restore_weights) for weight in rights.values()))
+
+
+def _settle_tactical_holding(book: AllocationBook) -> None:
+    """Retire an actually closed, unowned tactical episode after native execution."""
+    account = book.account
+    if not _tactical_book_closed(account):
         return
     buys = [fill for fill in account.fills if fill.side == "BUY" and fill.mechanism == "TACTICAL_REBOUND"
             and fill.origin_subsystem == "RECOVERY" and fill.order_id and fill.event_id]
@@ -229,21 +234,56 @@ def _settle_tactical_holding(book: AllocationBook) -> None:
                               book.policy.cfg.tactical_rebound_cooldown_days))
 
 
-def _manage_tactical_holding(book: AllocationBook, opportunity: Opportunity, frozen: bool) -> bool:
-    """Research: retain the original bounded tactical life, backed by actual fills."""
-    account, policy, risk = book.account, book.policy, book.risk
+def _current_tactical_symbol(book: AllocationBook) -> str | None:
+    account = book.account
     if account.candidate_tenure.get("tactical_active", 0) != 1 or account.anchor_weights:
-        return False
+        return None
     selected = [symbol for symbol, position in account.positions.items()
                 if position.shares > 0 and position.lifecycle == Lifecycle.RECOVERY.value
                 and (not account.tactical_anchor_symbol or symbol == account.tactical_anchor_symbol)
                 and tactical_owner_entry(account, symbol) is not None]
     if len(selected) != 1:
-        return False
+        return None
     symbol = selected[0]
-    position = account.positions[symbol]
     if symbol not in book.user_panel or book.date not in book.user_panel[symbol].index:
+        return None
+    return symbol
+
+
+def _retain_or_exit_tactical(book: AllocationBook, symbol: str, promotable: bool, frozen: bool) -> bool:
+    account, policy, risk = book.account, book.policy, book.risk
+    position = account.positions[symbol]
+    pnl = book.prices.get(symbol, 0.0) / max(position.avg_cost, 1e-12) - 1.0
+    held_sessions = len(book.user_panel[symbol].loc[pd.Timestamp(position.entry_date):book.date])
+    expired = (held_sessions >= 30 if promotable else
+               pnl >= policy.cfg.tactical_rebound_take_profit or held_sessions >= 12)
+    permitted_exit = (not frozen or (not promotable and pnl >= policy.cfg.tactical_frozen_take_profit))
+    exit_due = (expired and permitted_exit and risk.state is not Risk.CRISIS
+                and not (account.protected_weights and risk.shock_state == "RECOVERY"))
+    weight = 0.0 if exit_due else book.weights_now[symbol]
+    targets = policy._targets(
+        proposed={symbol: weight}, leaders=book.leaders, account=account,
+        lifecycle=Lifecycle.RECOVERY, reason="controlled rebound exit" if exit_due else "controlled rebound probe",
+        origin_subsystem=OriginSubsystem.RECOVERY, mechanism=AttributionMechanism.TACTICAL_REBOUND,
+    )
+    book.recovery_targets.update({target.symbol: target for target in targets})
+    book.proposed[symbol] = weight
+    if exit_due:
+        account.protected_weights.pop(symbol, None)
+        account.strategic_restore_weights.pop(symbol, None)
+        account.candidate_tenure.update(tactical_active=0, tactical_cooldown=policy.cfg.tactical_rebound_cooldown_days,
+                                       tactical_overheat_cooldown=0, recovery_cycle_rearm_pending=1)
+        account.tactical_anchor_symbol = ""
+    return True
+
+
+def _manage_tactical_holding(book: AllocationBook, opportunity: Opportunity, frozen: bool) -> bool:
+    """Research: retain the original bounded tactical life, backed by actual fills."""
+    account, policy = book.account, book.policy
+    symbol = _current_tactical_symbol(book)
+    if symbol is None:
         return False
+    position = account.positions[symbol]
     promotable = (account.candidate_tenure.get("tactical_promotable", 0) == 1
                   and account.tactical_anchor_symbol == symbol)
     recovery = promotable and opportunity is Opportunity.RECOVERY and not frozen
@@ -273,28 +313,7 @@ def _manage_tactical_holding(book: AllocationBook, opportunity: Opportunity, fro
                  "observed_fill_count": len(account.fills)}
         account.lifecycle_events.append({**event, "canonical_sha256": canonical_json_sha256(event)})
         return False  # The existing cohort owner handles this same session and same shares.
-    pnl = book.prices.get(symbol, 0.0) / max(position.avg_cost, 1e-12) - 1.0
-    held_sessions = len(book.user_panel[symbol].loc[pd.Timestamp(position.entry_date):book.date])
-    expired = (held_sessions >= 30 if promotable else
-               pnl >= policy.cfg.tactical_rebound_take_profit or held_sessions >= 12)
-    permitted_exit = (not frozen or (not promotable and pnl >= policy.cfg.tactical_frozen_take_profit))
-    exit_due = (expired and permitted_exit and risk.state is not Risk.CRISIS
-                and not (account.protected_weights and risk.shock_state == "RECOVERY"))
-    weight = 0.0 if exit_due else book.weights_now[symbol]
-    targets = policy._targets(
-        proposed={symbol: weight}, leaders=book.leaders, account=account,
-        lifecycle=Lifecycle.RECOVERY, reason="controlled rebound exit" if exit_due else "controlled rebound probe",
-        origin_subsystem=OriginSubsystem.RECOVERY, mechanism=AttributionMechanism.TACTICAL_REBOUND,
-    )
-    book.recovery_targets.update({target.symbol: target for target in targets})
-    book.proposed[symbol] = weight
-    if exit_due:
-        account.protected_weights.pop(symbol, None)
-        account.strategic_restore_weights.pop(symbol, None)
-        account.candidate_tenure.update(tactical_active=0, tactical_cooldown=policy.cfg.tactical_rebound_cooldown_days,
-                                       tactical_overheat_cooldown=0, recovery_cycle_rearm_pending=1)
-        account.tactical_anchor_symbol = ""
-    return True
+    return _retain_or_exit_tactical(book, symbol, promotable, frozen)
 
 
 def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunity, frozen: bool) -> bool:

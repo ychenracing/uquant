@@ -641,16 +641,21 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
     return tuple(merged)
 
 
-def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> set[str]:
-    """Isolated research permission; reuse the original tactical signal unchanged."""
-    account, risk, policy = book.account, book.risk, book.policy
-    if (risk.state is not Risk.CAUTION or not risk.freeze_new_risk
+def _caution_probe_book_open(book: AllocationBook) -> bool:
+    account, risk = book.account, book.risk
+    return not (risk.state is not Risk.CAUTION or not risk.freeze_new_risk
             or risk.evidence.get("freeze_new_risk", False)
             or risk.evidence.get("sentinel_freeze_new_risk", False)
             or account.capital_budget_level != 0 or account.chronic_level != 0
             or account.sector_guard_active or account.positions
             or account.anchor_weights or account.protected_weights or account.strategic_restore_weights
-            or book.owned or not pullback_book_settled(account)):
+            or book.owned or not pullback_book_settled(account))
+
+
+def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> set[str]:
+    """Isolated research permission; reuse the original tactical signal unchanged."""
+    account, risk, policy = book.account, book.risk, book.policy
+    if not _caution_probe_book_open(book):
         return set()
     broad, tech = (risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120"))
     if (not isinstance(broad, (int, float)) or isinstance(broad, bool) or not math.isfinite(broad)

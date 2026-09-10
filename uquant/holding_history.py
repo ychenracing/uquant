@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .contracts.strict_json import canonical_json_sha256
 
@@ -62,6 +62,19 @@ def tactical_owner_entry(account: AccountState, symbol: str) -> Fill | None:
     return entry if entry is not None and position is not None and shares == position.shares > 0 else None
 
 
+def _handoff_event_covers_fill(account: AccountState, fill: Fill, event: dict[str, Any]) -> bool:
+    payload = {key: value for key, value in event.items() if key != "canonical_sha256"}
+    count = event.get("observed_fill_count")
+    if (event.get("canonical_sha256") != canonical_json_sha256(payload)
+            or type(count) is not int or not 0 < count <= len(account.fills)):
+        return False
+    prefix = account.fills[:count]
+    actual = sum(f.shares if f.side == "BUY" else -f.shares for f in prefix if f.symbol == fill.symbol)
+    return bool(fill in prefix and fill.fill_date <= event["date"]
+                and all(f.fill_date <= event["date"] for f in prefix)
+                and event.get("shares") == actual > 0)
+
+
 def _tactical_handoff_fill(account: AccountState, fill: Fill) -> bool:
     if not (_bound_owner_fill(fill) and fill.side == "BUY" and fill.mechanism == "TACTICAL_REBOUND"
             and fill.origin_subsystem == "RECOVERY" and fill.origin_lifecycle == "RECOVERY"):
@@ -72,18 +85,17 @@ def _tactical_handoff_fill(account: AccountState, fill: Fill) -> bool:
                 or event.get("date") != account.recovery_anchor_date
                 or event.get("from") != "RECOVERY" or event.get("to") != "CORE"):
             continue
-        payload = {key: value for key, value in event.items() if key != "canonical_sha256"}
-        count = event.get("observed_fill_count")
-        if (event.get("canonical_sha256") != canonical_json_sha256(payload)
-                or type(count) is not int or not 0 < count <= len(account.fills)):
-            continue
-        prefix = account.fills[:count]
-        actual = sum(f.shares if f.side == "BUY" else -f.shares for f in prefix if f.symbol == fill.symbol)
-        if (fill in prefix and fill.fill_date <= event["date"]
-                and all(f.fill_date <= event["date"] for f in prefix)
-                and event.get("shares") == actual > 0):
+        if _handoff_event_covers_fill(account, fill, event):
             return True
     return False
+
+
+def _owner_position_matches(account: AccountState, symbol: str, started: str,
+                            shares: int, boundary: str | None) -> bool:
+    position = account.positions.get(symbol)
+    actual = position.shares if position is not None else 0
+    return bool(started and shares == actual
+                and (boundary is None or bool(boundary and started <= boundary)))
 
 
 def recovery_owner_open(account: AccountState, symbol: str, boundary: str | None = None) -> bool:
@@ -109,10 +121,7 @@ def recovery_owner_open(account: AccountState, symbol: str, boundary: str | None
                 started, shares = "", 0
         else:
             started, shares = "", 0
-    position = account.positions.get(symbol)
-    actual = position.shares if position is not None else 0
-    return bool(started and shares == actual
-                and (boundary is None or bool(boundary and started <= boundary)))
+    return _owner_position_matches(account, symbol, started, shares, boundary)
 
 
 def protected_weights_for_current_episode(account: AccountState) -> dict[str, float]:

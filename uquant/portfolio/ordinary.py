@@ -13,18 +13,8 @@ if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
 
 
-def ordinary_core_entry(
-    self: PortfolioAllocator, *, symbol: str, score: LeaderScore, date: pd.Timestamp,
-    user_panel: dict[str, pd.DataFrame], account: AccountState, confirmation_days: int,
-    certificate: dict[str, Any] | None = None,
-    market: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    reference = account.strategic_cash_rearm.consumed_order
-    repair_pending = reference is not None and any(
-        order.symbol == symbol and order.order_id == reference.order_id
-        and order.event_id == reference.event_id for order in account.pending_orders
-    )
-    tenure = account.leader_tenure.get(symbol, 0)
+def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
+                                 market: dict[str, Any] | None) -> bool:
     qualification = account.strategic_qualification
     strategic_claims = (
         bool(account.strategic_cohort_targets)
@@ -40,6 +30,22 @@ def ordinary_core_entry(
     )
     local_open = (market is not None and market.get("mature_entry_open") is True
                   and not strategic_claims and not forming_full)
+    return local_open
+
+
+def ordinary_core_entry(
+    self: PortfolioAllocator, *, symbol: str, score: LeaderScore, date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame], account: AccountState, confirmation_days: int,
+    certificate: dict[str, Any] | None = None,
+    market: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    reference = account.strategic_cash_rearm.consumed_order
+    repair_pending = reference is not None and any(
+        order.symbol == symbol and order.order_id == reference.order_id
+        and order.event_id == reference.event_id for order in account.pending_orders
+    )
+    tenure = account.leader_tenure.get(symbol, 0)
+    local_open = _ordinary_maturity_available(account, date, market)
     if repair_pending:
         certificate = None  # The real repair order still needs its strict own proof.
     elif (certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days

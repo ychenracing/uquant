@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from uquant.validation.promotion import diagnose_promotion_unit
+from research.fixed_promotion_screen import diagnose_promotion_unit
 
 
 def test_unregistered_unit_is_rejected_before_creating_evidence(tmp_path: Path):

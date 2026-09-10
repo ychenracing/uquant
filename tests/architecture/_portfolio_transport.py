@@ -272,7 +272,17 @@ def _expand_sparse(
     definitions: Mapping[str, ast.FunctionDef],
     frozen: ast.FunctionDef,
 ) -> None:
-    for observed, expected in zip(current.body[:6], frozen.body[:6], strict=True):
+    # The retained policy ranks utility before sparsity; preserve the original
+    # frozen inventory and validate only this declared rank/docstring projection.
+    assert ast.get_docstring(current) == """Meet every risk cap with one deterministic sparse reduction.
+
+The lexicographic objective is cap compliance, safer normalized
+lifecycle composition, sector guard health, stronger retention utility,
+then the fewest changed symbols among otherwise equivalent plans.
+At most one symbol receives a partial
+boundary trim. A guard can only retain or reduce current exposure; it
+never buys while protection is active."""
+    for observed, expected in zip(current.body[1:6], frozen.body[1:6], strict=True):
         _same(observed, expected)
     chunks = (
         ("_retained_lifecycle_buckets", 6, 10),
@@ -297,7 +307,12 @@ def _expand_sparse(
     totals = definitions["_retention_totals"].body[0]
     assert isinstance(totals, ast.Return) and totals.value is not None
     _same(totals.value, _expanded_six_tuple(frozen_totals.value))
-    for observed, expected in zip(current_rank.body[2:], frozen_rank.body[3:], strict=True):
+    reviewed_rank = copy.deepcopy(frozen_rank.body[3:])
+    result = reviewed_rank[-1]
+    assert isinstance(result, ast.Return) and isinstance(result.value, ast.Tuple)
+    assert [ast.unparse(value) for value in result.value.elts[2:4]] == ["unchanged", "utility"]
+    result.value.elts[2:4] = reversed(result.value.elts[2:4])
+    for observed, expected in zip(current_rank.body[2:], reviewed_rank, strict=True):
         _same(observed, expected)
     rank_call = _call(current, "_risk_plan_rank")
     assert [ast.unparse(value) for value in rank_call.args] == ["self", "plan"]

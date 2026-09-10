@@ -696,7 +696,7 @@ def validate_combined_allocator_topology(
         assert len(selected) == 1, method
         keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in selected[0].keywords}
         assert all(keywords.get(argument) == value for argument, value in arguments.items()), method
-    books = [call for call in calls if ast.unparse(call.func) == "_AllocationBook"]
+    books = [call for call in calls if ast.unparse(call.func) == "AllocationBook"]
     assert len(books) == 1 and not books[0].keywords
     assert tuple(ast.unparse(argument) for argument in books[0].args) == (
         "self", "date", "risk", "user_panel", "leaders", "account", "prices", "weights_now",
@@ -710,6 +710,13 @@ def validate_combined_allocator_topology(
     returns = [node for node in ast.walk(pipeline) if isinstance(node, ast.Return)]
     assert len(returns) == 1 and returns[0].value is not None
     assert ast.unparse(returns[0].value) == "targets"
+    book_source = reviewed["uquant/portfolio/allocation_book.py"]
+    book_imports = [node for node in ast.parse(source).body if isinstance(node, ast.ImportFrom)
+                    and node.module == "allocation_book"]
+    assert len(book_imports) == 1 and book_imports[0].level == 1
+    assert [(alias.name, alias.asname) for alias in book_imports[0].names] == [("AllocationBook", None)]
+    assert not any(isinstance(node, ast.ClassDef) and node.name in {"AllocationBook", "_AllocationBook"}
+                   for node in ast.parse(source).body)
     capital = _definitions(reviewed["uquant/portfolio/capital.py"])
     for relative, level, helpers in (
         ("uquant/portfolio/pipeline.py", 1, {
@@ -747,8 +754,16 @@ def validate_combined_allocator_topology(
             if helper == "funded_increment":
                 transfer = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
                                 and node.name == "_degraded_transfer")
-                book_type = next(node for node in tree.body if isinstance(node, ast.ClassDef)
-                                 and node.name == "_AllocationBook")
+                book_tree = ast.parse(book_source)
+                book_type = next(node for node in book_tree.body if isinstance(node, ast.ClassDef)
+                                 and node.name == "AllocationBook")
+                book_import = [node for node in book_tree.body if isinstance(node, ast.ImportFrom)
+                               and node.module == "capital"]
+                assert len(book_import) == 1 and book_import[0].level == 1
+                assert [(alias.name, alias.asname) for alias in book_import[0].names] == [("funded_increment", None)]
+                book_calls = [node for node in ast.walk(book_tree) if isinstance(node, ast.Call)
+                              and ast.unparse(node.func) == "funded_increment"]
+                helper_calls.extend(book_calls)
                 fund = next(node for node in book_type.body if isinstance(node, ast.FunctionDef)
                             and node.name == "fund")
                 # Match calls by their actual owning AST, not just argument shape.
@@ -779,7 +794,7 @@ def validate_combined_allocator_topology(
         **{name: name for name in ("cfg", "symbol", "leaders", "user_panel", "date", "gross_cap", "symbol_cap", "concentration_cap")},
         "committed": "{**committed, symbol: current}", "diagnostics": "detail",
     }
-    book = next(node for node in ast.parse(source).body if isinstance(node, ast.ClassDef) and node.name == "_AllocationBook")
+    book = next(node for node in ast.parse(book_source).body if isinstance(node, ast.ClassDef) and node.name == "AllocationBook")
     gross_cap = next(node for node in book.body if isinstance(node, ast.FunctionDef) and node.name == "gross_cap")
     assert len(gross_cap.body) == 1 and isinstance(gross_cap.body[0], ast.Return)
     assert ast.unparse(gross_cap.body[0].value) == "min(self.policy.cfg.max_gross, self.risk.target_gross_cap)"
@@ -796,6 +811,7 @@ def validate_combined_allocator_topology(
     mutation_methods = {"append", "clear", "extend", "insert", "pop", "remove", "setdefault", "update"}
     capital_sources = (
         source,
+        book_source,
         reviewed["uquant/portfolio/capital.py"],
         reviewed["uquant/portfolio/strategic/ownership.py"],
     )

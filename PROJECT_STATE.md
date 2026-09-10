@@ -322,3 +322,89 @@ is a proof-only reread, not new-source replay or total Ownership acceptance.
 Original raw/failure and overlay thresholds preserved; see
 participation_evidence_repair_result.json. Continue principal outcome evaluation,
 then necessary failed gates under the existing15/40 and remaining obligations.
+
+
+## Latest continuation outcome — 2026-09-10, principal and continuity completed
+
+This section supersedes the pending shared-exit statements above. Total goal
+remains NOT_MET. PR56 remains Draft at remote2a5ab8935285f5a278664d568d430b1ba2f02f42,
+main960539a89408cc7c1fc3937bda19c9f760095012. No merge or new risk exception.
+The PR's actual strategy remains source78e2; independent research is source4bd9.
+Do not claim that the PR itself has passed the research candidate's checks.
+
+Shared structural exit localc2a489f / remotece91b233 principal869-session native
+results pass effective15/40: full29.717003593409824, DD.27147361646156465,
+22orders; champion25.109594313238023, DD.27146973146234554,14orders.
+Wealth, DD, fees and orders match the original control. Historical full20-order
+failure remains. Additional188 holding/lifecycle/risk/settlement checksPASS;
+28prior native holding/deployment testsPASS. Not complete engineering acceptance.
+
+Other localized native screens: remove_all_three continuous1.6145477881394499,
+DD.18930355143790023,20orders PASS frozen effective comparator. It has much lower
+wealth than matched-runtime control3.6784085274816762/DD.23402721910419388;
+do not hide this opportunity cost. no_optical/H1_2023 wealth1.4409999433209701,
+DD.23106445762600292,11orders PASS effective comparator, original DD FAIL retained.
+Fixed a/bull302sessions remains7.553639631084535/DD.24253804885922547/8orders,
+FAIL on unchanged wealth/DD and champion-relative floors. No strategic epoch
+exists in that window. No full nominal/robustness/L4 matrix on this failed arm.
+
+Research combined with the actual participation evidence repair is preserved at
+local9068d7e8f85777a42e30c7d05951831ea41bda25, remote
+0880dcabc3dcc223f51d2f691c53d77d7c3f7319, equivalent tree
+75335b413122b48813bb7abb7bcd97cc1758ea83, branch
+codex/shared-exit-integration-20260910. Both remote branch refs were read back.
+Economic source stays4bd9a024200dbde9da305665d95ef9b338cf0959da8d84a7f07c294f276bf2e2;
+full-package/runner identities remain distinct from the original principal run.
+No CAUTION exception and no breach-episode combination in this candidate.
+
+Its FULL Ownership continuity shard PASS: remove-sz300502, same-industry alias,
+cross-industry-crowning, failed-first-grant. Actual removal has2epochs/2owners
+sz300223->sh688233, wealth1.5448671426870102, DD.24044618492815417. Original
+source78 control1.88338375540882/.25406028413388815 had only1epoch. The first
+research attempt lost its tool process without a final artifact; original empty
+log remains, one resumed immutable attempt completed. Shard aggregation reused
+that native cache and did not rerun the869-session account. Synthetic cross-industry
+remains2.287569205382547/.11586767434626832, optical308->materials688019.
+Same-industry participation is separately tied to real independent entries;
+the displayed strategic owners need not themselves be the same-industry pair.
+Full continuity is not complete Ownership, Absolute or total economic acceptance.
+
+All updated summaries and raw receipts: shared_structural_exit_result.json and
+shared_structural_exit_archive.json. Principal archive87,987,593bytes/1753members
+and supplemental screens50,645,469bytes/1004members saved; every member hash/size
+verified. Supplemental archive includes all14 held-capital audit events and script.
+Original recovery archive197,423,214bytes/3529files and historical archives remain.
+No old raw/source identity was replaced by a new producer label.
+
+Further causal audit found explicit held-account capital-repair constraints,
+not a clock bug. Across the selected CAUTION14 native accounts, the existing
+non-drawdown health predicates and lower observed tier can hold while historical
+capital/operating drawdown prevents persistent-tier repair. no_optical/later52
+such days (maximum consecutive15), remove3/later23 (maximum7). Full/champion also
+have165/162 observations; these are not isolated profitable opportunities.
+The actual remaining holding blocks the existing flat-book certificate. Original
+20-session flat repair cannot be claimed satisfied by15/7. No synthetic profit
+estimate, capital-peak reset or new permission has been executed.
+
+The reviewed next policy would test held-account tier repair under the original
+current-health/5-session/one-tier rules, with sentinel and settlement exclusions,
+without requiring recovery of historical drawdown. This is materially different
+capital release authority from the user's isolated empty-book CAUTION exception;
+research authorization is not inferred. Concrete mechanism, scope, alternatives,
+falsifiers and remaining risks are in held_capital_repair_research_decision.md.
+Existing caps,15/40 and other numerical obligations remain unchanged.
+
+Current remote2a5 Engineering completed Windows, Python3.12, security and foundation
+successfully; other tests/Grant/Ownership pending at last read. Absolute champion
+job102851461784 logs directly confirm source registry identity differs, before
+replay execution. Not an economic failure or permission to relabel fixture739.
+Keep source/fixture rebinding deferred until a viable candidate is selected.
+No native research process remains after completed continuity aggregation.
+
+Final remote refresh: Grant34471267814PASS. Current PR Ownership34471267890 model,
+champion, critical, ghost-a and ghost-bPASS; continuityFAIL (the PR still has
+source78, not independent research4bd). Engineering architecture-portfolio and
+application-right alsoPASS; application-left and architecture-remaining pending.
+Research continuity archive23,519,711bytes/8members saved and all hashes verified;
+SHA89edacdc3f876739488e50c0ddd95f19bd541109dd57be259dcae0aeb8c8be0d,
+libfile_c9cf00b153b88191af0b06c6b0d16743. See the combined archive receipt.

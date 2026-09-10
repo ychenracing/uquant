@@ -1,3 +1,7 @@
+# Active H bounded local maturity research
+
+Original selected a39 preserved; new branch codex/ordinary-mature-local-20260910. See benchmarks/ordinary_mature_local_plan.md. Previous G/E failed replacements preserved at PR56 and G closure618b8911. H onlyordinary.py economics;46targetedPASS/Ruff/mypy/reviewPASS; native conflict screens next. Principal15/orders40/currentv6 remain. No completedwholeacceptance or merge. Olderhistorybelow retained.
+
 # Current task state — 2026-09-10
 
 Status: NOT_MET. PR56 Draft; no merge. Follow the user continuous-goal prompt;

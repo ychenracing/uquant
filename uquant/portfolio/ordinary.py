@@ -1,4 +1,4 @@
-"""Independent stock proof with a current impulse-only mature entry shortcut."""
+"""Independent stock proof with bounded ordinary maturity admission."""
 from __future__ import annotations
 
 import math
@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from ..types import AccountState, LeaderScore, Opportunity, RiskAssessment
+from ..types import AccountState, LeaderScore, Opportunity, Risk, RiskAssessment
 from .strategic.qualification_candidates import candidate_entry
 
 if TYPE_CHECKING:
@@ -25,11 +25,27 @@ def ordinary_core_entry(
         and order.event_id == reference.event_id for order in account.pending_orders
     )
     tenure = account.leader_tenure.get(symbol, 0)
+    qualification = account.strategic_qualification
+    strategic_claims = (
+        bool(account.strategic_cohort_targets)
+        or any(p.shares > 0 and (p.grant_id or p.epoch_id) for p in account.positions.values())
+        or any(o.grant_id or o.epoch_id for o in account.pending_orders)
+    )
+    forming_full = (
+        qualification.qualification_last_observed_session == str(date.date())
+        and qualification.qualification_quorum == "FULL_COHORT"
+        and qualification.qualification_streak > 0
+        and not qualification.qualification_ready
+        and not qualification.deployment_blocked
+    )
+    local_open = (market is not None and market.get("mature_entry_open") is True
+                  and not strategic_claims and not forming_full)
     if repair_pending:
         certificate = None  # The real repair order still needs its strict own proof.
     elif (certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days
           and market is not None and market.get("as_of") == str(date.date())
-          and market.get("impulse") is True and symbol in market.get("credible_symbols", ())):
+          and (market.get("impulse") is True or local_open)
+          and symbol in market.get("credible_symbols", ())):
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
             "required_confirmation": self.cfg.leader_tenure_days,
@@ -75,4 +91,10 @@ def observe_ordinary_market(
     return {
         "as_of": str(date.date()), "confirmed": impulse, "impulse": impulse,
         "credible_symbols": credible, "missing_market_fields": missing,
+        "mature_entry_open": (
+            not missing and risk.state is Risk.NORMAL and not risk.freeze_new_risk
+            and not risk.evidence.get("freeze_new_risk", False)
+            and not risk.evidence.get("sentinel_freeze_new_risk", False)
+            and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
+        ),
     }

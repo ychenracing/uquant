@@ -1,0 +1,121 @@
+{
+  "status": "BLOCKED_ENVIRONMENT_OFFLINE",
+  "goal_status": "NOT_MET",
+  "pr": 56,
+  "engineering_policy": "User explicitly lowers engineering quality/CI priority. Noncritical engineering checks deferred; do not wait for Actions over10minutes. Economic/data/accounting integrity retained.",
+  "production_source": "44901d9f7229e56837ee666157fa852c87a354d0b94216b06f9ebeb71715b1fe",
+  "delivery": {
+    "local": "1d4c68b11afdf749241bf8c707dccd6e6b7fbb72",
+    "remote": "286f467e31d18b69b27a9b65acdf10710ed5c65b",
+    "tree": "4bc470ece0123158f3d6fbc264365cc067ba7ff5",
+    "branch": "codex/economics-first-closure-20260910"
+  },
+  "baseline": {
+    "local": "17df9d09c5fb6b03bc9c97b292812b177ab6cf9e",
+    "remote": "db06a7dc19e34e4eb7e02ac579f10157efbb64bb",
+    "tree": "9738c9a88fd5efab47041ad82745164469484711",
+    "branch": "codex/old-paired-runner-20260910",
+    "production_source": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d",
+    "restored_verified_git_blobs": 103,
+    "sentinel": "6 sessions native execution/readback PASS; diagnostic only"
+  },
+  "verified": {
+    "champion": {
+      "wealth": 25.109594313238023,
+      "orders": 14,
+      "sessions": 869
+    },
+    "absolute_champion_report13_shard": "COMPLETE/exit0/manifest readback. Not complete Absolute acceptance.",
+    "no_optical": {
+      "wealth": 1.6315909158770203,
+      "max_drawdown": 0.26022516791427264,
+      "orders": 21,
+      "full_native_readback": "PASS"
+    },
+    "remove_all_three": {
+      "wealth": 1.6392413843140603,
+      "max_drawdown": 0.22700561436168354,
+      "orders": 22,
+      "full_native_readback": "PASS"
+    },
+    "role_binding": {
+      "rows": 3933,
+      "status": "PASS",
+      "sha256": "44986a1b6c5d599d39a2579a1f0497ceb1bf6c175cf165b7b64189ce30e6ddcb"
+    },
+    "deleted_control_specs": 6,
+    "orchestrator_tests": 5
+  },
+  "economic_failure": {
+    "case": "new-best_removed-no_optical",
+    "excluded_symbol": "sh688256",
+    "native_status": "COMPLETE and read_shard PASS before environment loss",
+    "wealth": 0.8738347352060802,
+    "max_drawdown": 0.241119010979561,
+    "orders": 23,
+    "fees": 4779.2805878399995,
+    "slippage": 9492.248999999332,
+    "annual_turnover": 1.3217387044177216,
+    "applicable_wealth_floor": 0.945,
+    "original_wealth_floor": 1.05,
+    "verified_symbol_pnl": {
+      "sh688012": -28107.024042239995,
+      "sh688037": -24627.146338079998,
+      "sh688041": -55803.65732171986,
+      "sh688072": -242.22215951998078,
+      "sh688200": -50945.22952991995,
+      "sh688233": 27193.086439200037,
+      "sh688268": -75726.42359039997,
+      "sh688300": -998.7201239400019,
+      "sh688766": -9897.58113497986,
+      "sz002281": -13892.374045439996,
+      "sz300223": -19283.23774079996
+    },
+    "raw_result_seal": "not captured before environment loss; must recover actual raw, do not reconstruct from summary"
+  },
+  "diagnosis": {
+    "observed": "Early2023 losses followed by prolonged flat account; after2023-06-12,16flat days have real flat_book_capital_repair READY, but strategic_cash_rearm OBSERVING and strict independent_core confirmation0. First2025-02-12: Risk.NORMAL, freeze_new_risk=true, cap0.5, capital_budget_level3, healthy60/required60, repair_target_level2. Current mature symbols sh603986/sh688110/sz002281/sz300223 exist but no target.",
+    "inference": "Investigate the connection from genuine flat-book repair readiness to independently qualified entry. Counts are not a profit claim or authorization for arbitrary risk bypass.",
+    "implementation": "No new strategy fix implemented. Need finish old/new same-exclusion comparison, trace rearm.py/rearm_predicates.py; then only an authorized bounded research change."
+  },
+  "saved_archive": {
+    "library_file_id": "libfile_fea4a712026881919bc2c19fa0439446",
+    "file_id": "file_00000000532481f58ea1ab7bdf57c995",
+    "name": "uquant_m_nominal_checkpoint_20260910.tar.gz",
+    "bytes": 68970784,
+    "files_verified": 1759,
+    "sha256": "33804e07e8afb2b90019d04ee4b13bffe172a364da159c9839e146844271e4cd",
+    "includes": "M two continuous removal accounts, actual champion raw, old6day sentinel, role-binding proof; does not include later report13, best-removal runs or full/crosschampion"
+  },
+  "blocker": {
+    "error": "409 Conflict environment_offline: Environment is not connected",
+    "local_read": "failed after transport disconnected/recovery timeout",
+    "emergency_best_raw_upload": "failed on first identity.json; no success claimed",
+    "runtime_root": "/workspace/scratch/4f31235e78e6/runs/m-economic",
+    "active_processes": "unknown after disconnect; do not duplicate or claim stopped",
+    "sessions": {
+      "absolute_champion": 87352,
+      "noopt_nominal": 17221,
+      "remove3_nominal": 95037,
+      "new_best_noopt": 26051,
+      "old_best_noopt": 40139,
+      "new_best_remove3": 40441,
+      "old_best_remove3": 65074,
+      "cross_champion": 57970,
+      "full": 7283
+    },
+    "temporary_unpushed_files": [
+      "runs/m-economic/verify_contributor.py",
+      "runs/m-economic/flat-ready-diagnosis.json",
+      "later native raw and logs"
+    ],
+    "no_strategy_wip": "All actual repo edits pushed/tree-verified. Temporary source-specific reader helper and raw mentioned above could not be saved after disconnect."
+  },
+  "next": [
+    "Recover same environment and processes without re-running completed work; read original PR56 latest state.",
+    "Save best-removal/raw/report13/full outcomes first; never fabricate missing raw or seals.",
+    "Verify each old/new account with its own codec: old decoder rejects new consumed_order, preserve pre-execution transport FAIL. Native old runs with explicit sh688256 exclusion were started instead.",
+    "Use actual failed economics to diagnose bounded repair-entry path; do not run full64 matrix on M now known failing; no further v8 relaxation.",
+    "Keep engineering deferred; do not bypass protected merge. Main960539/PRhead008e140 unchanged at last live read."
+  ]
+}

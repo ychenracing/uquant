@@ -1,3 +1,7 @@
+# Environment disconnected — economic failure preserved
+
+Latest execution environment returned409 environment_offline; shell reads and emergency raw upload both failed. Active native-process status unknown; do not duplicate runs. All repository edits are remotely preserved. Read benchmarks/m_economic_resume_result.json for exact verified results, archive and gaps. New best-removal noopt (also remove688256) native wealth0.8738347352060802/DD.241119010979561/23orders FAILS effectivewealthfloor.945. Sixteen genuineflat-repairREADY days stillhave strictconfirmation0; no new strategy change implemented. Finish actualold/newcomparison and diagnose repaired-entry authority when environmentreturns. Do not start fullmatrix on this failed candidate. Engineering/CI remains deferred per latestuserauthorization. Overallgoal NOT_MET. Historical/pendingclaims below superseded where applicable.
+
 # Resumed: economic acceptance first
 
 Latest user instruction lowers engineering quality and CI priority. Noncritical architecture/style/coverage/full engineering checks are deferred; do not wait for GitHub Actions over10minutes. This supersedes the previous engineering prerequisite. Accounting, real execution/data/source integrity, risk guards and frozen economic gates remain. The known source-surface test omission is deferred, not passed. No production strategy/parameter changes on resume.

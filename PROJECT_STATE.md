@@ -10,7 +10,7 @@ No15floor on removals/restarts/stress. Future Holdout2026-08-06 onward remains c
 - GitHub repository ychenracing/uquant; branch codex/ordinary-recovery-20260909.
 - Matched-runtime producer local9a53becc4882ff8f5919f31dac3b22abd772977f equals
   remote9572853aed90dedbd210525b30459e1dbd720ce6 at tree9d3f5acfcaa9e3142e2ccdad718cac0282a82183.
-  Later delivery changes are documentation/receipts; resolve latest branch SHA from PR56.
+  Later source-owner engineering changes are described below; resolve latest branch SHA from PR56.
 - Main960539a89408cc7c1fc3937bda19c9f760095012 remains unchanged.
 - Trading source77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e;
   configadf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.
@@ -172,13 +172,16 @@ and FAILS only relative champion11.731316520301316; not total acceptance.
 principal comparator PASS: full29.717003593/DD.271473616/22,
 champion25.109594313/DD.271469731/14, remove_all_three1.706182311/DD.216373397/16,
 no_optical3.161589974/DD.250427594/20. Allraw outcomes and failures are retained.
-The ten contract-defined nominal windows are now running from this same immutable
-producer to evaluate the removal tradeoff, not to select new thresholds/windows.
+All ten contract-defined nominal windows are COMPLETE from this immutable producer.
+Combined nominal comparison:11PASS/3FAIL. remove_all_three/h1_2023 DD.216373397
+exceeds.202054300; later removal wealth1.537401291 and no_optical1.125312594
+miss their unchanged benchmark floors. See caution_selected_nominal_result.json.
 No fullL4 matrix or robust candidate claim. Read recovery_refinements_result.json.
 
 Closed refinements archive362931bytes/21members saved and verified; see
-recovery_refinements_archive.json. Selected long/remaining-window raw archive is
-pending until the independent jobs finish. The old107MB and lifecycle156MB
+recovery_refinements_archive.json. Selected14nominal/fixed-bull raw archive217983940bytes/5293files is saved and
+every member hash/size verified. SHA453505d1f4c95d26537977511ccb0baeb8b9c145aaf6edc52db16430b0d646b8;
+receipt caution_selected_nominal_archive.json. The old107MB and lifecycle156MB
 archive receipts remain valid; do not rerun those uploads.
 
 Separate engineering delivery now moves the exact dated-industry default into
@@ -198,3 +201,44 @@ reconciliation mutations. Portfolio risk-owner testPASS; validation relocation
 and resigned-tamper testsPASS after exact historical blobs were recovered by
 SHA1-verified GitHub reads. Historical frozen evidence unchanged. Remaining
 private/complexity relocation gates are running; full engineering still unproven.
+
+
+## Post-nominal causal audit and next work
+
+All fourteen current nominal accounts were inspected without changing their paths.
+The two later starts both execute the original Jan6CAUTION tactical probe, close
+it at the original nonpromotable expiry with a profit, and remain unqualified for
+ordinary CORE at that exit. Forced longer holding has no current proof.
+remove3/later has288flat days (177NORMAL); no_optical/later218(152NORMAL).
+A NORMAL market is not a sufficient independent entry or capital-repair certificate.
+remove3/later actually re-enters on2026-04-22 when its ready repair is consumed.
+Across14accounts, the sole READY-repair/ordinary-READY/no-order date is
+no_optical/later2026-06-22: all four candidates use the deliberately weaker
+impulse/leader-tenure route, not strict independent-core recovery proof.
+No missing settlement or permission is inferred. Read caution_selected_readiness_audit.json.
+
+A diagnostic reconstructed2513complete risk-only holdings snapshots; two equal-gross
+float-vector discrepancies represent one historical May19event in two overlapping
+accounts. Neither changes the chosen plan. This closes numerical preemption as
+a supported economic repair here; it is not a stitched account counterfactual.
+See risk_lifecycle_numerical_audit.json.
+
+Current branch remote7e139c6368d1ba1ab0f717887bd19e0d7c4cfbd2/local6bacb852
+was read back at tree46c8a56923118cc5e714228db1ac5645a56bafd4. Remote Engineering
+34459529274 passes architecture-foundation/portfolio, Python3.12, Windows and
+security. Application-right has1249PASS/3FAIL: two stale20-order assertions and
+one stale config hash. Current tests now explicitly test15/40 and41/just-below15
+rejections, retaining risk ceilings and historical evidence identities. Local
+whole historical test is blocked by missing exact old Git blobs; do not waive it.
+The remaining architecture/application shards are still pending at this checkpoint.
+
+Ownership continuity102813776841 fails because fewer than two real epochs occur.
+The raw remote artifact download returned403; the identical, bounded scenario
+remove-sz300502 is now being reproduced at immutable local6bac in
+uquant-continuity-diagnosis, with the original validator and failure retention.
+Output runs-20260910/ownership-continuity-local.json. Next inspect actual post-exit
+state and qualification; do not fabricate a second epoch or alter the scenario.
+This is preferred over new rank/threshold rules because it is a concrete required
+continuity failure not explained by the now-closed CAUTION lifecycle/clock bugs.
+Absolute34459529260 fails source-registry binding before economic execution; its
+older739candidate binding remains historical and unwaived. No fullL4 pass claimed.

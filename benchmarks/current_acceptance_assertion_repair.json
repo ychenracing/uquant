@@ -1,0 +1,24 @@
+{
+  "status": "FOCUSED_CURRENT_ASSERTIONS_PASS",
+  "source_changed": false,
+  "current_economic_source": "78e2cc4c35593ce502843ca6fb75995d79b74e7ad4f75d0d5313b1f9b18046c4",
+  "current_config": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+  "checks": {
+    "principal15_orders40_and_tolerance_tests": 19,
+    "ruff": "PASS",
+    "complete_regenerated_sentinel_payload_after_explicit_identity_transport": "PASS",
+    "full_historical_sentinel_test_local": "BLOCKED_MISSING_HISTORICAL_GIT_BLOB",
+    "full_historical_sentinel_test_remote_before_fix": "FAILED_STALE_CURRENT_CONFIG_ONLY_AFTER_HISTORICAL_GIT_PROVENANCE_PASSED"
+  },
+  "authority": "User latest15/40; prior macro-veto config-field retirement is already reviewed. Historical evidence/code/config hashes stay unchanged.",
+  "remote_failure": {
+    "head": "7e139c6368d1ba1ab0f717887bd19e0d7c4cfbd2",
+    "job": 102813777309,
+    "pass": 1249,
+    "fail": 3
+  },
+  "files": {
+    "remote-failure-0-7e139c6.log": "54e87b933ea40beb4362e83a9c96bbcaf076848a8a0295d7a1d2e6d012d44c73",
+    "current-sentinel-evidence-closure.json": "e69c87013f638f4844da265c85c68c6a1cae46e67f6e5763fa644cadb5b8e173"
+  }
+}

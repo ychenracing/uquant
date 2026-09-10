@@ -1,0 +1,329 @@
+{
+  "contract_id": "cross-ai-core-strategy-20260905-v1",
+  "contract_sha256": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
+  "acceptance_revision": {
+    "revision_id": "cross-ai-principal15-orders40-20260910-v4",
+    "previous_revision_id": "cross-ai-h1-drawdown-baseline-20260909-v3",
+    "authorized_after_observing_candidate": true,
+    "authorization": "User explicitly authorizes a hard15-fold principal wealth floor and at most40orders per account replay (2026-09-10)",
+    "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",
+    "order_revision_scope": "All absolute per-account replay order ceilings map to40, including shorter windows; costs/turnover/nonnumeric obligations retained",
+    "final_wealth_floor_multiplier": 0.9,
+    "wealth_scope": "Existing90% tolerance applies only to nonprincipal nominal, comparison and shorter-window floors; principal full/champion floors are exactly15, including capital",
+    "orders": {
+      "all_absolute_per_account_replay_ceilings": 40
+    },
+    "principal_final_wealth_floor": 15.0,
+    "principal_wealth_authorization": "User accepts the former23.28-fold full/champion floor at15, never below15; no compounded90% tolerance (2026-09-10)",
+    "drawdown_baseline_revision": {
+      "authorization": "User explicitly authorizes only this window to use current main drawdown as the non-regression baseline, retain old failure, and merge C after remaining acceptance",
+      "case": "no_optical",
+      "window": "h1_2023",
+      "baseline_commit": "960539a89408cc7c1fc3937bda19c9f760095012",
+      "maximum_drawdown": 0.2442425185317515,
+      "additional_buffer": 0.0
+    },
+    "unchanged": [
+      "wealth improvement deltas and improved-window qualification",
+      "positive-return fraction",
+      "p10 wealth floor",
+      "all other drawdown gates",
+      "acute return",
+      "turnover",
+      "costs",
+      "recovery",
+      "Absolute/Ownership obligations other than explicitly revised champion wealth/orders"
+    ],
+    "original_judgment": "authorized=False reproduces original frozen comparisons before order revisions"
+  },
+  "original_status": "FAIL",
+  "scope": "nominal_comparison",
+  "status": "FAIL",
+  "authoritative_promotion": false,
+  "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+  "rows": [
+    {
+      "case": "champion",
+      "window": "continuous_ai_era",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/champion",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "metrics": {
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554,
+        "account_orders": 14,
+        "fees": 46015.79892394601,
+        "slippage_cost": 66615.9745999966
+      },
+      "result_seal": "bf83083a8c02f37447029ab57a4c1e17ac2dfc34d14d79d8d1f76e49b97ce7e5"
+    },
+    {
+      "case": "full",
+      "window": "continuous_ai_era",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/full",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "champion/full order ceiling"
+      ],
+      "original_status": "FAIL",
+      "metrics": {
+        "final_wealth": 29.717003593409824,
+        "max_drawdown": 0.27147361646156465,
+        "account_orders": 22,
+        "fees": 65928.056280352,
+        "slippage_cost": 101142.05689999806
+      },
+      "result_seal": "f268737a03c243f4a0eac524b289b4e89022e6899069e7a9c4cf7512e5d20f58"
+    },
+    {
+      "case": "remove_all_three",
+      "window": "continuous_ai_era",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "metrics": {
+        "final_wealth": 1.7061823107539196,
+        "max_drawdown": 0.21637339702142588,
+        "account_orders": 16,
+        "fees": 4665.17449216,
+        "slippage_cost": 8454.203999999652
+      },
+      "result_seal": "1f4660dc71eba4c767a48a2958d605f4eabb89cd62b5800822a6da2c48e4329b"
+    },
+    {
+      "case": "no_optical",
+      "window": "continuous_ai_era",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "metrics": {
+        "final_wealth": 3.161589973577749,
+        "max_drawdown": 0.2504275941411437,
+        "account_orders": 20,
+        "fees": 8437.409144502,
+        "slippage_cost": 14424.94369999933
+      },
+      "result_seal": "567d06dd27430c4cb396e52f66da3c1568697ecc63b901ebdb9acbc1ba1a5382"
+    },
+    {
+      "case": "remove_all_three",
+      "window": "h1_2023",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h1_2023",
+      "status": "FAIL",
+      "failures": [
+        "half-year drawdown retention"
+      ],
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "half-year drawdown retention"
+      ],
+      "original_status": "FAIL",
+      "metrics": {
+        "final_wealth": 1.6860025875993399,
+        "max_drawdown": 0.21637339702142588,
+        "account_orders": 12,
+        "fees": 3254.4048013200004,
+        "slippage_cost": 5708.419999999734
+      },
+      "result_seal": "c383a690f0e0a2991f85df0c8102764c350d879f03e52775f9e6304c5ef4ebc3"
+    },
+    {
+      "case": "remove_all_three",
+      "window": "h2_2023",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h2_2023",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "metrics": {
+        "final_wealth": 1.0333966894495101,
+        "max_drawdown": 0.09596918115560904,
+        "account_orders": 7,
+        "fees": 2030.3821009800001,
+        "slippage_cost": 4206.238999999769
+      },
+      "result_seal": "cfb845505ef1c37eee9a5265755142145f31e11c0b21aaa0bfcd6794b2c9a0df"
+    },
+    {
+      "case": "remove_all_three",
+      "window": "h1_2024",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h1_2024",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "metrics": {
+        "final_wealth": 1.0776598338612253,
+        "max_drawdown": 0.09630868956437155,
+        "account_orders": 4,
+        "fees": 1336.45847755,
+        "slippage_cost": 2543.873799999936
+      },
+      "result_seal": "67e8386d7cb07e559137f5c25c049709e4916de254df7c5a4a5012a9286ceac5"
+    },
+    {
+      "case": "remove_all_three",
+      "window": "h2_2024",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h2_2024",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "half-year wealth retention"
+      ],
+      "original_status": "FAIL",
+      "metrics": {
+        "final_wealth": 1.5703644222328994,
+        "max_drawdown": 0.10406003219136029,
+        "account_orders": 8,
+        "fees": 1459.9998342019999,
+        "slippage_cost": 3367.1556999996656
+      },
+      "result_seal": "f4877e54bed3a33cef801280f745c003b9bb833273bb190761ed109af6836eb3"
+    },
+    {
+      "case": "remove_all_three",
+      "window": "bull_crash_2025_2026",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-bull_crash_2025_2026",
+      "status": "FAIL",
+      "failures": [
+        "disjoint later-window benchmark floor"
+      ],
+      "old_status": "REPLAY_ERROR",
+      "original_failures": [
+        "disjoint later-window benchmark floor"
+      ],
+      "original_status": "FAIL",
+      "metrics": {
+        "final_wealth": 1.5374012906252983,
+        "max_drawdown": 0.2231401695575015,
+        "account_orders": 12,
+        "fees": 4880.526549404,
+        "slippage_cost": 9041.492199999619
+      },
+      "result_seal": "9f3e175ffff785b4c63da27744495f8b40c185e18d489dac79b8904c8e77e91d"
+    },
+    {
+      "case": "no_optical",
+      "window": "h1_2023",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h1_2023",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "half-year drawdown retention"
+      ],
+      "original_status": "FAIL",
+      "metrics": {
+        "final_wealth": 1.35041489685232,
+        "max_drawdown": 0.2297952767048257,
+        "account_orders": 11,
+        "fees": 2504.51229536,
+        "slippage_cost": 4765.69399999965
+      },
+      "result_seal": "e062b1f33aebb99707d546d35944d5e002b524a0ac486a8205f52f2176162457"
+    },
+    {
+      "case": "no_optical",
+      "window": "h2_2023",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h2_2023",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "metrics": {
+        "final_wealth": 1.0419121822526902,
+        "max_drawdown": 0.09596918115560904,
+        "account_orders": 7,
+        "fees": 2043.33549462,
+        "slippage_cost": 4223.299999999743
+      },
+      "result_seal": "ee7f6a4e17ad6ea1b237f7da93313803208147c8b715874c9a1d66b8b424340c"
+    },
+    {
+      "case": "no_optical",
+      "window": "h1_2024",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h1_2024",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "metrics": {
+        "final_wealth": 1.0776598338612253,
+        "max_drawdown": 0.09630868956437155,
+        "account_orders": 4,
+        "fees": 1336.45847755,
+        "slippage_cost": 2543.873799999936
+      },
+      "result_seal": "2a8b514e34fe290464a8b63c376b81e0b6c07a3c1660ab98db24d09b5775f1fe"
+    },
+    {
+      "case": "no_optical",
+      "window": "h2_2024",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h2_2024",
+      "status": "PASS",
+      "failures": [],
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "half-year wealth retention"
+      ],
+      "original_status": "FAIL",
+      "metrics": {
+        "final_wealth": 1.5703644222328994,
+        "max_drawdown": 0.10406003219136029,
+        "account_orders": 8,
+        "fees": 1459.9998342019999,
+        "slippage_cost": 3367.1556999996656
+      },
+      "result_seal": "b1e057713da46daf93feac9477fe696753c8565d2383476fc1d935cb756433f9"
+    },
+    {
+      "case": "no_optical",
+      "window": "bull_crash_2025_2026",
+      "path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-bull_crash_2025_2026",
+      "status": "FAIL",
+      "failures": [
+        "disjoint later-window benchmark floor"
+      ],
+      "old_status": "REPLAY_ERROR",
+      "original_failures": [
+        "disjoint later-window benchmark floor"
+      ],
+      "original_status": "FAIL",
+      "metrics": {
+        "final_wealth": 1.1253125939953692,
+        "max_drawdown": 0.17351438505134742,
+        "account_orders": 12,
+        "fees": 4662.949909262,
+        "slippage_cost": 9018.162099999632
+      },
+      "result_seal": "85eef6ce8a7478d1929954ef002726adf7609d40cf84b1d5e4ac11538f180135"
+    }
+  ],
+  "cross_window_failures": [],
+  "remaining_final_gates": [
+    "cost_stress",
+    "parameter_neighbors",
+    "paired_initial_conditions",
+    "best_contributor_removal",
+    "complete_L4",
+    "focused_review",
+    "simplification_inventory",
+    "operator_cutover_instructions"
+  ]
+}

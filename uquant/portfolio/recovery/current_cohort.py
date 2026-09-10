@@ -203,6 +203,32 @@ def _advance_tactical_clock(book: AllocationBook) -> None:
         account.candidate_tenure["tactical_overheat_cooldown"] = 0
 
 
+def _settle_tactical_holding(book: AllocationBook) -> None:
+    """Retire an actually closed, unowned tactical episode after native execution."""
+    account = book.account
+    if (account.candidate_tenure.get("tactical_active", 0) != 1
+            or any(position.shares > 0 for position in account.positions.values())
+            or account.pending_orders
+            or any(order.status not in {"FILLED", "CANCELLED", "REPLACED"} for order in account.order_ledger)
+            or any(weight > 0 for rights in (account.anchor_weights, account.protected_weights,
+                                             account.strategic_restore_weights) for weight in rights.values())):
+        return
+    buys = [fill for fill in account.fills if fill.side == "BUY" and fill.mechanism == "TACTICAL_REBOUND"
+            and fill.origin_subsystem == "RECOVERY" and fill.order_id and fill.event_id]
+    if not buys:
+        return
+    symbol = account.tactical_anchor_symbol or buys[-1].symbol
+    fills = [fill for fill in account.fills if fill.symbol == symbol]
+    if (buys[-1].symbol != symbol or not fills or fills[-1].side != "SELL"
+            or any(not fill.order_id or not fill.event_id for fill in fills)
+            or sum(fill.shares if fill.side == "BUY" else -fill.shares for fill in fills) != 0):
+        return
+    account.tactical_anchor_symbol = ""
+    account.candidate_tenure.update(tactical_active=0, tactical_promotable=0,
+        tactical_cooldown=max(account.candidate_tenure.get("tactical_cooldown", 0),
+                              book.policy.cfg.tactical_rebound_cooldown_days))
+
+
 def _manage_tactical_holding(book: AllocationBook, opportunity: Opportunity, frozen: bool) -> bool:
     """Research: retain the original bounded tactical life, backed by actual fills."""
     account, policy, risk = book.account, book.policy, book.risk
@@ -275,6 +301,7 @@ def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunit
     """Return whether this session belongs to an actual confirmed recovery book."""
     account, policy, risk = book.account, book.policy, book.risk
     _advance_tactical_clock(book)
+    _settle_tactical_holding(book)
     if _manage_tactical_holding(book, opportunity, frozen):
         return True
     members = _filled_members(book)

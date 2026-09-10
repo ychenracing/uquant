@@ -188,7 +188,8 @@ def check_metrics(
             case=case, window=window, authorized=authorized), 'half-year drawdown retention')
         require(orders <= order_ceiling(t['half_year_maximum_orders'], authorized=authorized), 'half-year order ceiling')
     else:
-        require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized), 'disjoint later-window benchmark floor')
+        require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized,
+                                      comparison=f'{case}/{window}'), 'disjoint later-window benchmark floor')
         require(orders <= order_ceiling(t['post2025_maximum_orders'], authorized=authorized), 'later-window order ceiling')
     return failures
 

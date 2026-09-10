@@ -651,12 +651,15 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
     # Keep the historical policy sealed; apply the declared revision to the
     # final-wealth comparison, while preserving drawdown and acute-return gates.
     contract = current_candidate_contract()
-    adjusted_wealth_floor = (principal_wealth_floor if name.endswith("/continuous_ai_era") else wealth_floor)(
-        contract["thresholds"]["champion_minimum_final_wealth"]
-        if name.split("/", 1)[-1] == "continuous_ai_era"
-        else champion["final_wealth"] * tolerance["wealth_floor_ratio"],
-        authorized=authorized,
-    )
+    if name.endswith("/continuous_ai_era"):
+        adjusted_wealth_floor = principal_wealth_floor(
+            contract["thresholds"]["champion_minimum_final_wealth"], authorized=authorized,
+        )
+    else:
+        adjusted_wealth_floor = wealth_floor(
+            champion["final_wealth"] * tolerance["wealth_floor_ratio"],
+            authorized=authorized, comparison=f"{name}:champion",
+        )
     if metrics["final_wealth"] < adjusted_wealth_floor:
         failures.append(f"{name}: final_wealth regressed from production champion")
     if metrics["max_drawdown"] > champion["max_drawdown"] + tolerance["drawdown_tolerance"]:
@@ -692,7 +695,7 @@ def current_promotion_acceptance_basis() -> dict[str, Any]:
         "authorized_order_limit": _authorized_order_limit(),
         "acceptance_revision": acceptance_revision(),
         "effective_continuous_minimum_final_wealth": principal_wealth_floor(contract["thresholds"]["champion_minimum_final_wealth"]),
-        "retained_policy": "Original AI_ERA_POLICY retained as evidence; current acceptance_revision supersedes earlier wealth/order revisions. Drawdown, acute, costs and turnover obligations retained",
+        "retained_policy": "Original AI_ERA_POLICY retained as evidence; current acceptance_revision supersedes earlier revisions only in its explicit scope. All other obligations retained",
     }
 
 

@@ -2,9 +2,14 @@
 from typing import Any
 
 
-def wealth_floor(original: float, *, authorized: bool = True) -> float:
+def wealth_floor(original: float, *, authorized: bool = True, comparison: str = "") -> float:
     """Scale final wealth (capital included), never profit or a wealth delta."""
-    return original * 0.9 if authorized else original
+    if not authorized:
+        return original
+    floor = original * 0.9
+    if comparison in {"a/bull:champion", "remove_all_three/bull_crash_2025_2026"}:
+        floor *= 0.99
+    return floor
 
 
 def principal_wealth_floor(original: float, *, authorized: bool = True) -> float:
@@ -19,10 +24,10 @@ def order_ceiling(original: float, *, authorized: bool = True) -> float:
 
 def acceptance_revision() -> dict[str, Any]:
     return {
-        "revision_id": "cross-ai-principal15-orders40-20260910-v4",
-        "previous_revision_id": "cross-ai-h1-drawdown-baseline-20260909-v3",
+        "revision_id": "cross-ai-scoped-small-gaps-20260910-v5",
+        "previous_revision_id": "cross-ai-principal15-orders40-20260910-v4",
         "authorized_after_observing_candidate": True,
-        "authorization": "User explicitly authorizes a hard15-fold principal wealth floor and at most40orders per account replay (2026-09-10)",
+        "authorization": "User accepts the two identified sub1% wealth shortfalls and the identified1.43percentage-point drawdown excess (2026-09-10); implement bounded1%/1.5pp tolerances only for those comparisons",
         "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",
         "order_revision_scope": "All absolute per-account replay order ceilings map to40, including shorter windows; costs/turnover/nonnumeric obligations retained",
         "final_wealth_floor_multiplier": 0.9,
@@ -37,13 +42,23 @@ def acceptance_revision() -> dict[str, Any]:
             "maximum_drawdown": 0.2442425185317515,
             "additional_buffer": 0.0,
         },
+        "small_gap_revision": {
+            "wealth_comparisons": ["a/bull:champion", "remove_all_three/bull_crash_2025_2026"],
+            "additional_wealth_floor_multiplier": 0.99,
+            "drawdown_case": "remove_all_three", "drawdown_window": "h1_2023",
+            "additional_drawdown_buffer": 0.015,
+            "application": "Once, to the prior effective comparison; recomputed from unchanged frozen inputs, never from an already adjusted limit",
+            "unchanged": ["principal15", "orders40", "a/bull hard wealth and drawdown limits", "no_optical later benchmark floor", "all other comparisons"],
+        },
         "unchanged": ["wealth improvement deltas and improved-window qualification", "positive-return fraction", "p10 wealth floor", "all other drawdown gates", "acute return", "turnover", "costs", "recovery", "Absolute/Ownership obligations other than explicitly revised champion wealth/orders"],
         "original_judgment": "authorized=False reproduces original frozen comparisons before order revisions",
     }
 
 
 def half_year_drawdown_ceiling(original: float, *, case: str, window: str, authorized: bool = True) -> float:
-    """One explicit current-main comparison, with no inherited extra buffer."""
+    """Apply only the two explicitly authorized, distinct half-year revisions."""
     if authorized and case == "no_optical" and window == "h1_2023":
         return 0.2442425185317515
+    if authorized and case == "remove_all_three" and window == "h1_2023":
+        return original + 0.015
     return original

@@ -1,0 +1,899 @@
+{
+  "schema_version": 1,
+  "scope": "acceptance_only_reassessment_of_immutable_selected_CAUTION_evidence",
+  "date": "2026-09-10",
+  "status": "GOAL_NOT_MET",
+  "authoritative_promotion": false,
+  "new_economic_replays": 0,
+  "future_holdout_used": false,
+  "acceptance_revision": {
+    "revision_id": "cross-ai-scoped-small-gaps-20260910-v5",
+    "previous_revision_id": "cross-ai-principal15-orders40-20260910-v4",
+    "authorized_after_observing_candidate": true,
+    "authorization": "User accepts the two identified sub1% wealth shortfalls and the identified1.43percentage-point drawdown excess (2026-09-10); implement bounded1%/1.5pp tolerances only for those comparisons",
+    "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",
+    "order_revision_scope": "All absolute per-account replay order ceilings map to40, including shorter windows; costs/turnover/nonnumeric obligations retained",
+    "final_wealth_floor_multiplier": 0.9,
+    "wealth_scope": "Existing90% tolerance applies only to nonprincipal nominal, comparison and shorter-window floors; principal full/champion floors are exactly15, including capital",
+    "orders": {
+      "all_absolute_per_account_replay_ceilings": 40
+    },
+    "principal_final_wealth_floor": 15.0,
+    "principal_wealth_authorization": "User accepts the former23.28-fold full/champion floor at15, never below15; no compounded90% tolerance (2026-09-10)",
+    "drawdown_baseline_revision": {
+      "authorization": "User explicitly authorizes only this window to use current main drawdown as the non-regression baseline, retain old failure, and merge C after remaining acceptance",
+      "case": "no_optical",
+      "window": "h1_2023",
+      "baseline_commit": "960539a89408cc7c1fc3937bda19c9f760095012",
+      "maximum_drawdown": 0.2442425185317515,
+      "additional_buffer": 0.0
+    },
+    "small_gap_revision": {
+      "wealth_comparisons": [
+        "a/bull:champion",
+        "remove_all_three/bull_crash_2025_2026"
+      ],
+      "additional_wealth_floor_multiplier": 0.99,
+      "drawdown_case": "remove_all_three",
+      "drawdown_window": "h1_2023",
+      "additional_drawdown_buffer": 0.015,
+      "application": "Once, to the prior effective comparison; recomputed from unchanged frozen inputs, never from an already adjusted limit",
+      "unchanged": [
+        "principal15",
+        "orders40",
+        "a/bull hard wealth and drawdown limits",
+        "no_optical later benchmark floor",
+        "all other comparisons"
+      ]
+    },
+    "unchanged": [
+      "wealth improvement deltas and improved-window qualification",
+      "positive-return fraction",
+      "p10 wealth floor",
+      "all other drawdown gates",
+      "acute return",
+      "turnover",
+      "costs",
+      "recovery",
+      "Absolute/Ownership obligations other than explicitly revised champion wealth/orders"
+    ],
+    "original_judgment": "authorized=False reproduces original frozen comparisons before order revisions"
+  },
+  "evidence_source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+  "unchanged_current_PR_economic_source_sha256": "78e2cc4c35593ce502843ca6fb75995d79b74e7ad4f75d0d5313b1f9b18046c4",
+  "previous_report": {
+    "path": "/workspace/scratch/997f3f703ab0/uquant-small-gaps/benchmarks/caution_selected_nominal_result.json",
+    "sha256": "f18ff91566617aeee1aec0e43ab2ba02adc9423e0c0292dc911bfc34b29f6fa2",
+    "acceptance_revision": "cross-ai-principal15-orders40-20260910-v4"
+  },
+  "frozen_inputs": {
+    "benchmarks/cross_ai_core_strategy_contract.json": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
+    "benchmarks/cross_ai_stage1_baselines.json": "6c6d3167d2f18a8477b63f75261fad2c65497df1778d6d2ad55674216a097218",
+    "benchmarks/promotion_baseline.json": "b3067ae1bde683d832f9593d80eeea2616d1c934f41291e85ab36d9a6a695bc2",
+    "research/cross_ai_strategy.py": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+    "uv.lock": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+  },
+  "validator_inputs": {
+    "uquant/validation/acceptance_tolerance.py": "c1cc14414223438631ca43efd563ccf52d6594a70d4ab895d1ce9654bcac5d34",
+    "uquant/validation/promotion.py": "4785067f7ec8f89a6cf8f3be53c999698ed659e9135a898dafa4dcae0e1e76ea",
+    "research/cross_ai_acceptance.py": "b0c887956213fd5db1a794c0a49bd91d99d5a6c2bf40d66b43f5c4d48c4f83a2"
+  },
+  "method": "Native nominal read_case verifies result/raw/account seals, original source/config/data/universe/runtime/runner binding, every observation role and next-open fill, metrics, daily PnL and symbol attribution. check_metrics applies v5 and authorized=False; v4 judgments copied unchanged from sealed prior report. Fixed native cache payload seal, producer identity, baseline, equity wealth/drawdown and filled orders rechecked; _hard_violations plus _champion_violations evaluate v5 and original gates. No strategy replay, evidence relabeling or sample expansion.",
+  "changed_comparisons": [
+    {
+      "comparison": "a/bull:champion",
+      "metric": "minimum_final_wealth",
+      "actual": 11.658254652384228,
+      "previous_limit": 11.731316520301316,
+      "current_limit": 11.614003355098303,
+      "additional_multiplier": 0.99
+    },
+    {
+      "comparison": "remove_all_three/bull_crash_2025_2026",
+      "metric": "minimum_final_wealth",
+      "actual": 1.5374012906252983,
+      "previous_limit": 1.5505093245211843,
+      "current_limit": 1.5350042312759724,
+      "additional_multiplier": 0.99
+    },
+    {
+      "comparison": "remove_all_three/h1_2023",
+      "metric": "maximum_drawdown",
+      "actual": 0.21637339702142588,
+      "previous_limit": 0.20205429957130802,
+      "current_limit": 0.217054299571308,
+      "additional_buffer": 0.015
+    }
+  ],
+  "nominal": {
+    "status": "FAIL",
+    "previous_pass": 11,
+    "previous_fail": 3,
+    "pass": 13,
+    "fail": 1,
+    "total": 14,
+    "cross_window_failures": [],
+    "pre2025_improved_windows": {
+      "remove_all_three": 2,
+      "no_optical": 1
+    },
+    "rows": [
+      {
+        "case": "champion",
+        "window": "continuous_ai_era",
+        "metrics": {
+          "final_wealth": 25.109594313238023,
+          "max_drawdown": 0.27146973146234554,
+          "account_orders": 14,
+          "annual_turnover": 9.26891228576709,
+          "fees": 46015.79892394601,
+          "slippage_cost": 66615.9745999966
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "PASS",
+        "original_failures": [],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/champion",
+        "result_sha256": "877ee05aa554d6b7bc7b19e908db6d645854b81bc9e1e5d2680e948c9b580b1c",
+        "result_seal": "bf83083a8c02f37447029ab57a4c1e17ac2dfc34d14d79d8d1f76e49b97ce7e5",
+        "raw_sha256": "6c006dbbc1fbfdb077bc71a859e654c3179b195e66a7c29f913ffe9d25af5f9f",
+        "final_account_sha256": "3aab6118c8e92ec4e10dc58a8d5f5f3597be22d04da36d31ce1853a5682e17c4",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "champion",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2023-01-03",
+          "end": "2026-08-05"
+        },
+        "native_identity_file_sha256": "f1602bfe09c9eef8d6d577eadef9edc3f83388149a2831ea0f0192bf98458d55"
+      },
+      {
+        "case": "full",
+        "window": "continuous_ai_era",
+        "metrics": {
+          "final_wealth": 29.717003593409824,
+          "max_drawdown": 0.27147361646156465,
+          "account_orders": 22,
+          "annual_turnover": 14.075050810755696,
+          "fees": 65928.056280352,
+          "slippage_cost": 101142.05689999806
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "FAIL",
+        "original_failures": [
+          "champion/full order ceiling"
+        ],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/full",
+        "result_sha256": "0e6350b15a102e212b1324ee3f6b666900c1e97570a905daafa8badb5c9e3d7f",
+        "result_seal": "f268737a03c243f4a0eac524b289b4e89022e6899069e7a9c4cf7512e5d20f58",
+        "raw_sha256": "c88e972b483454daff3e38eb6e07bdc85bd4fc60c8dc256513569a838255628b",
+        "final_account_sha256": "4f78ee58ac8c89005e9bc3cbc9b79ce026e031823b6a4d0cc9107d259558a211",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "full",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2023-01-03",
+          "end": "2026-08-05"
+        },
+        "native_identity_file_sha256": "d9c20d356b0706932560e3bb8a5acb0a276f5680d9cd6fa77579add4d68e3b69"
+      },
+      {
+        "case": "remove_all_three",
+        "window": "continuous_ai_era",
+        "metrics": {
+          "final_wealth": 1.7061823107539196,
+          "max_drawdown": 0.21637339702142588,
+          "account_orders": 16,
+          "annual_turnover": 1.176969160455696,
+          "fees": 4665.17449216,
+          "slippage_cost": 8454.203999999652
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "PASS",
+        "original_failures": [],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three",
+        "result_sha256": "fcbf90c10cad3aa2774d90d4a86b703b5c300d390102f81282f8bd18ce6e4ab6",
+        "result_seal": "1f4660dc71eba4c767a48a2958d605f4eabb89cd62b5800822a6da2c48e4329b",
+        "raw_sha256": "5c4eb70c78e119f3c187e6ca430b7748642d614473061f33cd15cb3930a15a41",
+        "final_account_sha256": "39518de43b5edfad72c6f62e974b5e937131a19280d71b087d1dd57ce3234f4c",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "remove_all_three",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2023-01-03",
+          "end": "2026-08-05"
+        },
+        "native_identity_file_sha256": "c9533dbbdb57e7d9aefe7926b7e6338d5f14076392ea9aca4f5e2977a4e68756"
+      },
+      {
+        "case": "no_optical",
+        "window": "continuous_ai_era",
+        "metrics": {
+          "final_wealth": 3.161589973577749,
+          "max_drawdown": 0.2504275941411437,
+          "account_orders": 20,
+          "annual_turnover": 2.007931319426582,
+          "fees": 8437.409144502,
+          "slippage_cost": 14424.94369999933
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "PASS",
+        "original_failures": [],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical",
+        "result_sha256": "53aca756b5e8f21f687b4ae5182b24b4c534771541b6a772033b07885f5b5464",
+        "result_seal": "567d06dd27430c4cb396e52f66da3c1568697ecc63b901ebdb9acbc1ba1a5382",
+        "raw_sha256": "e207d1827f6f3dee36892e4f5073c80c889dec5db42e7e06c72667710f5b0f5d",
+        "final_account_sha256": "d822db499f1840d40ca4e295d86d81106f6a3166338f267413419edaa0470449",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "no_optical",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2023-01-03",
+          "end": "2026-08-05"
+        },
+        "native_identity_file_sha256": "43bcd9313dabdc7499a7f8c98f24db60fba7c8b8ea038108227b4695fcf74369"
+      },
+      {
+        "case": "remove_all_three",
+        "window": "h1_2023",
+        "metrics": {
+          "final_wealth": 1.6860025875993399,
+          "max_drawdown": 0.21637339702142588,
+          "account_orders": 12,
+          "annual_turnover": 5.852133244677966,
+          "fees": 3254.4048013200004,
+          "slippage_cost": 5708.419999999734
+        },
+        "previous_status": "FAIL",
+        "previous_failures": [
+          "half-year drawdown retention"
+        ],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "FAIL",
+        "original_failures": [
+          "half-year drawdown retention"
+        ],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h1_2023",
+        "result_sha256": "c6e605fedc05dab6ac3c0ab596bf36bb113ce13fee852c4fd716e8aea9cb1b8d",
+        "result_seal": "c383a690f0e0a2991f85df0c8102764c350d879f03e52775f9e6304c5ef4ebc3",
+        "raw_sha256": "31d0f2991e6948b7c8e548d987e36b37007453a9a68349155ccd7686b44a163a",
+        "final_account_sha256": "ef287725f576965097eeb28a9867b68c218bb99d2e8f2f31432d4d5f98e4c3ef",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "remove_all_three",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2023-01-03",
+          "end": "2023-06-30"
+        },
+        "native_identity_file_sha256": "106da6dab82df2e081de6d2eb8209cafba43cf8d5e2766d00b69076fae0a8296"
+      },
+      {
+        "case": "remove_all_three",
+        "window": "h2_2023",
+        "metrics": {
+          "final_wealth": 1.0333966894495101,
+          "max_drawdown": 0.09596918115560904,
+          "account_orders": 7,
+          "annual_turnover": 4.104920045830645,
+          "fees": 2030.3821009800001,
+          "slippage_cost": 4206.238999999769
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "PASS",
+        "original_failures": [],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h2_2023",
+        "result_sha256": "8dce65a3f7b3b121346c2920253ac2b8a70013a01ddabe239e393078c6fd7b3b",
+        "result_seal": "cfb845505ef1c37eee9a5265755142145f31e11c0b21aaa0bfcd6794b2c9a0df",
+        "raw_sha256": "d727f9e67d8d86579b692feebf7a24b934bb2329970858266ebe2617d2632f39",
+        "final_account_sha256": "f1483ee0e740969ad7d915007caa46ce0ad3aec7ddbc743c7ca0c70e1dba1c67",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "remove_all_three",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2023-07-03",
+          "end": "2023-12-29"
+        },
+        "native_identity_file_sha256": "d940ba1cfd3fb386bfc0a8bf526d9a2979d5eec25c80e88f003e84da51b1b6cf"
+      },
+      {
+        "case": "remove_all_three",
+        "window": "h1_2024",
+        "metrics": {
+          "final_wealth": 1.0776598338612253,
+          "max_drawdown": 0.09630868956437155,
+          "account_orders": 4,
+          "annual_turnover": 2.6083853101694916,
+          "fees": 1336.45847755,
+          "slippage_cost": 2543.873799999936
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "PASS",
+        "original_failures": [],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h1_2024",
+        "result_sha256": "ede872e25087572adb57540f72a968b2841cdb207e455cd299414df424bd9cba",
+        "result_seal": "67e8386d7cb07e559137f5c25c049709e4916de254df7c5a4a5012a9286ceac5",
+        "raw_sha256": "e3a30bcb027d0ea4cb1db2dcd3852cbc97956b8d171fab3de35955e3c850f01f",
+        "final_account_sha256": "6e2e76e6d2ba989e9f39cebd504048113062bd2a0df4b1cb94d13819c3ae6c84",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "remove_all_three",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2024-01-02",
+          "end": "2024-07-01"
+        },
+        "native_identity_file_sha256": "5880346cbea7d613bfc36d94d6cc32fff458540c5fdda3ad36560c0a8eef0e48"
+      },
+      {
+        "case": "remove_all_three",
+        "window": "h2_2024",
+        "metrics": {
+          "final_wealth": 1.5703644222328994,
+          "max_drawdown": 0.10406003219136029,
+          "account_orders": 8,
+          "annual_turnover": 3.2604015580136005,
+          "fees": 1459.9998342019999,
+          "slippage_cost": 3367.1556999996656
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "FAIL",
+        "original_failures": [
+          "half-year wealth retention"
+        ],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h2_2024",
+        "result_sha256": "145dd3f70ae58c1032f77f7fd14fcc93c6135f7c61629d99dc4e356537762679",
+        "result_seal": "f4877e54bed3a33cef801280f745c003b9bb833273bb190761ed109af6836eb3",
+        "raw_sha256": "2d88d04b75f438421e71234669562968e32af58e9f9ef6808dc536970a3269e4",
+        "final_account_sha256": "6a1b5ff25eb37713a866c2b5c3aa374784aaf8f1259435d50ff89ec6584e095e",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "remove_all_three",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2024-07-01",
+          "end": "2024-12-31"
+        },
+        "native_identity_file_sha256": "bc972339327c885ac8e568ec05b288b51e11bbf9dc1b9e73a7e23f807c5538ea"
+      },
+      {
+        "case": "remove_all_three",
+        "window": "bull_crash_2025_2026",
+        "metrics": {
+          "final_wealth": 1.5374012906252983,
+          "max_drawdown": 0.2231401695575015,
+          "account_orders": 12,
+          "annual_turnover": 2.863583299799476,
+          "fees": 4880.526549404,
+          "slippage_cost": 9041.492199999619
+        },
+        "previous_status": "FAIL",
+        "previous_failures": [
+          "disjoint later-window benchmark floor"
+        ],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "FAIL",
+        "original_failures": [
+          "disjoint later-window benchmark floor"
+        ],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-bull_crash_2025_2026",
+        "result_sha256": "bf99a18ca5949b5291261a1b1ff916f0758892330e403432d1e363efcf1e7731",
+        "result_seal": "9f3e175ffff785b4c63da27744495f8b40c185e18d489dac79b8904c8e77e91d",
+        "raw_sha256": "ce720473dba606c3c44a7a5f5adee18f5a7f531a6022ceb662a84cac246119f7",
+        "final_account_sha256": "8c00d697f2943336ad5d8e14b7881504e4cca85f25f921772d14d42839aa67a1",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "remove_all_three",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2025-01-02",
+          "end": "2026-07-31"
+        },
+        "native_identity_file_sha256": "1e317093aef56240be4bcc1da11b815cf63e02fbaf76c55692518094aafab59d"
+      },
+      {
+        "case": "no_optical",
+        "window": "h1_2023",
+        "metrics": {
+          "final_wealth": 1.35041489685232,
+          "max_drawdown": 0.2297952767048257,
+          "account_orders": 11,
+          "annual_turnover": 4.88654663479661,
+          "fees": 2504.51229536,
+          "slippage_cost": 4765.69399999965
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "FAIL",
+        "original_failures": [
+          "half-year drawdown retention"
+        ],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h1_2023",
+        "result_sha256": "39eb2149eda15318e66689e19dd5c2101e17cecdd2dcf4d3517cf30294a5f023",
+        "result_seal": "e062b1f33aebb99707d546d35944d5e002b524a0ac486a8205f52f2176162457",
+        "raw_sha256": "04cd344405d5153d587b4bb277271f1f4e6bc0d8936d4acaaf10e8016efc2d4f",
+        "final_account_sha256": "d4482e220161630484449c753ea03c1674d0890cf0fd693bac48925a305a8f1f",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "no_optical",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2023-01-03",
+          "end": "2023-06-30"
+        },
+        "native_identity_file_sha256": "b2152cec974b5e6170054def6fa549c757742762b439e93e9154add90e8f38f4"
+      },
+      {
+        "case": "no_optical",
+        "window": "h2_2023",
+        "metrics": {
+          "final_wealth": 1.0419121822526902,
+          "max_drawdown": 0.09596918115560904,
+          "account_orders": 7,
+          "annual_turnover": 4.121551631467741,
+          "fees": 2043.33549462,
+          "slippage_cost": 4223.299999999743
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "PASS",
+        "original_failures": [],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h2_2023",
+        "result_sha256": "2bcfce8b76f2f4579c31bf90b3700258253cdc52bf49c0774b10ac595742d4e3",
+        "result_seal": "ee7f6a4e17ad6ea1b237f7da93313803208147c8b715874c9a1d66b8b424340c",
+        "raw_sha256": "e828da0ce45a6f8ada29b8f1e493aff717968d844da3615b85efa6cd01bf3ad3",
+        "final_account_sha256": "0bc6c7a080e96e150dadf360cceaa190cbde985135aa3c33780ca89d87702a9c",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "no_optical",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2023-07-03",
+          "end": "2023-12-29"
+        },
+        "native_identity_file_sha256": "3f20ea6c4a82b991b69fc0dcafa92c0fb88fc8a1bfca5ec923f66bf735679a05"
+      },
+      {
+        "case": "no_optical",
+        "window": "h1_2024",
+        "metrics": {
+          "final_wealth": 1.0776598338612253,
+          "max_drawdown": 0.09630868956437155,
+          "account_orders": 4,
+          "annual_turnover": 2.6083853101694916,
+          "fees": 1336.45847755,
+          "slippage_cost": 2543.873799999936
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "PASS",
+        "original_failures": [],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h1_2024",
+        "result_sha256": "af4de82f6e2c80dd7bd5206a571696e13f3bf6a3abb7965854b20892808c50c0",
+        "result_seal": "2a8b514e34fe290464a8b63c376b81e0b6c07a3c1660ab98db24d09b5775f1fe",
+        "raw_sha256": "bea98450c2e0c6b916fb7fe2926976557a77bacf69c0cda70fddb478552fec4e",
+        "final_account_sha256": "d0e3d46d44af9e5b3af29985cad96f0fc2f41730a538d9573e1cb2bb3e45d03c",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "no_optical",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2024-01-02",
+          "end": "2024-07-01"
+        },
+        "native_identity_file_sha256": "26c16620f141a9223d3dfa74853bd97ea46ec172c2bb46a6433c44b0e2a05033"
+      },
+      {
+        "case": "no_optical",
+        "window": "h2_2024",
+        "metrics": {
+          "final_wealth": 1.5703644222328994,
+          "max_drawdown": 0.10406003219136029,
+          "account_orders": 8,
+          "annual_turnover": 3.2604015580136005,
+          "fees": 1459.9998342019999,
+          "slippage_cost": 3367.1556999996656
+        },
+        "previous_status": "PASS",
+        "previous_failures": [],
+        "status": "PASS",
+        "failures": [],
+        "original_status": "FAIL",
+        "original_failures": [
+          "half-year wealth retention"
+        ],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h2_2024",
+        "result_sha256": "3a95a41cc40ecd36a899e33b3e09e2bb5e81b018ca7e4ced01da947c4411a306",
+        "result_seal": "b1e057713da46daf93feac9477fe696753c8565d2383476fc1d935cb756433f9",
+        "raw_sha256": "92ef0be1681c39c8fb566ab678dc949162d8b80d9a33b43ce22593c4aec0c827",
+        "final_account_sha256": "58959bd2887cb9f65a75b45c6ffa3df70059dd733567d372b19a8a02d66a96a3",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "no_optical",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2024-07-01",
+          "end": "2024-12-31"
+        },
+        "native_identity_file_sha256": "2fb90ff4d12c44876e76b276993f16205fec6ed7af1a10cf7eb78d353105d384"
+      },
+      {
+        "case": "no_optical",
+        "window": "bull_crash_2025_2026",
+        "metrics": {
+          "final_wealth": 1.1253125939953692,
+          "max_drawdown": 0.17351438505134742,
+          "account_orders": 12,
+          "annual_turnover": 2.8564545367479055,
+          "fees": 4662.949909262,
+          "slippage_cost": 9018.162099999632
+        },
+        "previous_status": "FAIL",
+        "previous_failures": [
+          "disjoint later-window benchmark floor"
+        ],
+        "status": "FAIL",
+        "failures": [
+          "disjoint later-window benchmark floor"
+        ],
+        "original_status": "FAIL",
+        "original_failures": [
+          "disjoint later-window benchmark floor"
+        ],
+        "native_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-bull_crash_2025_2026",
+        "result_sha256": "44af71d69b71e7edd24ba6a7cc46d69a126193fad558cc4e31ccf573cb4e44d4",
+        "result_seal": "85eef6ce8a7478d1929954ef002726adf7609d40cf84b1d5e4ac11538f180135",
+        "raw_sha256": "475221ba3996bad2e16eb399dc8ca2356fc7a1afb861e7237f55cb0f153f19fc",
+        "final_account_sha256": "5041182332a867bed31ee0a7b8fc5b100eee9b1100fe1d42147caa17ec97957e",
+        "producer_identity": {
+          "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+          "case_id": "no_optical",
+          "source_sha256": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+          "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+          "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+          "data": {
+            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+            "files_verified": 36,
+            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+          },
+          "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+          "runtime": {
+            "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5",
+            "python_full_version": "3.12.13",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+            "uv_version": "0.11.33"
+          },
+          "start": "2025-01-02",
+          "end": "2026-07-31"
+        },
+        "native_identity_file_sha256": "cf08b8e2368b9c0e4e9e4fdf53b35738355489325996c8c2e578df5f23f7350a"
+      }
+    ]
+  },
+  "fixed_bull": {
+    "name": "a/bull",
+    "interval": [
+      "2025-04-01",
+      "2026-06-30"
+    ],
+    "sessions": 302,
+    "metrics": {
+      "final_wealth": 11.658254652384228,
+      "cagr": 6.15681167980452,
+      "max_drawdown": 0.1566948879626876,
+      "sharpe": 3.7186371235682865,
+      "calmar": 39.291720105576054,
+      "annual_turnover": 13.331418118528807,
+      "gross_turnover": 16.63672839585,
+      "account_orders": 10,
+      "acute_return": null
+    },
+    "previous_status": "FAIL",
+    "previous_failures": [
+      "a/bull: final_wealth regressed from production champion"
+    ],
+    "status": "PASS_FIXED_UNIT",
+    "failures": [],
+    "original_status": "FAIL",
+    "original_failures": [
+      "a/bull: final_wealth below 12.827000",
+      "a/bull: final_wealth regressed from production champion"
+    ],
+    "native_cache_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/screen/native-cache/52fe12dbcda89688ef7c0bde6d963e177a123541bc79b81c402a77682653baee.json",
+    "native_cache_sha256": "b74cb3b3f061036b9f61f77608724ece8b38a9645a956059e59eeb650b3d62f6",
+    "native_payload_seal": "fc90ef50ab807ab7b8766ab91c44952f9d137f39eb2e0dcd83265853c6e3ab7d",
+    "previous_result_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/screen/bull-result.json",
+    "previous_result_sha256": "72842842dee982c4def5a9ac391ce68353f39067e43eb33465aab022deac5423",
+    "producer_identity": {
+      "data": {
+        "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+        "files_verified": 36,
+        "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+        "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+      },
+      "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "environment": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "production": {
+        "commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+        "repository": "ychenracing/uquant",
+        "source_sha256": "30b6c6d7604da0cd046733661f87c8299e0cd68e6750741cf8b4497bd3a18c28"
+      }
+    },
+    "complete_full_profile": false
+  },
+  "remaining_known_nominal_gap": {
+    "case": "no_optical",
+    "window": "bull_crash_2025_2026",
+    "final_wealth": 1.1253125939953692,
+    "unchanged_floor": 1.5854100500632815,
+    "required_wealth_increase_fraction": 0.40886190959114566,
+    "actual_total_return": 0.1253125939953692,
+    "minimum_total_return": 0.5854100500632815,
+    "maximum_drawdown": 0.17351438505134742,
+    "account_orders": 12
+  },
+  "remaining_final_gates": [
+    "cost_stress",
+    "parameter_neighbors",
+    "paired_initial_conditions",
+    "best_contributor_removal",
+    "complete_L4",
+    "focused_review",
+    "simplification_inventory",
+    "operator_cutover_instructions"
+  ],
+  "limitations": [
+    "13/14 is a nominal case count, not project completion percentage.",
+    "Selected CAUTION economic candidate and shared FULL structural-exit continuity candidate are distinct, uncombined versions.",
+    "Revised acceptance is user-authorized after observing results; historical failures remain.",
+    "Fixed a/bull unit PASS is not the complete Performance/Absolute/Ownership/L4 profile.",
+    "No forward profitability or finite successful iteration count is established."
+  ],
+  "verification": {
+    "targeted_test_module": "tests/test_acceptance_tolerance.py",
+    "targeted_tests": 20,
+    "result": "PASS",
+    "red_phase": "All 3 newly added small-gap tests first failed by expected assertions; same module passed after implementation.",
+    "ruff": "PASS: 4 affected files",
+    "mypy": "PASS: 3 affected source files",
+    "all_14_native_nominal_read_case": "PASS",
+    "fixed_native_cache_and_wealth_drawdown_order_readback": "PASS",
+    "complete_engineering_or_L4_acceptance": false
+  }
+}

@@ -11,7 +11,7 @@ from uquant.validation.acceptance_tolerance import (
     principal_wealth_floor,
     wealth_floor,
 )
-from uquant.validation.promotion import AI_ERA_POLICY, _hard_violations
+from uquant.validation.promotion import AI_ERA_POLICY, _champion_violations, _hard_violations
 
 
 def test_wealth_not_profit_and_bounded_order_revision() -> None:
@@ -109,6 +109,51 @@ def test_all_performance_continuous_pools_share_exact_revision(pool: str) -> Non
     assert len(_hard_violations(**options, authorized=False)) == 1
     metrics['max_drawdown'] += 1e-8
     assert 'max_drawdown' in _hard_violations(**options)[0]
+
+
+def test_small_gap_bull_tolerance_is_only_its_champion_comparison() -> None:
+    champion = {'final_wealth': 100., 'max_drawdown': .1, 'acute_return': None}
+    metrics = {'final_wealth': 88.21, 'max_drawdown': .1, 'acute_return': None}
+    args = dict(metrics=metrics, champion=champion)
+    assert _champion_violations(name='a/bull', **args) == []
+    assert _champion_violations(name='a/bull', **args, authorized=False)
+    assert _champion_violations(name='b/bull', **args)
+    assert _champion_violations(name='a/h1_2024', **args)
+    assert _hard_violations(name='a/bull', metrics=metrics, gate={'min_final_wealth': 100.})
+    # Original100 * .99 champion retention * .9 prior tolerance * .99 new tolerance.
+    metrics['final_wealth'] = 88.2089
+    assert _champion_violations(name='a/bull', **args)
+
+
+def test_small_gap_later_wealth_does_not_relax_no_optical_or_orders() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    metrics = {'final_wealth': 1.5374012906252983, 'max_drawdown': .2231401695575015,
+               'account_orders': 12}
+    args = dict(case='remove_all_three', window='bull_crash_2025_2026', metrics=metrics,
+                baseline={}, benchmark={'final_wealth': 1.8134611982703912}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert check_metrics(**args, authorized=False) == ['disjoint later-window benchmark floor']
+    assert check_metrics(**{**args, 'case': 'no_optical'}) == ['disjoint later-window benchmark floor']
+    metrics['final_wealth'] = 1.535004231275972 - 1e-9
+    assert check_metrics(**args) == ['disjoint later-window benchmark floor']
+    metrics['final_wealth'] = 1.5374012906252983
+    metrics['account_orders'] = 41
+    assert check_metrics(**args) == ['later-window order ceiling']
+
+
+def test_small_gap_h1_drawdown_has_one_case_scoped_buffer() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    metrics = {'final_wealth': 1.6860025875993399, 'max_drawdown': .21637339702142588,
+               'account_orders': 12}
+    args = dict(case='remove_all_three', window='h1_2023', metrics=metrics,
+                baseline={'final_wealth': 1., 'max_drawdown': .18205429957130803},
+                benchmark={}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert check_metrics(**args) == []  # Re-reading acceptance never accumulates tolerance.
+    assert check_metrics(**args, authorized=False) == ['half-year drawdown retention']
+    assert check_metrics(**{**args, 'window': 'h1_2024'}) == ['half-year drawdown retention']
+    metrics['max_drawdown'] = .21705429957130803 + 1e-9
+    assert check_metrics(**args) == ['half-year drawdown retention']
 
 
 def test_robustness_reads_once_reports_both_and_keeps_p10_floor(tmp_path, monkeypatch) -> None:

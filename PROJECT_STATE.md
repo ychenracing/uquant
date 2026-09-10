@@ -5,6 +5,13 @@ failed candidates and checkpoints do not complete the goal. Principal full/champ
 nominal wealth floor15 exactly, all account orders40; retain other effective gates.
 No15floor on removals/restarts/stress. Future Holdout2026-08-06 onward remains closed.
 
+Latest user-authorized acceptance is v5, cross-ai-scoped-small-gaps-20260910-v5:
+only a/bull champion-relative wealth and remove_all_three/later wealth gain an
+additional0.99 floor multiplier; remove_all_three/H1_2023 gains0.015 DD allowance.
+Immutable selected CAUTION evidence now13/14nominal PASS, plus fixed a/bull PASS;
+no_optical/later remains FAIL. See final checkpoint and acceptance_small_gaps
+assessment/result below. Historical metrics, verdicts and source identities remain.
+
 ## Source and verified delivery
 
 - GitHub repository ychenracing/uquant; branch codex/ordinary-recovery-20260909.
@@ -408,3 +415,66 @@ application-right alsoPASS; application-left and architecture-remaining pending.
 Research continuity archive23,519,711bytes/8members saved and all hashes verified;
 SHA89edacdc3f876739488e50c0ddd95f19bd541109dd57be259dcae0aeb8c8be0d,
 libfile_c9cf00b153b88191af0b06c6b0d16743. See the combined archive receipt.
+
+
+## Latest user decision — scoped small gaps accepted, 2026-09-10
+
+The user explicitly accepts the two identified sub1% wealth shortfalls and the
+identified approximately1.43percentage-point drawdown excess, and asks for a
+bounded overall reassessment instead of endless research. Implemented acceptance
+v5 adds one0.99 multiplier only to a/bull:champion and
+remove_all_three/bull_crash_2025_2026; adds0.015 only to remove_all_three/h1_2023 DD.
+Frozen baselines/contracts, original judgments, v4 report and all native outputs
+remain unchanged. Full/champion exact15 and every account40orders retained.
+All other risk/cost/robustness/behavior requirements retain their effective gates.
+
+Revalidated all14 selected CAUTION nominal native cases via full read_case,
+including seals/input identities, roles/next-open fills, economic metrics/PnL
+and attribution. Revalidated fixed a/bull sealed cache and producer/baseline,
+equity/DD/filled orders. No economic replay or Future Holdout read was needed.
+Nominal changes11PASS/3FAIL to13PASS/1FAIL; pre2025 cross-window rules stillPASS.
+Fixed a/bull11.658254652384228 nowPASS_FIXED_UNIT with relative floor
+11.614003355098303 (was11.731316520301316). Remove3/later1.5374012906252983
+nowPASS with floor1.5350042312759724 (was1.5505093245211843). Remove3/H1DD
+.21637339702142588 nowPASS with ceiling.217054299571308 (was.20205429957130802).
+This is an explicit post-observation acceptance revision, not improved returns.
+
+Only known remaining nominal economic failure: no_optical/later wealth
+1.1253125939953692 vs unchanged1.5854100500632815, needing40.8861909591% more
+terminal wealth; DD.17351438505134742,12orders. Actual cumulative profit12.5313%
+versus required58.5410%. Do not apply the newly accepted1% to this comparison.
+13/14 is not a project completion percentage. Full/champion29.717004/25.109594,
+22/14orders already pass current principal obligations.
+
+Current implementation changes acceptance readers only; economic source stays
+78e2cc4c35593ce502843ca6fb75995d79b74e7ad4f75d0d5313b1f9b18046c4.
+Reassessed selected research source remainsa39a9542, and separate shared FULL
+exit/continuity source4bd9a024 remains separate. Their positive results cannot be
+combined into one passing candidate. No new risk release, CAUTION installation,
+main merge, new strategy experiment or broad matrix is implied by this request.
+
+Next recommendation has finite stages: close the no_optical/later economic gap
+with one directly motivated candidate/control decision; if viable, integrate
+the independently useful continuity/evidence changes; then complete the frozen
+robustness/L4/engineering/review/simplification/operator-delivery checklist once
+on a stable candidate. The held-capital policy documented in
+held_capital_repair_research_decision.md remains NOT_IMPLEMENTED and outside this
+acceptance authorization. Its52 blocked observations are not profit evidence.
+Do not respond to its failure by tuning caps/rankings or silently weakening goals.
+Reassess the goal/constraint tradeoff explicitly if the supported route fails.
+
+Tests:20 acceptance tests PASS (3 new scope/boundary tests first RED as expected),
+Ruff4files PASS, mypy3sources PASS. No complete engineering/L4 pass claimed.
+Read-only final prior-head2a5 CI refresh: GrantPASS; OwnershipcontinuityFAIL and
+all other shards/modelPASS; Engineering all actual jobsPASS except
+application-left2191PASS/178FAIL (Absolute source identity/loader consequences);
+architecture-remaining nowPASS. Absolute registry identity still fails before
+economic execution. Prior jobs34471267843/34471267879/34471267890 retained.
+Defer candidate registry/native fixture rebinding until an economically viable
+candidate; never relabel old739fixtures or historical raw as new native evidence.
+
+Full assessment and exact comparison/validation/provenance receipt are in
+benchmarks/acceptance_small_gaps_20260910_assessment.md and
+benchmarks/acceptance_small_gaps_20260910_result.json. Existing failed candidates,
+archives, discussions and prior checkpoints remain; this section supersedes only
+the earlier effective-small-gap failure judgments and pending CI statements.

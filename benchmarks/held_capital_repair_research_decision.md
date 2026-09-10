@@ -1,5 +1,19 @@
 # Held capital repair: concrete permission decision
 
+Latest reassessment (2026-09-10): the broad tier-release experiment below is
+preserved as a proposal, not the preferred next implementation. The verified
+follow-up audit finds43CAUTION/9NORMAL among the52later no-optical observations;
+ordinary entry snapshots are NOT_MATURE or CONFIRMATION_INCOMPLETE, not READY.
+More importantly, the existing bounded ordinary restoration path reads the same
+capital-repair streak at2sessions (or1in specified recovery states), before the
+5session tier downgrade. Changing that streak therefore changes more authority
+than a tier-only description suggests. A narrower existing-holding restoration
+candidate should be evaluated first, preserving the complete live holding,
+structure, cap, accounting and execution chain. No policy has been implemented.
+See held_capital_repair_followup_audit.json and the latest reassessment appended
+to acceptance_small_gaps_20260910_assessment.md. These observations do not prove
+that restoration is profitable or that ordinary new entry is unattainable.
+
 Status: RESEARCH_NOT_IMPLEMENTED. Existing draft PR/main and effective15/40,
 DD, costs, concentration, qualifications, source data and execution gates remain.
 The user's previous exception authorization is only the isolated original

@@ -12,6 +12,12 @@ Immutable selected CAUTION evidence now13/14nominal PASS, plus fixed a/bull PASS
 no_optical/later remains FAIL. See final checkpoint and acceptance_small_gaps
 assessment/result below. Historical metrics, verdicts and source identities remain.
 
+Latest planning reassessment: narrower protected live-holding recovery is ranked
+ahead of broad held-account tier release. Full call-chain audit finds the shared
+capital repair counter also grants bounded restoration at2/1days, before5day tier
+downgrade. No policy implemented; see latest checkpoint below. Existing integrated
+simple ordinary challenger is a conditional fallback, not promoted or replayed.
+
 ## Source and verified delivery
 
 - GitHub repository ychenracing/uquant; branch codex/ordinary-recovery-20260909.
@@ -478,3 +484,54 @@ benchmarks/acceptance_small_gaps_20260910_assessment.md and
 benchmarks/acceptance_small_gaps_20260910_result.json. Existing failed candidates,
 archives, discussions and prior checkpoints remain; this section supersedes only
 the earlier effective-small-gap failure judgments and pending CI statements.
+
+
+## Latest route reassessment — 2026-09-10, discussion only
+
+User asks whether the proposed path is actually effective and most likely to
+complete the goal. Rechecked current PR56 at008e14088276aff6d73448f03249eebbad3bbf8f,
+Draft, main960539a. Local65c086829f2272548268f0a753f05efe26855193 has equal tree
+8a315e82c3bb67f128c2036eb81d77cd2dbd7ec4; existing economics/v5 unchanged.
+
+Read-only follow-up of the52 no_optical/later blocked observations:43CAUTION,
+9NORMAL; all52 have protected holdings, chronic level0 and pending/unsettled/
+late-fill clearance, but repair streak0. Ordinary entry snapshots have1232
+NOT_MATURE and264CONFIRMATION_INCOMPLETE, noREADY; ordinary impulse0days.
+These are old-path snapshots, not hypothetical profits or proof of no attainable
+opportunities. Original compressed raw hash475221ba3996bad2e16eb399dc8ca2356fc7a1afb861e7237f55cb0f153f19fc verified.
+
+New direct call-chain finding: capital._apply_capital_overlays couples current
+health and historic-DD repair in one counter. The tier ladder consumes it at5
+sessions, but pipeline._bounded_ordinary_restore_risk_open also consumes it at2
+sessions, or1in named recovery states. Broadly removing the DD predicate can
+therefore authorize restoration earlier than a tier-only description implies.
+Final CAUTION freeze separately constrains ordinary new entries; current bounded
+POST_SHOCK_RESTORATION can survive final filtering only with its own valid rights.
+
+Updated priority: A, evaluate a narrow existing-protected-holding recovery policy
+on selectedCAUTION, using the existing live holding/episode, structure, cash/caps,
+attribution and next-open execution chain; retain actual DD/peaks. Define the
+authorization clock and all1/2/5day effects before any policy implementation.
+This is proposed risk policy, not a proven clock bug, and remains unimplemented.
+First demonstrate actual target/fill change and net economic benefit in the
+remaining failed window; protect main with the user's exact15floor, not an added
+requirement to retain25/29wealth. Other current gates are unchanged.
+
+Conditional fallback B, only if evidence points to deficient ordinary participation:
+reuse the preserved integrated simple ordinary challenger rather than invent new
+ranking/factors. Historical sourceb7f54f137576ba15787827103103d4710369d105519c463f4289b1251dbf2942,
+producer226ef63b5aabbaf402a0eff0766eca73b32d2e24; H1wealth1.27222751175821,
+DD.23553096798090134,8orders, failed its old1.3753099655116032initial screen.
+Its other planned screens never ran. Current goal/input reassessment would be
+needed; no historical failure relabeled, no pass claimed, no migration/replay.
+See existing simple_policy_challenge_plan/result/receipts for the complete variant.
+
+Only after viable economics: integrate shared structural exit/participation;
+verify affected cells and continuity on one candidate; then full frozen
+robustness/L4/engineering/review, simplification inventory and operator cutover.
+Mechanism effectiveness, net profitability and final goal acceptance are distinct
+proofs. No calibrated success probability or guaranteed finite successful path
+is established. Failure should inform the next supported route, not parameter
+hunting or an invented guarantee of success. Latest detailed assessment and
+held_capital_repair_followup_audit.json preserve facts, reasoning and limitations.
+This turn adds no strategy change, economic replay, Future Holdout access or merge.

@@ -1,0 +1,1132 @@
+{
+  "status": "READ_ONLY_RECOVERY_PATH_REASSESSMENT",
+  "date": "2026-09-10",
+  "producer_commit": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+  "economic_source": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+  "case": "no_optical-bull_crash_2025_2026",
+  "raw_path": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-bull_crash_2025_2026/observations.jsonl.gz",
+  "raw_sha256": "475221ba3996bad2e16eb399dc8ca2356fc7a1afb861e7237f55cb0f153f19fc",
+  "previous_audit_sha256": "846dae735179936fe34f57d011f6087863ae430ef86c65e83a103e6fb52fe9e4",
+  "source_file_sha256": {
+    "uquant/risk/capital.py": "ae15f3d794a8f6524c25bf184e22fcc14ef78815936806e2dbb699da9e5cb182",
+    "uquant/risk/transition_resolution.py": "cb2798c78ba11909300c46939065c4be099ace57dddb8283090948f5ae46925c",
+    "uquant/risk/assessment.py": "496c0f9207e9bfdd0b6c97bc972c66e51f87785a52e4e152fea8795b4c9de1de",
+    "uquant/portfolio/pipeline.py": "1312dda24b27b3d705251f725cf09e1679e8dc2bedc7425101eb577ea7fb0afe",
+    "uquant/portfolio/ordinary.py": "ff934d103bbdc2b09049c6c713963fe6e7090ba5d009649ef383e68ca02dcf30",
+    "uquant/portfolio/strategic/qualification_candidates.py": "b3736783e32013cd1675af1ab619ff06d99c41bc3a705a45be0fbb10f51f7db3"
+  },
+  "counts": {
+    "eligible_prior_audit_observations": 52,
+    "risk_states": {
+      "CAUTION": 43,
+      "NORMAL": 9
+    },
+    "ordinary_entry_snapshot_blocks": {
+      "NOT_MATURE": 1232,
+      "CONFIRMATION_INCOMPLETE": 264
+    },
+    "pending_unsettled_late_clear": 52,
+    "chronic_level_zero": 52,
+    "ordinary_market_impulse": 0,
+    "protected_weights_present": 52,
+    "repair_streak_zero": 52
+  },
+  "consecutive_prior_audit_runs": [
+    {
+      "start": "2025-10-21",
+      "end": "2025-10-21",
+      "count": 1
+    },
+    {
+      "start": "2025-10-24",
+      "end": "2025-10-24",
+      "count": 1
+    },
+    {
+      "start": "2025-10-28",
+      "end": "2025-10-30",
+      "count": 3
+    },
+    {
+      "start": "2025-11-06",
+      "end": "2025-11-13",
+      "count": 6
+    },
+    {
+      "start": "2025-11-18",
+      "end": "2025-11-18",
+      "count": 1
+    },
+    {
+      "start": "2025-11-26",
+      "end": "2025-11-26",
+      "count": 1
+    },
+    {
+      "start": "2025-12-01",
+      "end": "2025-12-01",
+      "count": 1
+    },
+    {
+      "start": "2025-12-08",
+      "end": "2025-12-15",
+      "count": 6
+    },
+    {
+      "start": "2025-12-17",
+      "end": "2025-12-18",
+      "count": 2
+    },
+    {
+      "start": "2025-12-22",
+      "end": "2026-01-13",
+      "count": 15
+    },
+    {
+      "start": "2026-01-15",
+      "end": "2026-01-19",
+      "count": 3
+    },
+    {
+      "start": "2026-01-27",
+      "end": "2026-01-30",
+      "count": 4
+    },
+    {
+      "start": "2026-02-09",
+      "end": "2026-02-09",
+      "count": 1
+    },
+    {
+      "start": "2026-02-13",
+      "end": "2026-02-13",
+      "count": 1
+    },
+    {
+      "start": "2026-02-25",
+      "end": "2026-03-02",
+      "count": 4
+    },
+    {
+      "start": "2026-03-10",
+      "end": "2026-03-10",
+      "count": 1
+    },
+    {
+      "start": "2026-03-12",
+      "end": "2026-03-12",
+      "count": 1
+    }
+  ],
+  "events": [
+    {
+      "date": "2025-10-21",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.0958389397303484,
+      "capital_drawdown": 0.11806517192241406,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688110": 0.40124893589457233,
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688110": 0.42540008716885724,
+        "sh688233": 0.054680034425229264
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-10-24",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.0767347541272313,
+      "capital_drawdown": 0.09943060847370433,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688110": 0.40124893589457233,
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688110": 0.4313419220357805,
+        "sh688233": 0.059496371059094305
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-10-28",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.07693933237677819,
+      "capital_drawdown": 0.09963015774791084,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688110": 0.40124893589457233,
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688110": 0.42995854760157715,
+        "sh688233": 0.06076689981111385
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-10-29",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.07930034050189938,
+      "capital_drawdown": 0.10193312719264391,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688110": 0.40124893589457233,
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688110": 0.4291970693100188,
+        "sh688233": 0.06022241329191999
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-10-30",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 21,
+        "CONFIRMATION_INCOMPLETE": 8
+      },
+      "operating_drawdown": 0.09382420218325416,
+      "capital_drawdown": 0.11609996097682418,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688110": 0.40124893589457233,
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688110": 0.4161468368424919,
+        "sh688233": 0.06508924378628626
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-11-06",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.13373869895015444,
+      "capital_drawdown": 0.1550332731827503,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.060893205028222326
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-11-07",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.13189033048537646,
+      "capital_drawdown": 0.1532303416080132,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.0628927397020557
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-11-10",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.120929075636112,
+      "capital_drawdown": 0.14253853808340922,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.07457765751304431
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-11-11",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.10777556981699465,
+      "capital_drawdown": 0.12970837385388456,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08822057935564247
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-11-12",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.10945199702923503,
+      "capital_drawdown": 0.13134359086352987,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08650418470063227
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-11-13",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.10264957122572094,
+      "capital_drawdown": 0.12470838338208445,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.09342900170203773
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-11-18",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.11102096095863956,
+      "capital_drawdown": 0.1328739862699927,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08489195097978747
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-11-26",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.11366455771640338,
+      "capital_drawdown": 0.13545259770827955,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08216253663394962
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-01",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.11576009173170398,
+      "capital_drawdown": 0.13749661897033627,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.07998738076616316
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-08",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.11401918654976195,
+      "capital_drawdown": 0.13579850899878143,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08179515663665743
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-09",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.11623293017618197,
+      "capital_drawdown": 0.1379578340243387,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.07949515000691407
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-10",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.11706039745401864,
+      "capital_drawdown": 0.13876496036884312,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.07863247758825387
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-11",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.1180168206712584,
+      "capital_drawdown": 0.1396978726371665,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.07763334596001134
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-12",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.11525501430237506,
+      "capital_drawdown": 0.13700395743537896,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08051259155140014
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-15",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.11481441484274779,
+      "capital_drawdown": 0.1365741888623312,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08097026467903538
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-17",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.11913443881275199,
+      "capital_drawdown": 0.14078801731026336,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.07646307236653078
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-18",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.11461023460535957,
+      "capital_drawdown": 0.13637502781628463,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08118220264902204
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-22",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 22,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.11555591149431566,
+      "capital_drawdown": 0.1372974579242897,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08019977225301536
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-23",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 22,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.11077379540811694,
+      "capital_drawdown": 0.1326328965826733,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.0851463105381943
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-24",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.10901139756960776,
+      "capital_drawdown": 0.13091382229048198,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08695591411837658
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-25",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.10932304108983193,
+      "capital_drawdown": 0.1312178049397109,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08663644444960665
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-26",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.11099946830207241,
+      "capital_drawdown": 0.13285302194935622,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.0849140748169711
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-29",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 21,
+        "CONFIRMATION_INCOMPLETE": 7
+      },
+      "operating_drawdown": 0.11191290620617778,
+      "capital_drawdown": 0.13374400557640664,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08397286738876186
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-30",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 22,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.10790452575639775,
+      "capital_drawdown": 0.1298341597777034,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08808877802370846
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2025-12-31",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.1114293214334161,
+      "capital_drawdown": 0.1332723083620858,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08447139472423722
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-05",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 21,
+        "CONFIRMATION_INCOMPLETE": 8
+      },
+      "operating_drawdown": 0.1065612347209487,
+      "capital_drawdown": 0.1285238897379235,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08945984251879288
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-06",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 21,
+        "CONFIRMATION_INCOMPLETE": 8
+      },
+      "operating_drawdown": 0.10725974605938216,
+      "capital_drawdown": 0.12920523015860907,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.088747403910483
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-07",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.09856596647795568,
+      "capital_drawdown": 0.12072516246115361,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.0975358775189749
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-08",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.09854447382138853,
+      "capital_drawdown": 0.12070419814051714,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.0975573942226673
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-09",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.10062926150840545,
+      "capital_drawdown": 0.12273773724225545,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.09546548578908903
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-12",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.10400360858945357,
+      "capital_drawdown": 0.12602913558218254,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.09205898390248009
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-13",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.11007528406968348,
+      "capital_drawdown": 0.13195155616198773,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08586438889207927
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-15",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.10781855513012895,
+      "capital_drawdown": 0.1297503024951575,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.08817664981179102
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-16",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.10076896377609224,
+      "capital_drawdown": 0.12287400532639259,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.09532495958642727
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-19",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.10053254455385319,
+      "capital_drawdown": 0.12264339779939137,
+      "capital_budget_level": 2,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.09556274758880424
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-27",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.07826615235024925,
+      "capital_drawdown": 0.10092436161999985,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.11741130467183554
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-28",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.07193656499121315,
+      "capital_drawdown": 0.09475036919255697,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.12343074476444559
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-29",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 26,
+        "CONFIRMATION_INCOMPLETE": 3
+      },
+      "operating_drawdown": 0.07979213096651938,
+      "capital_drawdown": 0.10241282838518972,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.11594770984575874
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-01-30",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.08102795871913249,
+      "capital_drawdown": 0.10361827682178726,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.11475884195222517
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-02-09",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.08999039650764873,
+      "capital_drawdown": 0.1123603985271987,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.10604034186564454
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-02-13",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 24,
+        "CONFIRMATION_INCOMPLETE": 5
+      },
+      "operating_drawdown": 0.006884662936842534,
+      "capital_drawdown": 0.11847149799273216,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.09984306477636866
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-02-25",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.0025035137952154063,
+      "capital_drawdown": 0.11458261651466539,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.1037966845019774
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-02-26",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 23,
+        "CONFIRMATION_INCOMPLETE": 6
+      },
+      "operating_drawdown": 0.0,
+      "capital_drawdown": 0.1083457311253131,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.11006538926730418
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-02-27",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.0001528261444977419,
+      "capital_drawdown": 0.10848199920945023,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.10992936320355187
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-03-02",
+      "risk": "NORMAL",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 26,
+        "CONFIRMATION_INCOMPLETE": 3
+      },
+      "operating_drawdown": 0.007182828791395868,
+      "capital_drawdown": 0.1147503310797573,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.10362689471885787
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-03-10",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.013119536712271285,
+      "capital_drawdown": 0.12004382204046804,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.09823464559432454
+      },
+      "execution_clear": true
+    },
+    {
+      "date": "2026-03-12",
+      "risk": "CAUTION",
+      "ordinary_entry_blocks": {
+        "NOT_MATURE": 25,
+        "CONFIRMATION_INCOMPLETE": 4
+      },
+      "operating_drawdown": 0.018586010342384385,
+      "capital_drawdown": 0.1249180265884492,
+      "capital_budget_level": 1,
+      "capital_budget_repair_streak": 0,
+      "protected_weights": {
+        "sh688233": 0.4929419502883507
+      },
+      "held_weights": {
+        "sh688233": 0.09321181467653021
+      },
+      "execution_clear": true
+    }
+  ],
+  "code_findings": [
+    "capital._apply_capital_overlays couples the repair streak to current health and historical drawdown recovery.",
+    "pipeline._bounded_ordinary_restore_risk_open already consumes that same streak at 2 sessions for level1, or 1 session in named recovery shock states; tier downgrade uses 5. Changing the streak can change risk rights earlier than tier downgrade.",
+    "Final risk freeze is also true for non-NORMAL risk states. Removing the persisted-tier predicate does not itself prove ordinary new-risk admission.",
+    "Existing POST_SHOCK_RESTORATION can pass the final freeze filter only through the bounded restoration predicate; it retains live holding/episode, structure, pending-intent, cash/cap and native-fill constraints."
+  ],
+  "interpretation": "These are immutable old-path observations and static call-chain facts. Zero READY ordinary-entry snapshots does not disprove all attainable future opportunities or existing holding restoration; confirmation and later paths may change after a real new fill. No replay or counterfactual profit has been computed.",
+  "recommended_priority": "First evaluate a narrowly scoped recovery permission for existing protected live holdings using current structural and budget/execution rules. Broad held-account tier release is a wider fallback policy, not a proven or automatically preferred fix.",
+  "research_policy_implemented": false,
+  "new_economic_replays": 0,
+  "future_holdout_used": false
+}

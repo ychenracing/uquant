@@ -1,0 +1,267 @@
+{
+  "all_mypy": "338 sourcefiles PASS after semantically identical direct constant imports in delivery worktree",
+  "all_ruff": "PASS",
+  "cache_readback": {
+    "a/bull": {
+      "filled_orders": 8,
+      "max_drawdown": 0.24253804885922547,
+      "native_cache_payload_sha256": "96efb0c79546878b6cf5d116142d0f7d0dbf20cc679e08894718bc3e3a865605",
+      "native_identity_sha256": "c95749a9d2a447b59efe923c661bdfb218119777a6d172d3e747415c3e1307a2",
+      "wealth": 7.553639631084535
+    },
+    "a/h1_2024": {
+      "filled_orders": 8,
+      "max_drawdown": 0.156742775678121,
+      "native_cache_payload_sha256": "763b3d8a636e02334ce2b5804d92182a44ef9c67a6e3327f904e5be994769cd7",
+      "native_identity_sha256": "635355069d36c17575e1e2a1e512b1f650f972b7500b032db39dd41ef219e125",
+      "wealth": 1.9085269240679252
+    }
+  },
+  "closed_read_only_hypotheses": [
+    "No original tactical targets beforeMay8 on unfrozen sessions",
+    "No earlier fully qualified breakout-persistence member under original depth, confirmation and permitted opportunity"
+  ],
+  "complete_acceptance": false,
+  "equivalent_tree": "c545af657423f23296d3ac2f1571465fa726e726",
+  "fixed_units": {
+    "bull": {
+      "complete_full_profile": false,
+      "economic_source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+      "failures": [
+        "a/bull: final_wealth below 11.544300",
+        "a/bull: max_drawdown above 0.180000",
+        "a/bull: final_wealth regressed from production champion",
+        "a/bull: max_drawdown regressed from production champion"
+      ],
+      "interval": [
+        "2025-04-01",
+        "2026-06-30"
+      ],
+      "metrics": {
+        "account_orders": 8,
+        "acute_return": null,
+        "annual_turnover": 7.973953558726819,
+        "cagr": 4.054615563037347,
+        "calmar": 16.71744116895546,
+        "final_wealth": 7.553639631084535,
+        "gross_turnover": 9.950966837749998,
+        "max_drawdown": 0.24253804885922547,
+        "sharpe": 3.152549816325859
+      },
+      "name": "a/bull",
+      "original_failures": [
+        "a/bull: final_wealth below 12.827000",
+        "a/bull: max_drawdown above 0.180000",
+        "a/bull: final_wealth regressed from production champion",
+        "a/bull: max_drawdown regressed from production champion"
+      ],
+      "runtime": {
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "environment": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.12.8"
+        },
+        "production": {
+          "commit": "858c71ac6616097da62657fd2e600ad4ca5c1456",
+          "repository": "ychenracing/uquant",
+          "source_sha256": "323896e983c8580cd23a31bac47d8b57ca0f9a4a9cb76020a07030aaf812ac7c"
+        }
+      },
+      "scope": "fixed_native_Performance_unit_not_full_acceptance",
+      "sessions": 302,
+      "status": "FAIL",
+      "wealth_drawdown_filled_orders_reconciled": true
+    },
+    "h1_2024": {
+      "complete_full_profile": false,
+      "economic_source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+      "failures": [],
+      "interval": [
+        "2024-01-02",
+        "2024-07-01"
+      ],
+      "metrics": {
+        "account_orders": 8,
+        "acute_return": 0.06390679898215934,
+        "annual_turnover": 4.214655180487289,
+        "cagr": 2.7641712777183205,
+        "calmar": 17.63507929318977,
+        "final_wealth": 1.9085269240679252,
+        "gross_turnover": 2.05507979875,
+        "max_drawdown": 0.156742775678121,
+        "sharpe": 2.437467043441825
+      },
+      "name": "a/h1_2024",
+      "original_failures": [],
+      "runtime": {
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "environment": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.12.8"
+        },
+        "production": {
+          "commit": "858c71ac6616097da62657fd2e600ad4ca5c1456",
+          "repository": "ychenracing/uquant",
+          "source_sha256": "323896e983c8580cd23a31bac47d8b57ca0f9a4a9cb76020a07030aaf812ac7c"
+        }
+      },
+      "scope": "fixed_native_Performance_unit_not_full_acceptance",
+      "sessions": 118,
+      "status": "PASS_FIXED_UNIT",
+      "wealth_drawdown_filled_orders_reconciled": true
+    }
+  },
+  "future_holdout_used": false,
+  "native_local_commit": "858c71ac6616097da62657fd2e600ad4ca5c1456",
+  "principal_native": {
+    "champion": {
+      "all_metrics_sha256": "31814f60388f3df2c8ec0df5f907bb6d26e7163c15301273bfa8ebcf404131b2",
+      "canonical_sha256": "2f5f3a5505c3ffb9390d54c438a940c3b3ec206ae1d94ace26b8162d5e18f701",
+      "identity": {
+        "case_id": "champion",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "end": "2026-08-05",
+        "runner_sha256": "3cd25c4e9fdd93b06c2a846e61a6d09f4cea12bde41002a55c6e735ff9bd5790",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.12.8"
+        },
+        "source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+        "start": "2023-01-03"
+      },
+      "identity_sha256": "9e431a50a0337a0f45de6c2ed89d965edaab2b4a21b58832093eb20f9d5fb0f9",
+      "metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.26891228576709,
+        "benchmark_total_return": 1.6925784482107464,
+        "cagr": 1.4537413188457289,
+        "calmar": 5.355077013613105,
+        "excess_return": 22.417015865027277,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "first_caution": "2023-03-15",
+        "first_reduce": "2023-07-21",
+        "first_risk_off": "2023-07-21",
+        "gross_turnover": 33.2838213898,
+        "lead_to_10pct_dd": 0,
+        "lead_to_15pct_dd": 74,
+        "max_drawdown": 0.27146973146234554,
+        "max_drawdown_duration": 311,
+        "median_holding_days": 199.0,
+        "peak_to_recovery_days": 224,
+        "rolling_drawdown_p95": 0.2467382886749849,
+        "round_trips": 2,
+        "sharpe": 2.2218203456500762,
+        "slippage_cost": 66615.9745999966,
+        "submitted_account_orders": 14,
+        "total_return": 24.109594313238023,
+        "unfilled_account_submissions": 0,
+        "worst_20d": -0.19898552895747368,
+        "worst_60d": -0.24344714427743375
+      },
+      "raw_sha256": "b51dd0ef343ae84b418fdb9419a599d484a42b34657492011af5f1149b1d49db",
+      "read_case_verified": true,
+      "sessions": 869,
+      "verified_symbol_pnl": {
+        "sz300308": 47019323.60580173,
+        "sz300502": 1199865.0206743202
+      }
+    },
+    "full": {
+      "all_metrics_sha256": "12a2432e10c792947b2a4c93c14e01637545986530a753d4802d0ccb31e87300",
+      "canonical_sha256": "5afa4735aa9096057952f30e97f62fc408a13e264907ddd178da54f881db4d06",
+      "identity": {
+        "case_id": "full",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "end": "2026-08-05",
+        "runner_sha256": "3cd25c4e9fdd93b06c2a846e61a6d09f4cea12bde41002a55c6e735ff9bd5790",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.12.8"
+        },
+        "source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+        "start": "2023-01-03"
+      },
+      "identity_sha256": "064108d55f282882f35189a053a4c24d4d0ab8e5f73b84d773460c1e4c2e295c",
+      "metrics": {
+        "account_orders": 22,
+        "annual_turnover": 14.075050810755696,
+        "benchmark_total_return": 1.6925784482107464,
+        "cagr": 1.5716030295592458,
+        "calmar": 5.789155683133407,
+        "excess_return": 27.02442514519908,
+        "fees": 65928.056280352,
+        "final_wealth": 29.717003593409824,
+        "first_caution": "2023-03-15",
+        "first_reduce": "2023-07-21",
+        "first_risk_off": "2023-07-21",
+        "gross_turnover": 50.54222791135,
+        "lead_to_10pct_dd": 0,
+        "lead_to_15pct_dd": 74,
+        "max_drawdown": 0.27147361646156465,
+        "max_drawdown_duration": 311,
+        "median_holding_days": 172.0,
+        "peak_to_recovery_days": 224,
+        "rolling_drawdown_p95": 0.24655044351025254,
+        "round_trips": 6,
+        "sharpe": 2.289641706295558,
+        "slippage_cost": 101142.05689999806,
+        "submitted_account_orders": 22,
+        "total_return": 28.717003593409824,
+        "unfilled_account_submissions": 0,
+        "worst_20d": -0.19891789347381716,
+        "worst_60d": -0.2434228007434307
+      },
+      "raw_sha256": "8f5daf8a9e5f7b32da2ddd890f4ff9f1d828754107868dd518a1c80005e5b84e",
+      "read_case_verified": true,
+      "sessions": 869,
+      "verified_symbol_pnl": {
+        "sh688110": 3470218.1418484803,
+        "sh688268": 2182778.6408544616,
+        "sh688498": 5831757.728094871,
+        "sz300223": -4537.232409599979,
+        "sz300308": 44504651.314322695,
+        "sz300502": 1449138.594108744
+      }
+    }
+  },
+  "remote_equivalent_commit": "d894c31ce75c0f9bf4e1904494c7cd89f2f84470",
+  "source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+  "status": "NOT_MET_REMOVAL_CONTROLS_IN_PROGRESS"
+}

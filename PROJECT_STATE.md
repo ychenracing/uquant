@@ -1,3 +1,15 @@
+Confirmed recovery economic screen — 2026-09-10:
+
+- NOT_MET; PR56 Draft, main unchanged. Immutable producer858c71ac / equivalent remoted894c31c / treec545af65, source77003c98 and configadf8. Native full86929.717003593409824/22/DD.27147361646156465 and champion86925.109594313238023/14/DD.27146973146234554 complete with read_case verification. Principal15/40 preserved. FixedH1 remains1.9085269240679252/8/DD.156742775678121; all current/original unit gates pass.
+- Fixedbull3027.553639631084535/8/DD.24253804885922547 FAILS retained11.5443/.18 and champion gates. May9 fresh39460%/30816%/50216%, Sept10 risk-cut394, Sept12 actual partial restoration, June24 liquidation; maxDD Sept1-Oct14 2025. Raw native cache seals verified. Do not call late confirmed recovery a complete solution.
+- CORRECTION: old9bb risk_summary.freeze_new_risk=false was only overlay evidence. Actual CAUTION RiskAssessment froze new risk; old portfolio explicitly permitted a bounded empty-book caution probe. Current tests prohibit that path. Do not revive it or claim old Base Risk had fully reopened. Ordinary current market/score evidence matches; earlier interpretation was wrong.
+- Read-only alternatives closed without production changes: existing tactical helper produces no earlier targets on unfrozen sessions; breakout-event persistence yields502confirmation but it fails original-.30 depth onMay6/7, while308 loses its April25 breakout and confirms onlyMay8. No threshold/rank/CHOPPY/frozen-risk workaround justified. Read confirmed_recovery_assessment.md and confirmed_recovery_result.json.
+- Two targeted nominal removal controls are now running in immutable producer: remove_all_three/no_optical869. They assess actual cross-mainline contribution; no principal15 floor applies. No full formal matrix started. Current raw/log archive remains pending this checkpoint.
+- Final28 recovery/restore tests + earlier93 affected (94unique),6 API/authority/complexity,2cycle/complexity,3source-surface pass. AllRuff PASS; allmypy338sourcefiles PASS after delivery-only direct imports of identical AI-era window objects. Producer/runner identities remain distinct; no re-labeling earlier native evidence. Complete engineering/Absolute/Ownership/Grant acceptance still pending; Absolute currently has the older739 binding and its latest CI fails.
+
+---
+Earlier checkpoints:
+
 Confirmed recovery implementation ready for native screen — 2026-09-10:
 
 - NOT_MET; PR56 Draft, main unchanged. Source77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e / configadf8 unchanged. Restore existing confirmed recovery admission after current Base Risk reopens, actual filled recovery ownership, and bounded protected restoration in the same cash book. No early frozen April3 probe or new economic thresholds/rank/weights.

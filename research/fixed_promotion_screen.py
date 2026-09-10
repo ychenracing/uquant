@@ -10,6 +10,7 @@ from pathlib import Path
 
 from uquant.engine import ProductionEngine, code_fingerprint
 from uquant.validation import promotion as p
+from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 
 
 def main() -> None:
@@ -35,8 +36,8 @@ def main() -> None:
         bounds = p.PROTECTED_INTERVALS["bull"]
         start, end, acute = bounds["start"], bounds["end"], None
     else:
-        start, end = p.AI_ERA_WINDOWS[args.case]
-        acute = p.AI_ERA_ACUTE_WINDOWS[args.case]
+        start, end = AI_ERA_WINDOWS[args.case]
+        acute = AI_ERA_ACUTE_WINDOWS[args.case]
     if not "2023-01-03" <= start <= end <= "2026-08-05":
         raise RuntimeError("fixed screen exceeds authorized historical dates")
     name = f"a/{args.case}"

@@ -1,5 +1,32 @@
 # PROJECT_STATE
 
+## Latest continuation — 2026-09-10
+
+User authorized executing the recovery route and comparable small gate margins.
+Principal full/champion wealth15 and all account orders40 remain anchors.
+PR56 head008e14088276aff6d73448f03249eebbad3bbf8f stays Draft; main960539a unchanged.
+Full history and current evidence index are preserved on remote report
+df539eb555487aa854ffc68a96c1c0c199fe7d3a, benchmarks/simple_policy_recheck_result.md.
+
+Narrow protected holding recovery eac89fcd was rejected: no-optical/later
+wealth1.0508007574 vs control1.125312594, DD20.62% vs17.35%; pending remainder
+authority leak also found. Do not integrate that rejected arm.
+Fixed original simple ordinary sourceb7f54f13 passed later: wealth5.2717346143,
+DD20.2553%,28orders; reused H1 current contract PASS, historical initial-screen
+wealth failure retained. Original226ef63/remote0476517 remains immutable in
+uquant-simple-recheck, running full/champion/no_optical continuous869 sessions.
+No full acceptance or promotion claim; no future holdout/live orders.
+
+This separate branch fixes only original simple-policy missing-frame KeyError:
+guard the held-symbol frame lookup and retain it when unavailable. Present-frame
+strategy decisions are unchanged; no MA/ranking/cap/guard parameters changed.
+Existing missing_panel tests first FAIL twice, then PASS after the fix. All6
+simple-policy tests and4 missing-panel/session cases PASS; total retained-intent
+module subset8PASS/4FAIL. The4 routes_lost/not_mature policy assertions fail
+identically on original226ef63; they are not suppressed or attributed to this
+lookup fix. Ruff/mypy PASS. Applicable complete acceptance remains outstanding.
+Native outputs remain bound to original226ef63, never relabel as this branch.
+
 > Low-token recovery index. This file is a routing aid, not authority for mutable branch, SHA, CI, artifact, or acceptance facts. Resolve those from GitHub when they matter. Do not preload historical handoffs, logs, or evidence unless the active task requires them.
 
 ## Resume path

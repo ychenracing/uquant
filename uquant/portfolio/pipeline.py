@@ -364,7 +364,8 @@ def _ordinary_exits(book: _AllocationBook) -> None:
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
-        if not ordinary_trend_exit(book.user_panel[symbol], book.date):
+        frame = book.user_panel.get(symbol)
+        if frame is None or not ordinary_trend_exit(frame, book.date):
             continue
         book.proposed[symbol] = 0.0
         reset_strategic_candidate_eligibility(account=account, symbol=symbol)

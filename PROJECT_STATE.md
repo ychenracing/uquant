@@ -1,3 +1,7 @@
+# Active N ordinary maturity repair experiment
+
+See benchmarks/repair_maturity_result.json and repair_maturity_plan.md. User explicitly lowers engineering quality/CI priority; Actions over 10 minutes are not awaited. Environment recovered. M both best-contributor cases native verified but economic FAIL. N source b6e3f3ccc0af6dc55c248693c149bcdd8359466f122e5c7be82756439db4d23f frozen for two native screens; 76 focused tests PASS. No full acceptance or merge. Historical status below is superseded.
+
 # Resumed: economic acceptance first
 
 Latest user instruction lowers engineering quality and CI priority. Noncritical architecture/style/coverage/full engineering checks are deferred; do not wait for GitHub Actions over10minutes. This supersedes the previous engineering prerequisite. Accounting, real execution/data/source integrity, risk guards and frozen economic gates remain. The known source-surface test omission is deferred, not passed. No production strategy/parameter changes on resume.

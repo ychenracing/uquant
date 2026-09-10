@@ -47,6 +47,11 @@ def ordinary_core_entry(
     tenure = account.leader_tenure.get(symbol, 0)
     local_open = _ordinary_maturity_available(account, date, market)
     if repair_pending:
+        if account.strategic_cash_rearm.qualification_quorum == "MATURE_CORE":
+            return ordinary_repair_entry(
+                self, symbol=symbol, score=score, date=date, user_panel=user_panel,
+                account=account, confirmation_days=confirmation_days, market=market,
+            )
         certificate = None  # The real repair order still needs its strict own proof.
     elif (certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days
           and market is not None and market.get("as_of") == str(date.date())
@@ -60,6 +65,33 @@ def ordinary_core_entry(
     return candidate_entry(
         self, symbol=symbol, score=score, date=date, user_panel=user_panel,
         account=account, confirmation_days=confirmation_days, certificate=certificate,
+    )
+
+
+def ordinary_repair_entry(
+    self: PortfolioAllocator, *, symbol: str, score: LeaderScore, date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame], account: AccountState, confirmation_days: int,
+    market: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Keep ordinary maturity evidence distinct from independent strategic proof."""
+    strict = candidate_entry(self, symbol=symbol, score=score, date=date,
+                             user_panel=user_panel, account=account,
+                             confirmation_days=confirmation_days)
+    if strict.get("block") == "READY":
+        return strict
+    tenure = account.leader_tenure.get(symbol, 0)
+    if (market is None or market.get("as_of") != str(date.date())
+            or market.get("repair_mature_entry_open") is not True
+            or symbol not in market.get("credible_symbols", ()) or not score.mature
+            or tenure < self.cfg.leader_tenure_days):
+        return strict
+    return candidate_entry(
+        self, symbol=symbol, score=score, date=date, user_panel=user_panel,
+        account=account, confirmation_days=confirmation_days,
+        certificate={"qualification_route": "mature_core", "qualification_quorum": "MATURE_CORE",
+                     "required_confirmation": self.cfg.leader_tenure_days,
+                     "confirmations": {"leader_tenure": tenure}, "as_of": str(date.date()),
+                     "ordinary_market": dict(market)},
     )
 
 
@@ -103,6 +135,17 @@ def observe_ordinary_market(
     return {
         "as_of": str(date.date()), "confirmed": impulse, "impulse": impulse,
         "credible_symbols": credible, "missing_market_fields": missing,
+        # Observation only; the account repair authorizer retains every risk guard.
+        "repair_mature_entry_open": (
+            not missing and long_cycle_complete
+            and risk.evidence["breadth20"] >= self.cfg.high_confidence_entry_breadth
+            and min(risk.evidence["broad_ret20"], risk.evidence["tech_ret20"])
+            >= self.cfg.strategic_transition_impulse_min_market_ret20
+            and max(risk.evidence["broad_ret120"], risk.evidence["tech_ret120"])
+            > self.cfg.strategic_long_cycle_max_tech_ret120
+            and risk.state is Risk.NORMAL
+            and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
+        ),
         "mature_entry_open": (
             not missing and long_cycle_complete
             and risk.evidence["breadth20"] >= self.cfg.high_confidence_entry_breadth

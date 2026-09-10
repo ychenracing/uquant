@@ -420,7 +420,7 @@ def _validate_ordinary_repair_order_binding(state: Any) -> None:
                 or order.mechanism != "LEADER_SELECTION" or order.grant_id or order.epoch_id):
             raise ValueError("ordinary repair order binding is inconsistent")
         proof = next(item.authoritative_state for item in rearm.predicate_results
-                     if item.code == "current_independent_core")
+                     if item.code == "current_" + rearm.qualification_route)
         if not 0 < order.target_weight <= proof["max_target_weight"] + 1e-12:
             raise ValueError("ordinary repair order exceeds its authorized capital")
         if state.flat_book_capital_repair.status != FlatBookCapitalRepairStatus.CONSUMED.value:

@@ -34,7 +34,7 @@ from ..types import (
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
-from .ordinary import observe_ordinary_market, ordinary_core_entry
+from .ordinary import observe_ordinary_market, ordinary_core_entry, ordinary_repair_entry
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
@@ -758,10 +758,11 @@ def _allocate_strategy(
             )
     repair_symbol = ""
     if frozen and not liabilities and not awaiting_settlement and strategic_universe is not None:
-        for symbol in candidates:
-            independent = _candidate_entry(
+        for symbol in sorted(leaders, key=lambda name: (-leaders[name].score, name)):
+            independent = ordinary_repair_entry(
                 self, symbol=symbol, score=leaders[symbol], date=date,
                 user_panel=user_panel, account=account, confirmation_days=self.cfg.leader_tenure_days,
+                market=market,
             )
             independent.update(as_of=str(date.date()), score=leaders[symbol].score,
                                confidence=leaders[symbol].confidence, industry=leaders[symbol].industry)

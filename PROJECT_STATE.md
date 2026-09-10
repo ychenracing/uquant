@@ -1,3 +1,22 @@
+# Latest checkpoint — integrated lifecycle candidate E
+
+D champion complete and sealed:25.341281501550608/DD.27146973146234554/14orders,
+original/current principal PASS. Complete readback and frozen input identity PASS.
+Source0fd82376ac1a5b65dd4f57d7a0a528edd6cd681e18d723114830d0c391623ee8;
+see benchmarks/strict_companion_result.json and saved raw archive receipt.
+E retains strict strategic companions and simple ordinary policy, restores
+current pending FULL qualification precedence, whole-group completed FULL
+structural exit, and optional industries reference API. No parameter changes.
+Original real FULL startup failure fixed in production, fixture unchanged.
+Review P2 single-member premature exit during peer partial fills corrected:
+require FULL_COHORT and completion of every current target member, and membership
+of exiting symbol. Actual partial fill test protects boundary. Actual first
+member exit/restart/fill and subsequent peer exit pass, so no permanent lock.
+Focused reviewer accepts narrowed scope; full economic/engineering still pending.
+Next freeze E, complete nominal and protected fixed-bull checks; only viable
+stable source proceeds to required robustness/L4/engineering/operator closure.
+No full goal claim, no merge; prior failures/history preserved below.
+
 # Current task state — 2026-09-10
 
 Latest: C/d122 integration completed and is not promoted. Champion10.9843132091

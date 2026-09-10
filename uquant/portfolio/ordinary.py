@@ -50,12 +50,20 @@ def ordinary_core_entry(
         return candidate_entry(self, symbol=symbol, score=score, date=date,
                                user_panel=user_panel, account=account,
                                confirmation_days=confirmation_days)
+    qualification = account.strategic_qualification
+    forming_full = (
+        qualification.qualification_last_observed_session == str(date.date())
+        and qualification.qualification_quorum == "FULL_COHORT"
+        and qualification.qualification_streak > 0
+        and not qualification.qualification_ready
+        and not qualification.deployment_blocked
+    )
     strategic_claims = (
         bool(account.strategic_cohort_targets)
         or any(p.shares > 0 and (p.grant_id or p.epoch_id) for p in account.positions.values())
         or any(o.grant_id or o.epoch_id for o in account.pending_orders)
     )
-    if strategic_claims:
+    if strategic_claims or forming_full:
         return candidate_entry(self, symbol=symbol, score=score, date=date,
                                user_panel=user_panel, account=account,
                                confirmation_days=confirmation_days, certificate=certificate)

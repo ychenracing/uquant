@@ -16,7 +16,7 @@ from ..models.ordinary_entry import REASON as PULLBACK_REASON
 from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, pullback_order_entry
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..models.trading import late_strategic_fill_allowed
-from ..ordinary_pullback import current_pullback_proof
+from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
 from ..portfolio_core import current_weights, symbol_weight_cap
 from ..risk.pullback import pullback_book_settled, pullback_risk_open
 from ..types import (
@@ -39,6 +39,7 @@ from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
+from .strategic.grant_lifecycle import completed_strategic_cohort_entry
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
 from .strategic.qualification_candidates import (
     candidate_entry as _candidate_entry,
@@ -303,15 +304,21 @@ def _fund_strategic_owners(book: AllocationBook, *, frozen: bool,
 def _ordinary_exits(book: AllocationBook) -> None:
     """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
     account = book.account
+    grant = account.strategic_grant
+    full_members = set(account.strategic_cohort_targets)
+    full_settled = bool(
+        grant is not None and grant.qualification_quorum == "FULL_COHORT"
+        and completed_strategic_cohort_entry(account, full_members)
+    )
     for symbol, position in account.positions.items():
         if position.shares <= 0:
             continue
         if symbol in book.recovery_targets:
             continue
-        grant = account.strategic_grant
         if symbol in book.owned and not (
-            grant is not None and grant.candidate_symbol == symbol
-            and _completed_strategic_core_entry(account, grant)
+            (grant is not None and grant.candidate_symbol == symbol
+             and _completed_strategic_core_entry(account, grant))
+            or (full_settled and symbol in full_members)
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
@@ -320,10 +327,15 @@ def _ordinary_exits(book: AllocationBook) -> None:
             leaders=book.leaders, account=account,
         )
         frame = book.user_panel.get(symbol)
-        if legacy_exit == "" or (legacy_exit is None and (
-            frame is None or not ordinary_trend_exit(frame, book.date)
-        )):
+        if legacy_exit == "":
             continue
+        if legacy_exit is None:
+            confirmed = (book.policy._leader_lifecycle_exit_confirmed(
+                symbol=symbol, date=book.date, user_panel=book.user_panel,
+                leaders=book.leaders, account=account,
+            ) if symbol in book.owned else frame is not None and ordinary_trend_exit(frame, book.date))
+            if not confirmed:
+                continue
         book.proposed[symbol] = 0.0
         reset_strategic_candidate_eligibility(account=account, symbol=symbol)
         for rights in (account.protected_weights, account.strategic_restore_weights, account.anchor_weights):
@@ -334,7 +346,10 @@ def _ordinary_exits(book: AllocationBook) -> None:
             account.candidate_tenure["tactical_promotable"] = 0
         if account.recovery_conviction_symbol == symbol:
             account.recovery_conviction_symbol = ""
-        book.reasons[symbol] = legacy_exit or "ordinary trend: two closes below MA120"
+        book.reasons[symbol] = legacy_exit or (
+            STRUCTURAL_EXIT_REASON if symbol in book.owned
+            else "ordinary trend: two closes below MA120"
+        )
         book.mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 

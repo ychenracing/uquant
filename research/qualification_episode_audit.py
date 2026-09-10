@@ -10,6 +10,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import mean, median
 from types import SimpleNamespace as NS
+from typing import Any, cast
 
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.portfolio.strategic.qualification_candidates import (
@@ -20,7 +21,7 @@ from uquant.portfolio.strategic.quorum import strict_absolute_owner_quality
 from uquant.validation.manifest import verify_data_manifest
 
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
     root = args.output
     root.mkdir(parents=True, exist_ok=True)
     data = args.prices
@@ -46,14 +47,14 @@ def main(args):
         )
         assert result["identity"]["data"] == fingerprint
         assert hashlib.sha256((p / "observations.jsonl.gz").read_bytes()).hexdigest() == result["raw_sha256"]
-        cfg = NS(**result["identity"]["effective_config"])
+        cfg: Any = NS(**result["identity"]["effective_config"])
         dates = []
-        events = []
-        counts = Counter()
-        prev_mature = set()
+        events: list[dict[str, Any]] = []
+        counts: Counter[tuple[str, str]] = Counter()
+        prev_mature: set[str] = set()
         mismatches = []
         progression = []
-        previous_streaks = {}
+        previous_streaks: dict[str, int] = {}
         with gzip.open(p / "observations.jsonl.gz", "rt") as stream:
             for index, line in enumerate(stream):
                 row = json.loads(line)
@@ -61,9 +62,9 @@ def main(args):
                 dates.append(date)
                 obs = row["observation"]
                 state = row["state"]
-                risk = NS(**obs["risk_assessment"])
+                risk: Any = NS(**obs["risk_assessment"])
                 e = risk.evidence
-                leaders = {r["symbol"]: NS(**r) for r in obs["leader_scores"]}
+                leaders: dict[str, Any] = {r["symbol"]: NS(**r) for r in obs["leader_scores"]}
                 snap = obs["qualification_snapshots"]
                 allowed = set(obs["strategic_universe_roles"]["tradable_symbols"])
                 current = set()
@@ -170,10 +171,11 @@ def main(args):
                 sample = [prices[symbol].get(d) for d in dates[i + 1 : i + h + 2]]
                 if any(v is None or not math.isfinite(v) or v <= 0 for v in sample):
                     continue
+                valid_sample = cast(list[float], sample)
                 event["labels"][str(h)] = {
-                    "return": sample[-1] / sample[0] - 1,
-                    "mae_open": min(sample) / sample[0] - 1,
-                    "mfe_open": max(sample) / sample[0] - 1,
+                    "return": valid_sample[-1] / valid_sample[0] - 1,
+                    "mae_open": min(valid_sample) / valid_sample[0] - 1,
+                    "mfe_open": max(valid_sample) / valid_sample[0] - 1,
                     "entry": dates[i + 1],
                     "exit": dates[i + h + 1],
                 }

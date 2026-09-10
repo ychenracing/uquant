@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -27,7 +28,7 @@ def request_url(symbol: str, start: str, end: str) -> str:
     return "https://q.stock.sohu.com/hisHq?" + urlencode(params)
 
 
-def parse_prices(raw: bytes, symbol: str, start: str, end: str) -> list[dict]:
+def parse_prices(raw: bytes, symbol: str, start: str, end: str) -> list[dict[str, Any]]:
     request_url(symbol, start, end)
     text = raw.decode("gb18030").strip().removesuffix(";")
     callback = "historySearchHandler("
@@ -41,7 +42,8 @@ def parse_prices(raw: bytes, symbol: str, start: str, end: str) -> list[dict]:
     source_rows = data[0]["hq"]
     if len(source_rows) > 1 and source_rows[0][0] > source_rows[-1][0]:
         source_rows = list(reversed(source_rows))
-    rows, previous = [], ""
+    rows: list[dict[str, Any]] = []
+    previous = ""
     for row in source_rows:
         if len(row) not in (10, 11):
             raise ValueError("unknown source schema")
@@ -89,10 +91,10 @@ def main() -> None:
                 "start": args.start, "end": args.end, "research_only": True}
     (args.output / "acquisition_identity.json").write_text(json.dumps(identity, indent=2))
 
-    def collect(symbol: str) -> dict:
+    def collect(symbol: str) -> dict[str, Any]:
         request_id = hashlib.sha256(urls[symbol].encode()).hexdigest()[:16]
         raw_path = args.output / (symbol + "_" + request_id + ".bin")
-        result = {"symbol": symbol, "url": urls[symbol], "research_only": True}
+        result: dict[str, Any] = {"symbol": symbol, "url": urls[symbol], "research_only": True}
         try:
             if not raw_path.exists():
                 with urlopen(urls[symbol], timeout=25) as response:

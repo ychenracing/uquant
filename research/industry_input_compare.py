@@ -9,13 +9,14 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import mean
+from typing import Any, cast
 
 from research.opportunity_capture_audit import END, label, select, valid_features
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.validation.manifest import verify_data_manifest
 
 
-def read_rows(directory):
+def read_rows(directory: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     result = json.loads((directory / "result.json").read_bytes())
     seal = result["canonical_sha256"]
     if hashlib.sha256(canonical_json_bytes({k: v for k, v in result.items()
@@ -37,12 +38,12 @@ def read_rows(directory):
     return result, rows
 
 
-def economic_targets(row):
+def economic_targets(row: dict[str, Any]) -> list[dict[str, Any]]:
     return [{k: t[k] for k in ("symbol", "weight", "lifecycle", "reason_code", "exit_kind")}
             for t in row["decision"]["targets"]]
 
 
-def compare(old_result, new_result, old_rows, new_rows):
+def compare(old_result: dict[str, Any], new_result: dict[str, Any], old_rows: list[dict[str, Any]], new_rows: list[dict[str, Any]]) -> dict[str, Any]:
     for key in ("source_sha256", "config_sha256", "data", "runtime", "session_dates",
                 "extra_excluded_symbols", "runner_sha256"):
         if old_result["identity"][key] != new_result["identity"][key]:
@@ -71,9 +72,10 @@ def compare(old_result, new_result, old_rows, new_rows):
             "revised": {k: new_result[k] for k in ("identity", "canonical_sha256", "metrics", "attribution")}}
 
 
-def ranking(old_rows, new_rows, prices):
+def ranking(old_rows: list[dict[str, Any]], new_rows: list[dict[str, Any]], prices: dict[str, dict[str, float]]) -> dict[str, Any]:
     dates = [r["date"] for r in old_rows]
-    records, missing = [], []
+    records: list[dict[str, Any]] = []
+    missing = []
     for index in range(0, len(dates), 60):
         old, new = old_rows[index], new_rows[index]
         a, b = old["observation"], new["observation"]
@@ -91,14 +93,15 @@ def ranking(old_rows, new_rows, prices):
                     missing.append({"date": dates[index], "cohort": cohort, "horizon": horizon,
                                     "reason": "fewer_than_three_or_missing_endpoint"})
                     continue
-                pool_return = mean(v["gross_return"] for v in outcomes.values())
-                row = {"date": dates[index], "cohort": cohort, "horizon": horizon,
+                valid_outcomes = cast(dict[str, dict[str, Any]], outcomes)
+                pool_return = mean(v["gross_return"] for v in valid_outcomes.values())
+                row: dict[str, Any] = {"date": dates[index], "cohort": cohort, "horizon": horizon,
                        "symbols": symbols, "pool_return": pool_return, "labels": outcomes}
                 for arm, ls in zip(("old", "revised"), leaders, strict=True):
                     methods = {}
                     for method in ("score", "momentum", "industry_first"):
                         chosen = select([ls[s] for s in symbols], method)
-                        value = mean(outcomes[s]["gross_return"] for s in chosen)
+                        value = mean(valid_outcomes[s]["gross_return"] for s in chosen)
                         methods[method] = {"selected": chosen, "excess": value - pool_return}
                     row[arm] = methods
                 records.append(row)
@@ -114,9 +117,9 @@ def ranking(old_rows, new_rows, prices):
             "note": "Paired mature intersections; gross forward prices, not account returns or independent OOS."}
 
 
-def missed_stages(rows):
-    counts = Counter()
-    examples = defaultdict(list)
+def missed_stages(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    counts: Counter[str] = Counter()
+    examples: defaultdict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         observation = row["observation"]
         allocation = observation["risk_assessment"]["evidence"].get("core_allocation", {}).get("symbols", {})
@@ -133,12 +136,12 @@ def missed_stages(rows):
             "note": "Mature and unheld is not proof of a missed profitable trade; no rule change from these counts alone."}
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    result = {"diagnostic_only": True, "future_holdout_used": False, "cases": {}}
+    result: dict[str, Any] = {"diagnostic_only": True, "future_holdout_used": False, "cases": {}}
     data_identity = verify_data_manifest(Path("data/frozen"))
     result["label_data_identity"] = data_identity
     result["analysis_script_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()

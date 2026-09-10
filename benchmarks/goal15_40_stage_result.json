@@ -1,0 +1,161 @@
+{
+  "goal": "NOT_MET",
+  "candidate_status": "REJECT_AS_COMPLETE_SOLUTION",
+  "producer_commit": "9be0a135ce90ec353764aeb1ce1d3b3d97623887",
+  "remote_equivalent_commit": "a20a7484a9ac7ba0e3d23dccce9013b445a683af",
+  "tree": "04ed03047d35429b3d446aa90ea000d63128e7e4",
+  "source": "73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b",
+  "latest_user_bounds": {
+    "principal_final_wealth_minimum": 15,
+    "maximum_orders_per_account_replay": 40,
+    "no_additional_wealth_discount": true
+  },
+  "runs": [
+    {
+      "case": "integrated-strict-sentinel",
+      "source": "73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b",
+      "sessions": 39,
+      "result_sha256": "1d5ab8311fff18887cedc60eab410a0ca2c2a84ec7d6d0373ba7fb83767e6114",
+      "raw_sha256": "4293e6a0a79a032e7ce8b3cedb46d1554912b9137d05c5d795a73332e54c7b72",
+      "data": {
+        "checksums_sha256": "8ecfc8bd29f9dba58f7d0aefb965933b1e25fd3ba83fb33e6b66114ae2066d68",
+        "files_verified": 36,
+        "manifest_sha256": "d4d7e4c7e1aeeb953608ce401fcff3ccc96ef029febbfd20945c2d90210f4aa1",
+        "snapshot_id": "uquant-research-source-prices-v1-20260909"
+      },
+      "native_readback": true,
+      "metrics": {
+        "final_wealth": 1.0,
+        "max_drawdown": -0.0,
+        "account_orders": 0,
+        "fees": 0,
+        "slippage_cost": 0
+      }
+    },
+    {
+      "case": "frozen-no-optical-h1",
+      "source": "73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b",
+      "sessions": 118,
+      "result_sha256": "780ea7a2f843687393093cd2071b99734933260f8ca58421d09634628e245014",
+      "raw_sha256": "82dd9c26a161ffee6efa7f9a370e4ae4440ca8db11628ec430f5408c5cb94180",
+      "data": {
+        "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+        "files_verified": 36,
+        "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+        "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+      },
+      "native_readback": true,
+      "metrics": {
+        "final_wealth": 1.46967099161851,
+        "max_drawdown": 0.23197003119509207,
+        "account_orders": 7,
+        "fees": 2599.24576298,
+        "slippage_cost": 4635.770999999797
+      }
+    },
+    {
+      "case": "integrated-strict",
+      "source": "73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b",
+      "sessions": 869,
+      "result_sha256": "25ddb85858d6416f0e271a7ebd15a845eb6b877b4a499964f54426bc48819ee5",
+      "raw_sha256": "f3500f08ffb1409c51722d6cb0111d1739f046659b9e960725e9c885a6f5a7f4",
+      "data": {
+        "checksums_sha256": "8ecfc8bd29f9dba58f7d0aefb965933b1e25fd3ba83fb33e6b66114ae2066d68",
+        "files_verified": 36,
+        "manifest_sha256": "d4d7e4c7e1aeeb953608ce401fcff3ccc96ef029febbfd20945c2d90210f4aa1",
+        "snapshot_id": "uquant-research-source-prices-v1-20260909"
+      },
+      "native_readback": true,
+      "metrics": {
+        "final_wealth": 6.426636196938162,
+        "max_drawdown": 0.16783826771182042,
+        "account_orders": 36,
+        "fees": 16562.631531678802,
+        "slippage_cost": 27158.2945919988
+      }
+    },
+    {
+      "case": "nominal/champion",
+      "source": "73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b",
+      "sessions": 869,
+      "result_sha256": "027ddf8fbb4639d4bbad67e2b81063f62154843c3014bb481ead0b70f413b9c0",
+      "raw_sha256": "5b588aaa6ba1fdb9112ef2dbc3b3b2432b064f12c908656b43789dd35feb48c8",
+      "data": {
+        "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+        "files_verified": 36,
+        "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+        "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+      },
+      "native_readback": true,
+      "metrics": {
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554,
+        "account_orders": 14,
+        "fees": 46015.79892394601,
+        "slippage_cost": 66615.9745999966
+      }
+    },
+    {
+      "case": "p4-lower-champion",
+      "source": "73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b",
+      "sessions": 869,
+      "result_sha256": "cbf722dcb555577dcb5d388b4b0c081b19a6e03d8f08fb4dd5bef8df454e8eed",
+      "raw_sha256": "107b05680b3c60a143aa51788f5dfe45b8a3958fa42dedb739dee84e928a8b4c",
+      "data": {
+        "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+        "files_verified": 36,
+        "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+        "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+      },
+      "native_readback": true,
+      "metrics": {
+        "final_wealth": 3.632624825485006,
+        "max_drawdown": 0.1723508887086519,
+        "account_orders": 22,
+        "fees": 11273.291229988,
+        "slippage_cost": 19523.257799998948
+      }
+    }
+  ],
+  "absolute_champion": {
+    "status": "COMPLETE",
+    "manifest_sha256": "437aa30d6994ddc4a3be06873d8a26768956b6cbd07660455ba6cbf883973fec",
+    "metrics": {
+      "final_wealth": 25.109594313238023,
+      "max_drawdown": 0.27146973146234554,
+      "account_orders": 14
+    }
+  },
+  "integration_equivalence": {
+    "reproduces_prior_c482_strict": false,
+    "prior_strict_wealth": 2.647783701178714,
+    "first_target_divergence": "2023-05-05",
+    "difference": "Current PR retains retirement of fresh ordinary long-pullback entry; prior candidate issued a20% sz002281 target, current integration issued none. Do not attribute full integration difference to velocity exit alone.",
+    "current_C_control_wealth": 2.1339534386284393,
+    "runner_difference": "Only an added manifest-is-dict guard; sealed input is an object in both runs. Economic runner statements are otherwise identical."
+  },
+  "known_failure": {
+    "frozen_profile": "p4_lower",
+    "final_wealth": 3.632624825485006,
+    "nominal_wealth": 25.109594313238023,
+    "retention_ratio": 0.14467078918793405,
+    "first_native_buy_signal": "2024-02-22",
+    "nominal_first_buy_signal": "2023-01-04",
+    "classification": "Shared entry-path sensitivity; exit change does not solve it."
+  },
+  "performance": {
+    "status": "PARTIAL_STOPPED_AFTER_INDEPENDENT_ECONOMIC_FAILURE",
+    "exit_code": 130,
+    "cache_json_files": 8,
+    "full_acceptance": false
+  },
+  "engineering": {
+    "mypy": "331 source files PASS",
+    "ruff": "PASS before final checkpoint",
+    "absolute_current_contract_policy_fixture": "99 PASS",
+    "research_typing_behavior": "39 PASS; separate architecture oracle restored and final projection PASS",
+    "affected_public_api_lifecycle_architecture": "11 targeted PASS across recorded invocations",
+    "whole_engineering_acceptance": false
+  },
+  "next": "Preregister targeted removal of redundant macro-index reversal veto; retain all stock-level qualification, confirmation and portfolio risk. Verify original fixed cases and startup offsets; no threshold sweep or relabelled deleted-control results."
+}

@@ -5,26 +5,27 @@ They are signal inputs, not a dividend/tax/share-lot cash-account simulator.
 """
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
 PROTECTED_FROM = date(2026, 8, 6)
 PRICE_FIELDS = ('open', 'high', 'low', 'close')
 
 
-def _day(value):
+def _day(value: str) -> date:
     point = date.fromisoformat(value)
     if point >= PROTECTED_FROM:
         raise ValueError('protected date in research price input')
     return point
 
 
-def _number(value):
+def _number(value: object) -> Decimal:
     result = Decimal(str(value))
     if not result.is_finite():
         raise ValueError('nonfinite source value')
     return result
 
 
-def linked_prices(rows, events, *, as_of):
+def linked_prices(rows: list[dict[str, Any]], events: list[dict[str, Any]], *, as_of: str) -> list[dict[str, Any]]:
     """Link only already-effective events, without changing prior output rows."""
     bound = _day(as_of)
     days = [_day(row['date']) for row in rows]
@@ -46,27 +47,27 @@ def linked_prices(rows, events, *, as_of):
             raise ValueError('action ex-date requires an observed session')
         active[event['ex_date']] = event
     scale = Decimal(1)
-    previous_close = None
-    output = []
+    previous_close: Decimal | None = None
+    output: list[dict[str, Any]] = []
     for row in visible:
         values = {name: _number(row[name]) for name in PRICE_FIELDS}
         if min(values.values()) <= 0:
             raise ValueError('source prices must be positive')
         if values['high'] < max(values.values()) or values['low'] > min(values.values()):
             raise ValueError('invalid source OHLC geometry')
-        event = active.get(row['date'])
-        if event is not None:
+        action = active.get(row['date'])
+        if action is not None:
             if previous_close is None:
                 raise ValueError('action requires previous observed close')
-            if 'ratio_denominator' in event:
-                denominator = _number(event['ratio_denominator'])
+            if 'ratio_denominator' in action:
+                denominator = _number(action['ratio_denominator'])
                 if denominator <= 0:
                     raise ValueError('action denominator must be positive')
-                cash = _number(event['cash_ratio_numerator']) / denominator
-                shares = _number(event['share_ratio_numerator']) / denominator
+                cash = _number(action['cash_ratio_numerator']) / denominator
+                shares = _number(action['share_ratio_numerator']) / denominator
             else:
-                cash = _number(event['cash_adjustment_per_share'])
-                shares = _number(event['share_change_ratio'])
+                cash = _number(action['cash_adjustment_per_share'])
+                shares = _number(action['share_change_ratio'])
             if cash < 0 or shares < 0:
                 raise ValueError('negative action coefficient requires separate review')
             reference = (previous_close - cash) / (1 + shares)

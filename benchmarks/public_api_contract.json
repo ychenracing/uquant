@@ -20766,14 +20766,17 @@
           "UniverseMember",
           "_DEFAULT_UNIVERSE",
           "_MEMBER_FIELDS",
+          "_RESEARCH_INPUT",
           "_SHA256",
           "_SYMBOL",
           "ai_universe_manifest_bytes",
           "canonical_sha256",
+          "decision_ai_universe",
           "default_ai_universe",
           "frozen_champion_bytes",
           "load_ai_universe",
-          "load_performance_frozen_champion"
+          "load_performance_frozen_champion",
+          "research_industry_input"
         ],
         "functions": {
           "ai_universe_manifest_bytes": {
@@ -20792,6 +20795,10 @@
               }
             ],
             "return": "str"
+          },
+          "decision_ai_universe": {
+            "parameters": [],
+            "return": "AIUniverse"
           },
           "default_ai_universe": {
             "parameters": [],
@@ -20828,6 +20835,27 @@
               }
             ],
             "return": "FrozenChampion"
+          },
+          "research_industry_input": {
+            "parameters": [
+              {
+                "name": "path",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "expected_sha256",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "Iterator[AIUniverse]"
           }
         },
         "classes": {
@@ -20848,6 +20876,15 @@
                   "annotation": "str",
                   "default": {
                     "kind": "required"
+                  }
+                },
+                {
+                  "name": "industry_revisions",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "tuple[tuple[str, date, str], ...]",
+                  "default": {
+                    "kind": "tuple",
+                    "value": []
                   }
                 }
               ],
@@ -21134,6 +21171,14 @@
                 "type": "str",
                 "default": {
                   "kind": "required"
+                }
+              },
+              {
+                "name": "industry_revisions",
+                "type": "tuple[tuple[str, date, str], ...]",
+                "default": {
+                  "kind": "tuple",
+                  "value": []
                 }
               }
             ]
@@ -23345,6 +23390,7 @@
           "IndustrySignal",
           "_FROZEN_COMPATIBILITY_LABELS",
           "compute_industry_signals",
+          "decision_industries",
           "production_industries"
         ],
         "functions": {
@@ -23384,6 +23430,19 @@
               }
             ],
             "return": "dict[str, IndustrySignal]"
+          },
+          "decision_industries": {
+            "parameters": [
+              {
+                "name": "as_of",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "Mapping[str, str]"
           },
           "production_industries": {
             "parameters": [],
@@ -79810,7 +79869,9 @@
         "path": "uquant/validation/acceptance_tolerance.py",
         "public_names": [
           "acceptance_revision",
+          "half_year_drawdown_ceiling",
           "order_ceiling",
+          "principal_wealth_floor",
           "wealth_floor"
         ],
         "functions": {
@@ -79818,7 +79879,67 @@
             "parameters": [],
             "return": "dict[str, typing.Any]"
           },
+          "half_year_drawdown_ceiling": {
+            "parameters": [
+              {
+                "name": "original",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "case",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "window",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "authorized",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                }
+              }
+            ],
+            "return": "float"
+          },
           "order_ceiling": {
+            "parameters": [
+              {
+                "name": "original",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "authorized",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                }
+              }
+            ],
+            "return": "float"
+          },
+          "principal_wealth_floor": {
             "parameters": [
               {
                 "name": "original",
@@ -94868,6 +94989,15 @@
                   "default": {
                     "kind": "required"
                   }
+                },
+                {
+                  "name": "industry_revisions",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "tuple[tuple[str, date, str], ...]",
+                  "default": {
+                    "kind": "tuple",
+                    "value": []
+                  }
                 }
               ],
               "return": "None"
@@ -95153,6 +95283,14 @@
                 "type": "str",
                 "default": {
                   "kind": "required"
+                }
+              },
+              {
+                "name": "industry_revisions",
+                "type": "tuple[tuple[str, date, str], ...]",
+                "default": {
+                  "kind": "tuple",
+                  "value": []
                 }
               }
             ]
@@ -96227,7 +96365,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "2b8a8c9e08f89748c8d5fb32aee211026de762715ca2baeb2049051e073392ae",
+  "contract_sha256": "1cd0454e58710b59434637ff1d70e659ed256e7e74639584299b8d1cc8f861d9",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

@@ -228,7 +228,7 @@ def test_report_rejects_reference_only_capital_authority() -> None:
 @pytest.mark.parametrize(  # type: ignore[untyped-decorator]
     ("path", "value", "failure"),
     (
-        (("metrics", "final_wealth"), 23.284178712755819, "wealth"),
+        (("metrics", "final_wealth"), 14.999999999999998, "wealth"),
         (("metrics", "max_drawdown"), 0.30000000000000004, "drawdown"),
         (("path_sha256", "equity"), "9" * 64, "path"),
         (("duplicate_grant_count",), 1, "duplicate grant"),

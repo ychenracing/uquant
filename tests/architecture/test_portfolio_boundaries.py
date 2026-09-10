@@ -235,7 +235,7 @@ def _normalized_method(node: ast.FunctionDef) -> str:
 
 
 def _project_causal_lifecycle_exit(node: ast.FunctionDef) -> ast.FunctionDef:
-    """Project reviewed clock and maturity-veto removal; preserve damage rules."""
+    """Project reviewed causal clock and velocity-veto removal, keeping maturity."""
     observation = ast.parse(
         '''
 clock = f"lifecycle_exit_session:{symbol}"
@@ -253,7 +253,7 @@ elif not broken:
 '''
     ).body
     projected = copy.deepcopy(node)
-    assert ast.get_docstring(projected) == "Confirm absolute price damage; relative maturity cannot veto an exit."
+    assert ast.get_docstring(projected) == "Confirm lost holding structure without a pre-entry-return velocity veto."
     projected.body[0] = ast.Expr(value=ast.Constant(
         value="Reuse the existing per-symbol damage confirmation across owner gaps."))
     start = -len(observation) - 2
@@ -268,13 +268,16 @@ elif not broken:
                   and any(isinstance(target, ast.Name) and target.id == "broken" for target in item.targets))
     expected_damage = ast.parse('''
 broken = bool(
-    scalar(row, "close") < scalar(row, f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}")
-    and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
+    not leader.mature
+    and scalar(row, "close") < scalar(row, f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}")
 )
 ''').body[0]
     assert ast.dump(damage) == ast.dump(expected_damage)
     assert isinstance(damage.value, ast.Call) and isinstance(damage.value.args[0], ast.BoolOp)
-    damage.value.args[0].values.insert(0, ast.parse("not leader.mature", mode="eval").body)
+    damage.value.args[0].values.append(ast.parse(
+        'scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)',
+        mode="eval",
+    ).body)
     return projected
 
 
@@ -892,7 +895,7 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
         ("elif not broken:", "elif broken:"),
         (">= self.cfg.replacement_confirm_days", ">= 1"),
         (">= self.cfg.min_hold_days", ">= 1"),
-        ("else -0.08", "else -0.07"),
+        ("not leader.mature", "leader.mature"),
         ("self.cfg.trend_medium if protected_winner", "self.cfg.trend_fast if protected_winner"),
     ),
 )

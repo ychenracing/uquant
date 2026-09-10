@@ -7,6 +7,7 @@ import hashlib
 import itertools
 import json
 import math
+from collections.abc import Sequence
 from pathlib import Path
 
 from research.cross_ai_acceptance import read_case
@@ -19,12 +20,12 @@ SOURCES = {
 }
 
 
-def value(state, sale_price, terminal_price):
+def value(state: Sequence[float], sale_price: float, terminal_price: float) -> float:
     quantity, purchase_price, sold_fraction = state
     return quantity * (sold_fraction * sale_price + (1 - sold_fraction) * terminal_price - purchase_price)
 
 
-def shapley(before, after, sale_price, terminal_price):
+def shapley(before: Sequence[float], after: Sequence[float], sale_price: float, terminal_price: float) -> dict[str, float]:
     contributions = [0.0] * 3
     for order in itertools.permutations(range(3)):
         state = list(before)
@@ -35,7 +36,7 @@ def shapley(before, after, sale_price, terminal_price):
     return dict(zip(("quantity", "purchase_price", "sold_fraction"), contributions, strict=True))
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--simple", type=Path, required=True)

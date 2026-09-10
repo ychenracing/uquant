@@ -10,6 +10,7 @@ import gzip
 import json
 from collections import Counter
 from pathlib import Path
+from typing import Any
 
 from research.cross_ai_acceptance import read_case
 
@@ -20,17 +21,18 @@ SOURCES = {
 }
 
 
-def audit(root: Path, name: str, source: str) -> dict:
+def audit(root: Path, name: str, source: str) -> dict[str, Any]:
     case = {'minus_sz300666': 'remove_all_three', 'no_optical_h1': 'no_optical'}.get(name, name)
     end = '2023-06-30' if name == 'no_optical_h1' else '2026-08-05'
     result = read_case(root, case=case, interval=['2023-01-03', end],
                        source=source,
                        extra_excluded_symbols=('sz300666',) if name == 'minus_sz300666' else ())
     sealed = json.loads((root / 'result.json').read_text())
-    counts: Counter = Counter()
-    blocks: Counter = Counter()
-    ready_blocks: Counter = Counter()
-    events, freezes, previous_targets = [], [], {}
+    counts: Counter[str] = Counter()
+    blocks: Counter[str] = Counter()
+    ready_blocks: Counter[str] = Counter()
+    events, freezes = [], []
+    previous_targets: dict[str, float] = {}
     prior_freeze = False
     prior_blocked: set[str] = set()
     blocked_episodes = []
@@ -86,7 +88,7 @@ def audit(root: Path, name: str, source: str) -> dict:
                                    'equity': row['equity'], 'frozen': frozen})
             for fill in row['new_fills']:
                 if fill['side'] == 'BUY':
-                    prev = previous_row['ledger']['position_weights'] if previous_row else {}
+                    prev: dict[str, float] = previous_row['ledger']['position_weights'] if previous_row else {}
                     if prev.get(fill['symbol'], 0) <= 0:
                         buys.append({k: fill[k] for k in ('symbol', 'signal_date', 'fill_date', 'gross_value', 'mechanism')})
                 else:

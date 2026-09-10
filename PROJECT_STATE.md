@@ -1,3 +1,16 @@
+15/40 native results and causal next step — 2026-09-10:
+
+- NOT_MET; PR56 Draft; main unchanged. Revisionv4 hard principalwealth15 / at most40orders per account replay retained.
+- Integration producer9be0a135, source73969473, remote-equivalent a20a7484: nominal champion25.109594/DD27.146973%/14orders; frozen no_optical/H1 1.469671/DD23.197003%/7orders. Native readbacks complete. Absolute champion/report-13 shard COMPLETE, not allAbsolutePASS.
+- Fixed P4 lower champion FAIL: wealth3.632625/DD17.235089%/22orders; same nominal25.109594. First buy signal still deferred from2023-01-04 to2024-02-22. Exit-only direction cannot solve totalgoal; stop remaining Performance fullmatrix with completedunits preserved, noPASS.
+- Integrated repaired strict6.426636/DD16.783827%/36orders differs from priorc482candidate2.647784. Firsttarget divergence2023-05-05 comes from currentPR's retained deletion of fresh long-pullback admission; previousresearchmain/candidate still had that entry. This invalidates integration-neutrality premise, not raw validity. CurrentC control2.133953 has same data/config/runtime; its runner differs only by object-type inputvalidation, satisfied in both. Costs43,720.93/initial2M exceed2%; no strictformalPASS claim.
+- Engineering: 331sourcefiles strictmypy PASS; allRuff PASS;99 Absolute currentcontract/policy/nativefixture tests PASS;39 research parser/analysis behavior tests PASS;11 affected architecture/API/lifecycle nodes PASS across recordedruns. Historical Git blobs restored exact through explicit repoREAD (lazyfetchdisabled). Keep original badfixture/source/mypy logs. No whole-engineeringPASS.
+- Recomparison selects scoped removal of macro-index120-day reversal veto, not ordinary entry widening or parameter tuning. Stock-level reversal/quality/witness/confirmation and all account risk remain. Actual code/parameter retirement still pending preregistered implementation. Prove actual deletion, never call inactive P4 overrides robustnessPASS; test fixed nominal/removal/H1 and starts before expensive finalgates. See benchmarks/goal15_40_stage_result.{md,json}. No other goalproposal adopted.
+- New stage archive packaging underway; append verified savedreceipt when available. Original107MB delivery remains closed.
+
+---
+Earlier checkpoints:
+
 Latest15/40 authorization and candidate integration — 2026-09-10:
 
 - NOT_MET; PR56 Draft, no main merge. User explicitly accepts principal full/champion wealth >=15.0 including capital, never lower, and <=40 cumulative account orders per replay, including shorter windows. Revisionv4 preserves original judgments; no further90% discount of15. All other effective requirements remain. Prior goal-change proposal is not otherwise adopted.

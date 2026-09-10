@@ -9,17 +9,18 @@ import math
 from collections import defaultdict
 from pathlib import Path
 from statistics import mean
+from typing import Any
 
 from research.opportunity_capture_audit import rank_ic
 
 RECEIPT_SHA = '72e2ff527087caa3e0d849aea33f789e13af5c15907f1718cac36e07c54999bd'
 
 
-def digest(path):
+def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def cohort_record(row, mapping, *, corrected):
+def cohort_record(row: dict[str, Any], mapping: dict[str, dict[str, Any]], *, corrected: bool) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Keep all endpoint labels in a cohort or reject it, never impute missing."""
     if corrected:
         unresolved = [x['symbol'] for x in row['features']
@@ -51,7 +52,7 @@ def cohort_record(row, mapping, *, corrected):
             'members': [x['symbol'] for x in features], 'pool_return': pool, 'methods': methods}, None
 
 
-def summaries(records):
+def summaries(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     groups = defaultdict(list)
     for row in records:
         for period in ('all', '2023-24' if row['date'] < '2025' else '2025-26'):
@@ -65,7 +66,7 @@ def summaries(records):
             for (c, h, p), rows in sorted(groups.items())]
 
 
-def analyze(receipt, taxonomy):
+def analyze(receipt: dict[str, Any], taxonomy: dict[str, Any]) -> dict[str, Any]:
     mapping = {x['symbol']: x for x in taxonomy['members']}
     original_members = receipt['universe_provenance']['members']
     if len(mapping) != 34 or set(mapping) != {x['symbol'] for x in original_members}:
@@ -73,11 +74,11 @@ def analyze(receipt, taxonomy):
     for x in original_members:
         if mapping[x['symbol']]['recorded_industry'] != x['industry']:
             raise ValueError('original taxonomy mismatch')
-    result = {'diagnostic_only': True, 'future_holdout_used': False,
+    result: dict[str, Any] = {'diagnostic_only': True, 'future_holdout_used': False,
               'industry_first_recomputed': False, 'production_scores_recomputed': False,
               'new_native_accounts': False, 'cases': {}}
     for name, case in receipt['cases'].items():
-        by_industry = defaultdict(float)
+        by_industry: defaultdict[str, float] = defaultdict(float)
         for symbol, item in case['capture'].items():
             by_industry[mapping[symbol]['research_industry']] += item['net_pnl']
         total = sum(by_industry.values())
@@ -95,6 +96,7 @@ def analyze(receipt, taxonomy):
             if ea or eb:
                 excluded.append({'base_cohort': row['cohort'], 'old': ea, 'new': eb})
                 continue
+            assert a is not None and b is not None
             old.append(a)
             new.append(b)
         result['cases'][name] = {
@@ -109,7 +111,7 @@ def analyze(receipt, taxonomy):
     return result
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--taxonomy', type=Path, default=Path('benchmarks/industry_input_v2/taxonomy.json'))
     parser.add_argument('--receipt', type=Path, default=Path('benchmarks/opportunity_capture_receipts.json.gz'))

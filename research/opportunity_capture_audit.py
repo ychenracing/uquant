@@ -12,8 +12,10 @@ import hashlib
 import json
 import math
 from collections import Counter, defaultdict
+from collections.abc import Callable
 from pathlib import Path
 from statistics import correlation, mean, median
+from typing import Any, cast
 
 from research.cross_ai_acceptance import read_case
 from uquant.validation.manifest import verify_data_manifest
@@ -23,22 +25,22 @@ END = "2026-08-05"
 NAMES = ("full", "remove_all_three", "minus_sz300666", "no_optical_h1")
 
 
-def digest(path):
+def digest(path: Path) -> str:
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def ranks(values):
+def ranks(values: list[float]) -> list[float]:
     return [sum(v < x for v in values) + (values.count(x) + 1) / 2 for x in values]
 
 
-def rank_ic(scores, outcomes):
+def rank_ic(scores: list[float], outcomes: list[float]) -> float | None:
     if len(scores) < 3 or len(set(scores)) < 2 or len(set(outcomes)) < 2:
         return None
     return correlation(ranks(scores), ranks(outcomes))
 
 
-def select(leaders, method):
+def select(leaders: list[dict[str, Any]], method: str) -> list[str]:
     """Selection has no price-label argument and uses only observed features."""
     if method == "industry_first":
         groups = defaultdict(list)
@@ -47,18 +49,18 @@ def select(leaders, method):
         best = min(groups, key=lambda g: (-median(
             x["components"]["industry_rotation_strength"] for x in groups[g]), g))
         leaders = groups[best]
-    key = (lambda x: x["score"]) if method == "score" else (
+    key: Callable[[dict[str, Any]], float] = (lambda x: x["score"]) if method == "score" else (
         lambda x: x["components"]["raw_ret120"])
     return [x["symbol"] for x in sorted(leaders, key=lambda x: (-key(x), x["symbol"]))[:3]]
 
 
-def valid_features(item):
+def valid_features(item: dict[str, Any]) -> bool:
     values = (item["score"], item["components"].get("raw_ret120"),
               item["components"].get("industry_rotation_strength"))
     return all(isinstance(v, (int, float)) and math.isfinite(v) for v in values)
 
 
-def label(prices, symbol, dates, index, horizon):
+def label(prices: dict[str, dict[str, float]], symbol: str, dates: list[str], index: int, horizon: int) -> dict[str, Any] | None:
     if index + horizon + 1 >= len(dates):
         return None
     start, end = dates[index + 1], dates[index + horizon + 1]
@@ -70,7 +72,7 @@ def label(prices, symbol, dates, index, horizon):
             "exit_open": b, "gross_return": b / a - 1}
 
 
-def summarize(records):
+def summarize(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     groups = defaultdict(list)
     for row in records:
         for period in ("all", "2023-24" if row["date"] < "2025" else "2025-26"):
@@ -93,15 +95,20 @@ def summarize(records):
     return result
 
 
-def analyze(root, name, prices):
+def analyze(root: Path, name: str, prices: dict[str, dict[str, float]]) -> dict[str, Any]:
     case = {"minus_sz300666": "remove_all_three", "no_optical_h1": "no_optical"}.get(name, name)
     end = "2023-06-30" if name == "no_optical_h1" else END
     read_case(root, case=case, interval=["2023-01-03", end], source=SOURCE,
               extra_excluded_symbols=("sz300666",) if name == "minus_sz300666" else ())
     sealed = json.loads((root / "result.json").read_text())
-    anchors, records, industry_records, events = [], [], [], []
-    stages = Counter()
-    held_days, mature_days, ready_days, exposures = Counter(), Counter(), Counter(), defaultdict(float)
+    anchors: list[tuple[int, list[dict[str, Any]]]] = []
+    records, industry_records = [], []
+    events: list[dict[str, Any]] = []
+    stages: Counter[str] = Counter()
+    held_days: Counter[str] = Counter()
+    mature_days: Counter[str] = Counter()
+    ready_days: Counter[str] = Counter()
+    exposures: defaultdict[str, float] = defaultdict(float)
     with gzip.open(root / "observations.jsonl.gz", "rt") as stream:
         dates = []
         for index, line in enumerate(stream):
@@ -130,7 +137,8 @@ def analyze(root, name, prices):
             events.extend({k: fill[k] for k in ("symbol", "signal_date", "fill_date", "side", "mechanism", "gross_value")}
                           for fill in row["new_fills"])
     assert dates == sorted(set(dates))
-    missing, feature_exclusions = [], []
+    missing: list[dict[str, Any]] = []
+    feature_exclusions: list[dict[str, Any]] = []
     for index, leaders in anchors:
         feature_exclusions.extend({"date": dates[index], "symbol": x["symbol"], "reason": "nonfinite_contemporaneous_feature"}
                                   for x in leaders if not valid_features(x))
@@ -148,11 +156,12 @@ def analyze(root, name, prices):
                     missing.append({"date": dates[index], "cohort": cohort, "horizon": horizon,
                                     "reason": "censored_or_missing_endpoint", "symbols": [s for s, v in labels.items() if v is None]})
                     continue
-                outcomes = [labels[x["symbol"]]["gross_return"] for x in pool]
+                valid_labels = cast(dict[str, dict[str, Any]], labels)
+                outcomes = [valid_labels[x["symbol"]]["gross_return"] for x in pool]
                 average = mean(outcomes)
                 methods = {}
                 for method, symbols_selected in selected.items():
-                    value = mean(labels[s]["gross_return"] for s in symbols_selected)
+                    value = mean(valid_labels[s]["gross_return"] for s in symbols_selected)
                     methods[method] = {"selected": symbols_selected, "return": value, "excess": value - average}
                 records.append({"date": dates[index], "cohort": cohort, "horizon": horizon,
                                 "pool_count": len(pool), "pool_return": average,
@@ -166,7 +175,7 @@ def analyze(root, name, prices):
                     members = [x for x in pool if x["industry"] == industry]
                     industry_records.append({"date": dates[index], "cohort": cohort, "horizon": horizon,
                                              "industry": industry, "members": len(members),
-                                             "gross_return": mean(labels[x["symbol"]]["gross_return"] for x in members)})
+                                             "gross_return": mean(valid_labels[x["symbol"]]["gross_return"] for x in members)})
     date_index = {d: i for i, d in enumerate(dates)}
     for event in events:
         event["forward_labels"] = {str(h): label(prices, event["symbol"], dates, date_index[event["signal_date"]], h) for h in (20, 60)}
@@ -185,7 +194,7 @@ def analyze(root, name, prices):
             "net_industry_pnl": {s: x["total_pnl"] for s, x in sealed["attribution"]["by_industry"].items()}}
 
 
-def bull_diagnostic(path, prices, dates):
+def bull_diagnostic(path: Path, prices: dict[str, dict[str, float]], dates: list[str]) -> dict[str, Any]:
     raw = json.loads(path.read_text())
     first = {}
     for row in raw["rows"]:
@@ -202,7 +211,7 @@ def bull_diagnostic(path, prices, dates):
                 for kind, day in (("first_mature", first.get(symbol)), ("original_first_entry", "2025-07-30")) if day]}
 
 
-def universe_provenance():
+def universe_provenance() -> dict[str, Any]:
     path = Path("uquant/contracts/resources/ai_universe_manifest.json")
     manifest = json.loads(path.read_text())
     rows = []
@@ -215,7 +224,7 @@ def universe_provenance():
             "members": rows, "interpretation": "Metadata gap, not proof of look-ahead: price history and retrospective review alone do not establish contemporaneous AI membership knowledge."}
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs", type=Path, required=True)
     parser.add_argument("--bull", type=Path, required=True)
@@ -227,7 +236,7 @@ def main():
         with path.open() as stream:
             prices[path.stem] = {r["date"]: float(r["open"]) for r in csv.DictReader(stream) if r["date"] <= END}
         hashes[path.name] = digest(path)
-    result = {"diagnostic_only": True, "future_holdout_used": False, "price_file_hashes": hashes, "cases": {}}
+    result: dict[str, Any] = {"diagnostic_only": True, "future_holdout_used": False, "price_file_hashes": hashes, "cases": {}}
     result["universe_provenance"] = universe_provenance()
     for name in NAMES:
         result["cases"][name] = analyze(args.runs / name, name, prices)

@@ -10,6 +10,7 @@ import math
 from collections import defaultdict
 from pathlib import Path
 from statistics import correlation, mean
+from typing import Any, cast
 
 import numpy as np
 
@@ -18,7 +19,7 @@ from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.validation.manifest import verify_data_manifest
 
 
-def report_signals(rows, date):
+def report_signals(rows: list[dict[str, Any]], date: str) -> dict[str, Any] | None:
     available = [r for r in rows if r["status"] == "verified_numeric_original"
                  and r["disclosed_date"] < date]
     periods = {}
@@ -36,7 +37,7 @@ def report_signals(rows, date):
             "previous_source_sha256": previous["sha256"] if previous else None}
 
 
-def partial_rank_ic(signal, outcomes, momentum):
+def partial_rank_ic(signal: list[float], outcomes: list[float], momentum: list[float]) -> float | None:
     if len(signal) < 4:
         return None
     x, y, z = (np.asarray(ranks(v), dtype=float) for v in (signal, outcomes, momentum))
@@ -48,7 +49,7 @@ def partial_rank_ic(signal, outcomes, momentum):
     return float(correlation(x.tolist(), y.tolist()))
 
 
-def analyze(panel, native, prices_dir):
+def analyze(panel: list[dict[str, Any]], native: Path, prices_dir: Path) -> dict[str, Any]:
     sealed = json.loads((native / "result.json").read_text())
     seal = sealed.pop("canonical_sha256")
     if hashlib.sha256(canonical_json_bytes(sealed)).hexdigest() != seal or sealed["status"] != "COMPLETE":
@@ -99,7 +100,7 @@ def analyze(panel, native, prices_dir):
                         exclusions.append({"date": dates[index], "subset": subset, "signal": signal,
                                            "horizon": horizon, "reason": "small_or_censored_population"})
                         continue
-                    returns = [v["gross_return"] for v in labels]
+                    returns = [v["gross_return"] for v in cast(list[dict[str, Any]], labels)]
                     values, momentum = [x[signal] for x in pool], [x["ret120"] for x in pool]
                     records.append({"date": dates[index], "subset": subset, "signal": signal,
                                     "horizon": horizon, "n": len(pool), "features": pool, "labels": labels,

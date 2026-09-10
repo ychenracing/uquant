@@ -1,5 +1,12 @@
 # Current task state — 2026-09-10
 
+Latest execution: user authorized the narrowed held-restoration route and minor
+comparison tolerances. Candidate implemented on codex/protected-holding-recovery-20260910;
+economic source eac89fcd6fd386d8ca123e8d32ca3e7846c0955404908e9c78d8b301c20584e8.
+45distinct affected tests PASS; native no_optical/later is the next economic gate.
+Older NOT_IMPLEMENTED descriptions are preserved history, superseded by the final
+implementation checkpoint. Full goal remains unproven; no main merge.
+
 Status: NOT_MET. PR56 Draft; no merge. Follow the user continuous-goal prompt;
 failed candidates and checkpoints do not complete the goal. Principal full/champion
 nominal wealth floor15 exactly, all account orders40; retain other effective gates.
@@ -535,3 +542,41 @@ is established. Failure should inform the next supported route, not parameter
 hunting or an invented guarantee of success. Latest detailed assessment and
 held_capital_repair_followup_audit.json preserve facts, reasoning and limitations.
 This turn adds no strategy change, economic replay, Future Holdout access or merge.
+
+
+## Latest implementation authorization — protected holding recovery, 2026-09-10
+
+User now explicitly says to implement the recommended route and also permits
+appropriate relaxation of similarly small acceptance gaps. Proceed without a
+new research-permission question. Preserve named original/new limits and failures;
+around1%wealth/1.5ppDD is a review scale, not repeated global compounding. The
+explicit principal15/order40 anchors remain; the existing40.89%gap is not minor.
+
+Reuse the already isolated workspace on codex/protected-holding-recovery-20260910.
+Selected CAUTION's six production files restored from immutable7698a22b, verified
+economic source exactlya39a9542 before new implementation; v5 readers/current
+participation proof repair remain. Original source tree/archives remain untouched.
+This research candidate includes the selected CAUTION behavior, not just PR78e2.
+
+Implemented a scoped five-observed-session healthy/structured live protected
+holding permission in portfolio/pipeline.py, using existing candidate_tenure
+and cfg.capital_budget_repair_days, not the original capital ladder counter.
+No tier lowering or peak reset, no general unfreeze/new entry. Current level1,
+chronic0, NORMAL/CAUTION/NONE, published health bounds, no damage/Sentinel and
+settled execution required. A correctly bound already-authorized partial
+POST_SHOCK_RESTORATION remainder can continue through the original reserved
+budget. Only qualifying live symbols survive the final freeze filter; original
+holding episode/structure/caps/orders/accounting remain authoritative.
+
+Baseline29targeted testsPASS. New positive tests first failed on missing real
+restoration, then41combinedtestsPASS (five real days, duplicate/restart/gap,
+damage/structure/missing-data denials, next-open fill and partial remainder).
+Additional episode/tier/other-order exclusions are verified before native run.
+Those four exclusions PASS;16new-module tests plus29existing affected tests are
+45distinct PASS. Ruff and mypy on the affected implementation PASS. Original
+raw/source/data/runtime and all prior failures remain unchanged.
+Plan: benchmarks/protected_holding_recovery_plan.md. Next single native case is
+no_optical2025-01-02..2026-07-31 versus the immutable selected control. Do not
+infer profitability from tests. Candidate source must remain immutable during
+the run, and source/readback/result/raw receipts must be preserved before moving
+to the evidence-directed next step. No broad matrix or main merge yet.

@@ -24,6 +24,7 @@ from ..config import (
 from ..contracts.universe import AIUniverse
 from ..data import DataManifest, DataStore, normalize_symbol
 from ..execution import merge_pending_orders, plan_orders
+from ..industry import decision_industries
 from ..leader import (
     compute_leaders,
 )
@@ -392,6 +393,7 @@ def decision_market_context(
     reference_context = build_reference_context(
         date=date,
         panel=reference_panel,
+        industries=decision_industries(str(date.date())),
         cfg=decision_cfg,
         reference_returns=reference_returns,
     )

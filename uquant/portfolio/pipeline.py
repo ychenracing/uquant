@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from copy import deepcopy
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
@@ -17,7 +18,7 @@ from ..models.strategic_universe import StrategicUniverseRoles
 from ..models.trading import late_strategic_fill_allowed
 from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
 from ..portfolio_core import current_weights, symbol_weight_cap
-from ..risk.pullback import pullback_risk_open
+from ..risk.pullback import pullback_book_settled, pullback_risk_open
 from ..types import (
     AccountState,
     AttributionMechanism,
@@ -35,6 +36,7 @@ from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import observe_ordinary_market, ordinary_core_entry
 from .recovery.current_cohort import allocate_confirmed_recovery
+from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -393,10 +395,12 @@ def _restoration_episode_block(book: AllocationBook, symbol: str) -> str | None:
     return None
 
 
-def _restore_ordinary_holdings(book: AllocationBook) -> None:
+def _restore_ordinary_holdings(book: AllocationBook, *, permitted_symbols: set[str] | None = None) -> None:
     account, cfg = book.account, book.policy.cfg
     episode = pd.Timestamp(account.last_shock_date).toordinal() if account.last_shock_date else 0
     for symbol, desired in sorted(account.protected_weights.items()):
+        if permitted_symbols is not None and symbol not in permitted_symbols:
+            continue
         if symbol in book.owned:
             continue
         row = book.record(symbol)
@@ -458,6 +462,80 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
         ))
         or synchronized
     )
+
+
+def _held_repair_symbols(book: AllocationBook) -> set[str]:
+    """Confirm only live protected restoration; never lower the capital tier."""
+    account, risk, cfg = book.account, book.risk, book.policy.cfg
+    state, evidence = account.candidate_tenure, risk.evidence
+    today = book.date.toordinal()
+    last = state.get("held_restore_observed_session", 0)
+    if last > today:
+        raise ValueError("held restoration observation moved backwards")
+    clock = book.policy._session_clock(book.user_panel, book.date)
+    earlier = clock[clock < book.date]
+    previous = earlier[-1].toordinal() if len(earlier) else 0
+    episode = pd.Timestamp(account.last_shock_date).toordinal() if account.last_shock_date else 0
+    damage, held_damage = evidence.get("transition_damage"), evidence.get("held_damage_ratio")
+    healthy = bool(
+        risk.state in {Risk.NORMAL, Risk.CAUTION} and risk.shock_state == "NONE"
+        and risk.reduction_level <= 1 and risk.votes <= 1
+        and account.capital_budget_level == 1 and evidence.get("capital_budget_level") == 1
+        and account.chronic_level == 0 and evidence.get("chronic_level") == 0
+        and not account.sector_guard_active and 0 < episode <= today
+        and isinstance(damage, (int, float)) and not isinstance(damage, bool)
+        and math.isfinite(damage) and 0 <= damage <= cfg.transition_damage_repair
+        and isinstance(held_damage, (int, float)) and not isinstance(held_damage, bool)
+        and math.isfinite(held_damage) and 0 <= held_damage < .5
+        and all(evidence.get(key) is False for key in (
+            "independent_damage", "sector_guard_active", "acute_sector_evacuation",
+            "strategic_damage_guard", "sentinel_freeze_new_risk"))
+    )
+    eligible = {symbol for symbol in account.protected_weights
+                if healthy and symbol not in book.owned
+                and book.weights_now.get(symbol, 0.) > 0
+                and holding_spans_date(account, symbol, account.last_shock_date)
+                and _restoration_episode_block(book, symbol) is None
+                and symbol in book.user_panel and symbol in book.leaders
+                and book.date in book.user_panel[symbol].index
+                and book.policy._structure_ok(book.user_panel[symbol], book.date)
+                and book.proposed.get(symbol, 0.) >= book.weights_now[symbol] - 1e-12}
+    # A previously authorized real remainder keeps only its own reserved rights.
+    pending = {order.order_id for order in account.pending_orders
+               if order.symbol in eligible and order.side == "BUY"
+               and order.mechanism == AttributionMechanism.POST_SHOCK_RESTORATION.value
+               and order.order_id and order.event_id and not order.grant_id and not order.epoch_id
+               and state.get(f"held_restore_health:{order.symbol}", 0) >= cfg.capital_budget_repair_days
+               and state.get(f"held_restore_episode:{order.symbol}", 0) == episode
+               and any(record.order_id == order.order_id and record.event_id == order.event_id
+                       and record.symbol == order.symbol and record.side == order.side
+                       and record.mechanism == order.mechanism
+                       for record in account.order_ledger)}
+    if (any(order.order_id not in pending for order in account.pending_orders)
+            or any(late_strategic_fill_allowed(order)
+                   or (order.status not in {"FILLED", "CANCELLED", "REPLACED"}
+                       and order.order_id not in pending) for order in account.order_ledger)):
+        eligible = set()
+    for key in tuple(state):
+        if key.startswith("held_restore_health:") and key.split(":", 1)[1] not in eligible:
+            state[key] = 0
+    permitted = set()
+    for symbol in sorted(eligible):
+        key, episode_key = f"held_restore_health:{symbol}", f"held_restore_episode:{symbol}"
+        if last != today:
+            count = state.get(key, 0) if last == previous and state.get(episode_key) == episode else 0
+            state[key] = min(cfg.capital_budget_repair_days, count + 1)
+        elif state.get(episode_key) != episode:
+            state[key] = 0
+        state[episode_key] = episode
+        ready = state.get(key, 0) >= cfg.capital_budget_repair_days
+        book.record(symbol)["held_repair"] = {"observations": state.get(key, 0),
+                                              "required": cfg.capital_budget_repair_days,
+                                              "episode": account.last_shock_date, "permitted": ready}
+        if ready:
+            permitted.add(symbol)
+    state["held_restore_observed_session"] = today
+    return permitted
 
 
 def _record_completed_transfer(book: AllocationBook, symbol: str) -> None:
@@ -632,6 +710,48 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
     return tuple(merged)
 
 
+def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> set[str]:
+    """Isolated research permission; reuse the original tactical signal unchanged."""
+    account, risk, policy = book.account, book.risk, book.policy
+    if (risk.state is not Risk.CAUTION or not risk.freeze_new_risk
+            or risk.evidence.get("freeze_new_risk", False)
+            or risk.evidence.get("sentinel_freeze_new_risk", False)
+            or account.capital_budget_level != 0 or account.chronic_level != 0
+            or account.sector_guard_active or account.positions
+            or account.anchor_weights or account.protected_weights or account.strategic_restore_weights
+            or book.owned or not pullback_book_settled(account)):
+        return set()
+    broad, tech = (risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120"))
+    if (not isinstance(broad, (int, float)) or isinstance(broad, bool) or not math.isfinite(broad)
+            or not isinstance(tech, (int, float)) or isinstance(tech, bool) or not math.isfinite(tech)):
+        return set()
+    low, high = min(float(broad), float(tech)), max(float(broad), float(tech))
+    weak = high <= policy.cfg.recovery_cohort_weak_market_ret120
+    transitional = (low <= policy.cfg.recovery_transition_weak_leg_ret120
+                    and high <= policy.cfg.recovery_transition_strong_leg_max_ret120
+                    and high - low >= policy.cfg.recovery_transition_min_divergence)
+    planned = deepcopy(account)
+    targets = tactical_admission_targets(
+        policy, opportunity=opportunity, date=book.date, risk=risk,
+        user_panel=book.user_panel, leaders=book.leaders, account=planned,
+        level1_recovery_repair=False, bounded_recovery_repair=True,
+        tactical_recovery_market=weak or transitional,
+        transitional_recovery_market=transitional, weak_secular_market=weak,
+    )
+    permitted = set()
+    for target in targets or ():
+        if target.weight > 0 and book.fund(target.symbol, target.weight,
+                                          phase="RESEARCH_CAUTION_TACTICAL_PROBE",
+                                          minimum=policy.cfg.min_trade_weight):
+            permitted.add(target.symbol)
+            book.recovery_targets[target.symbol] = target
+    if permitted:
+        account.candidate_tenure.update({key: value for key, value in planned.candidate_tenure.items()
+                                        if key.startswith("tactical_")})
+        account.tactical_anchor_symbol = planned.tactical_anchor_symbol
+    return permitted
+
+
 def _allocate_strategy(
     self: PortfolioAllocator, *, date: pd.Timestamp, opportunity: Opportunity,
     risk: RiskAssessment, user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore],
@@ -642,6 +762,7 @@ def _allocate_strategy(
 ) -> tuple[Target, ...]:
     """Retain each filled owner, then allocate only available common capital."""
     risk.evidence.pop("core_allocation", None)
+    caution_book_was_settled = pullback_book_settled(account)
     weights_now, _ = current_weights(account, prices)
     _prepare_account(self, risk=risk, account=account, weights_now=weights_now)
     frozen = (risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False))
@@ -680,13 +801,17 @@ def _allocate_strategy(
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
                                   trace=book.trace, certificates=certificates, market=market)
     recovery_active = False if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
+    caution_probes = (_research_caution_probe(book, opportunity)
+                     if caution_book_was_settled and not liabilities else set())
+    recovery_active = recovery_active or bool(caution_probes)
     _ordinary_exits(book)
     _pending_intents(book, buy_open=not frozen and not liabilities,
                      market=market, certificates=certificates)
     ordinary_restore = _bounded_ordinary_restore_risk_open(book)
-    if not liabilities and (not frozen or ordinary_restore):
+    held_restore = _held_repair_symbols(book)
+    if not liabilities and (not frozen or ordinary_restore or held_restore):
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
-        _restore_ordinary_holdings(book)
+        _restore_ordinary_holdings(book, permitted_symbols=held_restore if frozen and not ordinary_restore else None)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
     if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
         _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
@@ -722,9 +847,11 @@ def _allocate_strategy(
         frozen_targets = self._frozen_existing_targets(
             strategy_targets=targets, leaders=leaders, account=account, weights_now=weights_now)
         permitted = {t.symbol: t for t in targets if t.symbol in owned} if bounded_restore else {}
-        if ordinary_restore and not liabilities:
+        permitted.update({t.symbol: t for t in targets if t.symbol in caution_probes})
+        if (ordinary_restore or held_restore) and not liabilities:
             permitted.update({t.symbol: t for t in targets
                               if t.symbol not in owned
+                              and (ordinary_restore or t.symbol in held_restore)
                               and t.mechanism == AttributionMechanism.POST_SHOCK_RESTORATION.value})
         permitted.update({t.symbol: t for t in targets if t.symbol == repair_symbol
                           or any(order.symbol == t.symbol and ordinary_cash_rearm_order_open(

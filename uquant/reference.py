@@ -13,7 +13,7 @@ import pandas as pd
 from .config import SystemConfig
 from .contracts.universe import default_ai_universe
 from .features import scalar
-from .industry import compute_industry_signals, decision_industries
+from .industry import compute_industry_signals
 
 
 def production_reference_symbols() -> tuple[str, ...]:
@@ -169,14 +169,12 @@ def build_reference_context(
     *,
     date: pd.Timestamp,
     panel: Mapping[str, pd.DataFrame],
-    industries: Mapping[str, str] | None = None,
+    industries: Mapping[str, str],
     cfg: SystemConfig,
     reference_returns: pd.DataFrame | None = None,
 ) -> ReferenceContext:
     """Build a single causal reference observation with capped group authority."""
     date = pd.Timestamp(date).normalize()
-    if industries is None:
-        industries = decision_industries(str(date.date()))
     expected = tuple(
         sorted(symbol for symbol, frame in panel.items() if not frame.empty and frame.index.min() <= date)
     )

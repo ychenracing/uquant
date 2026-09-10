@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from copy import deepcopy
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
@@ -17,7 +18,7 @@ from ..models.strategic_universe import StrategicUniverseRoles
 from ..models.trading import late_strategic_fill_allowed
 from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
 from ..portfolio_core import current_weights, symbol_weight_cap
-from ..risk.pullback import pullback_risk_open
+from ..risk.pullback import pullback_book_settled, pullback_risk_open
 from ..types import (
     AccountState,
     AttributionMechanism,
@@ -35,6 +36,7 @@ from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import observe_ordinary_market, ordinary_core_entry
 from .recovery.current_cohort import allocate_confirmed_recovery
+from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
@@ -632,6 +634,48 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
     return tuple(merged)
 
 
+def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> set[str]:
+    """Isolated research permission; reuse the original tactical signal unchanged."""
+    account, risk, policy = book.account, book.risk, book.policy
+    if (risk.state is not Risk.CAUTION or not risk.freeze_new_risk
+            or risk.evidence.get("freeze_new_risk", False)
+            or risk.evidence.get("sentinel_freeze_new_risk", False)
+            or account.capital_budget_level != 0 or account.chronic_level != 0
+            or account.sector_guard_active or account.positions
+            or account.anchor_weights or account.protected_weights or account.strategic_restore_weights
+            or book.owned or not pullback_book_settled(account)):
+        return set()
+    broad, tech = (risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120"))
+    if (not isinstance(broad, (int, float)) or isinstance(broad, bool) or not math.isfinite(broad)
+            or not isinstance(tech, (int, float)) or isinstance(tech, bool) or not math.isfinite(tech)):
+        return set()
+    low, high = min(float(broad), float(tech)), max(float(broad), float(tech))
+    weak = high <= policy.cfg.recovery_cohort_weak_market_ret120
+    transitional = (low <= policy.cfg.recovery_transition_weak_leg_ret120
+                    and high <= policy.cfg.recovery_transition_strong_leg_max_ret120
+                    and high - low >= policy.cfg.recovery_transition_min_divergence)
+    planned = deepcopy(account)
+    targets = tactical_admission_targets(
+        policy, opportunity=opportunity, date=book.date, risk=risk,
+        user_panel=book.user_panel, leaders=book.leaders, account=planned,
+        level1_recovery_repair=False, bounded_recovery_repair=True,
+        tactical_recovery_market=weak or transitional,
+        transitional_recovery_market=transitional, weak_secular_market=weak,
+    )
+    permitted = set()
+    for target in targets or ():
+        if target.weight > 0 and book.fund(target.symbol, target.weight,
+                                          phase="RESEARCH_CAUTION_TACTICAL_PROBE",
+                                          minimum=policy.cfg.min_trade_weight):
+            permitted.add(target.symbol)
+            book.recovery_targets[target.symbol] = target
+    if permitted:
+        account.candidate_tenure.update({key: value for key, value in planned.candidate_tenure.items()
+                                        if key.startswith("tactical_")})
+        account.tactical_anchor_symbol = planned.tactical_anchor_symbol
+    return permitted
+
+
 def _allocate_strategy(
     self: PortfolioAllocator, *, date: pd.Timestamp, opportunity: Opportunity,
     risk: RiskAssessment, user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore],
@@ -642,6 +686,7 @@ def _allocate_strategy(
 ) -> tuple[Target, ...]:
     """Retain each filled owner, then allocate only available common capital."""
     risk.evidence.pop("core_allocation", None)
+    caution_book_was_settled = pullback_book_settled(account)
     weights_now, _ = current_weights(account, prices)
     _prepare_account(self, risk=risk, account=account, weights_now=weights_now)
     frozen = (risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False))
@@ -680,6 +725,9 @@ def _allocate_strategy(
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
                                   trace=book.trace, certificates=certificates, market=market)
     recovery_active = False if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
+    caution_probes = (_research_caution_probe(book, opportunity)
+                     if caution_book_was_settled and not liabilities else set())
+    recovery_active = recovery_active or bool(caution_probes)
     _ordinary_exits(book)
     _pending_intents(book, buy_open=not frozen and not liabilities,
                      market=market, certificates=certificates)
@@ -722,6 +770,7 @@ def _allocate_strategy(
         frozen_targets = self._frozen_existing_targets(
             strategy_targets=targets, leaders=leaders, account=account, weights_now=weights_now)
         permitted = {t.symbol: t for t in targets if t.symbol in owned} if bounded_restore else {}
+        permitted.update({t.symbol: t for t in targets if t.symbol in caution_probes})
         if ordinary_restore and not liabilities:
             permitted.update({t.symbol: t for t in targets
                               if t.symbol not in owned

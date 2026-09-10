@@ -240,7 +240,7 @@ def metric_failures(spec: dict[str, Any], metrics: dict[str, Any], nominal: dict
     def require(ok: bool, message: str) -> None:
         if not ok:
             failures.append(message)
-    if authorized and case == 'champion':
+    if authorized and case == 'champion' and group == 'nominal':
         require(wealth >= principal_wealth_floor(t['champion_minimum_final_wealth']), 'champion absolute wealth floor')
     if group == 'cost_stress':
         require(wealth >= wealth_floor(number(nominal, 'final_wealth') * t['cost_stress_minimum_wealth_ratio'], authorized=authorized), 'cost wealth retention')

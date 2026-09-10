@@ -2,6 +2,7 @@
 import json
 
 from research.cross_ai_acceptance import CONTRACT_PATH, check_metrics
+from research.cross_ai_robustness import metric_failures
 from uquant.validation.absolute_generalization._acceptance_evidence import _candidate_metric_violations
 from uquant.validation.promotion import AI_ERA_POLICY, _hard_violations
 
@@ -40,3 +41,32 @@ def test_removal_wealth_is_not_replaced_by_principal_15():
     args = dict(case="remove_all_three", window="continuous_ai_era", baseline={"final_wealth": 1.}, benchmark={"final_wealth": 1.}, thresholds=t)
     assert not check_metrics(metrics=m, **args)
     assert "removal order ceiling" in check_metrics(metrics={**m, "account_orders": 41}, **args)
+
+
+def test_best_contributor_removal_keeps_its_separate_frozen_floor():
+    t = json.loads(CONTRACT_PATH.read_text())["thresholds"]
+    m = {"final_wealth": 1.05, "max_drawdown": .2, "account_orders": 40}
+    args = dict(spec={"case": "champion", "group": "best_contributor_removal"},
+                nominal={"final_wealth": 25.}, paired={"final_wealth": 1.}, thresholds=t, cash=2_000_000.)
+    assert not metric_failures(metrics=m, **args)
+    assert "best contributor removal wealth floor" in metric_failures(metrics={**m, "final_wealth": .9}, **args)
+    assert "absolute order ceiling" in metric_failures(metrics={**m, "account_orders": 41}, **args)
+
+
+def test_principal_nominal_still_has_the_hard_15_floor():
+    t = json.loads(CONTRACT_PATH.read_text())["thresholds"]
+    m = {"final_wealth": 14.99, "max_drawdown": .2, "account_orders": 40}
+    failures = metric_failures(spec={"case": "champion", "group": "nominal"},
+                               metrics=m, nominal={"final_wealth": 16.}, paired=None, thresholds=t, cash=2_000_000.)
+    assert "champion absolute wealth floor" in failures
+
+
+def test_stress_cases_retain_their_own_frozen_relative_requirements():
+    t = json.loads(CONTRACT_PATH.read_text())["thresholds"]
+    m = {"final_wealth": 3.63, "max_drawdown": .2, "account_orders": 40}
+    args = dict(spec={"case": "champion", "group": "paired_initial_conditions"},
+                metrics=m, nominal={"final_wealth": 25.}, thresholds=t, cash=2_000_000.)
+    assert not metric_failures(paired={"final_wealth": 4.}, **args)
+    assert metric_failures(paired={"final_wealth": 5.}, **args) == ["paired initial wealth retention"]
+    args.update(spec={"case": "champion", "group": "parameter_neighbors"})
+    assert metric_failures(paired=None, **args) == ["neighbor wealth retention"]

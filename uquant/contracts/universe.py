@@ -464,7 +464,10 @@ def research_cohort_input(path: Path, *, expected_sha256: str) -> Iterator[AIUni
     parent = hashlib.sha256(ai_universe_manifest_bytes()).hexdigest()
     if payload.get("parent_frozen_manifest_sha256") != parent:
         raise ValueError("research cohort frozen parent mismatch")
-    known_by = parse_date(payload.get("known_by"), label="known_by")
+    known_by_value = payload.get("known_by")
+    if not isinstance(known_by_value, str):
+        raise ValueError("research cohort known_by must be a date string")
+    known_by = parse_date(known_by_value, label="known_by")
     if known_by >= date(2026, 8, 5):
         raise ValueError("research cohort cannot require protected future evidence")
     frame = payload.get("frame_dispositions")
@@ -490,8 +493,11 @@ def research_cohort_input(path: Path, *, expected_sha256: str) -> Iterator[AIUni
                 or dispositions.get(symbol) != "supported"
                 or not isinstance(industry, str) or industry not in CANONICAL_INDUSTRIES):
             raise ValueError("research cohort member is duplicated, foreign or unsupported")
-        effective = parse_date(row.get("effective_from"), label="effective_from")
-        disclosed = parse_date(row.get("source_disclosed_date"), label="source_disclosed_date")
+        effective_value, disclosed_value = row.get("effective_from"), row.get("source_disclosed_date")
+        if not isinstance(effective_value, str) or not isinstance(disclosed_value, str):
+            raise ValueError("research cohort member dates must be strings")
+        effective = parse_date(effective_value, label="effective_from")
+        disclosed = parse_date(disclosed_value, label="source_disclosed_date")
         if effective != known_by + timedelta(days=1) or disclosed > known_by:
             raise ValueError("research cohort admission precedes its disclosed evidence")
         source_sha = sha256_bytes(row.get("source_sha256"), label="cohort source")

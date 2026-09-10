@@ -182,6 +182,8 @@ def _data_root(research_data_dir: Path | None, manifest_sha256: str | None) -> P
     if hashlib.sha256(raw).hexdigest() != manifest_sha256:
         raise ValueError("research data manifest SHA-256 mismatch")
     manifest = strict_json_loads(raw.decode("utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError("research data manifest must be an object")
     if manifest.get("research_only") is not True or manifest.get("production_ready") is not False:
         raise ValueError("input must be explicitly research-only")
     if manifest.get("parent_frozen_identity") != verify_data_manifest(ROOT / "data/frozen"):

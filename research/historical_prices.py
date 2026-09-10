@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -27,7 +28,7 @@ def request_url(symbol: str, start: str, end: str) -> str:
     return "https://q.stock.sohu.com/hisHq?" + urlencode(params)
 
 
-def parse_prices(raw: bytes, symbol: str, start: str, end: str) -> list[dict]:
+def parse_prices(raw: bytes, symbol: str, start: str, end: str) -> list[dict[str, Any]]:
     request_url(symbol, start, end)
     text = raw.decode("gb18030").strip().removesuffix(";")
     callback = "historySearchHandler("
@@ -89,7 +90,7 @@ def main() -> None:
                 "start": args.start, "end": args.end, "research_only": True}
     (args.output / "acquisition_identity.json").write_text(json.dumps(identity, indent=2))
 
-    def collect(symbol: str) -> dict:
+    def collect(symbol: str) -> dict[str, Any]:
         request_id = hashlib.sha256(urls[symbol].encode()).hexdigest()[:16]
         raw_path = args.output / (symbol + "_" + request_id + ".bin")
         result = {"symbol": symbol, "url": urls[symbol], "research_only": True}

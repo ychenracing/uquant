@@ -26,6 +26,13 @@ def test_default_input_stays_frozen():
     assert _data_root(None, None) == ROOT / 'data/frozen'
 
 
+def test_research_manifest_requires_an_object(tmp_path):
+    raw = b'[]'
+    (tmp_path / 'DATA_MANIFEST.json').write_bytes(raw)
+    with pytest.raises(ValueError, match='object'):
+        _data_root(tmp_path, hashlib.sha256(raw).hexdigest())
+
+
 def test_research_input_requires_both_path_and_seal(tmp_path):
     with pytest.raises(ValueError, match='together'):
         _data_root(tmp_path, None)

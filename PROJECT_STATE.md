@@ -1,3 +1,7 @@
+# Validation-only K checkpoint
+
+SameeconomicJsource010c16a4;currentAbsolute4identity/sealfieldsboundtoJ;35contracttestsPASS/Ruff/mypy/reviewPASS. Frozen17cebytesandallothercontractfieldsunchanged. See benchmarks/long_cycle_acceptance_binding.json. Old739rawfixturestillhistorical, notcurrenttestsuccess. Jfourcontinuousnativecasesrunninginseparateimmutableproducer; ownershipmodeltestsnowrunninghere. No fullgoalclaim.
+
 # Active J integration — I screen viable
 
 I all3nativeverified;v7 currentscreenPASS,original/v6 failuresretained. J source010c16a4d03dad124a9b4e690188306dd2313e77fd3ef8e5794a1bab02fd9ba8 integrateswholegroupFULLexit/referenceAPI only;74focusedPASS/Ruff/mypy/reviewPASS. See benchmarks/long_cycle_lifecycle_integration_plan.md. Nextfourcontinuous thenremainingnominal/fixedbull; onlystablecandidatefullgates. CurrentAbsoluteold739bindingnotJacceptance. PR56Draft/head008e140/main960539 unchanged. Allolderrunningstatesbelowhistorical.

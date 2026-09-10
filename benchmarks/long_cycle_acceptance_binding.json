@@ -1,0 +1,18 @@
+{
+  "source_unchanged": "010c16a4d03dad124a9b4e690188306dd2313e77fd3ef8e5794a1bab02fd9ba8",
+  "contract_seal": "9f97ca2d23a8d5a3853e4b4cf3dc47850e4662cb386d8ac106f0c6077719646e",
+  "changed_fields": [
+    "candidate.production_source_sha256",
+    "candidate.source_surface_registry_sha256",
+    "inputs.effective_config_sha256",
+    "canonical_sha256"
+  ],
+  "other_fields_equal": true,
+  "frozen_file_sha256": "35d425ce3663a780331a07360a3e1f0946cde1ca7087ab51c26c055eac5c3d7e",
+  "tests": 35,
+  "test_status": "PASS",
+  "initial_failure": "old source registry identity",
+  "intermediate_failure": "pretty JSON rejected by canonical byte check; corrected serialization, no guard relaxed",
+  "focused_review": "PASS no important findings",
+  "old_739_fixture": "retained; must generate real current native fixture after economics viable"
+}

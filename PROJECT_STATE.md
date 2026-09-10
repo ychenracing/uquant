@@ -1,3 +1,24 @@
+# Latest checkpoint — strict companion screen active
+
+C completed: champion10.9843132091/DD.2681438267/orders13 FAIL15;
+no-optical later5.7216773192/DD.2026171074/orders30 currentPASS. Not promoted.
+Legacy graduation/disaster compatibility restored and existing strict companion
+qualification restored only under real strategic claims; valid certificate and
+cash-rearm own proof preserved. 38 focused tests/Ruff/mypy PASS; scoped independent
+review no important findings. Original sizing and FULL startup fixture failures
+remain explicitly recorded, not full engineering acceptance.
+D source0fd82376ac1a5b65dd4f57d7a0a528edd6cd681e18d723114830d0c391623ee8,
+localfde21380f22c054bc8659ec2d99be9ceb2ba0a88, remoteb3f3f15035061e46349265e06a0b7ce9bd36c352,
+treea5fcc810f483eae2bb7b52231373c8dfe0b7c956. Active native champion869 sessions
+in /workspace/scratch/997f3f703ab0/runs/strict-companion/champion, session58821.
+Apr25/2023 observed: unsupported companion502 buy is absent, owner's existing
+weight/fill economics unchanged at that date. Complete economics still pending.
+See benchmarks/strict_companion_integration_plan.md and simple_caution_* receipts.
+This branch is a documentation writer on rejected A, NOT the D trading producer.
+PR56 executablehead008e140 remains Draft; no merge or complete goal claim.
+
+Earlier checkpoints preserved below and superseded where inconsistent.
+
 # Current task state — 2026-09-10
 
 Latest decision: original simple challenger B is not promoted: champion10.9843

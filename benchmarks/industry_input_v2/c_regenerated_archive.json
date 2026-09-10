@@ -1,0 +1,16 @@
+{
+  "archive": "uquant_c_regenerated_evidence_20260910.tar.gz",
+  "size_bytes": 118077214,
+  "sha256": "f7a72e19c5a1c7f16767cbfdc4bce9f91b8a09a13bda7761cab7150928b77d99",
+  "verified_files": 2625,
+  "producer_commit": "744eea29aac896efff4a9df866c4604afd35cd37",
+  "economic_source": "54900a9deb22fb76ae0fc6c820bfb73699d6a6eb02c1dc566857dc99b561dcc0",
+  "data_manifest": "d4d7e4c7e1aeeb953608ce401fcff3ccc96ef029febbfd20945c2d90210f4aa1",
+  "regenerated_lost_raw": true,
+  "old_archive_not_recovered": true,
+  "all_three_native_readbacks": true,
+  "persistent_save": "SUCCEEDED",
+  "library_file_id": "libfile_e621f5c574f88191837c9503504a9dfe",
+  "file_id": "file_00000000b15081fba3aef0902939948a",
+  "local_metadata_applied": true
+}

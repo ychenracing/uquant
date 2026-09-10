@@ -1,3 +1,13 @@
+Slow structural exit first screen — 2026-09-10:
+
+- NOT_MET; PR56 Draft, no main merge. Immutable one-condition candidate passes preregistered23-company cohort screen: wealth1.6519178484 vs1.2229698191; DD17.7456% vs23.3099%;32orders vs22. Paired runtime/input/execution and native seals/PnL pass. See slow_damage_cohort_result.{md,json}. This is in-sample research, not formal acceptance.
+- Six original repaired-data full/remove3/strict native accounts now running (main71ab063e vs slowc4822c99), after each arm passed6day original-input sentinel. Do not promote until these resolve; preserve costs and trading-burden failures.
+- Cohort candidate evidence saved:26,155,282bytes/877verifiedfiles/SHA256e696cfb66ba42609cd2c0381fc6694e3e8999eac0f165597bf510e289d481d62. See slow_damage_cohort_archive.json.
+- Lost C raw reconstruction completed all3x869 with native readbacks and prior exact wealth values;118,077,214bytes/2625verifiedfiles saved, SHA256f7a72e19c5a1c7f16767cbfdc4bce9f91b8a09a13bda7761cab7150928b77d99. See c_regenerated_archive.json. This is a new archive, not the old missing94MBbytes. Evidence-delivery gaps are closed.
+
+---
+Earlier checkpoints:
+
 Historical cohort executed — 2026-09-10:
 
 - NOT_MET; PR56 Draft, no main merge. Paired native869-session accounts completed with identical inputs/runtime/execution: main wealth1.2229698191/DD23.3099%/22orders; simple0.9386578455/DD27.6521%/16orders. RETAIN_MAIN_REJECT_SIMPLE_REPLACEMENT. See benchmarks/industry_input_v2/historical_cohort_paired_result.{md,json}.

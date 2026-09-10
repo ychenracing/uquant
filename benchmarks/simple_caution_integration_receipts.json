@@ -1,0 +1,59 @@
+{
+  "verified_later.json": {
+    "readback": "PASS",
+    "source": "d122a7e675dea2f3bc228b420a0f840a09ef2a725200c1e61fdc45a8dd49a82d",
+    "metrics": {
+      "final_wealth": 5.721677319201041,
+      "max_drawdown": 0.20261710739548988,
+      "account_orders": 30,
+      "fees": 24815.252097919998,
+      "slippage_cost": 44025.609499997125
+    },
+    "seal": "ddbdc6f398f3b8f6dd40a78836262120925cde47c5a8227d78085c1668fe19b5",
+    "raw_sha256": "b809f191c7577f20f982dc682b3f4cf9eb9faa7332294bf2848389c2c05170f9",
+    "pnl_by_symbol": {
+      "sh603986": -40946.85638801975,
+      "sh688037": 50959.83493260003,
+      "sh688110": 1052285.21765532,
+      "sh688146": 212090.17896000016,
+      "sh688200": 46515.36614887822,
+      "sh688256": -88213.757970888,
+      "sh688300": -334516.9801505399,
+      "sh688361": 167853.48112764006,
+      "sh688498": 4535063.04033189,
+      "sh688766": 3006158.0206680014,
+      "sz002281": 836107.0930872
+    },
+    "current_contract_failures": [],
+    "original_contract_failures": [
+      "later-window order ceiling"
+    ]
+  },
+  "verified_champion.json": {
+    "readback": "PASS",
+    "source": "d122a7e675dea2f3bc228b420a0f840a09ef2a725200c1e61fdc45a8dd49a82d",
+    "metrics": {
+      "final_wealth": 10.984313209065583,
+      "max_drawdown": 0.2681438266627254,
+      "account_orders": 13,
+      "fees": 32077.24186884,
+      "slippage_cost": 53112.33999999698
+    },
+    "seal": "9a4510578c5a2f0e26a8dcf716a4d79630f2cf0815c75a3e299210aa90ce6942",
+    "raw_sha256": "f742579da0ae7d391574f580f31391d2d7ce6c8817c0504a8e35a87b5478c6b0",
+    "current_contract_failures": [
+      "champion/full wealth floor"
+    ],
+    "original_contract_failures": [
+      "champion/full wealth floor"
+    ]
+  },
+  "companion_scope_audit.json": {
+    "observed_sessions": 382,
+    "cohort_or_active_epoch_claim_dates": [],
+    "strategic_fills": 0,
+    "strategic_orders": 0,
+    "legacy_pullback_entries": 0,
+    "source_unchanged_raw": "d122a7e675dea2f3bc228b420a0f840a09ef2a725200c1e61fdc45a8dd49a82d"
+  }
+}

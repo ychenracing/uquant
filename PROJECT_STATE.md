@@ -1,5 +1,13 @@
 # Current task state — 2026-09-10
 
+Latest: C/d122 integration completed and is not promoted. Champion10.9843132091
+exactly matches originalB and fails15; no-optical/later5.7216773192 PASS.
+Next candidate restores original strict candidate_entry proof for ordinary
+companions under existing strategic claims, keeping simple rules when none.
+No new parameter/counter/risk bypass.38 targeted tests PASS; native champion next.
+See strict_companion_integration_plan and simple_caution_integration_receipts.
+Earlier running-C claims below are superseded. Main and PR head unchanged.
+
 Latest engineering follow-up: native C/d122a7e6 no-optical/later PASS:
 wealth5.7216773192/DD20.26171074%/30orders, sealed readback verified.
 Champion C remains running in separate immutable uquant-simple-caution.

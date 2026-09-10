@@ -10,6 +10,7 @@ from types import MappingProxyType
 from typing import cast
 
 from uquant.contracts.strict_json import canonical_json_sha256
+from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, principal_wealth_floor
 from uquant.validation.statistics import linear_quantile
 
 from ._acceptance_evidence import (
@@ -287,15 +288,15 @@ def _champion_component(
     wealth = float(cast(float, metrics["final_wealth"]))
     drawdown = float(cast(float, metrics["max_drawdown"]))
     failures: list[str] = []
-    if wealth < contract.frozen_baseline.champion_minimum_final_wealth:
-        failures.append("champion wealth is below the frozen 95% floor")
+    if wealth < principal_wealth_floor(contract.frozen_baseline.champion_minimum_final_wealth):
+        failures.append("champion wealth is below the authorized15-fold hard floor")
     if drawdown > contract.frozen_baseline.champion_maximum_drawdown:
         failures.append("champion drawdown exceeds 0.30")
     current = current_candidate_contract()
     if set(paths) != set(_CHAMPION_PATHS) or any(not isinstance(value, str) or not _SHA256.fullmatch(value) for value in paths.values()):
         failures.append("champion measured path identities are malformed")
-    if metrics["account_orders"] > current["thresholds"]["champion_maximum_orders"]:
-        failures.append("champion orders exceed the frozen cross-AI limit")
+    if cast(int, metrics["account_orders"]) > order_ceiling(current["thresholds"]["champion_maximum_orders"]):
+        failures.append("champion orders exceed the authorized40-order limit")
     failures.extend(
         f"champion duplicate {label} count is nonzero"
         for label in ("grant", "order", "epoch")
@@ -324,6 +325,9 @@ def _champion_component(
         {
             "final_wealth": wealth,
             "max_drawdown": drawdown,
+            "acceptance_revision": acceptance_revision(),
+            "original_wealth_floor_failed": wealth < contract.frozen_baseline.champion_minimum_final_wealth,
+            "original_order_ceiling_failed": metrics["account_orders"] > current["thresholds"]["champion_maximum_orders"],
             "paths": dict(paths),
             "historical_paths_match": dict(paths) == _CHAMPION_PATHS,
             "acceptance_contract_id": current["contract_id"],

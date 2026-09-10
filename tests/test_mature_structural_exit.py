@@ -1,4 +1,4 @@
-"""Absolute price damage must not be vetoed by relative leader maturity."""
+"""The selected main-policy candidate retains the existing maturity guard."""
 from __future__ import annotations
 
 from dataclasses import replace
@@ -13,7 +13,7 @@ from uquant.portfolio import PortfolioAllocator
 from uquant.types import AccountState, Position
 
 
-def test_real_mature_holding_confirms_march_damage_without_waiting_for_rank_loss():
+def test_real_mature_holding_retains_maturity_guard_on_march_damage():
     engine = ProductionEngine('data/frozen')
     engine.workspace.prepare(ReplayUniverse.from_symbols(
         tradable_symbols=('sh688041',), reference_symbols=(), index_symbols=()))
@@ -27,7 +27,7 @@ def test_real_mature_holding_confirms_march_damage_without_waiting_for_rank_loss
         symbol='sh688041', date=date, user_panel={'sh688041': frame},
         leaders=leaders, account=account)
         for date in pd.to_datetime(['2024-03-28', '2024-03-29', '2024-04-01'])]
-    assert outcomes == [False, False, True]
+    assert outcomes == [False, False, False]
     assert leaders['sh688041'].mature
 
 

@@ -227,10 +227,9 @@ def test_legacy_dynamic_k_and_arm_flags_cannot_bypass_entry_confirmation():
             prices={symbol: 1.0 for symbol in rotation_panel},
         )
     # Legacy K/arm flags cannot substitute for the entrant's five sessions.
-    # The weak incumbent independently meets confirmed price damage; its exit
-    # does not fund the unconfirmed entrant before a real sell has settled.
+    # The mature incumbent remains held; no unconfirmed entrant gains capital.
     assert {target.symbol: target.weight for target in rotation_targets} == pytest.approx(
-        {"strong": 0.30, "weak": 0.0}
+        {"strong": 0.30, "weak": 0.30}
     )
     assert rotation_account.replacement_events == []
     assert rotation_account.cash == 40.0

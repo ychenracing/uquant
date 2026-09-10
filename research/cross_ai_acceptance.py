@@ -26,6 +26,7 @@ from uquant.validation.acceptance_tolerance import (
     acceptance_revision,
     half_year_drawdown_ceiling,
     order_ceiling,
+    principal_wealth_floor,
     wealth_floor,
 )
 
@@ -167,7 +168,7 @@ def check_metrics(
         if not condition:
             failures.append(message)
     if case in ('champion', 'full'):
-        require(wealth >= wealth_floor(t[f'{case}_minimum_final_wealth'], authorized=authorized), 'champion/full wealth floor')
+        require(wealth >= principal_wealth_floor(t[f'{case}_minimum_final_wealth'], authorized=authorized), 'champion/full wealth floor')
         require(drawdown <= t[f'{case}_maximum_drawdown'], 'champion/full drawdown ceiling')
         require(orders <= order_ceiling(t[f'{case}_maximum_orders'], authorized=authorized), 'champion/full order ceiling')
         return failures
@@ -185,10 +186,10 @@ def check_metrics(
         require(drawdown <= half_year_drawdown_ceiling(
             number(baseline, 'max_drawdown') + t['half_year_maximum_drawdown_buffer'],
             case=case, window=window, authorized=authorized), 'half-year drawdown retention')
-        require(orders <= t['half_year_maximum_orders'], 'half-year order ceiling')
+        require(orders <= order_ceiling(t['half_year_maximum_orders'], authorized=authorized), 'half-year order ceiling')
     else:
         require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized), 'disjoint later-window benchmark floor')
-        require(orders <= t['post2025_maximum_orders'], 'later-window order ceiling')
+        require(orders <= order_ceiling(t['post2025_maximum_orders'], authorized=authorized), 'later-window order ceiling')
     return failures
 
 

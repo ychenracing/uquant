@@ -122,8 +122,8 @@ def test_current_component_allows_new_paths_and_overlap_but_preserves_numeric_li
         champion_minimum_final_wealth=23.28417871275582, champion_maximum_drawdown=.30))
     # Only the pure component is under test; full acceptance still reconciles every raw claim.
     assert _champion_component(raw, contract).passed
-    for key, value in [('final_wealth', 23.284178712755819), ('max_drawdown', .30000000000000004),
-                       ('account_orders', 16)]:
+    for key, value in [('final_wealth', 14.999999999999998), ('max_drawdown', .30000000000000004),
+                       ('account_orders', 41)]:
         changed = copy.deepcopy(raw)
         changed['metrics'][key] = value
         assert not _champion_component(changed, contract).passed

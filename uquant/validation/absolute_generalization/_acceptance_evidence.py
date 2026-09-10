@@ -21,6 +21,7 @@ from uquant.models.strategic_grant import StrategicGrantIntent
 from uquant.models.strategic_universe import StrategicUniverseRoles
 from uquant.models.trading import AccountOrder, Fill
 from uquant.types import AccountState
+from uquant.validation.acceptance_tolerance import order_ceiling, principal_wealth_floor
 from uquant.validation.generalization_reference import (
     load_generalization_baseline,
     load_generalization_policy,
@@ -148,15 +149,15 @@ def _validate_filled_epochs(account: AccountState) -> None:
 
 
 def _candidate_metric_violations(*, contract: Mapping[str, Any], claims: Mapping[str, object],
-                                 metrics: Mapping[str, object]) -> list[str]:
+                                 metrics: Mapping[str, object], authorized: bool = True) -> list[str]:
     t = contract["thresholds"]
     violations = []
-    for key, limit, upper in (("final_wealth", t["champion_minimum_final_wealth"], False),
+    for key, limit, upper in (("final_wealth", principal_wealth_floor(t["champion_minimum_final_wealth"], authorized=authorized), False),
                               ("max_drawdown", t["champion_maximum_drawdown"], True),
-                              ("account_orders", t["champion_maximum_orders"], True)):
+                              ("account_orders", order_ceiling(t["champion_maximum_orders"], authorized=authorized), True)):
         value = _evidence_number(metrics[key], label=key)
         if (value > limit) if upper else (value < limit):
-            violations.append(f"current candidate champion {key} violates frozen limit")
+            violations.append(f"current candidate champion {key} violates effective limit")
     if _evidence_integer(claims["incumbent_epoch_count"], label="filled epochs") < 1:
         violations.append("current candidate champion has no real strategic participation")
     violations.extend(f"current candidate champion duplicate {label}"

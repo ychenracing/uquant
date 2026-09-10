@@ -1,3 +1,14 @@
+Latest15/40 authorization and candidate integration — 2026-09-10:
+
+- NOT_MET; PR56 Draft, no main merge. User explicitly accepts principal full/champion wealth >=15.0 including capital, never lower, and <=40 cumulative account orders per replay, including shorter windows. Revisionv4 preserves original judgments; no further90% discount of15. All other effective requirements remain. Prior goal-change proposal is not otherwise adopted.
+- Selected slow structural exit now integrated on currentPR infrastructure: retain maturity protection, existing structural/confirmation/holding predicates; remove only the ordinary ret20 velocity veto. No new entry/recovery/sizing/ranking rules. Source73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b. See benchmarks/goal15_40_integration_plan.md.
+- Earlier212 affected tests pass; distinguishing7 tests were6red/1green on oldproducer and7green after change. Ruff and strict mypy10 modified sourcefiles pass. Additional Absolute checks remain in progress; old compiledcandidate binding was stale. Current Absolute identity resealed to measuredsource only; frozen17ce policy, thresholds, baseline and inputs unchanged. Historical source blobs recovered through explicit repository reads with exact Git blob hash verification; disable implicit lazyfetch locally.
+- This is an integration checkpoint, not formal acceptance. Next: immutable native repaired strict integration check and frozen no_optical/H1; resolve remaining Absolute historicalfixture binding correctly without relabeling raw accounts; stablecandidate proceeds to required frozen Performance/Robustness/Absolute/Grant/Ownership checks. Do not count research outcomes as formalPASS or freshOOS.
+- Original107MB delivery and all previous expensive raw archive gaps were closed. New integration logs/results need separate saving after completion.
+
+---
+Earlier checkpoints:
+
 Completed slow-exit controls / goal review — 2026-09-10:
 
 - NOT_MET; PR56 Draft, no main merge. All6original paired869-session accounts plus2sentinels COMPLETE/native-readback/sealed/PnL-reconciled. New main controls exactly reproduce prior repaired-data wealth. No economic job remains running.

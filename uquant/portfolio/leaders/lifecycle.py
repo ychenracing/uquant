@@ -82,7 +82,7 @@ def _leader_lifecycle_exit_confirmed(
     leaders: dict[str, LeaderScore],
     account: AccountState,
 ) -> bool:
-    """Confirm absolute price damage; relative maturity cannot veto an exit."""
+    """Confirm lost holding structure without a pre-entry-return velocity veto."""
     position = account.positions.get(symbol)
     frame = user_panel.get(symbol)
     leader = leaders.get(symbol)
@@ -94,12 +94,12 @@ def _leader_lifecycle_exit_confirmed(
     peak_mfe = position.highest_close / max(position.avg_cost, 1e-12) - 1.0
     protected_winner = peak_mfe >= 0.20
     broken = bool(
-        scalar(row, "close")
+        not leader.mature
+        and scalar(row, "close")
         < scalar(
             row,
             f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
         )
-        and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
     )
     clock = f"lifecycle_exit_session:{symbol}"
     session = date.toordinal()

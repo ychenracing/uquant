@@ -20,7 +20,12 @@ from research.cross_ai_strategy import ROOT, run_production_case, write_json
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.engine import code_fingerprint
-from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
+from uquant.validation.acceptance_tolerance import (
+    acceptance_revision,
+    order_ceiling,
+    principal_wealth_floor,
+    wealth_floor,
+)
 
 CASES = ('champion', 'remove_all_three', 'no_optical')
 
@@ -235,6 +240,8 @@ def metric_failures(spec: dict[str, Any], metrics: dict[str, Any], nominal: dict
     def require(ok: bool, message: str) -> None:
         if not ok:
             failures.append(message)
+    if authorized and case == 'champion':
+        require(wealth >= principal_wealth_floor(t['champion_minimum_final_wealth']), 'champion absolute wealth floor')
     if group == 'cost_stress':
         require(wealth >= wealth_floor(number(nominal, 'final_wealth') * t['cost_stress_minimum_wealth_ratio'], authorized=authorized), 'cost wealth retention')
         if case != 'champion':

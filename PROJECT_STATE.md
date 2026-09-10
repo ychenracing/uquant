@@ -1,3 +1,13 @@
+Mature-sector screen and exact historical-reference recovery — 2026-09-10:
+
+- NOT_MET; PR56 Draft; main unchanged. Native45c ordinary industry shortcut improves fixed a/bull to3.493229/DD16.3964%/14orders, still fails retained11.5443 and champion return. a/h1_2024 remains1.363448/DD12.4292%/8orders and fails wealth/acute retention. Offset5 sentinel actually buysFeb28; no_optical/H1 exactly1.343841/11orders. No full869 principal result for45c.
+- Restored exact9bb58420365b471ee11b4cdfe31793008233ad50 from verified historical bundle plus exact-SHA1 GitHub blobs; no implicit lazyfetch. Original native backtest reproduces EVERY frozen metric in a/bull13.166461/DD16.3911%/10orders and a/h1_2024 1.904253/DD15.6743%/8orders/acute6.39068%. Same36 frozenfiles and uv.lock/runtime. See benchmarks/mature_sector_reference_result.json.
+- First causal divergence: Jan3 2024 persistent FULL_COHORT is confirmed but current common-core MA60/ret60 condition blocks its owner. Old buysJan4, currentFeb21. Bull old buysApr7 via existing oversold/recovery mechanism, currentJul4; current common-book pipeline no longer invokes legacy recovery admission. Shared retained numeric config values are identical. This is economic eligibility/lifecycle loss, not a numerical-runtime or stale-clock bug.
+- Next bounded challenge: original persistent full-cohort economic entry quality, retaining ordinary structural admission and strict actual account repair. Validate own current confirmed persistence, data/known industry/liquidity plus all grant/epoch/cash/risk guards; no parameter or rank changes. Test fixedH1 first, then principal and stress controls only if viable. Legacy recovery integration is a separate supported option with larger lifecycle cost; do not restore wholesale.
+
+---
+Earlier checkpoints:
+
 Mature-sector ordinary entry implementation — 2026-09-10:
 
 - NOT_MET; PR56 Draft, no main merge. New preregistered ordinary-only sector proof implemented in one production file; existing impulse/shared/strict repair paths remain. Exact same-industry current tradable quorum3, existing credible.82, all member maturity and tenure5, current structure/history/liquidity plus complete market data. No sizing/exit/risk/config change. Source45c3416dcba3396307745f69cd723db543240a4b669bed9925ca0a82fb8b1ef6; configadf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51.

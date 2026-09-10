@@ -100,7 +100,6 @@ def _leader_lifecycle_exit_confirmed(
             row,
             f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
         )
-        and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
     )
     clock = f"lifecycle_exit_session:{symbol}"
     session = date.toordinal()

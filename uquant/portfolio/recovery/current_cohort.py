@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, cast
 import pandas as pd
 
 from ...contracts.strict_json import canonical_json_sha256
+from ...features import scalar
 from ...holding_history import recovery_owner_open, tactical_owner_entry
 from ...risk.pullback import pullback_book_settled
 from ...types import (
@@ -172,6 +173,36 @@ def _fund_members(book: AllocationBook, targets: tuple[Target, ...], members: se
             policy._release_recovery_anchor(account)
 
 
+def _advance_tactical_clock(book: AllocationBook) -> None:
+    """Consume at most one observed session, retaining the original overheat reset."""
+    account, policy = book.account, book.policy
+    key = "tactical_observed_session"
+    current = book.date.toordinal()
+    previous = account.candidate_tenure.get(key, 0)
+    if previous > current:
+        raise RuntimeError("tactical observation session moved backwards")
+    if previous == current or not any(book.date in frame.index for frame in book.user_panel.values()):
+        return
+    account.candidate_tenure[key] = current
+    cooldown = account.candidate_tenure.get("tactical_cooldown", 0)
+    if cooldown <= 0:
+        return
+    remaining = cooldown - 1
+    if (account.candidate_tenure.get("tactical_overheat_cooldown", 0) == 1
+            and not account.positions and any(
+                book.date in frame.index
+                and scalar(frame.loc[book.date], "ret5", -1.0) >= policy.cfg.fast_v_recovery_return
+                and scalar(frame.loc[book.date], "ret20", 0.0) <= policy.cfg.tactical_rebound_breadth_max_ret20
+                and scalar(frame.loc[book.date], "ret60", -1.0) >= policy.cfg.tactical_rebound_min_ret60
+                and scalar(frame.loc[book.date], "close", 0.0)
+                >= scalar(frame.loc[book.date], f"ma{policy.cfg.trend_slow}", math.inf)
+                for frame in book.user_panel.values())):
+        remaining = 0
+    account.candidate_tenure["tactical_cooldown"] = remaining
+    if remaining == 0:
+        account.candidate_tenure["tactical_overheat_cooldown"] = 0
+
+
 def _manage_tactical_holding(book: AllocationBook, opportunity: Opportunity, frozen: bool) -> bool:
     """Research: retain the original bounded tactical life, backed by actual fills."""
     account, policy, risk = book.account, book.policy, book.risk
@@ -243,6 +274,7 @@ def _manage_tactical_holding(book: AllocationBook, opportunity: Opportunity, fro
 def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunity, frozen: bool) -> bool:
     """Return whether this session belongs to an actual confirmed recovery book."""
     account, policy, risk = book.account, book.policy, book.risk
+    _advance_tactical_clock(book)
     if _manage_tactical_holding(book, opportunity, frozen):
         return True
     members = _filled_members(book)

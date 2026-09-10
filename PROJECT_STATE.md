@@ -1,5 +1,15 @@
 # Current task state — 2026-09-10
 
+Latest engineering follow-up: native C/d122a7e6 no-optical/later PASS:
+wealth5.7216773192/DD20.26171074%/30orders, sealed readback verified.
+Champion C remains running in separate immutable uquant-simple-caution.
+This branch restores legacy pullback graduation and its existing long-basis/
+disaster protection before delegating graduated/new ordinary holdings to the
+fixed simple exit. Real legacy fill/restart/graduation/disaster test RED then
+GREEN;12 combined simple/legacy lifecycle tests PASS, Ruff/mypyPASS.
+No new legacy entries or configuration; original C raw identities remain.
+Do not interpret earlier native-screen-next or all-jobs-finished as current.
+
 Latest decision: original simple challenger B is not promoted: champion10.9843
 misses15. No-optical later5.2717 and continuous4.3241 PASS; full15.4992/DD31.3009%
 passes new scoped v6 full-nominal DD31.5% (original/v5 failure retained).

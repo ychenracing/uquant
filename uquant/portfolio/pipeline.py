@@ -33,6 +33,7 @@ from ..types import (
 )
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
+from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import observe_ordinary_market, ordinary_core_entry, ordinary_trend_exit
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
@@ -314,8 +315,14 @@ def _ordinary_exits(book: AllocationBook) -> None:
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
+        legacy_exit = ordinary_pullback_exit(
+            book.policy, symbol=symbol, date=book.date, user_panel=book.user_panel,
+            leaders=book.leaders, account=account,
+        )
         frame = book.user_panel.get(symbol)
-        if frame is None or not ordinary_trend_exit(frame, book.date):
+        if legacy_exit == "" or (legacy_exit is None and (
+            frame is None or not ordinary_trend_exit(frame, book.date)
+        )):
             continue
         book.proposed[symbol] = 0.0
         reset_strategic_candidate_eligibility(account=account, symbol=symbol)
@@ -327,7 +334,7 @@ def _ordinary_exits(book: AllocationBook) -> None:
             account.candidate_tenure["tactical_promotable"] = 0
         if account.recovery_conviction_symbol == symbol:
             account.recovery_conviction_symbol = ""
-        book.reasons[symbol] = "ordinary trend: two closes below MA120"
+        book.reasons[symbol] = legacy_exit or "ordinary trend: two closes below MA120"
         book.mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 

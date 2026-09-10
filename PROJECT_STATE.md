@@ -1,3 +1,7 @@
+# Active I bounded long-cycle proof
+
+H completed all3native/readbackPASS but all3economicFAIL; savedarchive. I narrows only local maturity proof market scope using unchangedexistingbounds;47focusedPASS and reviewnoimportantfindings. See benchmarks/ordinary_long_cycle_local_plan.md and ordinary_mature_local_result.json. Source d853405c798bd907d33e4715cd4721eb8bdab4a2aaf81383fa640738bf694881. No wholeacceptance, no merge. Previous H runningclaims below superseded.
+
 # Active H bounded local maturity research
 
 Original selected a39 preserved; new branch codex/ordinary-mature-local-20260910. See benchmarks/ordinary_mature_local_plan.md. Previous G/E failed replacements preserved at PR56 and G closure618b8911. H onlyordinary.py economics;46targetedPASS/Ruff/mypy/reviewPASS; native conflict screens next. Principal15/orders40/currentv6 remain. No completedwholeacceptance or merge. Olderhistorybelow retained.

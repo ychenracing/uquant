@@ -117,11 +117,6 @@ def test_ordinary_partial_loses_common_permission_and_cannot_revive_after_strict
     before = ({symbol: pos.shares for symbol, pos in account.positions.items()}, account.cash)
     risk.evidence["ai_fast_return"] = .01
     assert all(leader.mature for leader in leaders.values())
-    order_ids = {order.order_id for order in account.pending_orders}
-    _decide(policy, account, dates[5], panel, leaders, risk)
-    assert {order.order_id for order in account.pending_orders} == order_ids
-    # Local maturity survives impulse loss; an actual risk freeze closes permission.
-    risk = replace(risk, freeze_new_risk=True)
     _decide(policy, account, dates[5], panel, leaders, risk)
     assert not account.pending_orders
     assert all(order.status == "CANCELLED" for order in account.order_ledger)

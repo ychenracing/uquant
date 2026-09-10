@@ -14,7 +14,9 @@ def test_native_mature_entry_without_impulse_keeps_own_proof_and_original_budget
     policy, account, dates, panel, base, risk = _scenario()
     low = tuple(base)[-1]
     base[low] = replace(base[low], score=.81)
-    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02)
+    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02,
+                         breadth20=.8, broad_ret20=.02, tech_ret20=.1,
+                         broad_ret120=.1, tech_ret120=.4)
     for i, date in enumerate(dates[:5]):
         leaders = apply_leader_tenure(base, account=account, cfg=DEFAULT_CONFIG)
         _decide(policy, account, date, panel, leaders, risk)
@@ -31,7 +33,9 @@ def test_native_mature_entry_without_impulse_keeps_own_proof_and_original_budget
 
 def test_local_maturity_does_not_open_caution_or_frozen_risk():
     policy, _account, dates, panel, base, risk = _scenario()
-    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02)
+    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02,
+                         breadth20=.8, broad_ret20=.02, tech_ret20=.1,
+                         broad_ret120=.1, tech_ret120=.4)
     for state, frozen in [(Risk.CAUTION, False), (Risk.NORMAL, True)]:
         observed = observe_ordinary_market(policy, date=dates[0], opportunity=Opportunity.TREND,
             risk=replace(risk, state=state, freeze_new_risk=frozen), leaders=base, user_panel=panel)
@@ -42,7 +46,9 @@ def test_local_permission_is_current_and_cannot_borrow_strategic_capital():
     policy, account, dates, panel, base, risk = _scenario()
     symbol = next(iter(base))
     account.leader_tenure[symbol] = 5
-    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02)
+    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02,
+                         breadth20=.8, broad_ret20=.02, tech_ret20=.1,
+                         broad_ret120=.1, tech_ret120=.4)
     market = observe_ordinary_market(policy, date=dates[0], opportunity=Opportunity.TREND,
         risk=risk, leaders=base, user_panel=panel)
     def entry(date):
@@ -58,7 +64,9 @@ def test_forming_full_retains_strict_proof():
     policy, account, dates, panel, base, risk = _scenario()
     symbol = next(iter(base))
     account.leader_tenure[symbol] = 5
-    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02)
+    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02,
+                         breadth20=.8, broad_ret20=.02, tech_ret20=.1,
+                         broad_ret120=.1, tech_ret120=.4)
     account.strategic_qualification.qualification_last_observed_session = str(dates[0].date())
     account.strategic_qualification.qualification_quorum = "FULL_COHORT"
     account.strategic_qualification.qualification_streak = 1
@@ -67,3 +75,18 @@ def test_forming_full_retains_strict_proof():
     result = ordinary_core_entry(policy, symbol=symbol, score=base[symbol], date=dates[0],
         user_panel=panel, account=account, confirmation_days=5, market=market)
     assert result['block'] != 'READY'
+
+
+def test_local_admission_changes_only_the_long_cycle_upper_bound_case():
+    policy, _account, dates, panel, base, risk = _scenario()
+    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02,
+                         breadth20=.8, broad_ret20=.02, tech_ret20=.1,
+                         broad_ret120=.1, tech_ret120=.4)
+    for field, value in [('breadth20', .59), ('broad_ret20', -.01),
+                         ('tech_ret20', -.01), ('tech_ret120', .2),
+                         ('breadth20', None), ('broad_ret20', float('nan')),
+                         ('tech_ret20', True)]:
+        changed = replace(risk, evidence={**risk.evidence, field: value})
+        result = observe_ordinary_market(policy, date=dates[0], opportunity=Opportunity.TREND,
+            risk=changed, leaders=base, user_panel=panel)
+        assert result['mature_entry_open'] is False, (field, value)

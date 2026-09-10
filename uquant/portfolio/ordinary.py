@@ -88,11 +88,23 @@ def observe_ordinary_market(
                       and leader.confidence >= self.cfg.leader_min_confidence)
     impulse, missing = _market_conditions(
         opportunity=opportunity, risk=risk, credible_count=len(credible))
+    long_cycle_fields = ("breadth20", "broad_ret20", "tech_ret20")
+    long_cycle_complete = all(
+        isinstance(risk.evidence.get(key), (int, float))
+        and not isinstance(risk.evidence[key], bool)
+        and math.isfinite(risk.evidence[key]) for key in long_cycle_fields
+    )
     return {
         "as_of": str(date.date()), "confirmed": impulse, "impulse": impulse,
         "credible_symbols": credible, "missing_market_fields": missing,
         "mature_entry_open": (
-            not missing and risk.state is Risk.NORMAL and not risk.freeze_new_risk
+            not missing and long_cycle_complete
+            and risk.evidence["breadth20"] >= self.cfg.high_confidence_entry_breadth
+            and min(risk.evidence["broad_ret20"], risk.evidence["tech_ret20"])
+            >= self.cfg.strategic_transition_impulse_min_market_ret20
+            and max(risk.evidence["broad_ret120"], risk.evidence["tech_ret120"])
+            > self.cfg.strategic_long_cycle_max_tech_ret120
+            and risk.state is Risk.NORMAL and not risk.freeze_new_risk
             and not risk.evidence.get("freeze_new_risk", False)
             and not risk.evidence.get("sentinel_freeze_new_risk", False)
             and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}

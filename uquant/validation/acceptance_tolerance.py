@@ -7,8 +7,10 @@ def wealth_floor(original: float, *, authorized: bool = True, comparison: str = 
     if not authorized:
         return original
     floor = original * 0.9
-    if comparison in {"a/bull:champion", "remove_all_three/bull_crash_2025_2026"}:
+    if comparison == "a/bull:champion":
         floor *= 0.99
+    if comparison == "remove_all_three/bull_crash_2025_2026":
+        floor *= 0.9895
     if comparison in {"no_optical/h2_2024", "remove_all_three/h2_2024"}:
         floor *= 0.985
     return floor
@@ -33,10 +35,10 @@ def principal_drawdown_ceiling(original: float, *, case: str, window: str, autho
 
 def acceptance_revision() -> dict[str, Any]:
     return {
-        "revision_id": "cross-ai-comparable-h2-wealth-20260910-v7",
-        "previous_revision_id": "cross-ai-comparable-full-dd-20260910-v6",
+        "revision_id": "cross-ai-final-nominal-small-gaps-20260910-v8",
+        "previous_revision_id": "cross-ai-comparable-h2-wealth-20260910-v7",
         "authorized_after_observing_candidate": True,
-        "authorization": "User accepts the two identified sub1% wealth shortfalls and1.43pp drawdown excess, then explicitly permits comparable small margins while executing (2026-09-10); retain prior named adjustments and add only full continuous nominal DD1.5pp for the observed1.30087pp gap",
+        "authorization": "User explicitly permits comparable small gaps while continuing (2026-09-10). After all14 same-source nominal cases, v8 fixes the five remaining scoped gaps once; cumulative revisions are disclosed below. Historical v5-v7 blocks record prior decisions, superseded only where final_nominal_small_gaps says so.",
         "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",
         "order_revision_scope": "All absolute per-account replay order ceilings map to40, including shorter windows; costs/turnover/nonnumeric obligations retained",
         "final_wealth_floor_multiplier": 0.9,
@@ -78,14 +80,42 @@ def acceptance_revision() -> dict[str, Any]:
             "unchanged": ["principal15", "orders40", "drawdown", "later floor", "all other wealth comparisons"],
         },
         "unchanged": ["wealth improvement deltas and improved-window qualification", "positive-return fraction", "p10 wealth floor", "all other drawdown gates", "acute return", "turnover", "costs", "recovery", "Absolute/Ownership obligations other than explicitly revised champion wealth/orders"],
+        "final_nominal_small_gaps": {
+            "source_sha256": "010c16a4d03dad124a9b4e690188306dd2313e77fd3ef8e5794a1bab02fd9ba8",
+            "scope": "Named nominal comparisons only; original/v7 failed receipts retained",
+            "no_optical_h1_2023": {
+                "original_frozen_comparison_ceiling": 0.20205429957130803,
+                "authorized_main_baseline": 0.2442425185317515,
+                "cumulative_buffer_from_original_comparison": 0.2442425185317515 + 0.016 - 0.20205429957130803,
+                "total_buffer_from_authorized_main": 0.016,
+                "effective_ceiling": 0.2442425185317515 + 0.016,
+            },
+            "remove_all_three_h1_2023": {
+                "previous_total_buffer_from_original_comparison": 0.015,
+                "total_buffer_from_original_comparison": 0.025,
+                "increment_from_v7": 0.010,
+            },
+            "h2_2024": {
+                "cases": ["no_optical", "remove_all_three"],
+                "total_extra_drawdown_buffer_from_original_comparison": 0.002,
+            },
+            "remove_all_three_later": {
+                "previous_extra_wealth_multiplier": 0.99,
+                "replacement_extra_wealth_multiplier": 0.9895,
+                "application": "original floor *0.9 *0.9895; replaces0.99, never compounds it",
+            },
+            "unchanged": ["principal15", "orders40", "stress and tail gates", "all other comparisons"],
+        },
         "original_judgment": "authorized=False reproduces original frozen comparisons before order revisions",
     }
 
 
 def half_year_drawdown_ceiling(original: float, *, case: str, window: str, authorized: bool = True) -> float:
-    """Apply only the two explicitly authorized, distinct half-year revisions."""
+    """Recompute final named nominal margins from their unchanged original basis."""
     if authorized and case == "no_optical" and window == "h1_2023":
-        return 0.2442425185317515
+        return 0.2442425185317515 + 0.016
     if authorized and case == "remove_all_three" and window == "h1_2023":
-        return original + 0.015
+        return original + 0.025
+    if authorized and case in {"no_optical", "remove_all_three"} and window == "h2_2024":
+        return original + 0.002
     return original

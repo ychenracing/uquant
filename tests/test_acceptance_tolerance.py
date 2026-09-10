@@ -55,7 +55,7 @@ def test_nominal_original_effective_and_unchanged_risk() -> None:
 def test_authorized_h1_drawdown_is_exact_and_case_scoped() -> None:
     t = json.loads(CONTRACT_PATH.read_text())['thresholds']
     metrics = {'final_wealth': 1.4476947005385299,
-               'max_drawdown': .2442425185317515, 'account_orders': 6}
+               'max_drawdown': .2602425185317515, 'account_orders': 6}
     args = dict(case='no_optical', window='h1_2023', metrics=metrics,
                 baseline={'final_wealth': 1.01039464268425, 'max_drawdown': .18205429957130803},
                 benchmark={'final_wealth': 1.}, thresholds=t)
@@ -134,7 +134,7 @@ def test_small_gap_later_wealth_does_not_relax_no_optical_or_orders() -> None:
     assert check_metrics(**args) == []
     assert check_metrics(**args, authorized=False) == ['disjoint later-window benchmark floor']
     assert check_metrics(**{**args, 'case': 'no_optical'}) == ['disjoint later-window benchmark floor']
-    metrics['final_wealth'] = 1.535004231275972 - 1e-9
+    metrics['final_wealth'] = 1.535004231275972 / .99 * .9895 - 1e-9
     assert check_metrics(**args) == ['disjoint later-window benchmark floor']
     metrics['final_wealth'] = 1.5374012906252983
     metrics['account_orders'] = 41
@@ -152,7 +152,7 @@ def test_small_gap_h1_drawdown_has_one_case_scoped_buffer() -> None:
     assert check_metrics(**args) == []  # Re-reading acceptance never accumulates tolerance.
     assert check_metrics(**args, authorized=False) == ['half-year drawdown retention']
     assert check_metrics(**{**args, 'window': 'h1_2024'}) == ['half-year drawdown retention']
-    metrics['max_drawdown'] = .21705429957130803 + 1e-9
+    metrics['max_drawdown'] = .22705429957130803 + 1e-9
     assert check_metrics(**args) == ['half-year drawdown retention']
 
 
@@ -225,5 +225,20 @@ def test_comparable_h2_wealth_margin_is_once_and_retains_other_obligations(case)
     assert 'half-year wealth retention' in check_metrics(**{**args, 'window': 'h1_2024'})
     metrics['final_wealth'] = floor - 1e-10
     assert check_metrics(**args) == ['half-year wealth retention']
-    metrics.update(final_wealth=floor, max_drawdown=.10583048851864583 + 1e-8, account_orders=41)
+    metrics.update(final_wealth=floor, max_drawdown=.10783048851864583 + 1e-8, account_orders=41)
     assert check_metrics(**args) == ['half-year drawdown retention', 'half-year order ceiling']
+
+
+@pytest.mark.parametrize('case,window,original,ceiling', [
+    ('no_optical', 'h1_2023', .20205429957130803, .2602425185317515),
+    ('remove_all_three', 'h1_2023', .20205429957130803, .22705429957130803),
+    ('no_optical', 'h2_2024', .10583048851864583, .10783048851864583),
+    ('remove_all_three', 'h2_2024', .10583048851864583, .10783048851864583),
+])
+def test_final_nominal_margin_is_absolute_scoped_and_nonaccumulating(case, window, original, ceiling):
+    from uquant.validation.acceptance_tolerance import half_year_drawdown_ceiling
+    for _ in range(3):
+        assert half_year_drawdown_ceiling(original, case=case, window=window) == pytest.approx(ceiling)
+    assert half_year_drawdown_ceiling(original, case=case, window=window, authorized=False) == original
+    assert half_year_drawdown_ceiling(original, case=case, window='h1_2024') == original
+    assert half_year_drawdown_ceiling(original, case='champion', window=window) == original

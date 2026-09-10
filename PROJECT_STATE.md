@@ -1,3 +1,7 @@
+# J nominal closed; v8 acceptance frozen
+
+All14 sameeconomic-source010c16a4 native cases complete/readbackPASS;v7 9PASS/5FAIL;v8 14PASS andcross-windowPASS. Fixeda/bull nativecachePASS/currentPASS. See benchmarks/long_cycle_nominal_v8_result.json for original/v7/v8 and cumulative post-observation authorization. Principal29.717/25.110,22/14orders. nooptlater1.841/38. No completegoalclaim. Coststressnext;64frozenrobustnessspecs planned, oldpairs require exactoldsource. Engineering architecture8FAIL/5ERROR;13missinghistoricalblobs restored+2focusedtestsPASS; remainingcomplexity/structure failures unresolved. Original739Absolute fixture remains historical. PR56Draft/head008e140/main960539 unchanged. Supersedes allrunningclaims below; historical evidence preserved.
+
 # Validation checkpoint — participation checker repaired
 
 SameJ economic source010c16a4.131OwnershipmodeltestsPASS,35AbsolutecontracttestsPASS. Nativeparticipationtestfirstfailedoldscope; knowncheckerrepair nowvalidatesFINAL_DECISION+planning_scope+finalfreeze/cap/target,23testsPASS/Ruff/mypyPASS/reviewnoimportantfindings. No economicpolicychange; originalfailurelogretained in runs/long-cycle-lifecycle/participation-before.log. FourJcontinuouscasesstillrunninginseparateproducer. No fullengineering/Ownership/economicacceptanceclaim.

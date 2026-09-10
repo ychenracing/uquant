@@ -12,6 +12,7 @@ from test_cross_ai_ownership_continuity import continuity_replay
 
 import scripts.run_strategic_ownership_acceptance as runner
 from research.strategic_evidence.trace import RouteTraceRow
+from uquant.application.decision import _record_final_allocation_trace
 
 
 def _native_entry(monkeypatch):
@@ -22,6 +23,7 @@ def _native_entry(monkeypatch):
     args["date"] = dates[-2]
     targets = policy.allocate(**args)
     target = next(target for target in targets if target.symbol == CHALLENGER)
+    _record_final_allocation_trace(risk=args["risk"], targets=targets, orders=(), planning={})
     row = RouteTraceRow(
         date=str(dates[-2].date()), reference_context={}, leaders=(),
         risk={"state": args["risk"].state.value, "freeze_new_risk": args["risk"].freeze_new_risk,
@@ -48,7 +50,7 @@ def test_native_ordinary_entry_has_qualification_and_settled_common_capital(monk
     assert proof["capital_budget"]["accepted"] is True
 
 
-@pytest.mark.parametrize("mutation", ("confirmation", "freeze", "cash", "industry", "correlation", "risk", "missing", "required", "wrong_route", "base_freeze", "occupied"))
+@pytest.mark.parametrize("mutation", ("confirmation", "freeze", "cash", "industry", "correlation", "risk", "missing", "required", "wrong_route", "base_freeze", "occupied", "final_freeze", "final_cap", "final_target", "planning_scope", "scope"))
 def test_participation_entry_rejects_missing_or_exceeded_authority(monkeypatch, mutation):
     row, order, target = _native_entry(monkeypatch)
     book = row.risk["core_allocation"]
@@ -73,6 +75,14 @@ def test_participation_entry_rejects_missing_or_exceeded_authority(monkeypatch, 
         row.risk["freeze_new_risk"] = True
     elif mutation == "occupied":
         accepted["gross_room"] = book["gross_cap"]
+    elif mutation == "final_freeze":
+        book["final_freeze_new_risk"] = True
+    elif mutation == "final_cap":
+        book["final_gross_cap"] = 0
+    elif mutation == "final_target":
+        owner["final_target_weight"] = 0
+    elif mutation in {"planning_scope", "scope"}:
+        book[mutation] = "UNBOUND"
     else:
         del owner["entry"]
     with pytest.raises((ValueError, RuntimeError)):

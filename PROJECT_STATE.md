@@ -274,3 +274,51 @@ wealth1.7961685033145143/DD.25406028413388815 versus control1.88338375540882/12o
 The original real peer exits2024-05-09; rearm buys688082on2025-06-27 with linked authorization.
 Full/champion principal15/40 native checks now running in immutable24202research copy.
 This is one diagnostic scenario, not full Ownership/economic acceptance.
+
+
+## Continuation verified 2026-09-10 — supersedes pending statements above
+
+Original workspace /workspace/scratch/100af34dc020 remains present. All modified
+files and latest native outputs were captured in uquant_resume_checkpoint_20260910.tar.gz:
+3529 files, 197423214 bytes, SHA256
+0708be3d24762e72b8dd6615afa58ef99bd3b89baab028afa1b5a45ce6c40073,
+libfile_034efcfd5d008191822dc2de1d2911b8. Inventory and individual hashes included.
+Unaccepted integration WIP is preserved local a54290292c9bc89222f1d1471ded703c543177b7,
+remote d477fb107fc078243459f593b56bacd6bf20a188, tree
+8808fa84f5859e489173770b6e7a4db77ac0cb97 on
+codex/breach-episode-integration-wip-20260910. Do not merge that failed candidate.
+Its Absolute test failure is a real stale native champion fixture739 binding,
+not permission to relabel historical raw. Candidate identity binding is deferred
+until a viable economic candidate; do not rerun the large failing fixture suite.
+
+Breach research finished all four continuous accounts; see updated
+breach_episode_result.json. Full29.717004/champion25.109594,22/14orders;
+remove3=1.887764/17orders,no_optical=1.388289/19orders. Complete continuity shard
+failed: cross-industry has three initial BUYs only, DD49.111477%. The original
+.01 soft target cut is below .05 execution minimum and continuous breaches
+cannot advance it. Distinct-breach repair alone cannot solve prolonged decline.
+
+Independent confirmed-structure research uses existing native completed-entry
+and ordinary maturity/MA20-or-MA60/3session/10held-session exit checks for FULL
+members as well. No new threshold, CAUTION exception, or breach composition.
+Local c2a489f028fe8a1b5dd65e4063d3819cba8370fb / remote
+ce91b23388cce189929e50fa45ce2dcc19d3fab9, tree
+5873802b58ade1e234f26dd437c9bbbc2e7f6867, branch
+codex/shared-structural-exit-research-20260910, production source
+4bd9a024200dbde9da305665d95ef9b338cf0959da8d84a7f07c294f276bf2e2.
+28affected testsPASS. Identical cross-industry scenarioPASS: wealth2.2875692054,
+DD.1158676743, two real owners308->688019, optical->materials. Principal full
+and champion native runs pending in /workspace/scratch/997f3f703ab0/runs/shared-exit.
+Research tree is immutable while they run. Do not infer principal preservation.
+
+Separate evidence repair: current final allocation trace preserves planning_scope
+ALLOCATOR_PROPOSAL under scope FINAL_DECISION. Ownership participation reader
+used stale scope, rejecting three genuinely unfrozen ordinary entries. The
+reader now validates current final/planning scopes, original and final freeze,
+final cap/target identity, and all original qualification, budget and accounting
+checks. 23focused tests, Ruff and mypyPASS. Same immutable prior raw produces
+five verified admissions and independent same-industry pair223->688200. This
+is a proof-only reread, not new-source replay or total Ownership acceptance.
+Original raw/failure and overlay thresholds preserved; see
+participation_evidence_repair_result.json. Continue principal outcome evaluation,
+then necessary failed gates under the existing15/40 and remaining obligations.

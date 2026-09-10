@@ -1082,9 +1082,16 @@ def _participation_entry(row: RouteTraceRow, order: AccountOrder, target: Mappin
     if (entry.get("block") != "READY" or type(required) is not int or required != floor
             or set(confirmations) != {route} or type(streak) is not int or streak < required):
         raise ValueError("CORE participation lacks confirmed current qualification")
-    if (book.get("as_of") != row.date or book.get("scope") != "ALLOCATOR_PROPOSAL"
-            or book.get("freeze_new_risk") is not False or book.get("late_fill_order_ids")):
+    if (book.get("as_of") != row.date or book.get("scope") != "FINAL_DECISION"
+            or book.get("planning_scope") != "ALLOCATOR_PROPOSAL"
+            or book.get("freeze_new_risk") is not False
+            or book.get("final_freeze_new_risk") is not False or book.get("late_fill_order_ids")):
         raise ValueError("CORE participation lacks current unfrozen capital authority")
+    if (_participation_number(book.get("final_gross_cap"))
+            != _participation_number(row.risk.get("target_gross_cap"))
+            or _participation_number(owner.get("final_target_weight"))
+            != _participation_number(target.get("weight"))):
+        raise ValueError("CORE participation final target or risk cap differs")
     if (row.risk.get("freeze_new_risk") is not False
             or row.risk.get("state") not in {"NORMAL", "CAUTION"}
             or row.risk.get("base_freeze_new_risk", False)

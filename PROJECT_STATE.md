@@ -1,3 +1,7 @@
+# Validation checkpoint — participation checker repaired
+
+SameJ economic source010c16a4.131OwnershipmodeltestsPASS,35AbsolutecontracttestsPASS. Nativeparticipationtestfirstfailedoldscope; knowncheckerrepair nowvalidatesFINAL_DECISION+planning_scope+finalfreeze/cap/target,23testsPASS/Ruff/mypyPASS/reviewnoimportantfindings. No economicpolicychange; originalfailurelogretained in runs/long-cycle-lifecycle/participation-before.log. FourJcontinuouscasesstillrunninginseparateproducer. No fullengineering/Ownership/economicacceptanceclaim.
+
 # Validation-only K checkpoint
 
 SameeconomicJsource010c16a4;currentAbsolute4identity/sealfieldsboundtoJ;35contracttestsPASS/Ruff/mypy/reviewPASS. Frozen17cebytesandallothercontractfieldsunchanged. See benchmarks/long_cycle_acceptance_binding.json. Old739rawfixturestillhistorical, notcurrenttestsuccess. Jfourcontinuousnativecasesrunninginseparateimmutableproducer; ownershipmodeltestsnowrunninghere. No fullgoalclaim.

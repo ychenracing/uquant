@@ -145,7 +145,9 @@ def test_risk_anchor_breadth_does_not_create_tradable_qualification() -> None:
     panel: dict[str, pd.DataFrame] = {}
     for index, symbol in enumerate(symbols):
         frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
-        frame["ret120"] = -0.40 + 0.02 * index
+        # Remain unqualified for BOTH CORE and the original deep-recovery route.
+        # The old -.40 fixture now legitimately earns the restored RECOVERY quorum.
+        frame["ret120"] = -0.10 + 0.02 * index
         panel[symbol] = frame
     risk = RiskAssessment(
         Risk.NORMAL,
@@ -262,7 +264,9 @@ def test_unconfirmed_recovery_candidates_cannot_create_a_hidden_target_book() ->
     panel: dict[str, pd.DataFrame] = {}
     for index, symbol in enumerate(symbols):
         frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
-        frame["ret120"] = -0.40 + 0.02 * index
+        # Remain unqualified for BOTH CORE and the original deep-recovery route.
+        # The old -.40 fixture now legitimately earns the restored RECOVERY quorum.
+        frame["ret120"] = -0.10 + 0.02 * index
         panel[symbol] = frame
     risk = RiskAssessment(
         Risk.NORMAL,
@@ -308,7 +312,9 @@ def test_reported_universe_size_cannot_authorize_unqualified_recovery_entry(
     panel: dict[str, pd.DataFrame] = {}
     for index, symbol in enumerate(symbols):
         frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
-        frame["ret120"] = -0.40 + 0.02 * index
+        # Remain unqualified for BOTH CORE and the original deep-recovery route.
+        # The old -.40 fixture now legitimately earns the restored RECOVERY quorum.
+        frame["ret120"] = -0.10 + 0.02 * index
         panel[symbol] = frame
     risk = RiskAssessment(
         Risk.NORMAL,
@@ -352,7 +358,9 @@ def test_ambiguous_recovery_metadata_cannot_authorize_unqualified_deployment() -
     panel: dict[str, pd.DataFrame] = {}
     for index, symbol in enumerate(symbols):
         frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
-        frame["ret120"] = -0.40 + 0.02 * index
+        # Remain unqualified for BOTH CORE and the original deep-recovery route.
+        # The old -.40 fixture now legitimately earns the restored RECOVERY quorum.
+        frame["ret120"] = -0.10 + 0.02 * index
         panel[symbol] = frame
     risk = RiskAssessment(
         Risk.NORMAL,

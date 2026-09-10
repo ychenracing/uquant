@@ -214,7 +214,7 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
 
 def test_causal_confirmation_toggle_changes_current_config_identity() -> None:
     assert config_fingerprint(DEFAULT_CONFIG) == (
-        "ff491f722c3f84211eda9953cce1309392f7a89bb86bcc1e2cb33232580d4a26"
+        "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51"
     )
     assert config_fingerprint(
         DEFAULT_CONFIG.override(risk_sentinel_causal_confirmation_enabled=True)

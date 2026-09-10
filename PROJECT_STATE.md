@@ -242,3 +242,35 @@ This is preferred over new rank/threshold rules because it is a concrete require
 continuity failure not explained by the now-closed CAUTION lifecycle/clock bugs.
 Absolute34459529260 fails source-registry binding before economic execution; its
 older739candidate binding remains historical and unwaived. No fullL4 pass claimed.
+
+
+## Latest check: completed remote CI and independent breach-episode research
+
+Remote7e139 Engineering: application-left2178PASS/186FAIL; 178 failures
+are Absolute identity/loader consequences, three stale retired-config assertions,
+five old unqualified-recovery fixtures that now satisfy original recovery quorum.
+Architecture-remaining426PASS/1FAIL/1SKIP; sole failure is reviewed industries
+parameter now optional in build_reference_context. Config/API341focusedPASS;
+five corrected genuinely unqualified recovery fixturesPASS. Native recovery
+positive/quorum/fill/freeze regression7PASS; preserve historical failing logs.
+Grant34459529289PASS. Ownership34459529332all other shards/model testsPASS;
+continuityFAIL. Absolute identities stay old until a viable candidate is selected;
+no threshold, frozen input or historical result is changed to suppress failure.
+
+Control6bac/source78e2 Ownership remove-sz300502 locally reproduces failure:
+one real epoch. Owner300223 sold2023-05-08; peer688072 retains900real shares
+through2026-08-05. An active epoch cannot be relabeled closed with those shares.
+First executed soft ATR exit intentionally preserves remaining holding forever
+against later soft breaches. This is an economic policy, not an orphan-state bug.
+
+Independent branch codex/breach-episode-research-20260910, local24202b117f6b8d5a0def8744a11f8329f1a4c84a,
+remoteb2e03221ae7fb5d03968b964a8cf0d9ebb67f40d, equivalenttree77cbc7bf64c2ae1b77961bc6650c2e0ebf9119a8.
+It has NO CAUTION exception. Test a valid recovery followed by a fresh original
+ATR breach as a new exit instruction, keeping step/threshold/executor unchanged.
+Two native-fill/idempotence/missing-data testsPASS; same control fixture1FAIL/1PASS
+as expected. Five old policy-preservation assertions intentionally fail and remain
+unmodified; other focused boundariesPASS. Exact single Ownership scenarioPASS:2actual epochs/distinct owners,15orders,
+wealth1.7961685033145143/DD.25406028413388815 versus control1.88338375540882/12orders/sameDD.
+The original real peer exits2024-05-09; rearm buys688082on2025-06-27 with linked authorization.
+Full/champion principal15/40 native checks now running in immutable24202research copy.
+This is one diagnostic scenario, not full Ownership/economic acceptance.

@@ -50572,9 +50572,10 @@
               {
                 "name": "industries",
                 "kind": "KEYWORD_ONLY",
-                "annotation": "Mapping[str, str]",
+                "annotation": "Mapping[str, str] | None",
                 "default": {
-                  "kind": "required"
+                  "kind": "value",
+                  "value": null
                 }
               },
               {
@@ -96867,7 +96868,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "861fa5d59b2cd9fb726b78f423b5f6f6145a48d4138c5f6add131110eee831db",
+  "contract_sha256": "04327a5140f4643481cd74442e007ec995f7418347e27a93b095125e1200b8ee",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

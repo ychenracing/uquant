@@ -1,0 +1,40 @@
+{
+  "status": "CONTINUITY_SCENARIO_PASS_PRINCIPAL_TESTS_RUNNING",
+  "rows": [
+    {
+      "file": "/workspace/scratch/100af34dc020/runs-20260910/ownership-continuity-local.json",
+      "sha256": "09703da08814d6ce0114cb5f49f51c695b53236595fd8716cad263c4ec536f9d",
+      "source": "78e2cc4c35593ce502843ca6fb75995d79b74e7ad4f75d0d5313b1f9b18046c4",
+      "status": "FAIL",
+      "raw_status": "SUCCESS",
+      "error": "repeated-crowning replay has fewer than two actual epochs",
+      "final_wealth": 1.88338375540882,
+      "max_drawdown": 0.25406028413388815,
+      "orders": 12,
+      "epochs": 1,
+      "distinct_owners": [
+        "sz300223"
+      ],
+      "authoritative_acceptance": false
+    },
+    {
+      "file": "/workspace/scratch/100af34dc020/runs-20260910/ownership-breach-episode.json",
+      "sha256": "85df7bb1720f6daeec1d870ddfecbae1695297d9621ded294aa0b6913afff90e",
+      "source": "a762b7434b497c4307523379c08c5bde9d50ad5b081c1f73a11bfc14f525c2ce",
+      "status": "PASS",
+      "raw_status": "SUCCESS",
+      "error": null,
+      "final_wealth": 1.7961685033145143,
+      "max_drawdown": 0.25406028413388815,
+      "orders": 15,
+      "epochs": 2,
+      "distinct_owners": [
+        "sh688082",
+        "sz300223"
+      ],
+      "authoritative_acceptance": false
+    }
+  ],
+  "hypothesis": "Original ATR recovery-to-new-breach permits one fresh soft instruction after native settlement; all thresholds unchanged.",
+  "limits": "Diagnostic one scenario only; lower wealth is a real cost. Full/champion15 and40 plus remaining gates pending. Research-only; no CAUTION composition or production change."
+}

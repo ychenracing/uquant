@@ -8,7 +8,10 @@
     "ruff": "PASS",
     "complete_regenerated_sentinel_payload_after_explicit_identity_transport": "PASS",
     "full_historical_sentinel_test_local": "BLOCKED_MISSING_HISTORICAL_GIT_BLOB",
-    "full_historical_sentinel_test_remote_before_fix": "FAILED_STALE_CURRENT_CONFIG_ONLY_AFTER_HISTORICAL_GIT_PROVENANCE_PASSED"
+    "full_historical_sentinel_test_remote_before_fix": "FAILED_STALE_CURRENT_CONFIG_ONLY_AFTER_HISTORICAL_GIT_PROVENANCE_PASSED",
+    "config_and_current_public_api_tests": 341,
+    "recovery_negative_fixture_tests": 5,
+    "confirmed_recovery_native_regression": "7PASS"
   },
   "authority": "User latest15/40; prior macro-veto config-field retirement is already reviewed. Historical evidence/code/config hashes stay unchanged.",
   "remote_failure": {
@@ -20,5 +23,10 @@
   "files": {
     "remote-failure-0-7e139c6.log": "54e87b933ea40beb4362e83a9c96bbcaf076848a8a0295d7a1d2e6d012d44c73",
     "current-sentinel-evidence-closure.json": "e69c87013f638f4844da265c85c68c6a1cae46e67f6e5763fa644cadb5b8e173"
-  }
+  },
+  "alignment_notes": [
+    "Current public API changes only industries parameter annotation/default after reviewed dated-map centralization; all other contract fields and frozen files remain intact.",
+    "Negative recovery fixtures formerly supplied three genuinely deep breakouts and thus qualify for restored RECOVERY; shallow -.10 fixtures keep the intended unqualified-admission checks. Existing native positive quorum, partial-fill and freeze regressions passed (7 tests).",
+    "Absolute source registry/candidate/config bindings remain old; candidate rebinding is pending a viable economic candidate. No frozen-policy projection is waived."
+  ]
 }

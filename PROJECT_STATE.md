@@ -1,3 +1,19 @@
+# Latest validation-only checkpoint
+
+E economics remains immutable LOCAL29971d4 / REMOTE997b6bc8293a66c8bde164eef6e5a4b2c45892d9,
+sourcee4eb4dff7566ca41f1216abd055a5e63dfeb6d9551dc16e06be77772b90fe72a.
+Native nominal champion75579/full41899/no_optical94080/remove_all_three68037,
+later no_optical9571/remove_all_three68677 and fixedbull34790 are running.
+Outputs /workspace/scratch/997f3f703ab0/runs/simple-full-lifecycle.
+131 ownership model tests PASS; entire Ruff PASS; mypy336 source files PASS.
+This independent branch updates only Absolute acceptance binding to current
+source/registry/config plus canonical seal. Original contract first FAILED
+registry identity; all35 contract tests now PASS. Reviewer independently checked
+four changed JSON fields only and intact frozen policy projection; no important
+findings. Economic source is identical before/after; old baseline, frozen17ce,
+scenarios, thresholds and runtime/data are unchanged. See binding receipt.
+Complete economic/engineering/L4 acceptance remains pending; PR56 stays Draft.
+
 # Latest checkpoint — integrated lifecycle candidate E
 
 D champion complete and sealed:25.341281501550608/DD.27146973146234554/14orders,

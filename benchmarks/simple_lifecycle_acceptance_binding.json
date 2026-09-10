@@ -1,0 +1,17 @@
+{
+  "old_contract_sha256": "aa05534517e02895a15d5b312c583d01873af02a02925d934bcabbb02a292177",
+  "new_contract_sha256": "f12695f6f8c9c40be15afeb34fb11e2845300e2b20fa9183263ecee1cab97188",
+  "changed_fields": [
+    "candidate.production_source_sha256",
+    "candidate.source_surface_registry_sha256",
+    "inputs.effective_config_sha256",
+    "canonical_sha256"
+  ],
+  "economic_source_unchanged": "e4eb4dff7566ca41f1216abd055a5e63dfeb6d9551dc16e06be77772b90fe72a",
+  "all_other_fields_equal": true,
+  "baseline_commit_unchanged": "d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5",
+  "contract_tests": 35,
+  "contract_tests_status": "PASS",
+  "before_status": "FAIL: absolute generalization source registry identity differs",
+  "focused_review": "PASS: no important findings; four binding/seal fields only; frozen projection intact"
+}

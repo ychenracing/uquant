@@ -97,7 +97,7 @@ def test_completed_fifo_band_sale_does_not_rebalance_drift_or_restart():
     assert restored.strategic_exit_bands[OWNER] == bands
 
 
-def test_fresh_soft_atr_breach_preserves_a_settled_holding():
+def test_fresh_soft_atr_breach_can_renew_a_settled_instruction():
     allocator, account, dates, panel, leaders, roles = _band_sale()
     old_bands = list(account.strategic_exit_bands[OWNER])
     close = float(panel[OWNER].loc[dates[0], "close"])
@@ -110,12 +110,15 @@ def test_fresh_soft_atr_breach_preserves_a_settled_holding():
     panel[OWNER].loc[dates[0], "ma20"] = close * 1.1
     panel[OWNER].loc[dates[0], "ret20"] = -.05
     orders = _decide_and_submit(allocator, account, dates[0], panel, leaders, roles)
-    assert not orders
-    assert account.strategic_exit_bands[OWNER] == old_bands
+    assert len(orders) == 1 and orders[0].side == "SELL"
+    assert sum(account.strategic_exit_bands[OWNER]) < sum(old_bands)
     assert all(account.strategic_active_bands[OWNER])
+    new_bands = list(account.strategic_exit_bands[OWNER])
     restored = account_from_dict(asdict(account))
-    assert not _decide_and_submit(allocator, restored, dates[0], panel, leaders, roles)
-    assert restored.strategic_exit_bands[OWNER] == old_bands
+    repeated = _decide_and_submit(allocator, restored, dates[0], panel, leaders, roles)
+    assert len(repeated) == 1 and repeated[0].order_id == orders[0].order_id
+    assert repeated[0].remaining_shares == orders[0].remaining_shares
+    assert restored.strategic_exit_bands[OWNER] == new_bands
 
 
 @pytest.mark.parametrize("escalation", ("transition", "post_guard", "disaster"))
@@ -185,7 +188,7 @@ def test_repeated_same_session_damage_does_not_compound_a_pending_reduction():
 
 
 @pytest.mark.parametrize("missing", (None, "atr", "ma20", "ret20"))
-def test_settled_plan_survives_missing_data_recovery_and_new_soft_breach(missing):
+def test_settled_plan_rearms_only_after_valid_recovery_and_new_soft_breach(missing):
     allocator, account, dates, panel, leaders, roles = _band_sale()
     count = len(account.strategic_exit_bands[OWNER])
     account.strategic_exit_bands[OWNER] = [.10 / count] * count
@@ -220,7 +223,10 @@ def test_settled_plan_survives_missing_data_recovery_and_new_soft_breach(missing
     panel[OWNER].loc[dates[3], "ret20"] = .05
     assert not _decide_and_submit(allocator, restored, dates[3], panel, leaders, roles)
     assert not _decide_and_submit(allocator, restored, dates[4], panel, leaders, roles)
-    assert sum(restored.strategic_exit_bands[OWNER]) == pytest.approx(first[0].target_weight)
+    # Fresh damage lowers the instruction, but the unchanged execution minimum
+    # prevents a dust order. Missing/continuous damage above never rearmed it.
+    assert sum(restored.strategic_exit_bands[OWNER]) < first[0].target_weight
+    assert restored.positions[OWNER].shares == shares
 
 
 @pytest.mark.parametrize("damage", (

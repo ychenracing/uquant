@@ -394,10 +394,11 @@ def _advance_strategic_exit(
             and account.candidate_tenure.get("strategic_guard_level2_epoch", -1)
             != account.strategic_epoch
         )
-        if not post_guard_exit and _settled_strategic_exit_target(account, symbol, sum(bands)):
-            # A fully executed soft exit retains its remaining shares. Hard
-            # risk and post-guard escalation still own subsequent reductions.
-            # Exact-target receipts cannot swallow a tighter unfilled plan.
+        fresh_breach = any(signal and not armed[index] for index, signal in enumerate(triggered))
+        if (not post_guard_exit and not fresh_breach
+                and _settled_strategic_exit_target(account, symbol, sum(bands))):
+            # Research: settlement prevents drift and continuous-breach recuts.
+            # A valid recovery followed by a new edge owns a new instruction.
             armed[:] = triggered
             return
         for index, signal in enumerate(triggered):

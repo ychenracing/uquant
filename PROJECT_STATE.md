@@ -1,3 +1,13 @@
+# USER STOP — 2026-09-10T16:33:56Z
+
+User explicitly stopped ALL work and requested complete Markdown handoff/prompt. No further strategy edits, tests, replays, CI, merge or optimization authorized until user resumes. Only preservation performed after stop. All registered native/test jobs are closed; reviewer completed. Do not revive queues automatically.
+
+Latest M economic source44901d9f7229e56837ee666157fa852c87a354d0b94216b06f9ebeb71715b1fe, producerLOCALfc80dc7f97ffabf4e890bf6b7f7fbd24e3272073 equalsREMOTE83c7834c13fbc10fca78469f6917545c089dfc2c/tree9aa83f11d5c7a6921b82b2afc41f65da55b708a9. No native M economic run started. Absolute source/seal boundM, but actual739fixture is still historical. M's final CI-pinned portfolio suite COMPLETED:33PASS/1FAIL, not running. Sole remaining observed failure test_portfolio_allocator_source_surface_migration_is_exact: expected source projection omits uquant/portfolio/allocation_book.py and uquant/portfolio/recovery/current_cohort.py. Not fixed after stop. Earlier unpinned suite interrupted130. Other complete engineering/L4 gates unproven.
+
+J source010c16a4:14nominal +fixedbull+3coststress currentPASS, original/v7 failures retained; v8 observed small-gap revision disclosed, not new economic improvement. Current main/PR executable remain960539/008e140, DraftPR56. 41modified/untracked historical files across4worktrees saved byte-for-byte with SHA256 and original paths in benchmarks/handoff/uncommitted_file_contents_20260910.json; originals untouched. All38worktree pointers/statuses in sibling inventory. No reset/clean/rebase/forcepush/merge/live orders/futureholdout. No fullgoal claim.
+
+Supersedes all older RUNNING/NEXT statements below; they describe history, not current authorization.
+
 # M bounded engineering source prepared
 
 Source 44901d9f7229e56837ee666157fa852c87a354d0b94216b06f9ebeb71715b1fe. No strategy/parameter revisions. See benchmarks/long_cycle_engineering_plan.md/result.json. Six branchy functions and1001linepromotion debt resolved;54behavior+36entry/cache+5complexity+7book/reflection+35Absolutecontract testsPASS;targetedRuff/mypy6PASS;twofocusedreviews noimportantfindings. CurrentAbsolute source+sealonly rebound; oldraw739 fixturestillhistorical. Fullportfolioarchitecture running withCI pinnednumericenv; priorunpinnedattempt interrupted130. J14nominal/fixedbull/3coststress PASS; results retain originalproducer010c16a4 and are not thissource evidence. Jnominal5296rawfiles archive saved/hashverified (receipt). Nextcommit exacttree thennativecurrentchampion/Absolute evidence; freezeproducer. Fullrobustness/Ownership/L4/engineering remain. PR56Draft/head008e140/main960539 unchanged.

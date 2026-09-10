@@ -1,4 +1,4 @@
-"""Native ordinary sector corroboration, without granting strategic capital."""
+"""Retired industry-only shortcut cannot replace current ordinary entry proof."""
 from dataclasses import replace
 
 import pytest
@@ -43,17 +43,16 @@ def _sector(*, failure=None):
     return policy, account, dates, panel, leaders, risk, targets
 
 
-def test_mature_sector_can_fund_native_ordinary_entry_without_macro_impulse():
+def test_mature_sector_alone_cannot_fund_native_ordinary_entry():
     _, account, dates, panel, leaders, risk, targets = _sector()
     assert not risk.evidence["core_allocation"]["ordinary_market"]["impulse"]
     assert account.strategic_grant is None
     assert all(account.replacement_tenure.get(f"strategic_eligibility:independent_core:{s}", 0) == 0
                for s in leaders)
-    assert targets and account.pending_orders
-    assert all(not order.grant_id and not order.epoch_id for order in account.pending_orders)
+    assert not targets and not account.pending_orders
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
-    assert fills and all(fill.side == "BUY" and fill.shares > 0 for fill in fills)
-    assert account.cash >= 0
+    assert not fills and not account.positions
+    assert account.cash == DEFAULT_CONFIG.initial_cash
 
 
 @pytest.mark.parametrize("failure", ("low_peer", "other_industry", "reference_only", "broken_peer",
@@ -74,19 +73,3 @@ def test_stale_sector_proof_cannot_authorize_a_new_session():
         market=risk.evidence["core_allocation"]["ordinary_market"],
     )
     assert entry["block"] == "CONFIRMATION_INCOMPLETE"
-
-
-def test_partial_sector_order_loses_peer_proof_without_selling_actual_holding():
-    policy, account, dates, panel, leaders, risk, _ = _sector()
-    assert account.pending_orders
-    for frame in panel.values():
-        frame.loc[dates[5], "volume"] = 1_000_000.
-        frame.loc[dates[5], "amount"] = frame.loc[dates[5], "close"] * 1_000_000.
-    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
-    assert fills and account.pending_orders
-    before = ({s: p.shares for s, p in account.positions.items()}, account.cash)
-    peer = tuple(leaders)[-1]
-    leaders[peer] = replace(leaders[peer], score=.81)
-    _decide(policy, account, dates[5], panel, leaders, risk)
-    assert not account.pending_orders
-    assert ({s: p.shares for s, p in account.positions.items()}, account.cash) == before

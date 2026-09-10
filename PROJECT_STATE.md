@@ -1,3 +1,12 @@
+Persistent-only narrowing implemented — 2026-09-10:
+
+- NOT_MET; PR56 Draft, main unchanged. Exact45c full869 control verifies12.352749369187105 /28 and ALL metrics and symbol PnL equal b55 full. The added ordinary mature-industry shortcut causes this hard15 regression; confirmed persistent formation is separately useful in H1.
+- Remove only that shortcut: ordinary.py byte-identical f5 blob761b2eb; retain b55 confirmed persistent formation. New sourceb43f3f796aa16a54cb2a0bc009bf14db049df9291100d951127fc346c5bb6046; configadf8 unchanged. Real denial regression fails before deletion,39affected nodes pass afterward; Ruff/strictmypy pass. Freeze producer for fresh full15/40 and retained fixedH1 gates.
+- All b55 raw failed accounts and old recovery trace saved in126,059,981-byte/2764-file archive, see persistent_formation_archive.json. Later45c full control awaits next checkpoint. Read persistent_only_plan.md and persistent_only_implementation.json. Separate old recovery lifecycle integration remains unimplemented; no baseline/risk/threshold relaxation.
+
+---
+Earlier checkpoints:
+
 Persistent formation complete screen — 2026-09-10:
 
 - NOT_MET; PR56 Draft, main unchanged. b55 full869 wealth12.352749369187105 / 28orders FAILS hard15. Champion869 remains25.109594313238023 /14; offset5 864sessions3.0836897515185404 /20 (paired original-source gate pending). All native readbacks/seals/ledger verified.

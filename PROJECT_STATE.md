@@ -131,7 +131,7 @@ benchmarks/caution_lifecycle_archive.json and caution_lifecycle_research_result.
 Entry-only archive also saved; receipt benchmarks/caution_entry_archive.json.
 
 Exact native prefix traces show May8 funding respects .92 concentration with
-actual308 price drift; Oct16 restoration respects .75gross and .04minimum trade.
+actual308 price drift; Oct16 restoration respects .75industry/correlation concentration and .04minimum trade.
 No missing recovery rights or staleMAE penalty. Do not increase either cap.
 The observed risk reducer instead prioritized one fewerSELL over stronger
 retention among safety-equivalent plans. Independent branch
@@ -157,3 +157,44 @@ and mutation rejection checks, including the recovery stage.9application tests
 and28combined-owner testsPASS; focusedRuffPASS. No trading-source change.
 
 Source-surface transport repair now includes reviewed physical AllocationBook/current_cohort and17full-package-only research files; exact five-surface test andRuffPASS. Other historical architecture/Absolute/Ownership failures remain unresolved.
+
+
+## Current research refinement and engineering checkpoint
+
+Research source/local7698a22bcb5c002b4259e5f5d3deb04615f9b806,
+remoteece5fd866e63ea7d43e5b09daeb56084af79fb27,
+tree5a3fd6d8a3a4c8766807dbe15ace565e54b5e250 includes retention-before-order-count
+and original tactical clock/actual-settlement repairs. It excludes the rejected
+restoration-score priority branch157a2296, which returns11.353512957 in fixedbull.
+The selected research fixedbull remains11.658254652384228/DD.1566948879626876/10
+and FAILS only relative champion11.731316520301316; not total acceptance.
+23state/boundary checksPASS. Fourlong869session accounts COMPLETE and the unchanged
+principal comparator PASS: full29.717003593/DD.271473616/22,
+champion25.109594313/DD.271469731/14, remove_all_three1.706182311/DD.216373397/16,
+no_optical3.161589974/DD.250427594/20. Allraw outcomes and failures are retained.
+The ten contract-defined nominal windows are now running from this same immutable
+producer to evaluate the removal tradeoff, not to select new thresholds/windows.
+No fullL4 matrix or robust candidate claim. Read recovery_refinements_result.json.
+
+Closed refinements archive362931bytes/21members saved and verified; see
+recovery_refinements_archive.json. Selected long/remaining-window raw archive is
+pending until the independent jobs finish. The old107MB and lifecycle156MB
+archive receipts remain valid; do not rerun those uploads.
+
+Separate engineering delivery now moves the exact dated-industry default into
+the existing reference owner and removes the duplicate caller dependency. This
+meets the original decision-fanout ceiling without increasing it. Explicit maps,
+including empty maps, retain their semantics.8reference/industry/fanout checksPASS;
+5historical reference observations spanning2023–2026 match every field with the
+former explicit mapping. New delivery economic source78e2cc4c35593ce502843ca6fb75995d79b74e7ad4f75d0d5313b1f9b18046c4;
+previous77003 remains the stored control identity. No strategy rule changed and
+active research trees are untouched; do not relabel their native results.
+
+Engineering transports now match the already reviewed macro-veto config field
+retirement and slow-exit docstring; reflection/MRO/pickle/import-mode testPASS.
+Current recovery holding proof is explicitly bound in the protection gate;
+16owner/mutation checksPASS, including newly checked order/event/genesis/share
+reconciliation mutations. Portfolio risk-owner testPASS; validation relocation
+and resigned-tamper testsPASS after exact historical blobs were recovered by
+SHA1-verified GitHub reads. Historical frozen evidence unchanged. Remaining
+private/complexity relocation gates are running; full engineering still unproven.

@@ -26,6 +26,7 @@ from uquant.validation.acceptance_tolerance import (
     acceptance_revision,
     half_year_drawdown_ceiling,
     order_ceiling,
+    principal_drawdown_ceiling,
     principal_wealth_floor,
     wealth_floor,
 )
@@ -169,7 +170,9 @@ def check_metrics(
             failures.append(message)
     if case in ('champion', 'full'):
         require(wealth >= principal_wealth_floor(t[f'{case}_minimum_final_wealth'], authorized=authorized), 'champion/full wealth floor')
-        require(drawdown <= t[f'{case}_maximum_drawdown'], 'champion/full drawdown ceiling')
+        require(drawdown <= principal_drawdown_ceiling(
+            t[f'{case}_maximum_drawdown'], case=case, window=window, authorized=authorized),
+            'champion/full drawdown ceiling')
         require(orders <= order_ceiling(t[f'{case}_maximum_orders'], authorized=authorized), 'champion/full order ceiling')
         return failures
     require(drawdown <= t['removal_maximum_drawdown'], 'removal drawdown ceiling')
@@ -182,13 +185,14 @@ def check_metrics(
         cost = number(metrics, 'fees') + number(metrics, 'slippage_cost')
         require(cost / DEFAULT_CONFIG.initial_cash <= t['removal_maximum_all_in_cost_initial_cash_fraction'], 'all-in cost ceiling')
     elif window in HALVES:
-        require(wealth >= wealth_floor(number(baseline, 'final_wealth') * t['half_year_minimum_wealth_ratio_to_valid_baseline'], authorized=authorized), 'half-year wealth retention')
+        require(wealth >= wealth_floor(number(baseline, 'final_wealth') * t['half_year_minimum_wealth_ratio_to_valid_baseline'], authorized=authorized, comparison=f'{case}/{window}'), 'half-year wealth retention')
         require(drawdown <= half_year_drawdown_ceiling(
             number(baseline, 'max_drawdown') + t['half_year_maximum_drawdown_buffer'],
             case=case, window=window, authorized=authorized), 'half-year drawdown retention')
         require(orders <= order_ceiling(t['half_year_maximum_orders'], authorized=authorized), 'half-year order ceiling')
     else:
-        require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized), 'disjoint later-window benchmark floor')
+        require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized,
+                                      comparison=f'{case}/{window}'), 'disjoint later-window benchmark floor')
         require(orders <= order_ceiling(t['post2025_maximum_orders'], authorized=authorized), 'later-window order ceiling')
     return failures
 

@@ -11,7 +11,7 @@ from uquant.validation.acceptance_tolerance import (
     principal_wealth_floor,
     wealth_floor,
 )
-from uquant.validation.promotion import AI_ERA_POLICY, _hard_violations
+from uquant.validation.promotion import AI_ERA_POLICY, _champion_violations, _hard_violations
 
 
 def test_wealth_not_profit_and_bounded_order_revision() -> None:
@@ -111,6 +111,77 @@ def test_all_performance_continuous_pools_share_exact_revision(pool: str) -> Non
     assert 'max_drawdown' in _hard_violations(**options)[0]
 
 
+def test_small_gap_bull_tolerance_is_only_its_champion_comparison() -> None:
+    champion = {'final_wealth': 100., 'max_drawdown': .1, 'acute_return': None}
+    metrics = {'final_wealth': 88.21, 'max_drawdown': .1, 'acute_return': None}
+    args = dict(metrics=metrics, champion=champion)
+    assert _champion_violations(name='a/bull', **args) == []
+    assert _champion_violations(name='a/bull', **args, authorized=False)
+    assert _champion_violations(name='b/bull', **args)
+    assert _champion_violations(name='a/h1_2024', **args)
+    assert _hard_violations(name='a/bull', metrics=metrics, gate={'min_final_wealth': 100.})
+    # Original100 * .99 champion retention * .9 prior tolerance * .99 new tolerance.
+    metrics['final_wealth'] = 88.2089
+    assert _champion_violations(name='a/bull', **args)
+
+
+def test_small_gap_later_wealth_does_not_relax_no_optical_or_orders() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    metrics = {'final_wealth': 1.5374012906252983, 'max_drawdown': .2231401695575015,
+               'account_orders': 12}
+    args = dict(case='remove_all_three', window='bull_crash_2025_2026', metrics=metrics,
+                baseline={}, benchmark={'final_wealth': 1.8134611982703912}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert check_metrics(**args, authorized=False) == ['disjoint later-window benchmark floor']
+    assert check_metrics(**{**args, 'case': 'no_optical'}) == ['disjoint later-window benchmark floor']
+    metrics['final_wealth'] = 1.535004231275972 - 1e-9
+    assert check_metrics(**args) == ['disjoint later-window benchmark floor']
+    metrics['final_wealth'] = 1.5374012906252983
+    metrics['account_orders'] = 41
+    assert check_metrics(**args) == ['later-window order ceiling']
+
+
+def test_small_gap_h1_drawdown_has_one_case_scoped_buffer() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    metrics = {'final_wealth': 1.6860025875993399, 'max_drawdown': .21637339702142588,
+               'account_orders': 12}
+    args = dict(case='remove_all_three', window='h1_2023', metrics=metrics,
+                baseline={'final_wealth': 1., 'max_drawdown': .18205429957130803},
+                benchmark={}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert check_metrics(**args) == []  # Re-reading acceptance never accumulates tolerance.
+    assert check_metrics(**args, authorized=False) == ['half-year drawdown retention']
+    assert check_metrics(**{**args, 'window': 'h1_2024'}) == ['half-year drawdown retention']
+    metrics['max_drawdown'] = .21705429957130803 + 1e-9
+    assert check_metrics(**args) == ['half-year drawdown retention']
+
+
+def test_comparable_full_nominal_drawdown_gap_is_bounded_and_scoped() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    metrics = {'final_wealth': 24., 'max_drawdown': .31300868937639736,
+               'account_orders': 15}
+    args = dict(case='full', window='continuous_ai_era', metrics=metrics,
+                baseline={}, benchmark={}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert check_metrics(**args) == []
+    assert check_metrics(**args, authorized=False) == ['champion/full drawdown ceiling']
+    assert check_metrics(**{**args, 'case': 'champion'}) == ['champion/full drawdown ceiling']
+    assert check_metrics(**{**args, 'window': 'h1_2023'}) == ['champion/full drawdown ceiling']
+    metrics['max_drawdown'] = .315 + 1e-9
+    assert check_metrics(**args) == ['champion/full drawdown ceiling']
+
+
+def test_full_drawdown_margin_does_not_discount_principal_wealth_or_orders() -> None:
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    args = dict(case='full', window='continuous_ai_era',
+                metrics={'final_wealth': 15., 'max_drawdown': .315, 'account_orders': 40},
+                baseline={}, benchmark={}, thresholds=t)
+    assert check_metrics(**args) == []
+    args['metrics']['final_wealth'] = 15. - 1e-9
+    args['metrics']['account_orders'] = 41
+    assert check_metrics(**args) == ['champion/full wealth floor', 'champion/full order ceiling']
+
+
 def test_robustness_reads_once_reports_both_and_keeps_p10_floor(tmp_path, monkeypatch) -> None:
     import research.cross_ai_robustness as module
 
@@ -137,3 +208,22 @@ def test_robustness_reads_once_reports_both_and_keeps_p10_floor(tmp_path, monkey
     result = module.evaluate_robustness(tmp_path, plan)
     assert 'robustness tail: p10_wealth' in result['aggregate_failures']
     assert 'robustness tail: positive_fraction' in result['aggregate_failures']
+
+
+@pytest.mark.parametrize('case', ['no_optical', 'remove_all_three'])
+def test_comparable_h2_wealth_margin_is_once_and_retains_other_obligations(case):
+    t = json.loads(CONTRACT_PATH.read_text())['thresholds']
+    original = 1.8063783352099771
+    floor = original * t['half_year_minimum_wealth_ratio_to_valid_baseline'] * .9 * .985
+    metrics = {'final_wealth': floor, 'max_drawdown': .10406003219136029, 'account_orders': 9}
+    args = dict(case=case, window='h2_2024', metrics=metrics,
+                baseline={'final_wealth': original, 'max_drawdown': .08583048851864583},
+                benchmark={}, thresholds=t)
+    assert check_metrics(**args) == []
+    assert check_metrics(**args) == []
+    assert check_metrics(**args, authorized=False) == ['half-year wealth retention']
+    assert 'half-year wealth retention' in check_metrics(**{**args, 'window': 'h1_2024'})
+    metrics['final_wealth'] = floor - 1e-10
+    assert check_metrics(**args) == ['half-year wealth retention']
+    metrics.update(final_wealth=floor, max_drawdown=.10583048851864583 + 1e-8, account_orders=41)
+    assert check_metrics(**args) == ['half-year drawdown retention', 'half-year order ceiling']

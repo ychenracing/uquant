@@ -6,7 +6,10 @@ economic source eac89fcd6fd386d8ca123e8d32ca3e7846c0955404908e9c78d8b301c20584e8
 45distinct affected tests PASS; native no_optical/later FAILED economically:
 wealth1.0508007574 vs control1.125312594, DD.206162 vs .173514; P1 pending
 remainder scope leak also found. Rejected, no retuning or broad matrix.
-Authorized fixed simple ordinary fallback is running on original226ef63/sourceb7f54;
+Authorized fixed simple ordinary fallback passed the new no_optical/later screen:
+wealth5.2717346143/DD.2025530728/orders28. Reused H1 passes current contract,
+with old initial-screen failure preserved. Original226ef63/sourceb7f54 is now
+running full/champion/no_optical continuous; see simple_policy_recheck_result.md;
 see benchmarks/protected_holding_recovery_result.md. No policy promotion yet.
 Older NOT_IMPLEMENTED descriptions are preserved history, superseded by the final
 implementation checkpoint. Full goal remains unproven; no main merge.

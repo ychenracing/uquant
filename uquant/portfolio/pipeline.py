@@ -608,7 +608,15 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
-    selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
+    assert independent_budget is not None
+    allowances = {s: independent_budget if _current_independent_entry(
+        book.record(s).get("entry", {}), book.date) else budget for s in eligible}
+    affordable = [s for s in eligible if allowances[s] + 1e-12 >= book.policy.cfg.min_trade_weight]
+    slots = affordable[:max(0, book.policy.cfg.max_positions - len(occupied))]
+    selected = list(slots)
+    while selected and any(allowances[s] / len(selected) + 1e-12
+                           < book.policy.cfg.min_trade_weight for s in selected):
+        selected.pop()
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
@@ -619,11 +627,12 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             )
             continue
         if symbol not in selected:
-            book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
+            book.record(symbol)["entry_gate"] = (
+                "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM" if symbol not in affordable
+                else "ADMISSION_BUDGET_SLOTS_EXHAUSTED" if symbol in slots
+                else "POSITION_SLOTS_EXHAUSTED")
             continue
-        independent = _current_independent_entry(book.record(symbol).get("entry", {}), book.date)
-        allowance = independent_budget if independent else budget
-        assert allowance is not None  # The shared market-input check above already passed.
+        allowance = allowances[symbol]
         weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
         if not book.leaders[symbol].mature:
             weight = min(weight, book.policy.cfg.core_admission_weight)

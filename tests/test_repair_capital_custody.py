@@ -37,7 +37,8 @@ def test_settled_repair_book_does_not_limit_a_new_account_admission():
 
 
 @pytest.mark.parametrize('lose_proof',[False,True])
-def test_current_full_certificate_can_use_free_capital_beside_repair_holding(lose_proof):
+@pytest.mark.parametrize('appreciation',[3,6])
+def test_current_full_certificate_can_use_free_capital_beside_repair_holding(lose_proof, appreciation):
     from test_lifecycle_and_risk import _leader, _strategic_frame
     import pandas as pd
     from test_shared_core_qualification import WITNESSES, CHALLENGER
@@ -53,7 +54,7 @@ def test_current_full_certificate_can_use_free_capital_beside_repair_holding(los
     account.candidate_tenure['ordinary_repair_capital_active']=1
     account.capital_budget_level=0
     for column in ('open','high','low','close','ma20','ma60','ma120'):
-        panel[high].loc[dates[2]:,column] *= 6
+        panel[high].loc[dates[2]:,column] *= appreciation
     for symbol,score,industry in zip(WITNESSES,(.94,.93,.92),('foundry','equipment','optical')):
         panel[symbol]=_strategic_frame(pd.bdate_range(end=dates[-1],periods=260))
         panel[symbol]['open']=panel[symbol]['close']

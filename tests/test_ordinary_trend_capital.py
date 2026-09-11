@@ -136,9 +136,15 @@ def test_weak_market_new_capital_uses_only_uncommitted_remainder(reserved):
     for date in dates[1:1 + DEFAULT_CONFIG.strategic_cohort_confirm_days]:
         _decide(policy, account, date, panel, leaders, roles, risk=risk)
     new = [o for o in account.pending_orders if o.side == "BUY" and o.symbol in set(WITNESSES) - {CHALLENGER}]
-    nominal = max(0., DEFAULT_CONFIG.core_admission_weight - reserved) / 2
-    if nominal < DEFAULT_CONFIG.min_trade_weight:
+    remainder = max(0., DEFAULT_CONFIG.core_admission_weight - reserved)
+    nominal = remainder / 2
+    if remainder < DEFAULT_CONFIG.min_trade_weight:
         assert not new
+        assert not any(o.side == "SELL" for o in account.pending_orders)
+    elif nominal < DEFAULT_CONFIG.min_trade_weight:
+        assert len(new) == 1
+        assert new[0].symbol == max(set(WITNESSES) - {CHALLENGER}, key=lambda s: leaders[s].score)
+        assert new[0].target_weight == pytest.approx(remainder)
         assert not any(o.side == "SELL" for o in account.pending_orders)
     else:
         assert {o.symbol for o in new} == set(WITNESSES) - {CHALLENGER}

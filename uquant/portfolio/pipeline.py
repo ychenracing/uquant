@@ -34,7 +34,7 @@ from ..types import (
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
-from .ordinary import observe_ordinary_market, observe_repair_maturity, ordinary_core_entry, ordinary_repair_entry, rearm_ordinary_market
+from .ordinary import observe_ordinary_market, observe_persistent_maturity, observe_repair_maturity, ordinary_core_entry, ordinary_repair_entry, rearm_ordinary_market
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
@@ -750,6 +750,9 @@ def _allocate_strategy(
     rearm_ordinary_market(account=account, date=date, risk=risk, market=market,
                           confirmation_days=self.cfg.leader_tenure_days)
     observe_repair_maturity(self, account=account, date=date, market=market, user_panel=user_panel)
+    observe_persistent_maturity(self, account=account, date=date, market=market,
+        opportunity=opportunity, risk=risk, leaders=qualification_leaders or leaders,
+        user_panel=qualification_panel or user_panel)
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
                                   trace=book.trace, certificates=certificates, market=market)
     recovery_active = False if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)

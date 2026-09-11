@@ -15,12 +15,12 @@ from typing import Any
 
 import pandas as pd
 
-from research.cross_ai_strategy import ROOT, case_symbols, decision_ai_universe
+from research.cross_ai_strategy import ROOT, case_symbols
 from uquant.account import load_account
 from uquant.attribution import build_economic_attribution
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
-from uquant.contracts.universe import default_ai_universe
+from uquant.contracts.universe import decision_ai_universe, default_ai_universe
 from uquant.engine import code_fingerprint, performance_metrics
 from uquant.validation.acceptance_tolerance import (
     acceptance_revision,

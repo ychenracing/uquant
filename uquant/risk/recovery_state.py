@@ -12,6 +12,7 @@ from ..holding_history import holding_spans_date, protected_weights_for_current_
 from ..leader import credible_recovery_reserve
 from ..types import AccountState, LeaderScore, Risk
 from .protected_recovery import assess_protected_recovery
+from .protected_recovery import persistent_crisis_cap as _protected_crisis_cap
 
 
 @dataclass(frozen=True, slots=True)
@@ -286,22 +287,7 @@ def _persistent_crisis_cap(
     reserve_backed: bool = False,
 ) -> float:
     """Keep severity—not a position label—as the persistent cap owner."""
-    if severity == "INCOMPLETE_UNIVERSE":
-        return cfg.incomplete_universe_crisis_gross
-    if severity == "INCOMPLETE_UNIVERSE_UNBACKED":
-        return 0.0
-    if severity == "COHORT_BREAK":
-        # An independently qualified reserve lets a mature recovery owner stay
-        # inside the existing risk-off budget while it repairs or substitutes;
-        # without that breadth, the same synchronized break remains a
-        # concentrated crisis.  This distinction is evidence-based and never
-        # depends on configured pool size.
-        return cfg.risk_off_gross if reserve_backed else cfg.concentrated_crisis_gross
-    if severity in {"SEVERE", "ANCHOR_BREAK"}:
-        return cfg.severe_crisis_gross
-    if severity == "CONCENTRATED":
-        return cfg.concentrated_crisis_gross
-    return cfg.market_crisis_gross
+    return _protected_crisis_cap(severity, cfg, reserve_backed=reserve_backed)
 
 
 def _assess_recovery_state(

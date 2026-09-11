@@ -9,3 +9,5 @@ This inventory describes delivery source 18912bdf6b98826b86fc49c4ad4ff5c7cc29382
 - Further architecture assertion, style, coverage and full CI work is deferred under the user's priority instruction. The historical module-surface assertion omission remains disclosed; this inventory does not silently mark it fixed.
 
 Operator cutover is described in docs/ordinary-repair-cutover-20260911.md. Z's 14 nominal cases and cross-window requirement pass; remaining financial acceptance has genuine failures. No live rollout or merge is authorized by this inventory.
+
+2026-09-11 最终状态：用户已明确授权有限交付，Z源码不变；本轮范围通过，原完整合同未通过。最终范围、验证和弱点以 [Z有限交付](z-finite-delivery-20260911.md) 为准。

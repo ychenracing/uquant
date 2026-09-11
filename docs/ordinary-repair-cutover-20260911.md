@@ -39,3 +39,5 @@ Z 已测高费用为 46002.71695088 元，原上限 40000 元，超额 6002.7169
 已完成结果保留在 `benchmarks/z_repair_allowance_result.json` 和 `benchmarks/z_best_removal_pair_result.json`，剩余验收以最终执行记录为准。
 工程风格、覆盖率和完整 CI 按用户要求降低优先级；GitHub Actions 超过 10 分钟不等待。
 未执行或失败的检查不会记为通过；费用例外也不代表所有经济场景已经通过。
+
+2026-09-11 最终状态：用户已明确授权有限交付，Z源码不变；本轮范围通过，原完整合同未通过。最终范围、验证和弱点以 [Z有限交付](z-finite-delivery-20260911.md) 为准。

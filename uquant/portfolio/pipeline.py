@@ -524,14 +524,16 @@ def _fresh_core_selection(
 
 
 def _ordinary_admission_budget(book: AllocationBook) -> float | None:
-    """Share initial ordinary capital while the long market basis is not positive."""
+    """Share bounded repair capital until the ordinary book and intents settle."""
     values: list[Any] = [book.risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120")]
     if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
                and math.isfinite(value) for value in values):
         return None
-    if max(values) > 0.0:
-        return book.policy.cfg.trend_entry_gross
     ordinary = sum(weight for symbol, weight in book.committed.items() if symbol not in book.owned)
+    if ordinary <= 0.0:
+        book.account.candidate_tenure.pop("ordinary_repair_capital_active", None)
+    if max(values) > 0.0 and not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0):
+        return book.policy.cfg.trend_entry_gross
     return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
 
 

@@ -30,6 +30,7 @@ def test_mature_repair_binds_and_fills_one_native_order_after_real_repair():
     assert account.replacement_tenure.get(f"strategic_eligibility:independent_core:{SYMBOL}", 0) == 0
     assert account.strategic_cash_rearm.qualification_quorum == "MATURE_CORE"
     assert account.strategic_cash_rearm.consumed_order is not None
+    assert account.candidate_tenure.get("ordinary_repair_capital_active") == 1
     restored = account_from_dict(asdict(account))
     fills = ExecutionPlanner(policy.cfg).execute_open(date=dates[1], account=restored, panel=panel)
     assert len(fills) == 1 and fills[0].shares > 0

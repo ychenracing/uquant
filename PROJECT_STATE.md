@@ -1,3 +1,7 @@
+# R ordinary repair capital custody
+
+Q rejected: laterwindowwealthFAIL/highcostFAIL, archived;global entry restriction excluded. R starts from P and limits expansion of actual repair-funded ordinary capital until its held/pending book settles. Native binding plus53testsPASS;sourceaa5cd64598ee9aae030849c63d4aa50422a09a7e5ae25f06dce322598b63bc07. See benchmarks/repair_capital_custody_plan.md. Four native screens next;not fullacceptance/merge;engineering/CIsecondary. Priorstatuseshistorical.
+
 # P maturity shortcut repair
 
 O native screen costFAIL40562/40000;bestPASS. P closes observed impulse bypass of pending market rearm, unchanged5confirmation;51targetedtestsPASS. Source03b0c0583c9bada53b247f08b102c014e4eaa0268f5ef35a1e8e04a3564fc612;native next. See benchmarks/mature_impulse_rearm_plan.md. No wholeacceptance/merge;engineering/CIsecondary. Priorstatuseshistorical.

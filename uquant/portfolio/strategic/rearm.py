@@ -939,6 +939,7 @@ def consume_ordinary_cash_rearm_authorization(
     state.status = StrategicCashRearmStatus.CONSUMED.value
     state.authorized = False
     repair.status = FlatBookCapitalRepairStatus.CONSUMED.value
+    account.candidate_tenure["ordinary_repair_capital_active"] = 1
 
 
 def _ordinary_rearm_order_identity(account: AccountState, order: PendingOrder) -> bool:

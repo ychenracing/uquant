@@ -804,7 +804,7 @@ from _lifecycle_freeze_tactical_probe_cases import (
     test_rebound_cooldown_metadata_cannot_clear_a_buy_freeze,
     test_current_reversal_cannot_override_a_buy_freeze,
     test_low_quality_fast_reversal_does_not_open_an_empty_book,
-    test_deep_and_shallow_crash_metadata_cannot_override_buy_freeze,
+    test_deep_probe_requires_no_continuous_freeze_and_shallow_remains_blocked,
 )
 
 from _lifecycle_recovery_admission_cases import (

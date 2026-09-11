@@ -165,7 +165,7 @@ def _sample_models() -> dict[str, object]:
     }
 
 
-def test_all_267_system_config_fields_match_the_current_flat_contract() -> None:
+def test_all_266_system_config_fields_match_the_current_flat_contract() -> None:
     expected_flat = PUBLIC_API["flat_config_serialization"]
     expected_module = PUBLIC_API["modules"]["uquant.config"]
     assert isinstance(expected_flat, Mapping)
@@ -174,7 +174,7 @@ def test_all_267_system_config_fields_match_the_current_flat_contract() -> None:
     fields = dataclasses.fields(SystemConfig)
     payload = DEFAULT_CONFIG.to_dict()
 
-    assert len(fields) == 267
+    assert len(fields) == 266
     assert [field.name for field in fields] == expected_flat["field_order"]
     assert list(payload) == expected_flat["field_order"]
     assert payload == expected_flat["values"]
@@ -226,6 +226,7 @@ def test_all_frozen_config_validation_types_messages_and_order_are_exact(
     # The frozen invalid-value cases remain intact; current constructors reject
     # exactly these retired fields before any former value validation runs.
     removed_strategy_fields = {
+        "strategic_reversal_max_tech_ret120",
         "strategic_epoch_cooldown_sessions",
         "strategic_epoch_min_symbol_change",
         "leader_cycle_confirm_days",

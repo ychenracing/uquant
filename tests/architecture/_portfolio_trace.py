@@ -156,6 +156,8 @@ def _jsonable(value: Any) -> Any:
             "size": len(value),
             "sha256": hashlib.sha256(encoded).hexdigest(),
         }
+    if isinstance(value, pd.Index):
+        return [_jsonable(item) for item in value]
     if isinstance(value, pd.Timestamp):
         return value.isoformat()
     if isinstance(value, float) and not math.isfinite(value):

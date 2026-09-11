@@ -7,6 +7,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from _absolute_contract_fixture import historical_contract_source as historical_contract_source
 
 from uquant.validation.absolute_generalization import AbsoluteGeneralizationContract
 

@@ -1,7 +1,9 @@
 """Real repair capital is shared until the ordinary book and intents settle."""
-from dataclasses import asdict,replace
+from dataclasses import asdict, replace
+
 import pytest
-from test_ordinary_trend_budget import _decide,_scenario
+from test_ordinary_trend_budget import _decide, _scenario
+
 from uquant.account.codec import account_from_dict
 from uquant.execution import ExecutionPlanner
 
@@ -38,21 +40,21 @@ def test_settled_repair_book_does_not_limit_a_new_account_admission():
 
 @pytest.mark.parametrize('lose_proof',[False,True])
 def test_current_full_certificate_can_use_free_capital_beside_repair_holding(lose_proof):
-    from test_lifecycle_and_risk import _leader, _strategic_frame
     import pandas as pd
-    from test_shared_core_qualification import WITNESSES, CHALLENGER
-    from test_strategic_universe_quorum import _risk
-    from uquant.models.strategic_universe import build_strategic_universe_roles
-
+    from test_lifecycle_and_risk import _leader, _strategic_frame
     from test_mature_cash_rearm import _mature_repair
     from test_ordinary_cash_rearm import _decide as repair_decide
+    from test_shared_core_qualification import CHALLENGER, WITNESSES
+    from test_strategic_universe_quorum import _risk
+
+    from uquant.models.strategic_universe import build_strategic_universe_roles
     policy,account,dates,panel,base,risk=_mature_repair()
     high=next(iter(base))
     assert repair_decide(policy,account,dates[0],panel,base,risk)
     assert ExecutionPlanner(policy.cfg).execute_open(date=dates[1],account=account,panel=panel)
     account.candidate_tenure['ordinary_repair_capital_active']=1
     account.capital_budget_level=0
-    for symbol,score,industry in zip(WITNESSES,(.94,.93,.92),('foundry','equipment','optical')):
+    for symbol,score,industry in zip(WITNESSES,(.94,.93,.92),('foundry','equipment','optical'), strict=True):
         panel[symbol]=_strategic_frame(pd.bdate_range(end=dates[-1],periods=260))
         panel[symbol]['open']=panel[symbol]['close']
         panel[symbol]['high']=panel[symbol]['close']*1.01
@@ -63,7 +65,7 @@ def test_current_full_certificate_can_use_free_capital_beside_repair_holding(los
         base[symbol]=replace(leader,components={**leader.components,'secular_score':.79})
     roles=build_strategic_universe_roles(as_of=str(dates[-1].date()),tradable_symbols=tuple(panel),
         qualification_reference_symbols=tuple(panel),risk_reference_symbols=('sh000300','sh000682'),
-        industries={s:l.industry for s,l in base.items()},available_symbols=(*panel,'sh000300','sh000682'))
+        industries={symbol:leader.industry for symbol,leader in base.items()},available_symbols=(*panel,'sh000300','sh000682'))
     risk=_risk()
     for date in dates[2:5]:
         _decide(policy,account,date,panel,base,risk,roles=roles)
@@ -103,8 +105,10 @@ def test_current_full_certificate_can_use_free_capital_beside_repair_holding(los
 
 def test_repair_origin_drift_and_restart_do_not_consume_independent_allowance():
     from types import SimpleNamespace
+
     from test_mature_cash_rearm import _mature_repair
     from test_ordinary_cash_rearm import _decide as repair_decide
+
     from uquant.portfolio.pipeline import _ordinary_admission_budget
     from uquant.portfolio_core import current_weights
     from uquant.types import StrategicCashRearmState

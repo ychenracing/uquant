@@ -584,7 +584,9 @@ def test_sparse_cap_uses_global_lot_priority_before_symbol_alpha() -> None:
     )
     observed = {target.symbol: target.weight for target in capped}
 
-    assert observed == pytest.approx({"mixed_high_alpha": 0.30, "healthy_core": 0.40})
+    # Sell the ADD2 lot completely, then retain the higher-utility Core at
+    # the boundary; both remaining exposures are healthy Core.
+    assert observed == pytest.approx({"mixed_high_alpha": 0.40, "healthy_core": 0.30})
     assert next(target for target in capped if target.symbol == "mixed_high_alpha").reduction_policy == (
         ReductionPolicy.RISK_PRIORITY.value
     )
@@ -819,8 +821,9 @@ def test_locked_recovery_anchors_share_core_priority_and_reduce_sparsely() -> No
         gross_cap=0.40,
     )
 
+    # With equal durable priority, stronger retention utility wins before sparsity.
     assert {target.symbol: target.weight for target in capped} == pytest.approx(
-        {"lead": 0.08, "reserve_a": 0.16, "reserve_b": 0.16}
+        {"lead": 0.40, "reserve_a": 0.0, "reserve_b": 0.0}
     )
 
 

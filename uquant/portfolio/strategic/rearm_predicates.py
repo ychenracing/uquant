@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 from ...config import SystemConfig
 from ...models.strategic_grant import StrategicQualificationObservation
@@ -256,6 +257,24 @@ def _risk_repair_predicates(
     return rows
 
 
+def repair_reference_evidence_complete(evidence: dict[str, Any]) -> bool:
+    """Require the same finite reference coverage for repair observation and authorization."""
+    return bool(
+        _finite_repair_evidence(evidence.get("reference_coverage"), 1.0)
+        and _finite_repair_evidence(evidence.get("risk_anchor_group_count"), 0.0)
+        and all(
+            _finite_repair_evidence(evidence.get(name), -math.inf)
+            for name in (
+                "breadth20",
+                "broad_ret20",
+                "tech_ret20",
+                "broad_ret120",
+                "tech_ret120",
+            )
+        )
+    )
+
+
 def _reference_repair_predicates(
     *,
     account: AccountState,
@@ -270,18 +289,7 @@ def _reference_repair_predicates(
     evidence = risk.evidence
     coverage = bool(
         not unavailable
-        and _finite_repair_evidence(evidence.get("reference_coverage"), 1.0)
-        and _finite_repair_evidence(evidence.get("risk_anchor_group_count"), 0.0)
-        and all(
-            _finite_repair_evidence(evidence.get(name), -math.inf)
-            for name in (
-                "breadth20",
-                "broad_ret20",
-                "tech_ret20",
-                "broad_ret120",
-                "tech_ret120",
-            )
-        )
+        and repair_reference_evidence_complete(evidence)
     )
     return [
         _repair_predicate_row(

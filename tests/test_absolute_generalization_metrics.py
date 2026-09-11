@@ -4,6 +4,7 @@ from dataclasses import asdict, fields, is_dataclass, replace
 from datetime import date, timedelta
 
 import pytest
+from _absolute_contract_fixture import historical_contract_source as historical_contract_source
 from _absolute_generalization_metrics_fixture import (
     EPOCH_ID,
     GRANT_ID,

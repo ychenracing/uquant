@@ -482,8 +482,8 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
             and risk.shock_state in {"RECOVERY", "ROTATION_RECOVERY", "FAST_V_RECOVERY"})
             or (account.capital_budget_level <= 1 and account.chronic_level >= 1
             and account.chronic_repair_streak >= 2)
+            or synchronized
         ))
-        or synchronized
     )
 
 

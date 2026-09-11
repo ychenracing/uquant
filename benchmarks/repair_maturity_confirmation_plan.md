@@ -1,7 +1,0 @@
-# T: confirm the actual credible maturity used for cash repair
-
-S passed all 14 nominal cases, but remove_all_three with its actual largest contributor sh688256 excluded failed frozen wealth floor 0.945: 0.9324045795743021, 23 orders. The September repair borrowed 96 weaker leader-tenure observations despite only one current credible observation. T confirms the existing credible-maturity criterion for the existing leader_tenure_days (5), independently of the current market repair predicate. No stock/date exception or changed threshold. Weak observations and session gaps reset; duplicate sessions do not advance; codec roundtrip and native binding remain enforced. Strict independent eligibility is unchanged. Regression failed on S; 68 focused tests passed on T, and 8 mature repair tests passed after validation tightening.
-
-Source: 0f8513f7592d9689fd290d39b035c709ac734d5e046c6806186c61fd0bafbaf9. Freeze producer before native replay. Prioritize remove3 nominal/actual-best removal and no-optical nominal/cost/actual-best removal. Retain full frozen matrix. No full acceptance claim.
-
-S old-offset5-remove_all_three baseline failed canonical event_id validation in unchanged old production; partial raw evidence retained separately. Historical baseline engineering repair is deferred, never counted as an economic pass or silently changed under old identity. Engineering/CI remain secondary, no Actions wait over 10 minutes.

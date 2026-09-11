@@ -15,6 +15,8 @@ from typing import Any, get_type_hints
 
 import pytest
 
+from research.immutable_evidence import evidence_root
+
 from ._analysis import (
     _CONFIG_RELOCATED_PRIVATE_IMPORTS,
     ROOT,
@@ -23,7 +25,7 @@ from ._analysis import (
 from ._config_transport import config_private_relocation_projection
 
 _CONFIG_REFERENCE_COMMIT = "3af754edf83b5ca67e06b1c3733eb5161dd7fd3c"
-_INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task5_cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts') / "architecture_refactor" / "task5_cleanup_inventory.json"
 _V1_PLANNED_BYTES = (
     b'{"actual_price":null,"actual_shares":null,"actual_time":null,'
     b'"manual_skip":null,"next_open":null,"plan_id":"frozen-plan-1",'
@@ -124,7 +126,7 @@ def test_config_private_edges_are_exactly_bound_to_the_mechanical_split() -> Non
         "uquant.validation.execution_journal",
     )
     baseline = json.loads(
-        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(encoding="utf-8")
+        ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(encoding="utf-8")
     )
     allowed = set(baseline["architecture_debt"]["temporary_allowlist"]["cross_module_private_imports"])
     assert (

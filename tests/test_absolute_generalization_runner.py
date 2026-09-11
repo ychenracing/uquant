@@ -22,16 +22,15 @@ from _absolute_generalization_metrics_fixture import complete_replay, payload
 import scripts.run_absolute_generalization_acceptance as runner_module
 from scripts.run_absolute_generalization_acceptance import (
     CANONICAL_SHARDS,
+    _run_verified,
     build_loo_shard_manifest,
     cache_path_for,
     parse_cli,
     read_cached_cell,
-    _run_verified,
     selected_scenarios,
     write_cached_cell,
 )
 from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
-from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.validation.absolute_generalization import (
     build_leave_one_out_scenarios,
     load_absolute_generalization_contract,
@@ -597,6 +596,7 @@ def test_final_cli_reads_exact_eight_manifests_and_returns_report_conjunction(
     }
     first = manifests[CANONICAL_SHARDS[0]]
     assert report["provenance"] == {
+        "runtime": first["runtime"],
         "run_id": "transport-run",
         "run_attempt": 3,
         "head": first["head"],

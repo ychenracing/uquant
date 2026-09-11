@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from research.immutable_evidence import evidence_root
+
 from research import ablation_registry as ablation_registry_module
 from research.ablation import (
     AblationCell,
@@ -33,9 +35,9 @@ from research.ablation_registry import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-RESULTS_PATH = ROOT / "artifacts" / "phase2" / "ablations" / "results.json"
+RESULTS_PATH = (evidence_root() / 'artifacts') / "phase2" / "ablations" / "results.json"
 REFERENCE_SOURCE_CONTRACT_PATH = (
-    ROOT / "artifacts" / "phase2" / "ablations" / "post_task8_source_contract.json"
+    (evidence_root() / 'artifacts') / "phase2" / "ablations" / "post_task8_source_contract.json"
 )
 
 

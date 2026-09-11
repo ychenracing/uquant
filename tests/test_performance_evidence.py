@@ -12,8 +12,10 @@ from typing import Any
 
 import pytest
 
+from research.immutable_evidence import evidence_root
+
 ROOT = Path(__file__).parents[1]
-DIAGNOSTICS = ROOT / "artifacts" / "phase1" / "diagnostics"
+DIAGNOSTICS = (evidence_root() / 'artifacts') / "phase1" / "diagnostics"
 SHA256 = re.compile(r"[0-9a-f]{64}")
 COMMIT = re.compile(r"[0-9a-f]{40}")
 METRICS = {

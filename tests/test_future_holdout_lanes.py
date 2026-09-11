@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from research.immutable_evidence import evidence_root
 from uquant.validation.holdout import SCORE_FIELDS, load_future_holdout_contract
 from uquant.validation.holdout_lanes import (
     HoldoutLane,
@@ -17,7 +18,7 @@ from uquant.validation.holdout_lanes import (
 )
 
 REGISTRY = Path("benchmarks/future_holdout_lane_registry.json")
-VALIDATION = Path("artifacts/holdout/lane_validation.json")
+VALIDATION = (evidence_root() / 'artifacts/holdout/lane_validation.json')
 CONTRACT_SHA256 = "f1555d2f5527b83899ade8f934f67de8df6050aa2ebc7453d0d4245c618e2aeb"
 STRATEGY_SHA256 = "f9c78557e38342c5a994f19fde63352f635ac37c5d2d7a187ba410b98caa1aed"
 CONFIG_SHA256 = "ed52da44a359c1506e1d299f7bc341ad01b199d7f96997f7c01f2b8eca7cfc13"

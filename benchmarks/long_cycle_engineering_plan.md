@@ -1,5 +1,0 @@
-# Bounded engineering closure after J nominal
-
-J economic policy and parameters are frozen. No optimization or threshold changes in this branch. Preserve J/L producers and raw data. Resolve measured architecture debt (promotion1001 lines; six new branchy functions), then stale owner-transport/reflection assertions against exact current wiring and mutation tests. Split cohesive existing predicates/episode stages without changing their expressions, order or state effects. Move one research-only diagnostic into its existing research CLI; preserve its function AST and historical-date/overwrite guards. Frozen architecture budgets, original inventories and native historical fixtures stay immutable.
-
-Validate affected behavioral tests, compare moved/extracted source blocks, and rerun debt checks. Economic identity changes require fresh applicable native evidence; never relabel J observations. Full robustness, Ownership/Absolute/L4 remain required. Original architecture failure8FAIL/5ERROR retained;13 missing historical blobs restored with SHA1 and two inventory tests PASS.

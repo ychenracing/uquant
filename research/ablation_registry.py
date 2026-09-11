@@ -13,18 +13,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, cast
 
+from research.immutable_evidence import evidence_root
+
 DEFAULT_ABLATION_REGISTRY_PATH: Final = (
-    Path(__file__).resolve().parents[1] / "artifacts" / "phase2" / "ablations" / "registry.json"
+    evidence_root() / "artifacts" / "phase2" / "ablations" / "registry.json"
 )
 MINIMAL_ABLATION_REGISTRY_PATH: Final = (
-    Path(__file__).resolve().parents[1]
+    evidence_root()
     / "artifacts"
     / "phase2"
     / "ablations"
     / "minimal_registry.json"
 )
 REFERENCE_SOURCE_CONTRACT_PATH: Final = (
-    Path(__file__).resolve().parents[1]
+    evidence_root()
     / "artifacts"
     / "phase2"
     / "ablations"

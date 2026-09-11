@@ -301,7 +301,6 @@
       "id": "validation_runner_v1",
       "resource_paths": [
         "benchmarks/absolute_generalization_acceptance_contract.json",
-        "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json",
         "benchmarks/ai_era_generalization_baseline.json",
         "benchmarks/ai_era_generalization_policy.json",
         "benchmarks/competitor_bull_reference.json",
@@ -345,16 +344,15 @@
         "research/cross_ai_strategy.py",
         "research/current_heads.py",
         "research/current_heads_competitor_matrix.py",
+        "research/execution_stress.py",
         "research/first_divergence.py",
         "research/five_window_outperformance.py",
         "research/future_holdout_cli.py",
         "research/generalization_ablation_cli.py",
         "research/generalization_smoke.py",
+        "research/immutable_evidence.py",
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
-        "research/post_generalization_trust_closure_checkpoint_b.py",
-        "research/post_generalization_trust_closure_checkpoint_c.py",
-        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/risk_counterfactual.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential.py",
@@ -554,6 +552,7 @@
         "research/cross_ai_strategy.py",
         "research/current_heads.py",
         "research/current_heads_competitor_matrix.py",
+        "research/execution_stress.py",
         "research/first_divergence.py",
         "research/five_window_outperformance.py",
         "research/fixed_promotion_screen.py",
@@ -564,6 +563,7 @@
         "research/historical_cohort_audit.py",
         "research/historical_prices.py",
         "research/https_input.py",
+        "research/immutable_evidence.py",
         "research/industry_input_audit.py",
         "research/industry_input_compare.py",
         "research/industry_input_replay.py",
@@ -571,9 +571,6 @@
         "research/ordinary_sector_audit.py",
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
-        "research/post_generalization_trust_closure_checkpoint_b.py",
-        "research/post_generalization_trust_closure_checkpoint_c.py",
-        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/qualification_episode_audit.py",
         "research/revenue_reports.py",
         "research/revenue_signal_audit.py",
@@ -858,5 +855,5 @@
       ]
     }
   ],
-  "canonical_sha256": "7d2c4b8143f54e4f002a1450923bf1bf59eb678f125d446fbee10fbf7026d074"
+  "canonical_sha256": "f080f4f2d4b8c3ed76de7cfd94784b4ee11171e483f90be11f83eed2b9875be5"
 }

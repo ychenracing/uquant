@@ -30,6 +30,7 @@ from research.current_heads import (
     load_comparison_contract,
     load_source_registry,
 )
+from research.immutable_evidence import evidence_root
 from uquant.atomic_io import atomic_write_text
 
 _MARKET_COLUMNS = ("date", "open", "high", "low", "close", "volume", "amount")
@@ -1188,7 +1189,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     prepare.add_argument(
         "--generalization-baseline",
         type=Path,
-        default=root / "artifacts/current_heads/baseline/uquant_phase2.json",
+        default=evidence_root() / "artifacts/current_heads/baseline/uquant_phase2.json",
     )
     prepare.add_argument("--data-dir", type=Path, default=root / "data/frozen")
     prepare.add_argument("--runtime-dir", type=Path, required=True)
@@ -1204,7 +1205,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     assemble.add_argument(
         "--generalization-summary",
         type=Path,
-        default=root / "artifacts/current_heads/baseline/uquant_phase2.json",
+        default=evidence_root() / "artifacts/current_heads/baseline/uquant_phase2.json",
     )
     assemble.add_argument("--generalization-matrix", type=Path, required=True)
     assemble.add_argument("--runtime-dir", type=Path, required=True)

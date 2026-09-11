@@ -44,8 +44,8 @@ from uquant.validation.absolute_generalization import (
     validate_cell_artifact,
     validate_shard_manifest,
 )
+from uquant.validation.absolute_generalization.contract import runtime_identity, verify_run_checkout
 from uquant.validation.manifest import verify_data_manifest
-from uquant.validation.absolute_generalization.contract import _verify_run_checkout
 
 CANONICAL_SHARDS = (
     "champion",
@@ -348,6 +348,7 @@ def build_loo_shard_manifest(
         "status": "COMPLETE",
         "upstream_success": True,
         "error": "",
+        "runtime": runtime_identity(),
         "run_id": options.run_id,
         "run_attempt": options.run_attempt,
         "head": head,
@@ -389,6 +390,7 @@ def _special_shard_manifest(
         "status": "COMPLETE",
         "upstream_success": True,
         "error": "",
+        "runtime": runtime_identity(),
         "run_id": options.run_id,
         "run_attempt": options.run_attempt,
         "head": head,
@@ -653,7 +655,7 @@ def run(options: RunnerOptions) -> int:
     """Retain preflight failures without creating an economic evidence seal."""
     try:
         # Event identity is checked before policy loading or any costly execution.
-        _verify_run_checkout()
+        verify_run_checkout()
         contract = load_absolute_generalization_contract()
         if options.symbol is not None:
             selected_scenarios(options, contract)

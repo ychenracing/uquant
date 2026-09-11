@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from research.immutable_evidence import evidence_root
 from research.strategic_evidence.contract import load_contract
 from research.strategic_evidence.forced_owner import (
     NO_NATIVE_ELIGIBILITY,
@@ -121,8 +122,7 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
 
     source = json.loads(
         (
-            ROOT
-            / "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json"
+            (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json')
         ).read_text(encoding="utf-8")
     )
     provenance = validate_provenance(source["provenance"])
@@ -156,12 +156,8 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
         "status_counts": {NO_NATIVE_ELIGIBILITY: 16},
         "route_shard": route_metadata,
     }
-    relative_summary = Path(
-        "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json"
-    )
-    relative_manifest = Path(
-        "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_manifest.json"
-    )
+    relative_summary = (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json')
+    relative_manifest = (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_manifest.json')
     roots = (tmp_path / "checkout-a", tmp_path / "moved" / "checkout-b")
     results = []
     for root in roots:

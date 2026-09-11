@@ -247,6 +247,8 @@ def test_static_shard_and_cell_coverage_fails_closed(mutation: str, message: str
         ("summary", "summary"),
         ("head", "current checkout"),
         ("source", "production source"),
+        ("runtime", "runtime"),
+        ("missing_runtime", "schema"),
         ("run_id", "run identity"),
         ("targeted", "canonical mode"),
         ("self_pass", "self-asserted pass"),
@@ -268,6 +270,12 @@ def test_manifest_provenance_summary_mode_and_pass_claims_fail_closed(
         reseal_manifest(shard)
     elif mutation == "source":
         shard["production_source_sha256"] = "0" * 64
+        reseal_manifest(shard)
+    elif mutation == "runtime":
+        shard["runtime"] = {**dict(shard["runtime"]), "numpy_version": "0.0.0"}
+        reseal_manifest(shard)
+    elif mutation == "missing_runtime":
+        del shard["runtime"]
         reseal_manifest(shard)
     elif mutation == "run_id":
         shard["run_id"] = "different-run"
@@ -417,7 +425,8 @@ def test_native_unit_contract_preserves_frozen_file_and_real_replay_source() -> 
     frozen = json.loads((root / "benchmarks/absolute_generalization_acceptance_contract.json").read_bytes())
     contract = load_absolute_generalization_contract()
     champion = manifest(successful_manifests(), "champion")["champion"]
-    assert frozen["candidate"]["production_source_sha256"] != contract.candidate.production_source_sha256
+    assert "candidate" not in frozen
+    assert contract.candidate.production_source_sha256 == "73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b"
     assert frozen["canonical_sha256"] != contract.canonical_sha256
     assert champion["strategic_ownership_acceptance"]["champion"]["final_account"]["code_hash"] == (
         contract.candidate.production_source_sha256

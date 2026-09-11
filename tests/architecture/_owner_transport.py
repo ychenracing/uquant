@@ -93,6 +93,8 @@ _SENTINEL_ADDITIONS = frozenset(
 _VALIDATION_ADDITIONS = frozenset(
     {
         "research/cross_ai_acceptance.py",
+        "research/execution_stress.py",
+        "research/immutable_evidence.py",
         "research/cross_ai_benchmark.py",
         "research/cross_ai_robustness.py",
         "research/cross_ai_strategy.py",
@@ -101,9 +103,6 @@ _VALIDATION_ADDITIONS = frozenset(
         "research/future_holdout_cli.py",
         "research/performance_diagnostic.py",
         "research/generalization_ablation_cli.py",
-        "research/post_generalization_trust_closure_checkpoint_b.py",
-        "research/post_generalization_trust_closure_checkpoint_c.py",
-        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential_analysis.py",
         "research/risk_differential_cli.py",
@@ -258,7 +257,6 @@ _RESOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
     "validation_runner_v1": frozenset(
         {
             "benchmarks/absolute_generalization_acceptance_contract.json",
-            "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json",
             "benchmarks/cross_ai_ownership_participation_overlay.json",
         }
     ),

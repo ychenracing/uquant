@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 import pytest
 
+from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG
 from uquant.data import DataStore
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine
@@ -110,7 +111,7 @@ def test_market_fixture_is_anchored_to_immutable_reference_bytes() -> None:
     ).stdout.strip()
     assert observed_blob == metadata["engine_blob"]
     inventory = json.loads(
-        (ROOT / "artifacts" / "architecture_refactor" / "baseline_inventory.json").read_text(
+        ((evidence_root() / 'artifacts') / "architecture_refactor" / "baseline_inventory.json").read_text(
             encoding="utf-8"
         )
     )

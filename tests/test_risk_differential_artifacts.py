@@ -6,6 +6,7 @@ import importlib.util
 import json
 from pathlib import Path
 
+from research.immutable_evidence import evidence_root
 from research.risk_differential_models import canonical_sha256, validate_capabilities
 
 ROOT = Path(__file__).parents[1]
@@ -67,7 +68,7 @@ def test_closure_preserves_negative_controls_and_production_boundary() -> None:
 
 def test_complete_matrix_binds_deterministic_daily_trace() -> None:
     matrix = _load("artifacts/sentinel/risk_differential/risk_differential_matrix.json")
-    compressed = (ROOT / "artifacts/sentinel/risk_differential/risk_differential_daily.json.gz").read_bytes()
+    compressed = (evidence_root() / 'artifacts/sentinel/risk_differential/risk_differential_daily.json.gz').read_bytes()
     daily = json.loads(gzip.decompress(compressed))
     assert matrix["summary"]["status"] == "COMPLETE"
     assert matrix["summary"]["cells"] == 264
@@ -79,7 +80,7 @@ def test_complete_matrix_binds_deterministic_daily_trace() -> None:
 
 def test_pinned_trade_challenger_trace_is_complete_and_source_bound() -> None:
     compressed = (
-        ROOT / "artifacts/sentinel/risk_differential/trade_challenger_trace.json.gz"
+        evidence_root() / 'artifacts/sentinel/risk_differential/trade_challenger_trace.json.gz'
     ).read_bytes()
     trace = json.loads(gzip.decompress(compressed))
     registry = _load("benchmarks/risk_differential_source_registry.json")

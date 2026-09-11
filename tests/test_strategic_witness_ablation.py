@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from research.immutable_evidence import evidence_root
 from research.strategic_evidence.contract import load_contract
 from research.strategic_evidence.intervention import StrategicOwnerIntervention
 from research.strategic_evidence.models import canonical_sha256
@@ -901,10 +902,8 @@ def test_atomic_shard_fsyncs_parent_directory_after_replace(
 def test_manifest_is_portable_and_readback_is_linked(tmp_path: Path) -> None:
     """Catches absolute scratch paths entering canonical Task 4 seals."""
 
-    relative_summary = Path("artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json")
-    relative_manifest = Path(
-        "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_manifest.json"
-    )
+    relative_summary = (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json')
+    relative_manifest = (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_manifest.json')
     route_metadata = {
         "path": "/tmp/private/full.jsonl.gz",
         "byte_size": 123,

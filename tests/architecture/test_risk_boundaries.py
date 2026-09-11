@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from research.immutable_evidence import evidence_root
+
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.types import Risk
@@ -66,7 +68,7 @@ _RISK_REFERENCE_TREE = "3cc640cf565e116aa524466485dc7d9e1b511538"
 _RISK_BLOB = "96aeaaba421098ed2ec22a045e0b7d7e6da9396b"
 _RISK_SHA256 = "74dd564b300e0b48e2a788c7be289e98bb033cf97d5b806c585f04e087ed36dd"
 _RISK_BYTES = 94_481
-_INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task7_cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts') / "architecture_refactor" / "task7_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "daily_risk_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_risk_trace.py"
 _TRACE_RUNNER_SHA256 = "cc81e38b79296746d473406be8a649657a8a35efa42cbe7b8b845dd9767d5a2f"

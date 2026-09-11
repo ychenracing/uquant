@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
 from uquant.provenance.fingerprints import source_surface_fingerprint
@@ -49,7 +50,7 @@ from ._validation_relocation import (
 
 _EXECUTION_REFERENCE_COMMIT = "908399a80f27a028c35f201b9bf5f1688eb412c0"
 _EXECUTION_REFERENCE_TREE = "8fd744507922e3d143923939e7d5e75f9148afc1"
-_INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task6_cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts') / "architecture_refactor" / "task6_cleanup_inventory.json"
 
 _EXECUTION_PACKAGE_PATHS = {
     "uquant/execution/__init__.py",
@@ -595,7 +596,7 @@ def test_execution_private_edges_are_exactly_bound_to_the_mechanical_split() -> 
 
     execution_prefixes = ("uquant.application", "uquant.engine", "uquant.execution")
     baseline = json.loads(
-        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(encoding="utf-8")
+        ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(encoding="utf-8")
     )
     allowed = set(baseline["architecture_debt"]["temporary_allowlist"]["cross_module_private_imports"])
     assert (

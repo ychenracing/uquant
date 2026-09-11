@@ -1,9 +1,0 @@
-{
-  "date": "2026-09-11",
-  "original_ceiling": 40000,
-  "overrun": 6002.71695088,
-  "scope": "All-in trading-cost overruns in remaining Z acceptance; strictly less than10000 CNY above the applicable original ceiling.",
-  "treatment": "Preserve original contract, measured costs and raw failures. Mark qualifying cost failures ACCEPTED_EXCEPTION in effective acceptance. No waiver of wealth/drawdown/orders/data/accounting or unexecuted evidence.",
-  "user_text": "允许把这 6003 元列为明确的验收例外，基于 Z 继续剩余验收。继续，尽快完成，小于1万元的都能接受啊",
-  "z_cost": 46002.71695088
-}

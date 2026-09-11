@@ -22,7 +22,7 @@ from ._acceptance_evidence import (
     validate_terminal_evidence,
 )
 from .artifacts import CellArtifact, reject_self_assertion_claims, validate_cell_artifact
-from .contract import AbsoluteGeneralizationContract
+from .contract import AbsoluteGeneralizationContract, runtime_identity
 from .policy import ComponentResult, evaluate_literal_components
 
 _ROOT = Path(__file__).resolve().parents[3]
@@ -51,6 +51,7 @@ _REPORT_PROVENANCE_FIELDS = frozenset(
         "frozen_data_manifest_sha256",
         "universe_sha256",
         "shard_manifest_sha256",
+        "runtime",
     }
 )
 _MANIFEST_FIELDS = frozenset(
@@ -71,6 +72,7 @@ _MANIFEST_FIELDS = frozenset(
     "uv_lock_sha256",
     "frozen_data_manifest_sha256",
     "universe_sha256",
+    "runtime",
     "cells",
     "champion",
     "failed_grant_recovery",
@@ -339,6 +341,8 @@ class AcceptanceReport:
 def _validated_report_provenance(value: object) -> Mapping[str, object]:
     raw = _manifest_mapping(_thaw(value), label="report provenance")
     _fields(raw, _REPORT_PROVENANCE_FIELDS, label="report provenance")
+    if raw["runtime"] != runtime_identity():
+        raise ValueError("absolute generalization report runtime differs")
     run_id = _manifest_text(raw["run_id"], label="report run identity")
     if any(
         character
@@ -518,6 +522,8 @@ def _manifest_document(
     tree = _manifest_text(document["tree"], label="manifest tree")
     if not _GIT_OBJECT.fullmatch(head) or not _GIT_OBJECT.fullmatch(tree):
         raise ValueError("absolute generalization manifest checkout identity is malformed")
+    if document["runtime"] != runtime_identity():
+        raise ValueError("absolute generalization manifest runtime differs")
     expected = {
         "scenario_contract_sha256": contract.canonical_sha256,
         "production_source_sha256": contract.candidate.production_source_sha256,
@@ -590,6 +596,7 @@ def build_error_shard_manifest(
         "status": "ERROR",
         "upstream_success": False,
         "error": error,
+        "runtime": runtime_identity(),
         "run_id": run_id,
         "run_attempt": run_attempt,
         "head": head,
@@ -779,6 +786,7 @@ def _report_provenance(
 ) -> dict[str, object]:
     first = manifests[0].document
     return {
+        "runtime": first["runtime"],
         "run_id": first["run_id"],
         "run_attempt": first["run_attempt"],
         "head": first["head"],

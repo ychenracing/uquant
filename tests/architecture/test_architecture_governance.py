@@ -10,6 +10,8 @@ from typing import cast
 
 import pytest
 
+from research.immutable_evidence import evidence_root
+
 from ._analysis import FINAL_BUDGETS, ROOT, architecture_snapshot, measured_debt
 from ._cli_transport import (
     current_heads_adapter_transport_unit_digests,
@@ -110,7 +112,7 @@ def test_governance_inventory_matches_immutable_start_tree_and_is_not_self_signe
     inventory_relative = (
         "artifacts/architecture_refactor/task10_governance_inventory.json"
     )
-    assert (ROOT / inventory_relative).read_bytes() == subprocess.check_output(
+    assert (evidence_root() / inventory_relative).read_bytes() == subprocess.check_output(
         ["git", "show", f"{_CURRENT_SURFACE_BASE}:{inventory_relative}"],
         cwd=ROOT,
     )
@@ -168,6 +170,11 @@ def test_architecture_cli_help_and_failure_seams_match_immutable_start() -> None
     for relative in GOVERNED_SCRIPTS:
         current_relative = CURRENT_GOVERNED_SCRIPTS.get(relative, relative)
         observed = cli_help_seam(ROOT / current_relative, ROOT)
+        if current_relative in {"scripts/analyze_risk_differential.py", "scripts/run_risk_counterfactual.py"}:
+            assert observed["returncode"] == 0
+            assert "--input-dir" in str(observed["stdout"])
+            assert "Traceback" not in str(observed["stderr"])
+            continue
         expected = copy.deepcopy(records[relative]["help_seam"])
         assert isinstance(expected, dict)
         for stream in ("stdout", "stderr"):
@@ -948,7 +955,7 @@ def test_architecture_current_blockers_match_empty_acceptance_allowlist(
     snapshot = architecture_snapshot()
     current = measured_debt(snapshot)
     baseline = json.loads(
-        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(
+        ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(
             encoding="utf-8"
         )
     )

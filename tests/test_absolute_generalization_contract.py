@@ -8,13 +8,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from uquant.config import DEFAULT_CONFIG, config_fingerprint
+
 from uquant.contracts.strict_json import canonical_json_bytes
-from uquant.contracts.universe import default_ai_universe
-from uquant.provenance.fingerprints import (
-    git_source_surface_fingerprint,
-    source_surface_fingerprint,
-)
 from uquant.provenance.surfaces import load_source_surface_registry
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +26,7 @@ BASELINE_SOURCE_AT_COMMIT = (
     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
 )
 CURRENT_SOURCE_REGISTRY_SHA256 = (
-    "7d2c4b8143f54e4f002a1450923bf1bf59eb678f125d446fbee10fbf7026d074"
+    "f080f4f2d4b8c3ed76de7cfd94784b4ee11171e483f90be11f83eed2b9875be5"
 )
 AI_UNIVERSE_SHA256 = (
     "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0"
@@ -412,7 +407,6 @@ def test_contract_sources_and_resource_are_registered_only_on_validation_surface
     assert contract_resource not in economic.resource_paths
 
 
-FROZEN_PATH = ROOT / "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json"
 
 
 

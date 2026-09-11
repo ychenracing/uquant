@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 
+from research.immutable_evidence import evidence_root
 from uquant.contracts.source_surfaces import SOURCE_SURFACE_IDS
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.provenance.fingerprints import (
@@ -20,7 +21,7 @@ from uquant.provenance.fingerprints import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-ARTIFACT_ROOT = ROOT / "artifacts" / "architecture_refactor"
+ARTIFACT_ROOT = (evidence_root() / 'artifacts') / "architecture_refactor"
 GATE_COMMIT = "ecee225237f02b4d21cbf65d88bc4ec5761603d3"
 BASELINE_COMMIT = "f9fd489806a86b3a56f62b8668aafa252012d405"
 DOMAIN_NAMING_BASE_COMMIT = "c4178fcd1b53d7e9061c6a71a1c6e7f1ddf3428d"

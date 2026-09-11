@@ -20,12 +20,14 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
+from research.immutable_evidence import evidence_root
+
 from ._analysis import ROOT
 
 ARCHITECTURE_REFERENCE_COMMIT = "a6a77deb7ae6c3bb0878895729e9a5a72cf75482"
 ARCHITECTURE_REFERENCE_TREE = "cd3551ab769dece496b6599210a0dd14c9cd98ad"
 ARCHITECTURE_INVENTORY_PATH = (
-    ROOT / "artifacts" / "architecture_refactor" / "task10_governance_inventory.json"
+    (evidence_root() / 'artifacts') / "architecture_refactor" / "task10_governance_inventory.json"
 )
 
 GOVERNED_SCRIPTS = (

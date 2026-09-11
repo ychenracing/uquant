@@ -106,7 +106,7 @@ Risk Sentinel 包含 `trade` 的全部执行政策，也不允许 Sentinel 生�
 机器清单、三方逐日 replay、counterfactual 和 terminal promotion decision 位于
 `artifacts/sentinel/risk_differential/`。它们均为 observation/research evidence，不是生产
 指令。人类分析见
-[`artifacts/sentinel/risk_differential/analysis.md`](../artifacts/sentinel/risk_differential/analysis.md)。
+[`artifacts/sentinel/risk_differential/analysis.md`](https://github.com/ychenracing/uquant/blob/7fcf9562e6c7f96250811acd80c2dd4ee46485e3/artifacts/sentinel/risk_differential/analysis.md)。
 
 `risk_differential_shadow` 只接受冻结交易日表中、且 holdout 数据目录确实已出现的 session；
 周末、未来日、无数据日和 activation 前日期都会失败关闭。CLI 不接受调用方编写的风险事实；

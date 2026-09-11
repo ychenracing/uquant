@@ -19,6 +19,7 @@ from research.ablation_registry import (
     ContractCell,
     load_ablation_registry,
 )
+from research.immutable_evidence import evidence_root
 
 
 def test_aggregate_authenticates_invalid_results_without_claiming_complete() -> None:
@@ -124,7 +125,7 @@ def test_replay_command_materializes_exact_historical_evidence_commit(tmp_path: 
     command = runner._replay_command(
         repository_root=ROOT,
         evidence_commit=evidence_commit,
-        registry_relative=Path("artifacts/phase2/ablations/registry.json"),
+        registry_relative=(evidence_root() / 'artifacts/phase2/ablations/registry.json'),
         data_dir=ROOT / "data" / "frozen",
         experiment_id="without_sector_guard",
         checkpoint_dir=tmp_path,
@@ -322,10 +323,10 @@ def test_historical_and_post_deletion_manifests_are_distinct_trust_roots() -> No
     """Catches selecting or cross-accepting evidence from the other registry epoch."""
     runner = _runner_module()
     historical_path, historical_digest = runner._evidence_manifest_anchor(
-        Path("artifacts/phase2/ablations/registry.json")
+        evidence_root() / 'artifacts/phase2/ablations/registry.json'
     )
     minimal_path, minimal_digest = runner._evidence_manifest_anchor(
-        Path("artifacts/phase2/ablations/minimal_registry.json")
+        evidence_root() / 'artifacts/phase2/ablations/minimal_registry.json'
     )
 
     assert historical_path == runner._EVIDENCE_MANIFEST_PATH

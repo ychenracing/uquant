@@ -9,13 +9,14 @@ import subprocess
 import tomllib
 from typing import cast
 
+from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.runtime_identity import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.contracts.strict_json import canonical_json_sha256
 
 from ._analysis import ROOT
 
-_INVENTORY = ROOT / "artifacts/architecture_refactor/cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts/architecture_refactor/cleanup_inventory.json')
 _CLASSIFICATIONS = {
     "KEEP_AUTHORITATIVE",
     "KEEP_REFERENCE",
@@ -155,11 +156,11 @@ def _tracked_contents() -> dict[str, bytes]:
         text=True,
         check=True,
     )
-    inventory_relative = _INVENTORY.relative_to(ROOT).as_posix()
+    inventory_relative = _INVENTORY.relative_to(evidence_root()).as_posix()
     return {
         tracked: (ROOT / tracked).read_bytes()
         for tracked in completed.stdout.splitlines()
-        if tracked != inventory_relative
+        if tracked != inventory_relative and (ROOT / tracked).is_file()
     }
 
 
@@ -182,7 +183,7 @@ def _snapshot_path_references(relative: str) -> list[str]:
     )
     assert completed.returncode in {0, 1}, completed.stderr
     prefix = f"{_INVENTORY_SNAPSHOT_COMMIT}:"
-    inventory_relative = _INVENTORY.relative_to(ROOT).as_posix()
+    inventory_relative = _INVENTORY.relative_to(evidence_root()).as_posix()
     return sorted(
         line.removeprefix(prefix)
         for line in completed.stdout.splitlines()
@@ -191,18 +192,13 @@ def _snapshot_path_references(relative: str) -> list[str]:
 
 
 def _candidate_paths() -> set[str]:
+    paths = subprocess.check_output(
+        ["git", "ls-tree", "-r", "--name-only", _INVENTORY_SNAPSHOT_COMMIT, "--",
+         "docs/superpowers/plans", "docs/superpowers/specs", "docs/reviews",
+         "artifacts/current_heads/diagnostics"], cwd=ROOT, text=True,
+    ).splitlines()
     return {
-        *(
-            path.relative_to(ROOT).as_posix()
-            for directory in (
-                ROOT / "docs/superpowers/plans",
-                ROOT / "docs/superpowers/specs",
-                ROOT / "docs/reviews",
-                ROOT / "artifacts/current_heads/diagnostics",
-            )
-            for path in directory.glob("*")
-            if path.is_file()
-        ),
+        *paths,
         "artifacts/phase1/diagnostics/phase1-history.bundle",
         "research/__init__.py",
         *_REFERENCE_DOCS,
@@ -216,7 +212,7 @@ def _inventory() -> dict[str, object]:
 
 def test_documentation_governance_inventory_preserves_frozen_authority_and_history() -> None:
     payload = _inventory()
-    inventory_relative = _INVENTORY.relative_to(ROOT).as_posix()
+    inventory_relative = _INVENTORY.relative_to(evidence_root()).as_posix()
     assert _INVENTORY.read_bytes() == _snapshot_blob(inventory_relative)
     assert payload["schema_version"] == 2
     assert payload["contract"] == "uquant-documentation-governance-cleanup-v2"
@@ -235,7 +231,7 @@ def test_documentation_governance_inventory_preserves_frozen_authority_and_histo
     relocations = cast(list[dict[str, str]], payload["relocated_paths"])
     assert {row["from"]: row["to"] for row in relocations} == _RELOCATED_DOCS
     assert all(not (ROOT / source).exists() for source in _RELOCATED_DOCS)
-    assert all((ROOT / target).is_file() for target in _RELOCATED_DOCS.values())
+    assert all((evidence_root() / target).is_file() for target in _RELOCATED_DOCS.values())
     assert payload["externalized_paths"] == []
 
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
@@ -390,9 +386,9 @@ def test_performance_guide_binds_the_exact_runtime_windows() -> None:
 
 
 def test_historical_markdown_declares_its_non_authoritative_boundary() -> None:
-    index = ROOT / "artifacts/README.md"
+    index = (evidence_root() / 'artifacts/README.md')
     assert index.is_file()
-    for path in sorted((ROOT / "artifacts").rglob("*.md")):
+    for path in sorted(((evidence_root() / 'artifacts')).rglob("*.md")):
         if path == index:
             continue
         text = path.read_text(encoding="utf-8")

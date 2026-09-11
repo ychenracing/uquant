@@ -360,17 +360,18 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--input-dir", type=Path, required=True, help="Preregistered risk evidence directory; writes counterfactual_raw.json here")
     args = parser.parse_args()
     matrix = json.loads(
-        (root / "artifacts/sentinel/risk_differential/risk_differential_matrix.json").read_text()
+        (args.input_dir / "risk_differential_matrix.json").read_text()
     )
     daily = json.loads(
         gzip.decompress(
-            (root / "artifacts/sentinel/risk_differential/risk_differential_daily.json.gz").read_bytes()
+            (args.input_dir / "risk_differential_daily.json.gz").read_bytes()
         )
     )
     days_by_cell = {item["cell_id"]: item["days"] for item in daily["cells"]}
-    exclusive = json.loads((root / "artifacts/sentinel/risk_differential/exclusive_events.json").read_text())
+    exclusive = json.loads((args.input_dir / "exclusive_events.json").read_text())
     contract = json.loads((root / "benchmarks/current_heads_comparison_contract.json").read_text())
     windows = contract["windows"]
     cells = []
@@ -392,7 +393,7 @@ def main() -> int:
         {
             "matrix_sha256": matrix["payload_sha256"],
             "daily_trace_sha256": hashlib.sha256(
-                (root / "artifacts/sentinel/risk_differential/risk_differential_daily.json.gz").read_bytes()
+                (args.input_dir / "risk_differential_daily.json.gz").read_bytes()
             ).hexdigest(),
             "policy_set": [asdict(policy) for policy in POLICY_SET],
             "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -432,7 +433,7 @@ def main() -> int:
         "provenance": {
             "risk_differential_matrix_sha256": matrix["payload_sha256"],
             "daily_trace_gzip_sha256": hashlib.sha256(
-                (root / "artifacts/sentinel/risk_differential/risk_differential_daily.json.gz").read_bytes()
+                (args.input_dir / "risk_differential_daily.json.gz").read_bytes()
             )
             .hexdigest(),
             "frozen_exclusive_events_sha256": exclusive["payload_sha256"],
@@ -465,7 +466,7 @@ def main() -> int:
         },
     }
     payload["payload_sha256"] = canonical_sha256(payload)
-    _write(root / "artifacts/sentinel/risk_differential/counterfactual_raw.json", payload)
+    _write(args.input_dir / "counterfactual_raw.json", payload)
     return 0
 
 

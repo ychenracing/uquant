@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+
+from research.immutable_evidence import evidence_root
 
 
 def _artifact(name: str) -> dict[str, object]:
     return json.loads(
-        (Path("artifacts/sentinel/phase6") / name).read_text(encoding="utf-8")
+        ((evidence_root() / 'artifacts/sentinel/phase6') / name).read_text(encoding="utf-8")
     )
 
 

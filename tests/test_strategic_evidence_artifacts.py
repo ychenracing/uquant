@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 import research.strategic_evidence.witness_ablation as witness_ablation
+from research.immutable_evidence import evidence_root
 from research.strategic_evidence.models import canonical_sha256
 from research.strategic_evidence.provenance import seal_payload, write_gzip_shard
 from research.strategic_evidence.report import (
@@ -25,8 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def _assert_historical_evidence_account_decoder_contract() -> None:
     artifact = json.loads(
         (
-            ROOT
-            / "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json"
+            (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json')
         ).read_text(encoding="utf-8")
     )
     cell = artifact["initial_cells"][0]
@@ -154,7 +154,7 @@ def test_orchestrator_dry_run_assemble_materializes_auditable_artifacts(
         "checkpoint3_forced_owner_manifest.json",
         "checkpoint4_witness_ablation_manifest.json",
     ):
-        shutil.copy2(ROOT / "artifacts/strategic_evidence_closure" / name, source_dir / name)
+        shutil.copy2((evidence_root() / 'artifacts/strategic_evidence_closure') / name, source_dir / name)
     sentinels = {
         name: f"preexisting {name}\n"
         for name in (
@@ -210,9 +210,9 @@ def test_artifact_assembly_binds_external_shards_and_validates_readback(tmp_path
     external = tmp_path / "reachability.jsonl.gz"
     external.write_bytes(b"deterministic-external-evidence")
     sources = {
-        "task3": ROOT / "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json",
-        "task4": ROOT / "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json",
-        "task5": ROOT / "artifacts/strategic_evidence_closure/checkpoint5_state_reachability_summary.json",
+        "task3": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json'),
+        "task4": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json'),
+        "task5": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint5_state_reachability_summary.json'),
     }
     output = tmp_path / "artifacts"
 
@@ -244,10 +244,9 @@ def test_absent_task5_shard_is_not_reported_as_read_back(tmp_path: Path) -> None
         root=ROOT,
         output_dir=output,
         source_paths={
-            "task3": ROOT / "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json",
-            "task4": ROOT / "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json",
-            "task5": ROOT
-            / "artifacts/strategic_evidence_closure/checkpoint5_state_reachability_summary.json",
+            "task3": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json'),
+            "task4": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json'),
+            "task5": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint5_state_reachability_summary.json'),
         },
         task5_shard=None,
         dry_run=True,
@@ -270,10 +269,9 @@ def test_supplied_bad_task4_shard_fails_evidence_integrity(tmp_path: Path) -> No
         root=ROOT,
         output_dir=output,
         source_paths={
-            "task3": ROOT / "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json",
-            "task4": ROOT / "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json",
-            "task5": ROOT
-            / "artifacts/strategic_evidence_closure/checkpoint5_state_reachability_summary.json",
+            "task3": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json'),
+            "task4": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json'),
+            "task5": (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint5_state_reachability_summary.json'),
         },
         task4_shard=shard,
         task5_shard=None,
@@ -301,13 +299,13 @@ def test_self_sealed_partial_task4_search_is_rejected(tmp_path: Path) -> None:
         "task5": "checkpoint5_state_reachability_summary.json",
     }.items():
         target = source_dir / name
-        shutil.copy2(ROOT / "artifacts/strategic_evidence_closure" / name, target)
+        shutil.copy2((evidence_root() / 'artifacts/strategic_evidence_closure') / name, target)
         source_paths[task] = target
     for name in (
         "checkpoint3_forced_owner_manifest.json",
         "checkpoint4_witness_ablation_manifest.json",
     ):
-        shutil.copy2(ROOT / "artifacts/strategic_evidence_closure" / name, source_dir / name)
+        shutil.copy2((evidence_root() / 'artifacts/strategic_evidence_closure') / name, source_dir / name)
     task4 = json.loads(source_paths["task4"].read_text(encoding="utf-8"))
     task4["search_cells"].pop()
     source_paths["task4"].write_text(json.dumps(seal_payload(task4), sort_keys=True), encoding="utf-8")
@@ -338,10 +336,10 @@ def test_jointly_resealed_task4_witness_claims_are_recomputed(tmp_path: Path) ->
         "task5": "checkpoint5_state_reachability_summary.json",
     }.items():
         target = source_dir / name
-        shutil.copy2(ROOT / "artifacts/strategic_evidence_closure" / name, target)
+        shutil.copy2((evidence_root() / 'artifacts/strategic_evidence_closure') / name, target)
         source_paths[task] = target
     shutil.copy2(
-        ROOT / "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_manifest.json",
+        (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_manifest.json'),
         source_dir / "checkpoint3_forced_owner_manifest.json",
     )
     task4 = json.loads(source_paths["task4"].read_text(encoding="utf-8"))
@@ -350,7 +348,7 @@ def test_jointly_resealed_task4_witness_claims_are_recomputed(tmp_path: Path) ->
     source_paths["task4"].write_text(json.dumps(task4, sort_keys=True), encoding="utf-8")
     manifest_path = source_dir / "checkpoint4_witness_ablation_manifest.json"
     manifest = json.loads(
-        (ROOT / "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_manifest.json").read_text(
+        ((evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_manifest.json')).read_text(
             encoding="utf-8"
         )
     )
@@ -441,13 +439,13 @@ def test_resealed_task5_source_and_cell_linkage_mutation_fails_closed(tmp_path: 
         "task4": "checkpoint4_witness_ablation_full.json",
     }.items():
         target = source_dir / name
-        shutil.copy2(ROOT / "artifacts/strategic_evidence_closure" / name, target)
+        shutil.copy2((evidence_root() / 'artifacts/strategic_evidence_closure') / name, target)
         source_paths[task] = target
     for name in (
         "checkpoint3_forced_owner_manifest.json",
         "checkpoint4_witness_ablation_manifest.json",
     ):
-        shutil.copy2(ROOT / "artifacts/strategic_evidence_closure" / name, source_dir / name)
+        shutil.copy2((evidence_root() / 'artifacts/strategic_evidence_closure') / name, source_dir / name)
     task5 = seal_payload(
         {
             "schema_version": "uquant.strategic-evidence-reachability-summary.v1",
@@ -524,7 +522,7 @@ def test_validator_rejects_tampered_compact_summary(tmp_path: Path) -> None:
 
 
 def test_analysis_answers_four_questions_and_marks_synthetic_diagnostic_only() -> None:
-    analysis = ROOT / "artifacts/strategic_evidence_closure/analysis.md"
+    analysis = (evidence_root() / 'artifacts/strategic_evidence_closure/analysis.md')
     if not analysis.exists():
         pytest.fail("Task 6 analysis artifact is absent")
     text = analysis.read_text(encoding="utf-8")

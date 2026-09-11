@@ -4,8 +4,9 @@ Only the in-memory candidate used by codec tests is the recorded producer.
 The raw fixture bytes and independent current policy are never rewritten.
 Real CLI and checkout tests do not import this fixture.
 """
-from dataclasses import replace
 import importlib
+from dataclasses import replace
+
 import pytest
 
 

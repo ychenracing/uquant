@@ -1,8 +1,0 @@
-{
-  "research_only": true,
-  "new_premise": "Original historical report bytes now accessible; prior network failures not a permanent blocker.",
-  "work": "2021H1/2022H1/2022FY originalETF holdings and contemporaneous methodology, total-value reconciliation; distinguish new-issue allocations, thematic holdings and actual index constituents. Do not infer top50 solely from weight. Preserve later exits; membership available only after publication.",
-  "selection": "No new stock return labels before dated eligibility freeze. One alphabetically earliest2022H1 unrestricted holding sz000555 used for2021bounded raw-price availability pilot, not performance selection.",
-  "price_requirements": "Explicit end<=2026-08-05, verified OHLCV and amount units, causal corporate-action basis and suspension/exit handling. Pilot daily OHLCV availability does not satisfy all requirements.",
-  "next": "Only implement a versioned research-member replay after membership and input completeness are supportable. Production34/frozen acceptance unchanged; no fresh-OOS claim."
-}

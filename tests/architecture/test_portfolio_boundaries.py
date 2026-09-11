@@ -12,6 +12,7 @@ from typing import Any, cast
 import pandas as pd
 import pytest
 
+from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.portfolio import PortfolioAllocator
@@ -51,7 +52,7 @@ _PORTFOLIO_REFERENCE_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
 _TRACE_LOGIC_COMMIT = "3aadf021dce9ed77c2359065146e38209866789c"
 _TRACE_LOGIC_BLOB = "cce9498d851d4007c57b2ba5eaa2e6f3216c444e"
 _TRACE_RUNNER_SHA256 = "00672c67b31374c50e1e56e236a45609374637b86f9900d47dc550abe5b1f1c3"
-_INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task8_cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts') / "architecture_refactor" / "task8_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
 # Current eight-field leader-cycle retirement changes instance configuration bytes;
@@ -471,7 +472,7 @@ def test_portfolio_historical_machine_evidence_and_requirements_remain_bytes_exa
     for path in paths:
         assert (ROOT / path).read_bytes() == _git_source(path)
     baseline_inventory = json.loads(
-        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(
+        ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(
             encoding="utf-8"
         )
     )

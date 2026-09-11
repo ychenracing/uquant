@@ -1,9 +1,0 @@
-{
-  "file": "uquant_industry_account_evidence_20260909.tar.gz",
-  "bytes": 15232992,
-  "sha256": "8e582a5bb6af895eb5cb48679c83f77f8bfbc2ccc99b9ea464d563f745b19699",
-  "members_verified": 11,
-  "library_file_id": "libfile_1eb1a8ecaa0c8191923b54aa6a99eef7",
-  "saved": true,
-  "count_correction": "See authoritative adjacent industry_account_result.json for corrected initial engineering pass count; archive original summary retained."
-}

@@ -5,10 +5,10 @@ from __future__ import annotations
 import hashlib
 import math
 import os
-import stat
 import shutil
+import stat
 import subprocess  # nosec B404
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -38,7 +38,7 @@ _DEFAULT_CONTRACT_PATH = _ROOT / "benchmarks/absolute_generalization_acceptance_
 _POLICY_SHA256 = "c0942cf1a1be3f8c8f91be10f2b6ed29621838090c27d543cf4e6329dade33b0"
 _EFFECTIVE_CONFIG_SHA256 = "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51"
 _OWNERSHIP_CONTRACT_PATH = _ROOT / "benchmarks/strategic_ownership_acceptance_contract.json"
-_REGISTRY_SHA256 = "7d2c4b8143f54e4f002a1450923bf1bf59eb678f125d446fbee10fbf7026d074"
+_REGISTRY_SHA256 = "f080f4f2d4b8c3ed76de7cfd94784b4ee11171e483f90be11f83eed2b9875be5"
 _OWNERSHIP_SHA256 = "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
 
 _UNIVERSE = (
@@ -242,7 +242,7 @@ def _candidate_identity() -> _CandidateIdentity:
     return _CandidateIdentity(source, "economic_decision_v1", _REGISTRY_SHA256)
 
 
-def _verify_run_checkout() -> dict[str, object]:
+def verify_run_checkout() -> dict[str, object]:
     """Preflight trusted CI checkout, runner bytes and the frozen runtime."""
     git = shutil.which("git")
     if git is None:
@@ -259,7 +259,7 @@ def _verify_run_checkout() -> dict[str, object]:
         name = os.environ.get("GITHUB_EVENT_NAME", "")
         if not isinstance(event, dict):
             raise ValueError("absolute generalization CI event is malformed")
-        expected = {
+        expected: dict[str, Callable[[], object]] = {
             "push": lambda: event["after"],
             "pull_request": lambda: event["pull_request"]["merge_commit_sha"],
             "merge_group": lambda: event["merge_group"]["head_sha"],
@@ -270,6 +270,11 @@ def _verify_run_checkout() -> dict[str, object]:
     for surface in ("economic_decision_v1", "full_package_v1", "validation_runner_v1"):
         if source_surface_fingerprint(_ROOT, surface) != git_source_surface_fingerprint(_ROOT, head, surface):
             raise ValueError(f"absolute generalization checkout surface differs: {surface}")
+    return {"head": head, "tree": tree, "runtime": runtime_identity()}
+
+
+def runtime_identity() -> dict[str, str]:
+    """Require the reviewed interpreter and numerical execution environment."""
     runtime = runtime_environment_provenance(_ROOT)
     if runtime != {
         "python_full_version": "3.12.13", "numpy_version": "2.5.1",
@@ -277,7 +282,7 @@ def _verify_run_checkout() -> dict[str, object]:
         "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
     }:
         raise ValueError("absolute generalization execution runtime differs")
-    return {"head": head, "tree": tree, "runtime": runtime}
+    return runtime
 
 
 def _validate_raw(raw: dict[str, object]) -> None:

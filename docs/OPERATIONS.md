@@ -378,15 +378,15 @@ CLI 通过 `--account` 文件路径选择账户，没有全局“当前券商账
 
 每个账户同一时间只运行一个写入命令。切回旧账户前，先对账离开期间发生的真实成交、
 取消和当前现金持仓，再选择晚于其 `last_successful_run` 的决策日。仅切换账户文件无需
-`account-code-migrate`；出现代码身份差异时按下一节执行版本切换，不能手改哈希绕过。
+`account-code-migrate`；出现代码身份差异时按下一节核对账户源码身份，不能手改哈希绕过。
 
-## 统一核心版本的一次性切换
+## 账户源码身份核对
 
 先确认待切换提交完成[开发指南](DEVELOPMENT.md)与[性能与证据](PERFORMANCE.md)要求的验收。
-诊断 checkpoint 不是正式验收通过或激活记录。先在独立副本上完成以下预演，再由 operator
+诊断结果不能作为正式验收通过或激活记录。先在独立副本上完成以下预演，再由 operator
 选择正式切换的 session 边界。
 
-1. 暂停新增人工下单，记录在途订单；在旧版本正常对账后，保存完整账户、券商快照、使用的
+1. 暂停新增人工下单，记录在途订单；完成实际成交对账后，保存完整账户、券商快照、使用的
    数据摘要、源代码提交和配置摘要。将账户复制为独立目录中的
    `cutover_review/account.before.json`，保留只读原件；副本、报告、数据和快照不能互相别名。
 2. 用经核验的同一发布提交和 `uv sync --frozen` 建立环境。严格读取副本，核对 schema 8 和
@@ -540,17 +540,14 @@ holdout session。
 
 ### 仓库证据的保留与恢复
 
-清理清单只覆盖删除、移动、外置、权限变更候选和高风险证据。一轮引用搜索无法证明
-安全删除时标记 `UNRESOLVED_KEEP`，而不是继续猜测；冻结数据、身份注册表、锁文件和
-当前治理清单标记 `KEEP_AUTHORITATIVE`。可恢复清单位于
-`artifacts/architecture_refactor/cleanup_inventory.json`，并为每个条目记录内容摘要、
-引用证据、权限理由、删除或迁移处置和 Git 恢复边界。
+原始审计证据由不可变 Git 提交保存。仓库内的审计校验通过
+`research.immutable_evidence.evidence_root()` 读取并核验 Git 对象，将数据解包到独立目录，
+不执行历史源码、不覆盖当前账户或冻结输入。完整克隆保留这些 Git 对象；生产运行不依赖审计数据。
+证据中的生产者、配置、数据、失败结论和 seal 保持原样，不能作为新运行结果重新贴签。
 
-三项高风险锚分别是 `artifacts/architecture_refactor/baseline_inventory.json`、
-`benchmarks/source_surface_registry.json` 与 `data/frozen/DATA_MANIFEST.json`。
-恢复时先在隔离副本中用记录的 Git 对象还原并重算摘要，不覆盖当前账户、冻结数据或
-source epoch。Future Holdout 遵守 no-backfill：新交易日只能追加到当前 epoch，不能把
-后见数据或新打包身份写回旧基线。
+冻结数据清单位于 `data/frozen/DATA_MANIFEST.json`，源码表面定义位于
+`benchmarks/source_surface_registry.json`。Future Holdout 遵守 no-backfill：新交易日只能
+追加到当前 epoch，不能把后见数据或新打包身份写回已封存基线。
 
 ## 发布前检查
 

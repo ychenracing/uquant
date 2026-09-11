@@ -18,6 +18,7 @@ def test_current_checkout_loads_independently_of_historical_candidate() -> None:
 
 def test_preflight_failure_keeps_diagnostic_without_manifest(tmp_path, monkeypatch) -> None:
     import json
+
     from scripts.run_absolute_generalization_acceptance import main
 
     monkeypatch.setenv("GITHUB_ACTIONS", "true")

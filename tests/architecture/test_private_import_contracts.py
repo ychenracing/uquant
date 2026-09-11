@@ -8,6 +8,8 @@ from collections.abc import Mapping
 
 import pytest
 
+from research.immutable_evidence import evidence_root
+
 from ._analysis import ROOT, architecture_snapshot, measured_debt
 from ._analysis_debt import (
     _CONFIG_RELOCATED_PRIVATE_IMPORTS,
@@ -64,7 +66,7 @@ def _literal_script_all(relative: str) -> tuple[str, ...]:
 
 def _canonical_private_acceptance_allowlist() -> list[object]:
     baseline = json.loads(
-        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(
+        ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(
             encoding="utf-8"
         )
     )

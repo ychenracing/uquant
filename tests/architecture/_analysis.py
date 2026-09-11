@@ -290,9 +290,10 @@ def cli_help_snapshot(root: Path = ROOT) -> dict[str, str]:
         if separator != ":":
             raise AssertionError(f"project script entrypoint is malformed: {entrypoint}")
         module = importlib.import_module(module_name_)
-        parser_factory = getattr(module, "_parser", None)
+        factory_name = "_uquant_cli_parser" if module_name_ == "uquant.cli" else "_parser"
+        parser_factory = getattr(module, factory_name, None)
         if not callable(parser_factory):
-            raise AssertionError(f"project script {script} has no complete _parser registry")
+            raise AssertionError(f"project script {script} has no complete parser registry")
         collect(parser_factory(), script)
     return {name: result[name] for name in sorted(result)}
 

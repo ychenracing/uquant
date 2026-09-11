@@ -41,3 +41,34 @@ def test_changed_member_restarts_confirmation():
                                      cfg=DEFAULT_CONFIG, allow_reanchor=True)
     assert observed == ()
     assert account.risk_anchor_candidate_streak == 1
+
+
+def test_initial_qualified_nomination_survives_stronger_new_candidate():
+    account = AccountState.empty(2000000.)
+    original = leaders()
+    for _ in range(DEFAULT_CONFIG.risk_anchor_confirm_days - 1):
+        update_dynamic_anchors(leaders=original, account=account,
+                               cfg=DEFAULT_CONFIG, allow_reanchor=True)
+    expanded = {**original, 'sh688072': LeaderScore(
+        symbol='sh688072', score=.99, confidence=1., mature=True,
+        emerging=False, industry='new', components={'secular_score': .99})}
+    observed = update_dynamic_anchors(leaders=expanded, account=account,
+                                     cfg=DEFAULT_CONFIG, allow_reanchor=True)
+    assert set(observed) == set(original)
+
+
+def test_initial_nomination_losing_quality_restarts_with_current_candidates():
+    account = AccountState.empty(2000000.)
+    original = leaders()
+    for _ in range(DEFAULT_CONFIG.risk_anchor_confirm_days - 1):
+        update_dynamic_anchors(leaders=original, account=account,
+                               cfg=DEFAULT_CONFIG, allow_reanchor=True)
+    original['sz300308'].components['secular_score'] = .1
+    expanded = {**original, 'sh688072': LeaderScore(
+        symbol='sh688072', score=.99, confidence=1., mature=True,
+        emerging=False, industry='new', components={'secular_score': .99})}
+    observed = update_dynamic_anchors(leaders=expanded, account=account,
+                                     cfg=DEFAULT_CONFIG, allow_reanchor=True)
+    assert observed == ()
+    assert account.risk_anchor_candidate_streak == 1
+    assert 'sz300308' not in account.risk_anchor_candidate_signature.split(',')

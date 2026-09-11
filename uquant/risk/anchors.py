@@ -71,6 +71,15 @@ def _update_dynamic_anchors(
     if not cfg.dynamic_risk_anchors_enabled:
         return ()
     candidate = _dynamic_anchor_candidate(leaders, cfg)
+    if not account.risk_anchor_symbols and account.risk_anchor_candidate_signature:
+        nominated = _dynamic_anchor_candidate(
+            {symbol: leaders[symbol]
+             for symbol in account.risk_anchor_candidate_signature.split(",")
+             if symbol in leaders}, cfg,
+        )
+        if (len(nominated) == cfg.risk_anchor_count
+                and len({leaders[symbol].industry for symbol in nominated}) >= cfg.risk_anchor_min_groups):
+            candidate = nominated
     candidate_groups = {
         leaders[symbol].industry
         for symbol in candidate

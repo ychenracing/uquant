@@ -10,7 +10,8 @@ from test_strategic_universe_quorum import _risk
 from uquant.account.codec import account_from_dict
 from uquant.config import DEFAULT_CONFIG
 from uquant.execution import ExecutionPlanner
-from uquant.portfolio.pipeline import _AllocationBook, _book_targets, _record_completed_transfer
+from uquant.portfolio.allocation_book import AllocationBook
+from uquant.portfolio.pipeline import _book_targets, _record_completed_transfer
 from uquant.portfolio_core import current_weights
 from uquant.types import AttributionMechanism
 
@@ -25,7 +26,7 @@ def test_strategic_core_rotation_preserves_native_ownership_through_fifo_and_res
     assert retained.grant_id == epoch.grant_id and retained.epoch_id == epoch.epoch_id
     prices = {OWNER: float(panel[OWNER].loc[date, "close"])}
     weights, _ = current_weights(account, prices)
-    book = _AllocationBook(
+    book = AllocationBook(
         policy=allocator, date=date, risk=_risk(), user_panel=panel, leaders=leaders,
         account=account, prices=prices, weights_now=weights, owned={OWNER},
         strategic_targets={OWNER: retained}, proposed={OWNER: weights[OWNER] / 2},

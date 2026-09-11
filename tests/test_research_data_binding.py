@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from research.cross_ai_strategy import ROOT, _data_root
+from research.cross_ai_strategy import ROOT, research_data_root
 from uquant.validation.manifest import verify_data_manifest
 
 
@@ -23,45 +23,45 @@ def dataset(tmp_path, *, research_only=True):
 
 
 def test_default_input_stays_frozen():
-    assert _data_root(None, None) == ROOT / 'data/frozen'
+    assert research_data_root(None, None) == ROOT / 'data/frozen'
 
 
 def test_research_manifest_requires_an_object(tmp_path):
     raw = b'[]'
     (tmp_path / 'DATA_MANIFEST.json').write_bytes(raw)
     with pytest.raises(ValueError, match='object'):
-        _data_root(tmp_path, hashlib.sha256(raw).hexdigest())
+        research_data_root(tmp_path, hashlib.sha256(raw).hexdigest())
 
 
 def test_research_input_requires_both_path_and_seal(tmp_path):
     with pytest.raises(ValueError, match='together'):
-        _data_root(tmp_path, None)
+        research_data_root(tmp_path, None)
     with pytest.raises(ValueError, match='together'):
-        _data_root(None, '0' * 64)
+        research_data_root(None, '0' * 64)
 
 
 def test_verified_research_dataset_is_bound(tmp_path):
     seal = dataset(tmp_path)
-    assert _data_root(tmp_path, seal) == tmp_path.resolve()
+    assert research_data_root(tmp_path, seal) == tmp_path.resolve()
 
 
 def test_research_metadata_cannot_be_silently_replaced(tmp_path):
     dataset(tmp_path)
     with pytest.raises(ValueError, match='SHA'):
-        _data_root(tmp_path, '0' * 64)
+        research_data_root(tmp_path, '0' * 64)
 
 
 def test_ordinary_data_cannot_impersonate_research_input(tmp_path):
     seal = dataset(tmp_path, research_only=False)
     with pytest.raises(ValueError, match='research-only'):
-        _data_root(tmp_path, seal)
+        research_data_root(tmp_path, seal)
 
 
 def test_changed_data_bytes_are_detected(tmp_path):
     seal = dataset(tmp_path)
     (tmp_path / 'sh600000.csv').write_text('altered')
     with pytest.raises(RuntimeError, match='checksum mismatch'):
-        _data_root(tmp_path, seal)
+        research_data_root(tmp_path, seal)
 
 
 def test_research_input_cannot_rebind_its_parent(tmp_path):
@@ -72,4 +72,4 @@ def test_research_input_cannot_rebind_its_parent(tmp_path):
     raw = json.dumps(manifest).encode()
     path.write_bytes(raw)
     with pytest.raises(ValueError, match='parent frozen identity'):
-        _data_root(tmp_path, hashlib.sha256(raw).hexdigest())
+        research_data_root(tmp_path, hashlib.sha256(raw).hexdigest())

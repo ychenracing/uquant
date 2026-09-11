@@ -24,7 +24,7 @@ Future Holdout 用真实、未参与选择的新交易日验证候选是否继�
 
 ## 仓库基线与本地观察
 
-CI 只验证仓库中跟踪的零观察合同和 Lane 注册表：
+CI 验证当前零观察合同、Lane 注册表及不可变来源中的原始参考结果：
 
 ```bash
 uv run python -m scripts.future_holdout validate-static-lanes

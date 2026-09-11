@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import shutil
 import subprocess
@@ -14,6 +13,7 @@ import pytest
 
 import uquant.engine as engine_module
 import uquant.leader as leader_module
+from research import risk_differential_cli as _SCRIPT
 from research.candidate_runner import (
     CandidateRunner,
     CausalReplayDataStore,
@@ -31,13 +31,7 @@ from research.risk_replay_runtime import (
 from uquant.leader import REFERENCE_UNIVERSE
 
 ROOT = Path(__file__).parents[1]
-_SCRIPT_SPEC = importlib.util.spec_from_file_location(
-    "risk_differential_runner_under_test",
-    ROOT / "scripts/run_risk_differential.py",
-)
-assert _SCRIPT_SPEC is not None and _SCRIPT_SPEC.loader is not None
-_SCRIPT = importlib.util.module_from_spec(_SCRIPT_SPEC)
-_SCRIPT_SPEC.loader.exec_module(_SCRIPT)
+
 
 
 def _cell(*, end: str = "2026-08-05") -> ReplayCell:

@@ -464,9 +464,6 @@ def build_witness_ablation_scenario(
         "top_symbol_limit": 8,
         "required_pair_count": 28,
         "triple_rule": "only data-supported necessary triples",
-        "replacement_reason": (
-            "prior Task 4 runner materialized all gzip route rows during assembly and verification"
-        ),
         "executable_source_manifest": {
             "files": source_files,
             "manifest_sha256": source_manifest["manifest_sha256"],

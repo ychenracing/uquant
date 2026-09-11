@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gzip
 import hashlib
-import importlib.util
 import json
 from copy import deepcopy
 from datetime import date, timedelta
@@ -12,6 +11,7 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
+from research import risk_counterfactual_cli as counterfactual
 from research import risk_differential_analysis as _ANALYZER
 from research.risk_counterfactual import (
     NEGATIVE_CONTROL_IDS,
@@ -28,16 +28,6 @@ from research.risk_differential_models import canonical_sha256
 from uquant.config import DEFAULT_CONFIG
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import AccountState, Position, Target
-
-_SCRIPT_SPEC = importlib.util.spec_from_file_location(
-    "risk_counterfactual_runner_under_test",
-    Path(__file__).parents[1] / "scripts/run_risk_counterfactual.py",
-)
-assert _SCRIPT_SPEC is not None and _SCRIPT_SPEC.loader is not None
-_SCRIPT = importlib.util.module_from_spec(_SCRIPT_SPEC)
-_SCRIPT_SPEC.loader.exec_module(_SCRIPT)
-_layered_targets = _SCRIPT._layered_targets
-
 
 
 def _target(symbol: str, weight: float) -> Target:
@@ -413,9 +403,9 @@ def test_generalization_gate_is_calculated_from_distribution() -> None:
 def test_counterfactual_job_checkpoint_resumes_only_matching_identity(tmp_path: Path) -> None:
     checkpoint = tmp_path / "cell.json"
     result = {"cell_id": "official_pool/h1_2024/a", "policy_id": "baseline_uquant"}
-    _SCRIPT._write_job_checkpoint(checkpoint, identity="identity-a", result=result)
-    assert _SCRIPT._load_job_checkpoint(checkpoint, identity="identity-a") == result
-    assert _SCRIPT._load_job_checkpoint(checkpoint, identity="identity-b") is None
+    counterfactual.write_job_checkpoint(checkpoint, identity="identity-a", result=result)
+    assert counterfactual.load_job_checkpoint(checkpoint, identity="identity-a") == result
+    assert counterfactual.load_job_checkpoint(checkpoint, identity="identity-b") is None
 
 
 def test_layered_shadow_emits_canonical_risk_attribution() -> None:
@@ -431,7 +421,7 @@ def test_layered_shadow_emits_canonical_risk_attribution() -> None:
         avg_cost=10.0,
         highest_close=10.0,
     )
-    targets, triggered = _layered_targets(
+    targets, triggered = counterfactual.layered_targets(
         engine=SimpleNamespace(
             workspace=SimpleNamespace(
                 loaded_symbols=("sz000001",),

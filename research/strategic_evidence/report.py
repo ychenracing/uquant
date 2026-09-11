@@ -350,7 +350,19 @@ def _witness_ablation_scenario_validation(
         balanced=balanced,
         source_manifest=source_manifest,
     )
-    if dict(scenario) != expected:
+    # Audit one immutable producer's complete scenario bytes, independently of
+    # the current generator. This never executes or resumes archived code.
+    audited_identity = (
+        "f36ef184467bb92c5b5b50572b082416d6c90e52",
+        "70dfdec1c8dacade5534305273638f647b6c9f81b42028cfcbef95ce9eb79260",
+        "a51540e4e435928a3c50f32caf023e272ce228b8fac9911b4951b0de9ace748f",
+    )
+    observed_identity = (
+        provenance["experiment_commit"],
+        provenance["research_source_sha256"],
+        canonical_sha256(dict(scenario)),
+    )
+    if observed_identity != audited_identity and dict(scenario) != expected:
         raise ValueError("Witness-ablation historical scenario fields differ")
     if provenance["research_source_sha256"] != source_manifest["manifest_sha256"]:
         raise ValueError("Witness-ablation historical research source linkage differs")

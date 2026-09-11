@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from research import future_holdout_cli as _CLI_MODULE
 from uquant.validation.evidence_source import evidence_root
 from uquant.validation.holdout import SCORE_FIELDS, load_future_holdout_contract
 from uquant.validation.holdout_lanes import (
@@ -29,13 +29,7 @@ SENTINEL_SOURCE_SHA256 = "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367
 DIFFERENTIAL_SOURCE_COMMIT = "ba314003044a229969270bee6854240dfb7f211e"
 DIFFERENTIAL_SOURCE_SHA256 = "00be16d693985af0cbf708d1010f74dfa9cfbc3508b5b2a4fa09a49814108f30"
 
-_CLI_SPEC = importlib.util.spec_from_file_location(
-    "future_holdout_cli_lanes",
-    Path(__file__).parents[1] / "scripts/future_holdout.py",
-)
-assert _CLI_SPEC is not None and _CLI_SPEC.loader is not None
-_CLI_MODULE = importlib.util.module_from_spec(_CLI_SPEC)
-_CLI_SPEC.loader.exec_module(_CLI_MODULE)
+
 future_holdout_main = _CLI_MODULE.main
 
 
@@ -337,7 +331,7 @@ def test_static_lane_validation_is_independent_from_local_observation_report(
         REGISTRY,
         VALIDATION,
     ):
-        destination = root / source
+        destination = root / (Path("artifacts/holdout/lane_validation.json") if source == VALIDATION else source)
         destination.write_bytes(source.read_bytes())
 
     observed = root / "data/holdout/phase2-future-v1/2026-08-06/market.csv"
@@ -371,6 +365,8 @@ def test_static_lane_validation_is_independent_from_local_observation_report(
                 "validate-static-lanes",
                 "--repository-root",
                 str(root),
+                "--evidence",
+                "artifacts/holdout/lane_validation.json",
             ]
         )
         == 0

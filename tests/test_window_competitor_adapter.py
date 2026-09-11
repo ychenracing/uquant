@@ -1,21 +1,16 @@
 from __future__ import annotations
 
-import importlib.util
 import os
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+from research import window_competitor_adapter as adapter
 from research import window_competitor_adapter as implementation
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "run_window_competitor_adapter.py"
-SPEC = importlib.util.spec_from_file_location("window_competitor_adapter_under_test", SCRIPT)
-assert SPEC is not None and SPEC.loader is not None
-adapter = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = adapter
-SPEC.loader.exec_module(adapter)
+
 
 
 def test_target_contract_is_exact_and_contains_only_pools_a_to_e() -> None:

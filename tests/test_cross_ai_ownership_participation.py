@@ -95,20 +95,20 @@ def test_legacy_epoch_pair_does_not_create_independent_core_participation():
     summary = runner._continuity_summary(contract, result)
     summary.update(scenario_id="same-industry-crowning", source_scenario_id="remove-sz300502")
     report = runner._participation_alias(contract, summary)
-    assert report["legacy_same_industry_crowning"]["status"] == "PASS"
+    assert report["adjacent_same_industry_crowning"]["status"] == "PASS"
     assert report["same_industry_core_participation"]["status"] == "FAIL"
     assert report["status"] == "FAIL"
     assert report["epochs"] == summary["epochs"]
 
 
-def test_legacy_failure_remains_failure_and_is_explicitly_superseded():
+def test_adjacent_crowning_failure_is_retained_as_diagnostic():
     result = continuity_replay(("sz300308", "sh688008"))
     contract = runner.load_contract()
     summary = runner._continuity_summary(contract, result)
     summary.update(scenario_id="same-industry-crowning", source_scenario_id="remove-sz300502")
     report = runner._participation_alias(contract, summary)
-    legacy = report["legacy_same_industry_crowning"]
-    assert legacy["status"] == "FAIL" and "superseded" in legacy["disposition"]
+    adjacent_crowning = report["adjacent_same_industry_crowning"]
+    assert adjacent_crowning["status"] == "FAIL" and "diagnostic" in adjacent_crowning["disposition"]
     assert report["same_industry_core_participation"]["status"] == "FAIL"
 
 

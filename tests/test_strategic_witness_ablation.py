@@ -59,7 +59,6 @@ from research.strategic_evidence.witness_ablation_runner import (
     write_streaming_shard,
 )
 from uquant.types import AccountState, Decision
-from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
 
@@ -489,6 +488,7 @@ def test_scenario_binds_exact_initial_matrix_and_search_bounds() -> None:
     )
 
     assert scenario["required_initial_cell_count"] == 117
+    assert "replacement_reason" not in scenario
     assert scenario["economic_initial_cell_count"] == 49
     assert scenario["diagnostic_initial_cell_count"] == 68
     assert scenario["top_symbol_limit"] == 8
@@ -902,8 +902,8 @@ def test_atomic_shard_fsyncs_parent_directory_after_replace(
 def test_manifest_is_portable_and_readback_is_linked(tmp_path: Path) -> None:
     """Catches absolute scratch paths entering canonical Witness-ablation seals."""
 
-    relative_summary = (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json')
-    relative_manifest = (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_manifest.json')
+    relative_summary = Path("artifacts/strategic_evidence_closure/witness_ablation_full.json")
+    relative_manifest = Path("artifacts/strategic_evidence_closure/witness_ablation_manifest.json")
     route_metadata = {
         "path": "/tmp/private/full.jsonl.gz",
         "byte_size": 123,
@@ -943,14 +943,14 @@ def test_manifest_is_portable_and_readback_is_linked(tmp_path: Path) -> None:
         assert summary["route_shard"] == {
             "logical_path": (
                 "artifacts/strategic_evidence_closure/external/"
-                "checkpoint4_witness_ablation_full_routes.jsonl.gz"
+                "witness_ablation_full_routes.jsonl.gz"
             ),
             **{key: value for key, value in route_metadata.items() if key != "path"},
         }
         assert manifest["summary"]["path"] == relative_summary.as_posix()
         assert manifest["route_shard"]["logical_path"] == (
             "artifacts/strategic_evidence_closure/external/"
-            "checkpoint4_witness_ablation_full_routes.jsonl.gz"
+            "witness_ablation_full_routes.jsonl.gz"
         )
         assert "/tmp" not in json.dumps(manifest)
 

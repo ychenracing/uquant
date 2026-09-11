@@ -574,10 +574,10 @@ def test_missing_same_industry_witness_persists_source_raw_without_alias_cache(
     failure = evidence["scenarios"][-1]
     assert failure["scenario_id"] == "same-industry-crowning"
     assert failure["status"] == "FAIL"
-    legacy = failure["legacy_same_industry_crowning"]
-    assert legacy["status"] == "FAIL"
-    assert legacy["reason"] == "same-industry replay has no adjacent real same-industry successor"
-    assert legacy["disposition"] == "superseded by the new contract"
+    adjacent_crowning = failure["adjacent_same_industry_crowning"]
+    assert adjacent_crowning["status"] == "FAIL"
+    assert adjacent_crowning["reason"] == "same-industry replay has no adjacent real same-industry successor"
+    assert adjacent_crowning["disposition"] == "diagnostic; acceptance uses independently qualified CORE participation"
     participation = failure["same_industry_core_participation"]
     assert participation["status"] == "FAIL"
     assert participation["witness"] is None and participation["error"]

@@ -392,7 +392,6 @@
         "scripts/run_performance_diagnostic.py",
         "scripts/run_risk_counterfactual.py",
         "scripts/run_risk_differential.py",
-        "scripts/run_risk_negative_controls.py",
         "scripts/run_strategic_evidence_closure.py",
         "scripts/run_strategic_grant_acceptance.py",
         "scripts/run_strategic_ownership_acceptance.py",
@@ -847,5 +846,5 @@
       ]
     }
   ],
-  "canonical_sha256": "1c19284b3be86798f8a215235aaae5fd46e9da226d122cdb2d28415feeab0a61"
+  "canonical_sha256": "7c8675ed23a7c9cc2df35a1ebac8a0f82f2cc274090f5206af149f6428aa9bbf"
 }

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import ast
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
+from research import future_holdout_cli as _CLI_MODULE
 from uquant.validation.execution_journal import (
     append_filled,
     append_planned,
@@ -26,13 +26,7 @@ _V1_PLANNED_BYTES = (
     b'"symbol":"sz300308"}\n'
 )
 
-_CLI_SPEC = importlib.util.spec_from_file_location(
-    "future_holdout_cli",
-    Path(__file__).parents[1] / "scripts/future_holdout.py",
-)
-assert _CLI_SPEC is not None and _CLI_SPEC.loader is not None
-_CLI_MODULE = importlib.util.module_from_spec(_CLI_SPEC)
-_CLI_SPEC.loader.exec_module(_CLI_MODULE)
+
 future_holdout_main = _CLI_MODULE.main
 render_execution_journal = _CLI_MODULE.render_execution_journal
 summarize_execution_journal = _CLI_MODULE.summarize_execution_journal

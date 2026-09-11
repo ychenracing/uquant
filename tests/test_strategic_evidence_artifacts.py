@@ -8,10 +8,12 @@ from pathlib import Path
 import pytest
 
 import research.strategic_evidence.witness_ablation as witness_ablation
+from research.strategic_evidence.contract import load_contract
 from research.strategic_evidence.models import canonical_sha256
 from research.strategic_evidence.provenance import seal_payload, write_gzip_shard
 from research.strategic_evidence.report import (
     _forced_owner_answer,
+    _witness_ablation_scenario_validation,
     assemble_evidence_artifacts,
     validate_evidence_artifacts,
 )
@@ -21,6 +23,32 @@ from uquant.types import ACCOUNT_SCHEMA_VERSION, AccountState
 from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("mutation", (None, "scenario", "producer"))
+def test_audited_scenario_requires_original_content_and_producer(mutation: str | None) -> None:
+    source = evidence_root()
+    summary = json.loads(
+        (source / "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json").read_bytes()
+    )
+    contract = load_contract(source / "benchmarks/strategic_evidence_closure_contract.json")
+    scenario = summary["scenario"]
+    provenance = summary["provenance"]
+    if mutation == "scenario":
+        scenario["replacement_reason"] = "changed and resealed"
+        provenance["scenario_sha256"] = canonical_sha256(scenario)
+    elif mutation == "producer":
+        provenance["experiment_commit"] = "0" * 40
+    arguments = dict(
+        contract=contract,
+        specs=witness_ablation.enumerate_initial_specs(contract),
+        provenance=provenance,
+    )
+    if mutation is None:
+        _witness_ablation_scenario_validation(scenario, **arguments)
+    else:
+        with pytest.raises(ValueError, match="scenario fields differ"):
+            _witness_ablation_scenario_validation(scenario, **arguments)
 
 
 def _assert_historical_evidence_account_decoder_contract() -> None:

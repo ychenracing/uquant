@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import gzip
-import importlib.util
 import json
 from pathlib import Path
 
@@ -13,16 +12,8 @@ ROOT = Path(__file__).parents[1]
 
 
 def _load(path: str) -> dict:
-    return json.loads((ROOT / path).read_text(encoding="utf-8"))
-
-
-def _load_negative_control_runner():
-    path = ROOT / "scripts/run_risk_negative_controls.py"
-    spec = importlib.util.spec_from_file_location("risk_negative_control_runner", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    root = evidence_root() if Path(path).parts[0] == "artifacts" else ROOT
+    return json.loads((root / path).read_text(encoding="utf-8"))
 
 
 def test_preregistered_contract_and_registry_are_canonically_sealed() -> None:
@@ -190,13 +181,6 @@ def test_negative_controls_are_detached_reruns_not_constants() -> None:
     assert evidence_recovery["matches_archived_evidence"] is True
     assert evidence_recovery["actionable_buy_intents"] == 0
     assert evidence_recovery["exact_economic_equivalence"] is True
-
-
-def test_negative_control_git_commands_use_an_absolute_executable() -> None:
-    runner = _load_negative_control_runner()
-    command = runner._git_command("cat-file", "-e", "HEAD^{commit}")
-    assert Path(command[0]).is_absolute()
-    assert command[1:] == ["cat-file", "-e", "HEAD^{commit}"]
 
 
 def test_incomplete_forward_outcomes_are_right_censored() -> None:

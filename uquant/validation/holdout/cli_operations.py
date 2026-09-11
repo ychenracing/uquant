@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.execution_journal import (
     JournalCheckpoint,
     JournalRecord,
@@ -55,21 +56,22 @@ def build_local_lane_report(args: argparse.Namespace) -> dict[str, Any]:
     )
 
 
-def _read_tracked_lane_evidence(root: Path, evidence: str) -> dict[str, Any]:
+def _read_reference_lane_evidence(root: Path, evidence: str | None) -> dict[str, Any]:
+    path = root / evidence if evidence is not None else evidence_root() / "artifacts/holdout/lane_validation.json"
     try:
         tracked = json.loads(
-            (root / evidence).read_text(encoding="utf-8"),
+            path.read_text(encoding="utf-8"),
             object_pairs_hook=_reject_duplicate_keys,
         )
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
-        raise RuntimeError("cannot read tracked future holdout lane evidence") from exc
+        raise RuntimeError("cannot read reference future holdout lane evidence") from exc
     if not isinstance(tracked, dict):
-        raise RuntimeError("tracked future holdout lane evidence is malformed")
+        raise RuntimeError("reference future holdout lane evidence is malformed")
     return tracked
 
 
 def _validate_static_lanes(args: argparse.Namespace) -> dict[str, Any]:
-    """Validate tracked zero-session evidence without reading local observations."""
+    """Validate immutable zero-session evidence without reading local observations."""
 
     root = Path(args.repository_root).resolve()
     contract = load_future_holdout_contract(root / "benchmarks/future_holdout_contract.json")
@@ -81,8 +83,8 @@ def _validate_static_lanes(args: argparse.Namespace) -> dict[str, Any]:
         observed_sessions=sessions,
         holdout_data_sha256=data_sha256,
     )
-    if _read_tracked_lane_evidence(root, args.evidence) != report:
-        raise RuntimeError("tracked future holdout lane evidence is stale")
+    if _read_reference_lane_evidence(root, args.evidence) != report:
+        raise RuntimeError("reference future holdout lane evidence is stale")
     return report
 
 

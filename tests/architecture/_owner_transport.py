@@ -275,6 +275,7 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
     return (projected | set(additions)) - RETIRED_ALLOCATION_SOURCES - {
         "research/generalization_ablation_cli.py", "research/ablation_registry.py",
         "scripts/run_generalization_ablation.py",
+        "scripts/run_risk_negative_controls.py",
     }
 
 

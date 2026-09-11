@@ -1,4 +1,4 @@
-"""Read audited non-executable evidence from immutable Git history."""
+"""Read immutable evidence and producer bytes for audit without executing them."""
 from __future__ import annotations
 
 import io
@@ -23,6 +23,7 @@ def evidence_root() -> Path:
         archive = subprocess.run(
             [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
              "benchmarks/current_heads_competitor_matrix.json",
+             "research/current_heads_competitor_matrix.py",
              "benchmarks/strategic_evidence_closure_contract.json"],
             check=True, capture_output=True,
         ).stdout  # nosec B603

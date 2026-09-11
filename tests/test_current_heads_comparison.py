@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import builtins
-import importlib.util
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
+from research import current_heads_competitor_matrix as runner
 from research.current_heads import (
     MATRIX_STATUSES,
     REQUIRED_METRICS,
@@ -23,21 +22,18 @@ from research.current_heads import (
 )
 from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.validation.competitor import CANONICAL_EXECUTION_CONTRACT
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "scripts/run_current_heads_competitor_matrix.py"
-SPEC = importlib.util.spec_from_file_location("current_heads_runner_under_test", RUNNER)
-assert SPEC is not None and SPEC.loader is not None
-runner = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = runner
-SPEC.loader.exec_module(runner)
+
 
 
 def test_adapter_initialization_failure_remains_a_replay_error(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    implementation = runner._implementation
+    implementation = runner
     monkeypatch.setattr(
         implementation,
         "observable_symbols_in_window",
@@ -155,7 +151,7 @@ def test_python_source_hash_is_stable_by_relative_path_order(tmp_path: Path) -> 
 def test_source_registry_binds_all_four_remote_heads_and_adapter() -> None:
     registry = load_source_registry(
         ROOT / "benchmarks/current_heads_source_registry.json",
-        adapter_path=ROOT / "scripts/run_current_heads_competitor_matrix.py",
+        adapter_path=evidence_root() / "research/current_heads_competitor_matrix.py",
         expected_heads={
             "uquant": "ea24f1837f8b7f2d91e73a5d3c70875f2ea98015",
             "trade": "2066fbf0f99be94142c5d0cb0b6c99d276c2472d",
@@ -543,18 +539,28 @@ def test_matrix_validator_cli_reads_committed_matrix() -> None:
     assert current_heads_main([]) == 0
 
 
+def test_matrix_validator_rejects_changed_producer_bytes(tmp_path: Path) -> None:
+    producer = tmp_path / "producer.py"
+    producer.write_bytes(
+        (evidence_root() / "research/current_heads_competitor_matrix.py").read_bytes()
+        + b"\n# changed producer\n"
+    )
+    with pytest.raises(ValueError, match="adapter SHA-256 mismatch"):
+        current_heads_main(["--adapter", str(producer)])
+
+
 def test_competitor_cli_exposes_only_domain_named_generalization_inputs(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     with pytest.raises(SystemExit) as prepare_exit:
-        runner._implementation.main(["prepare", "--help"])
+        runner.main(["prepare", "--help"])
     assert prepare_exit.value.code == 0
     prepare_help = capsys.readouterr().out
     assert "--generalization-baseline" in prepare_help
     assert "--phase2" not in prepare_help
 
     with pytest.raises(SystemExit) as assemble_exit:
-        runner._implementation.main(["assemble", "--help"])
+        runner.main(["assemble", "--help"])
     assert assemble_exit.value.code == 0
     assemble_help = capsys.readouterr().out
     assert "--generalization-summary" in assemble_help

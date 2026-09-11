@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
+from research import future_holdout_cli as _SCRIPT
 from research.risk_differential import append_observation
 from research.risk_differential_models import canonical_sha256
 from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
-_SCRIPT_SPEC = importlib.util.spec_from_file_location(
-    "future_holdout_risk_differential_under_test",
-    ROOT / "scripts/future_holdout.py",
-)
-assert _SCRIPT_SPEC is not None and _SCRIPT_SPEC.loader is not None
-_SCRIPT = importlib.util.module_from_spec(_SCRIPT_SPEC)
-_SCRIPT_SPEC.loader.exec_module(_SCRIPT)
+
 
 
 def _payload() -> dict[str, object]:

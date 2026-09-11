@@ -566,7 +566,7 @@ def load_current_heads_matrix(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Validate a committed current-HEAD matrix from an independent entry point."""
+    """Validate a matrix against its independently registered producer identity."""
 
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(prog="python -m research.current_heads")
@@ -588,7 +588,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--adapter",
         type=Path,
-        default=root / "scripts/run_current_heads_competitor_matrix.py",
+        default=evidence_root() / "research/current_heads_competitor_matrix.py",
+        help="Producer bytes to audit; defaults to the frozen reference producer (never executed)",
     )
     args = parser.parse_args(argv)
     payload = load_current_heads_matrix(

@@ -274,7 +274,7 @@ scenario 和 causal evidence 身份，再调用冻结 policy/evidence validator�
 ### 横向比较的证据合同
 
 `python -m research.current_heads` 默认从不可变证据源读取独立、冻结的比较输入，不表示当前
-候选成绩。每个 Cell 绑定生产者、配置、数据、适配器和执行时点；`REPLAY_ERROR` 与
+候选成绩。默认同时核验原始生产者字节，不执行原始源码；显式 `--adapter` 仍须匹配独立登记的哈希。每个 Cell 绑定生产者、配置、数据、适配器和执行时点；`REPLAY_ERROR` 与
 `INSUFFICIENT_SAMPLE` 必须保留，不能删行、补值或改贴当前源码身份。
 `python -m research.current_heads` 核验行数、身份、状态、摘要与聚合。
 比较结果不自动授予生产权限，也不替代当前 Absolute 和 Ownership 验收。

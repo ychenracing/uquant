@@ -137,7 +137,7 @@ def test_current_engineering_paths_use_domain_responsibilities() -> None:
 
 def test_current_generalization_uses_current_acceptance_and_removes_historical_execution() -> None:
     for relative in ("research/ablation_registry.py", "research/generalization_ablation_cli.py",
-                     "scripts/run_generalization_ablation.py"):
+                     "scripts/run_generalization_ablation.py", "scripts/run_risk_negative_controls.py"):
         assert not (ROOT / relative).exists()
         assert subprocess.check_output(["git", "show", f"7fcf9562e6c7f96250811acd80c2dd4ee46485e3:{relative}"], cwd=ROOT)
     assert (ROOT / "scripts/run_absolute_generalization_acceptance.py").is_file()

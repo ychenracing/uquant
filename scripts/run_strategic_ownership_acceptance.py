@@ -287,7 +287,7 @@ def _trace_rows(result: ReplayResult) -> tuple[Mapping[str, object], ...]:
 
 
 def actual_epoch_facts(result: ReplayResult) -> list[dict[str, Any]]:
-    """Return validation-owned fill-gated facts in the legacy report shape."""
+    """Return validation-owned fill-gated facts in the sealed report shape."""
 
     trace = _trace_rows(result)
     facts = actual_epoch_facts_from_rows(final_account=result.final_account, trace=trace)
@@ -1048,7 +1048,7 @@ def _participation_overlay() -> dict[str, Any]:
     ) != _PARTICIPATION_SEAL:
         raise ValueError("CORE participation overlay identity differs")
     if _sha256_file(CONTRACT_PATH) != raw["authority"]["legacy_ownership_file_sha256"]:
-        raise ValueError("CORE participation legacy ownership contract differs")
+        raise ValueError("CORE participation ownership authority differs")
     _continuity_basis()
     return cast(dict[str, Any], raw)
 
@@ -1245,14 +1245,14 @@ def _participation_witness(admissions: list[dict[str, Any]]) -> dict[str, Any] |
 def _participation_alias(contract: Mapping[str, Any], source: dict[str, Any]) -> dict[str, Any]:
     overlay = _participation_overlay()
     _validate_repeated(contract, summary=source, same_industry=False)
-    legacy = {"status": "PASS", "reason": "", "disposition": "superseded by the new contract"}
-    legacy_witness = None
+    adjacent_crowning = {"status": "PASS", "reason": "", "disposition": "diagnostic; acceptance uses independently qualified CORE participation"}
+    adjacent_witness = None
     try:
-        legacy_witness = _validate_repeated(contract, summary=source, same_industry=True)
+        adjacent_witness = _validate_repeated(contract, summary=source, same_industry=True)
     except RuntimeError as exc:
         if str(exc) != "same-industry replay has no adjacent real same-industry successor":
             raise
-        legacy.update(status="FAIL", reason=str(exc))
+        adjacent_crowning.update(status="FAIL", reason=str(exc))
     result = _continuity_result(source["raw_replay"])
     error = ""
     try:
@@ -1261,12 +1261,12 @@ def _participation_alias(contract: Mapping[str, Any], source: dict[str, Any]) ->
         admissions = []
         error = str(exc)
     witness = _participation_witness(admissions)
-    replacement = {"status": "PASS" if witness else "FAIL", "overlay_sha256": overlay["canonical_sha256"],
+    participation = {"status": "PASS" if witness else "FAIL", "overlay_sha256": overlay["canonical_sha256"],
                    "raw_sha256": source["continuity"]["raw_sha256"], "admissions": admissions, "witness": witness,
                    "error": error if error else ("" if witness else "no independently qualified same-industry participation pair")}
-    return {**source, "status": replacement["status"], "same_industry_witness": legacy_witness,
-            "legacy_same_industry_crowning": legacy,
-            "same_industry_core_participation": replacement}
+    return {**source, "status": participation["status"], "same_industry_witness": adjacent_witness,
+            "adjacent_same_industry_crowning": adjacent_crowning,
+            "same_industry_core_participation": participation}
 
 
 def _sha256_file(path: Path) -> str:

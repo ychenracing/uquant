@@ -1,0 +1,14 @@
+{
+  "research_only": true,
+  "production_ready": false,
+  "goal_status": "NOT_MET",
+  "trigger": "Independent original-action affine QFQ reconstruction matches1354/1354 frozen closes to cent for sh688256 and sz300223, but sh688008 has a0.386CNY discrepancy throughout2024-01-02..2026-07-28 (621days), matching the source splice boundaries of volume defects. Exact issuer2026-07-29 cash-reference adjustment is0.386.",
+  "scope": "Acquire identical bounded raw OHLCV+amount and original corporate-action notices for every existing34 member, without winner selection, via the now-validated quote-free protocol. Preserve existing23 candidate sources. No production or frozen data edits.",
+  "bounds": {
+    "start": "2021-01-01",
+    "end": "2026-08-05"
+  },
+  "comparison": "Source units, native calendar, announced corporate events and affine adjustment convention only before economic comparison. Keep raw prices, published investor entitlement and price-adjustment coefficients distinct. No inference from rounded jumps. Report failures and source differences.",
+  "decision": "Use complete source audit to isolate corrected-data research from strategy improvements. Data defects alone do not prove profitability, justify contract waivers, or permit a main merge.",
+  "fallback": "Retry documented protocol failures with bounded official clients. Preserve unresolved source rows and continue independent business/lifecycle verification; no silent zero fill or missing-name selection."
+}

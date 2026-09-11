@@ -1,0 +1,10 @@
+{
+  "independent_pandas_selection_and_excess_checks": 246,
+  "paired_ranking_records": 41,
+  "paired_account_roles_and_identities": {
+    "full": true,
+    "remove_all_three": true,
+    "strict": true
+  },
+  "formal_acceptance": false
+}

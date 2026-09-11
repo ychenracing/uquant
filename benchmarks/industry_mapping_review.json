@@ -1,0 +1,60 @@
+{
+  "research_only": true,
+  "frozen_inputs_modified": false,
+  "sample_count": 6,
+  "review": [
+    {
+      "symbol": "sh688498",
+      "recorded": "advanced_packaging",
+      "proposed": "optical",
+      "status": "business_verified_before_cutoff",
+      "published": "2022-09-22",
+      "source": "https://static.sse.com.cn/stock/disclosure/announcement/c/202209/001097_20220922_M8KG.pdf",
+      "page": 119,
+      "basis": "Optical-chip development, design, production and sales; IDM production does not imply advanced-packaging industry."
+    },
+    {
+      "symbol": "sh688110",
+      "recorded": "foundry",
+      "proposed": "design",
+      "status": "business_verified_before_cutoff",
+      "published": "2022-04-23",
+      "source": "https://static.cninfo.com.cn/finalpage/2022-04-23/1213062251.PDF",
+      "page": 3,
+      "basis": "Memory IC designer using Fabless model; owns no wafer fabrication line."
+    },
+    {
+      "symbol": "sz002281",
+      "recorded": "datacenter",
+      "proposed": "optical",
+      "status": "business_verified_before_cutoff",
+      "published": "2022-04-15",
+      "source": "https://static.cninfo.com.cn/finalpage/2022-04-15/1212918512.PDF",
+      "page": 11,
+      "basis": "Optoelectronic components, modules and subsystems; data centers are one customer application, not an independent non-optical exposure."
+    },
+    {
+      "symbol": "sh688037",
+      "recorded": "design",
+      "proposed": "equipment",
+      "status": "pre_cutoff_business_source_pending",
+      "published": "2023-04-26",
+      "source": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=9074550&stockid=688037",
+      "basis": "2023Q1 issuer explanation identifies semiconductor equipment; obtain pre-2023 business filing before historical remap."
+    }
+  ],
+  "reclassification": {
+    "total_net_pnl": 59486623.46213261,
+    "recorded_optical_pnl": 46728057.43238471,
+    "yuanjie_net_pnl": 7536425.371691832,
+    "recorded_share": 0.7855221008153266,
+    "reclassified_share": 0.9122131942590366,
+    "accounting_only": true,
+    "other_labels_unchanged": true
+  },
+  "next_action": "Create a separate versioned research input and audit all 34 memberships/industry labels against point-in-time issuer evidence. Preserve original frozen contract and results; no silent replacement.",
+  "unverified": [
+    "sh688008 and sh688019 business labels not audited in this bounded check",
+    "AI eligibility and historical universe membership are not established by business classification."
+  ]
+}

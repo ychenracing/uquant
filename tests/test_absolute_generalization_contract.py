@@ -32,7 +32,7 @@ BASELINE_SOURCE_AT_COMMIT = (
     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
 )
 CURRENT_SOURCE_REGISTRY_SHA256 = (
-    "a2ce3cd337958eb9bb8593e61d06cf75a6e6bf08367768b731d5b50dc230bd12"
+    "7d2c4b8143f54e4f002a1450923bf1bf59eb678f125d446fbee10fbf7026d074"
 )
 AI_UNIVERSE_SHA256 = (
     "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0"
@@ -260,7 +260,7 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
     }
     assert raw["inputs"] == {
         "ai_universe_sha256": AI_UNIVERSE_SHA256,
-        "effective_config_sha256": "ff491f722c3f84211eda9953cce1309392f7a89bb86bcc1e2cb33232580d4a26",
+        "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
         "frozen_data": {
             "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
             "files_verified": 36,

@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pandas as pd
+import pytest
 from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_grant_observation import _risk
 
@@ -101,7 +102,12 @@ def test_declared_unavailable_original_witness_blocks_even_with_cached_frame() -
     assert account.strategic_qualification.deployment_block_reason == 'reference_coverage_or_confirmation'
 
 
-def test_decisive_reversal_retains_original_pair_and_requires_synchronized_witness() -> None:
+@pytest.mark.parametrize(("discovery_index_return", "revalidation_index_return"), (
+    (-0.10, -0.10), (0.20, 0.20), (-0.10, 0.20),
+))
+def test_decisive_reversal_retains_original_pair_and_requires_synchronized_witness(
+    discovery_index_return: float, revalidation_index_return: float,
+) -> None:
     import numpy as np
     from test_lifecycle_and_risk import _trend_frame
 
@@ -116,7 +122,7 @@ def test_decisive_reversal_retains_original_pair_and_requires_synchronized_witne
     leaders = {s: _leader(s, score, industry='optical')
                for s, score in (('dominant', .70), ('runner', .60), ('reserve', .20))}
     leaders['runner'].components['trend_persistence'] = 1 / 3
-    risk = RiskAssessment(Risk.NORMAL, 1., 1, {'tech_ret120': -.10, 'risk_anchor_symbols': [],
+    risk = RiskAssessment(Risk.NORMAL, 1., 1, {'tech_ret120': discovery_index_return, 'risk_anchor_symbols': [],
                           'risk_anchor_group_count': 0, 'configured_user_universe_size': 3}, (), 'NONE')
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.account_identity = 'account:primary'
@@ -127,6 +133,7 @@ def test_decisive_reversal_retains_original_pair_and_requires_synchronized_witne
     grant = account.strategic_grant
     assert grant is not None and grant.candidate_symbol == 'dominant'
     assert grant.qualification_quorum == 'FULL_COHORT'
+    risk = replace(risk, evidence={**risk.evidence, 'tech_ret120': revalidation_index_return})
     assert revalidate_strategic_grant(policy,date=dates[-1],user_panel=panel,leaders=leaders,
                                      account=account,risk=risk,admission_open=True,weights_now={})
     assert not account.strategic_qualification.deployment_blocked

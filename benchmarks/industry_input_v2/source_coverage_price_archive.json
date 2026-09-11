@@ -1,0 +1,13 @@
+{
+  "base_archive_sha256": "f17ae691d45beea506350ab553898865756246ca28954d749f781dc3eb478c5e",
+  "bytes": 191039012,
+  "current_version_number": 0,
+  "evidence_files": 5288,
+  "file": "/dev/shm/uquant_coverage_price_checkpoint_20260909.tar.gz",
+  "file_id": "file_000000005e1482309b33731eccccf13f",
+  "library_file_id": "libfile_5fbc4ff185c08191addbe06e7d6f3e9e",
+  "scope": "6completednative coverage/price paths, research input deltas and verified comparisons. No C result.",
+  "sha256": "5a151c606750151728ba7d86f513488e9657ae7577452988c8d304735c8a0103",
+  "status": "SAVED",
+  "user_path": "/workspace/scratch/100af34dc020/uquant_coverage_price_checkpoint_20260909.tar.gz"
+}

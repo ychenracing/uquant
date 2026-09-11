@@ -12,6 +12,8 @@ from typing import Protocol, cast
 
 import pandas as pd
 
+from uquant.contracts.universe import decision_ai_universe
+
 from ..account.codec import UnsupportedAccountSchemaError
 from ..config import (
     DEFAULT_CONFIG,
@@ -19,11 +21,11 @@ from ..config import (
     canonical_control_float,
     config_fingerprint,
 )
-from ..contracts.universe import AIUniverse, default_ai_universe
+from ..contracts.universe import AIUniverse
 from ..data import DataManifest, DataStore, normalize_symbol
 from ..execution import merge_pending_orders, plan_orders
+from ..industry import decision_industries
 from ..leader import (
-    INDUSTRY,
     compute_leaders,
 )
 from ..opportunity import classify_opportunity
@@ -355,7 +357,7 @@ def decision_market_context(
     strategic_universe_declaration: StrategicUniverseDeclaration | None,
 ) -> _DecisionMarket:
     date = inputs.date
-    universe = default_ai_universe()
+    universe = decision_ai_universe()
     canonical_symbols = universe.symbols_as_of(str(date.date()))
     registry_symbols = resolve_reference_symbols(date)
     if registry_symbols != canonical_symbols:
@@ -391,7 +393,7 @@ def decision_market_context(
     reference_context = build_reference_context(
         date=date,
         panel=reference_panel,
-        industries=INDUSTRY,
+        industries=decision_industries(str(date.date())),
         cfg=decision_cfg,
         reference_returns=reference_returns,
     )

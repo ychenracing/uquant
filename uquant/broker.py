@@ -9,6 +9,8 @@ from datetime import date as date_type
 from datetime import timedelta
 from typing import Any
 
+from uquant.contracts.universe import decision_ai_universe
+
 from .account.validation_attribution import validate_lot_origin_chains as _validate_lot_origin_chains
 from .account.validation_orders import validate_order_state as _validate_order_state
 from .account.validation_positions import validate_position_state as _validate_position_state
@@ -19,7 +21,6 @@ from .broker_contract import broker_integer as _broker_integer
 from .broker_contract import broker_nonnegative as _nonnegative
 from .broker_contract import ordered_broker_fills as _ordered_broker_fills
 from .config import DEFAULT_CONFIG, SystemConfig
-from .contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 from .data import normalize_symbol
 from .execution import allocate_sell_costs as _allocate_sell_costs
 from .execution import risk_priority_tranche_key
@@ -58,12 +59,12 @@ def _broker_reconciliation_identity(
 ) -> AttributionIdentity:
     """Create explicit identity for inventory not backed by a planned order."""
 
-    industry = default_ai_universe().industry_of(symbol, signal_date)
+    industry = decision_ai_universe().industry_of(symbol, signal_date)
     if industry == "unknown":
         industry = "legacy_unmapped"
         manifest = "0" * 64
     else:
-        manifest = REQUIRED_AI_UNIVERSE_SHA256
+        manifest = decision_ai_universe().sha256
     origin = OriginSubsystem.BROKER_RECONCILIATION.value
     mechanism = AttributionMechanism.BROKER_RECONCILIATION.value
     reason_code = f"broker_reconciliation:{token}"

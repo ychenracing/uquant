@@ -11,8 +11,9 @@ import numpy as np
 import pandas as pd
 
 from .config import SystemConfig
+from .contracts.universe import decision_ai_universe
 from .features import scalar
-from .industry import IndustrySignal, compute_industry_signals, production_industries
+from .industry import IndustrySignal, compute_industry_signals, decision_industries, production_industries
 from .reference import production_reference_symbols
 from .types import AccountState, LeaderScore, Opportunity
 
@@ -141,10 +142,11 @@ def _inferred_industries(
     tech: pd.DataFrame,
 ) -> dict[str, tuple[str, float]]:
     """Infer unknown groups from stable 60/120-day residual correlations."""
+    industries = decision_industries(str(as_of.date()))
     tech_returns = tech.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
     group_returns: dict[str, list[pd.Series]] = {}
     for symbol in STABLE_REFERENCE_UNIVERSE:
-        industry = INDUSTRY.get(symbol)
+        industry = industries.get(symbol)
         frame = panel.get(symbol)
         if industry is None or frame is None:
             continue
@@ -160,8 +162,8 @@ def _inferred_industries(
     }
     inferred: dict[str, tuple[str, float]] = {}
     for symbol, frame in panel.items():
-        if symbol in INDUSTRY:
-            inferred[symbol] = (INDUSTRY[symbol], 1.0)
+        if symbol in industries:
+            inferred[symbol] = (industries[symbol], 1.0)
             continue
         series = frame.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
         residual = _residual_returns(series, tech_returns)
@@ -510,20 +512,21 @@ def compute_structural_leaders(
     """
     if as_of not in tech.index:
         raise RuntimeError("fixed tech index missing at decision date")
-    extra_symbols = tuple(sorted(set(panel) - set(REFERENCE_UNIVERSE)))
     # Structural components include configuration-dependent industry evidence.
     # A ProductionEngine is intentionally reused across promotion cells, so a
     # key that omits cfg can leak scores between configurations and make replay
     # order affect returns.
-    cache_key = (as_of, extra_symbols, cfg, "STRUCTURAL")
+    # Reference membership changes percentiles too, even without extra symbols.
+    cache_key = (as_of, tuple(sorted(panel)), cfg, decision_ai_universe().sha256, "STRUCTURAL")
     cached = score_cache.get(cache_key) if score_cache is not None else None
     if cached is not None:
         return cached
     tech_row = cast(pd.Series, tech.loc[as_of])
     inferred_industries = _inferred_industries(panel, as_of, tech)
+    industries = decision_industries(str(as_of.date()))
     effective_industries = {
         symbol: (
-            industry if symbol in INDUSTRY or confidence >= cfg.unknown_industry_confidence else "unknown",
+            industry if symbol in industries or confidence >= cfg.unknown_industry_confidence else "unknown",
             confidence,
         )
         for symbol, (industry, confidence) in inferred_industries.items()

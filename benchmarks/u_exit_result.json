@@ -1,0 +1,58 @@
+{
+  "source": "630b28806e70dd86f17cea4115754c8334a0167df37c97df73853c1c986b8f46",
+  "nominal_failures": [],
+  "paired_failures": [],
+  "complete_acceptance": false,
+  "producer": {
+    "local": "351af0a947c20c1a00d4cc375448c84045cfab57",
+    "remote": "1ee7af9fd4f5dcb9cdf31f2e6449f8a1c746972d",
+    "source": "630b28806e70dd86f17cea4115754c8334a0167df37c97df73853c1c986b8f46"
+  },
+  "reports": {
+    "nominal": {
+      "native_seal": "08201a6f369505103f8593255ded2309a7869b97d8a32ddb3cf2f48c39b8d759",
+      "metrics": {
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554,
+        "account_orders": 14
+      }
+    },
+    "cash2": {
+      "native_seal": "e5f32e8e7fdf50082dd50fe0c7bb1ee666041fe059a83eb16cdaf6599a955abf",
+      "metrics": {
+        "final_wealth": 25.273479162768464,
+        "max_drawdown": 0.27143656214266465,
+        "account_orders": 14
+      }
+    },
+    "old_cash2": {
+      "native_seal": "9202fd3d81dd664fcb0ca03832d039afe933e2d723e19e58d2d3da3e743b4a19",
+      "metrics": {
+        "final_wealth": 24.67585408516337,
+        "max_drawdown": 0.27143656214266465,
+        "account_orders": 12
+      }
+    }
+  },
+  "archive": {
+    "path": "/workspace/scratch/4f31235e78e6/runs/u-full-owner-exit-20260911/u_owner_exit_screen_20260911.tar.gz",
+    "bytes": 87289076,
+    "sha256": "fb00f9d394cc06e3bb5e01ec9ebb4e8e0d7cb19b213c63c2adce42f4fc369a04"
+  },
+  "receipt": {
+    "results": [
+      {
+        "local_path": "/workspace/scratch/4f31235e78e6/runs/u-full-owner-exit-20260911/u_owner_exit_screen_20260911.tar.gz",
+        "purpose": "create_library_file",
+        "status": "succeeded",
+        "file_id": "file_000000003de081f799e79311986ef914",
+        "library_file_id": "libfile_754370a0486c8191b79558f5af1c12c4",
+        "file_name": "u_owner_exit_screen_20260911.tar.gz",
+        "local_metadata_applied": true,
+        "path": "/u_owner_exit_screen_20260911.tar.gz",
+        "current_version_number": 0
+      }
+    ]
+  },
+  "remaining": "Three startup-offset wealth failures inherited from T; full economic acceptance unavailable. V isolated native sentinel in progress. Engineering/CI secondary."
+}

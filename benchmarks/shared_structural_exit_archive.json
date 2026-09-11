@@ -1,0 +1,30 @@
+{
+  "principal": {
+    "path": "/workspace/scratch/997f3f703ab0/uquant_shared_exit_principal_evidence_20260910.tar.gz",
+    "bytes": 87987593,
+    "sha256": "f38b7155d8dd49ecf2b4c2aee82bba1eea29bc66aebc964cacab4980ca491a0c",
+    "members": 1753,
+    "library_file_id": "libfile_a30cc9a9aed88191aacee4c5782c5373",
+    "file_id": "file_00000000c97481fda386d04261296ba2",
+    "status": "SAVED_AND_ALL_MEMBER_HASHES_VERIFIED",
+    "verified_members": 1753
+  },
+  "additional_screens": {
+    "path": "/workspace/scratch/997f3f703ab0/uquant_shared_exit_screens_20260910.tar.gz",
+    "bytes": 50645469,
+    "sha256": "f3ddf3c75b061765a1068b6fb89b28c432f6c90803e61d2f3b93a4352d24505a",
+    "verified_members": 1004,
+    "status": "SAVED_AND_ALL_MEMBER_HASHES_VERIFIED",
+    "library_file_id": "libfile_209ddd029be88191b3ada52842041b8a",
+    "file_id": "file_00000000211482309a1ef1ee0b9bf281"
+  },
+  "continuity_shard": {
+    "path": "/workspace/scratch/997f3f703ab0/uquant_shared_exit_continuity_20260910.tar.gz",
+    "bytes": 23519711,
+    "sha256": "89edacdc3f876739488e50c0ddd95f19bd541109dd57be259dcae0aeb8c8be0d",
+    "verified_members": 8,
+    "status": "SAVED_AND_ALL_MEMBER_HASHES_VERIFIED",
+    "file_id": "file_00000000ac5081fd86d18d54543b763c",
+    "library_file_id": "libfile_c9cf00b153b88191af0b06c6b0d16743"
+  }
+}

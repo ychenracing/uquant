@@ -132,7 +132,6 @@ class SystemConfig:
     strategic_reversal_max_ret240: float = -0.15
     strategic_reversal_min_ret5: float = 0.05
     strategic_reversal_min_median_ret20: float = -0.05
-    strategic_reversal_max_tech_ret120: float = -0.01
     # A secular winner may consolidate normally, but a new cohort must not be
     # opened into a broad six-month blow-off.
     strategic_long_cycle_min_ret20: float = -0.05

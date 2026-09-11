@@ -1,0 +1,9 @@
+{
+  "research_only": true,
+  "goal_status": "NOT_MET",
+  "finding": "Independent bounded OHLCV+amount source audit found inconsistent frozen volume units: 2021 sh688008/sh688256 about100x shares, and sz300223 2024-01-02..2026-07-28 about0.01x shares. These are recorded defects, not authorization to rewrite frozen inputs.",
+  "shared_code_evidence": "DataStore.refresh_akshare renames AKShare daily 成交量 (hands) to canonical volume without multiplying by100. Tencent/Sohu source paths convert hands to shares. Open execution already has an amount/close compatibility heuristic; do not claim capacity fails everywhere.",
+  "scope": "Normalize hands to shares at the AKShare stock ingestion boundary with a pure tested conversion. Preserve amount, OHLC, date and source frame. No symbol-specific rule or inferred historical CSV rewrite.",
+  "verification": "Offline source-unit and cross-provider volume-expansion continuity checks; affected data tests, Ruff and types. No live refresh, protected market fetch or unrelated acceptance matrix.",
+  "economic_followup": "Existing frozen bytes remain unchanged. Quantify actual affected feature/account paths in explicitly versioned research input only; no automatic profitability claim from the engineering repair."
+}

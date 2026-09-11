@@ -1,0 +1,16 @@
+{
+  "research_only": true,
+  "formal_acceptance": false,
+  "registered_before_new_replay": true,
+  "policy": "main strategy plus unified research industry input; not PR C",
+  "control_source": "3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc",
+  "review_sha256": "30039de3f72219b7ea1ca333af8cc1e181700b33f3084aafd687634aef68ba74",
+  "question": "Does removing risk-only references from structural scoring remove the observed early qualification divergence while preserving declared risk and opportunity-breadth inputs?",
+  "change": "Construct structural scoring panel from qualification references plus user/durable symbols. Risk panel, opportunity breadth, costs, execution and allocator remain unchanged.",
+  "controls": "Reuse strict revised and strict plus risk-reference addition sealed native accounts; equal-role cases are behavior neutral by panel-set equality.",
+  "sentinel": "2023-01-03 through 2023-01-20; native reader; verify reference roles unchanged, score-only member absent, accounting valid, first qualification/target divergence. Do not compare event identity hashes as economic behavior.",
+  "extension": "Only after sentinel validates the intervention, one strict plus risk-reference addition native account through 2026-08-05; no parameter search. Same Python3.12.13/pandas3.0.5/numpy2.5.1 and frozen data.",
+  "interpretation": "Neither equality nor improvement proves a bug or broad generalization. Shared leaders also feed risk assessment. Opportunity breadth still uses risk references. Any remaining divergence is not proof that pure risk alone caused it.",
+  "negative_evidence": "If early qualification divergence persists, close scoring-only sufficiency and trace opportunity/reference interaction before implementing industry-first. If local divergence is explained but net-account quality does not improve, retain diagnosis and move to executable ranking/coverage rather than adjust scoring weights.",
+  "constraints": "PR56 Draft; no main merge, production input expansion, Future Holdout, frozen gate changes or symbol blacklist. Raw archive preservation retry transfer_failed; original local archive hash verified unchanged."
+}

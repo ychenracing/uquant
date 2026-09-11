@@ -48,6 +48,7 @@ RETIRED_VALIDATION_CLAUSES: Mapping[int, str] = types.MappingProxyType(
         60: "leader_cycle_impulse_breadth",
         61: "leader_cycle_min_market_ret120",
         62: "leader_cycle_impulse_min_market_ret120",
+        78: "strategic_reversal_max_tech_ret120",
         79: "strategic_epoch_cooldown_sessions",
         80: "strategic_epoch_min_symbol_change",
     }

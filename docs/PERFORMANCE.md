@@ -536,12 +536,22 @@ deltas, improved-window qualification, positive-return fraction and p10 wealth
 floor are unchanged.
 
 Continuous Performance A–E and nominal champion order limits change from 15
-to 20. Nominal full/removal and robustness limits formerly 20 become 22;
-robustness limits formerly 15 become 20, including the p90 order limit where
+to 20. Nominal full/removal and robustness limits formerly 20 became 22 under v1;
+the user subsequently explicitly accepted 32 total orders for the recovery
+candidate. `cross-ai-order-tolerance-20260909-v2` therefore changes that mapping
+to 32. Original v1 failures remain recorded in `ordinary_recovery_result.md`;
+this post-observation revision does not make those results preregistered.
+Robustness limits formerly 15 become 20, including the p90 order limit where
 applicable. Half-year and post-2025 order ceilings remain unchanged. This
 revision supersedes the historical E-only order authorization recorded above.
 Drawdown, acute-return, recovery, cost and turnover limits are unchanged;
 Absolute and Ownership contracts are outside this revision.
+
+`cross-ai-h1-drawdown-baseline-20260909-v3` records the user's subsequent
+authorization for nominal `no_optical / h1_2023` only: maximum drawdown must not
+exceed current main `960539a`'s exact **0.2442425185317515**, with no additional
+buffer. The old **0.20205429957130803** limit and failure remain in the original
+judgment. Other drawdown limits and all other gates are unchanged.
 
 Nominal and robustness reports expose original and effective judgments from
 the same validated raw metrics. Performance records both the original contract

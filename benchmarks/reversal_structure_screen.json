@@ -1,0 +1,212 @@
+{
+  "overall_status": "NOT_MET",
+  "rows": [
+    {
+      "case": "champion",
+      "producer": "a56a43f954bf4ada4027836c108d4ca6051b5f20",
+      "source": "f5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994",
+      "config": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "native_status": "COMPLETE_READBACK_VERIFIED",
+      "metrics": {
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554,
+        "account_orders": 14,
+        "fees": 46015.79892394601,
+        "slippage_cost": 66615.9745999966,
+        "annual_turnover": 9.26891228576709
+      },
+      "result_seal": "fa992d5fcad9acd2f09eb7fb4680b3fc0a9cbf094cbc59064148bf549babfa05"
+    },
+    {
+      "case": "full",
+      "producer": "a56a43f954bf4ada4027836c108d4ca6051b5f20",
+      "source": "f5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994",
+      "config": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "native_status": "COMPLETE_READBACK_VERIFIED",
+      "metrics": {
+        "final_wealth": 29.717003593409824,
+        "max_drawdown": 0.27147361646156465,
+        "account_orders": 22,
+        "fees": 65928.056280352,
+        "slippage_cost": 101142.05689999806,
+        "annual_turnover": 14.075050810755696
+      },
+      "result_seal": "b2f5e41cd882c49050ce4a8367ab2bcb5d8205963d68544a0c545d7130507161"
+    },
+    {
+      "case": "remove-all-three",
+      "producer": "a56a43f954bf4ada4027836c108d4ca6051b5f20",
+      "source": "f5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994",
+      "config": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "native_status": "COMPLETE_READBACK_VERIFIED",
+      "metrics": {
+        "final_wealth": 3.6784085274816762,
+        "max_drawdown": 0.23402721910419388,
+        "account_orders": 20,
+        "fees": 10441.074236648,
+        "slippage_cost": 17847.070799999176,
+        "annual_turnover": 2.484285349908861
+      },
+      "result_seal": "3df94c0ffc561c99b6b47b776d82e61c1b3db2a4d457bd3321124f79bb539eb2"
+    },
+    {
+      "case": "no-optical",
+      "producer": "a56a43f954bf4ada4027836c108d4ca6051b5f20",
+      "source": "f5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994",
+      "config": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "native_status": "COMPLETE_READBACK_VERIFIED",
+      "metrics": {
+        "final_wealth": 1.6339070356874204,
+        "max_drawdown": 0.2440020771164343,
+        "account_orders": 19,
+        "fees": 4953.94162516,
+        "slippage_cost": 9090.986999999353,
+        "annual_turnover": 1.26565514621519
+      },
+      "result_seal": "be433e4b8b4a5e6cf0524dba2ce1b89a523d6313585fa9ed2284eabdb79c0e70"
+    },
+    {
+      "case": "champion-offset5",
+      "producer": "a56a43f954bf4ada4027836c108d4ca6051b5f20",
+      "source": "f5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994",
+      "config": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "native_status": "COMPLETE_READBACK_VERIFIED",
+      "metrics": {
+        "final_wealth": 3.632624825485006,
+        "max_drawdown": 0.1723508887086519,
+        "account_orders": 22,
+        "fees": 11273.291229988,
+        "slippage_cost": 19523.257799998948,
+        "annual_turnover": 2.7334182548724537
+      },
+      "result_seal": "7834340080f4d9b80a10a0b1eadeb216fb858d0e7f9dc732ce9ab390970b50ff"
+    },
+    {
+      "case": "champion-offset20",
+      "producer": "a56a43f954bf4ada4027836c108d4ca6051b5f20",
+      "source": "f5b60c385264cf88b625c7711ab22f2e6c14bdffbf76d9b60e2deee6d0e67994",
+      "config": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "native_status": "COMPLETE_READBACK_VERIFIED",
+      "metrics": {
+        "final_wealth": 3.632624825485006,
+        "max_drawdown": 0.1723508887086519,
+        "account_orders": 22,
+        "fees": 11273.291229988,
+        "slippage_cost": 19523.257799998948,
+        "annual_turnover": 2.7817118636157834
+      },
+      "result_seal": "ea9e034ee684121e45ecad7019071ef728c6100cea17fc7a33eb2f6f0e0a7e26"
+    }
+  ],
+  "principal15_orders40_satisfied": true,
+  "offsets": "Startup opportunity capture remains weak. Paired startup acceptance is unproven without valid frozen old-source comparator; do not invent an absolute15 stress floor.",
+  "pending": "Both fixed Performance screens FAIL retained wealth gates; a/bull also fails drawdown. Continue causal entry-direction screen before expensive complete matrices. No full Performance/Absolute/Robustness PASS.",
+  "fixed_performance_screens": [
+    {
+      "complete_full_profile": false,
+      "failures": [
+        "a/bull: final_wealth below 11.544300",
+        "a/bull: max_drawdown above 0.180000",
+        "a/bull: final_wealth regressed from production champion",
+        "a/bull: max_drawdown regressed from production champion"
+      ],
+      "interval": [
+        "2025-04-01",
+        "2026-06-30"
+      ],
+      "metrics": {
+        "account_orders": 7,
+        "acute_return": null,
+        "annual_turnover": 2.01397177717053,
+        "cagr": 0.38139597174407935,
+        "calmar": 2.03589463869263,
+        "final_wealth": 1.4966071576409352,
+        "gross_turnover": 2.51330362275,
+        "max_drawdown": 0.18733581026029744,
+        "sharpe": 1.1746069342748229
+      },
+      "name": "a/bull",
+      "original_failures": [
+        "a/bull: final_wealth below 12.827000",
+        "a/bull: max_drawdown above 0.180000",
+        "a/bull: final_wealth regressed from production champion",
+        "a/bull: max_drawdown regressed from production champion"
+      ],
+      "runtime": {
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "environment": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.12.8"
+        },
+        "production": {
+          "commit": "a56a43f954bf4ada4027836c108d4ca6051b5f20",
+          "repository": "ychenracing/uquant",
+          "source_sha256": "6ff61e7971b87019d9efadbc159c600d5b91bd445a05e753c49a6d2b985d5c0c"
+        }
+      },
+      "scope": "fixed_native_Performance_unit_not_full_acceptance",
+      "status": "FAIL"
+    },
+    {
+      "complete_full_profile": false,
+      "failures": [
+        "a/h1_2024: final_wealth below 1.512000",
+        "a/h1_2024: final_wealth regressed from production champion",
+        "a/h1_2024: acute_return regressed from production champion"
+      ],
+      "interval": [
+        "2024-01-02",
+        "2024-07-01"
+      ],
+      "metrics": {
+        "account_orders": 8,
+        "acute_return": 0.0,
+        "annual_turnover": 3.7383436412822033,
+        "cagr": 0.8885269534754958,
+        "calmar": 7.1486909797591744,
+        "final_wealth": 1.3634479995178361,
+        "gross_turnover": 1.82282871765,
+        "max_drawdown": 0.12429225937885324,
+        "sharpe": 1.6972180900221272
+      },
+      "name": "a/h1_2024",
+      "original_failures": [
+        "a/h1_2024: final_wealth below 1.680000",
+        "a/h1_2024: final_wealth regressed from production champion",
+        "a/h1_2024: acute_return regressed from production champion"
+      ],
+      "runtime": {
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "environment": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.12.8"
+        },
+        "production": {
+          "commit": "a56a43f954bf4ada4027836c108d4ca6051b5f20",
+          "repository": "ychenracing/uquant",
+          "source_sha256": "6ff61e7971b87019d9efadbc159c600d5b91bd445a05e753c49a6d2b985d5c0c"
+        }
+      },
+      "scope": "fixed_native_Performance_unit_not_full_acceptance",
+      "status": "FAIL"
+    }
+  ]
+}

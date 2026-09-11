@@ -1,0 +1,489 @@
+{
+  "complete_acceptance": false,
+  "current_recovery_audit": {
+    "native_prefix_seal": "41d10a828a14a593e11afdbd37f2acc478f3cfc88c18e7720be058761aace146",
+    "producer_account_unchanged": true,
+    "rows": [
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-01",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": [
+          "MA20 structural damage",
+          "index velocity shock"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [
+          "sz300502"
+        ],
+        "date": "2025-04-02",
+        "deep_count": 0,
+        "depth": {
+          "sz300502": -0.23758165435158418
+        },
+        "filtered": [],
+        "frozen": true,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "CAUTION",
+        "risk_reasons": [
+          "MA20 structural damage",
+          "index velocity shock"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-03",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": true,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "CAUTION",
+        "risk_reasons": [
+          "MA20 structural damage"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-07",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": true,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "CAUTION",
+        "risk_reasons": [
+          "sector breadth shock",
+          "MA20 structural damage",
+          "multi-industry synchronization",
+          "index velocity shock"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-08",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": true,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "CAUTION",
+        "risk_reasons": [
+          "sector breadth shock",
+          "MA20 structural damage",
+          "multi-industry synchronization",
+          "index velocity shock"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-09",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": true,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "CAUTION",
+        "risk_reasons": [
+          "sector breadth shock",
+          "MA20 structural damage",
+          "multi-industry synchronization",
+          "leader failure",
+          "index velocity shock"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-10",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": true,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "CAUTION",
+        "risk_reasons": [
+          "sector breadth shock",
+          "MA20 structural damage",
+          "multi-industry synchronization",
+          "leader failure",
+          "index velocity shock"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-11",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": true,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "CAUTION",
+        "risk_reasons": [
+          "index velocity shock"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-14",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": true,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "CAUTION",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-15",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": [
+          "MA20 structural damage"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-16",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-17",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-18",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": [
+          "MA20 structural damage"
+        ]
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-21",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-22",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [
+          "sz300502"
+        ],
+        "date": "2025-04-23",
+        "deep_count": 1,
+        "depth": {
+          "sz300502": -0.36449183568356147
+        },
+        "filtered": [
+          "sz300502"
+        ],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-24",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [
+          "sz300502",
+          "sz300308"
+        ],
+        "date": "2025-04-25",
+        "deep_count": 1,
+        "depth": {
+          "sz300308": -0.4111040474676838,
+          "sz300502": -0.27470367774764626
+        },
+        "filtered": [
+          "sz300308"
+        ],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-28",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-29",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [],
+        "date": "2025-04-30",
+        "deep_count": 0,
+        "depth": {},
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "CHOPPY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [
+          "sz300308"
+        ],
+        "date": "2025-05-06",
+        "deep_count": 1,
+        "depth": {
+          "sz300308": -0.4
+        },
+        "filtered": [
+          "sz300308"
+        ],
+        "frozen": false,
+        "opportunity": "RECOVERY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [
+          "sz300308"
+        ],
+        "date": "2025-05-07",
+        "deep_count": 1,
+        "depth": {
+          "sz300308": -0.4210670127740965
+        },
+        "filtered": [
+          "sz300308"
+        ],
+        "frozen": false,
+        "opportunity": "RECOVERY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.15,
+        "candidates": [
+          "sz300502",
+          "sz300308",
+          "sz300394"
+        ],
+        "date": "2025-05-08",
+        "deep_count": 2,
+        "depth": {
+          "sz300308": -0.3291489361702128,
+          "sz300394": -0.43036318520189487,
+          "sz300502": -0.15551776855636334
+        },
+        "filtered": [
+          "sz300394",
+          "sz300308",
+          "sz300502"
+        ],
+        "frozen": false,
+        "opportunity": "RECOVERY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      },
+      {
+        "admission_depth": -0.3,
+        "candidates": [
+          "sz300502"
+        ],
+        "date": "2025-05-09",
+        "deep_count": 0,
+        "depth": {
+          "sz300502": -0.1744634675669159
+        },
+        "filtered": [],
+        "frozen": false,
+        "opportunity": "RECOVERY",
+        "original_positions": {},
+        "risk": "NORMAL",
+        "risk_reasons": []
+      }
+    ],
+    "scope": "observational_candidate_audit_not_executable_profit",
+    "source_sha256": "b43f3f796aa16a54cb2a0bc009bf14db049df9291100d951127fc346c5bb6046"
+  },
+  "equivalent_tree": "26549a279394a726f3370263b9e21e979d883b00",
+  "fixed_h1_2024": {
+    "complete_full_profile": false,
+    "economic_source_sha256": "b43f3f796aa16a54cb2a0bc009bf14db049df9291100d951127fc346c5bb6046",
+    "failures": [],
+    "interval": [
+      "2024-01-02",
+      "2024-07-01"
+    ],
+    "metrics": {
+      "account_orders": 8,
+      "acute_return": 0.06390679898215934,
+      "annual_turnover": 4.214655180487289,
+      "cagr": 2.7641712777183205,
+      "calmar": 17.63507929318977,
+      "final_wealth": 1.9085269240679252,
+      "gross_turnover": 2.05507979875,
+      "max_drawdown": 0.156742775678121,
+      "sharpe": 2.437467043441825
+    },
+    "name": "a/h1_2024",
+    "original_failures": [],
+    "runtime": {
+      "data": {
+        "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+        "files_verified": 36,
+        "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+        "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+      },
+      "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "environment": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.12.8"
+      },
+      "production": {
+        "commit": "96dbc4819889a1fc98ae565471ebb601e85952f6",
+        "repository": "ychenracing/uquant",
+        "source_sha256": "befa113eaa501d243a978b440ffc540d552a73bc607afb6a6b9c55dab2495916"
+      }
+    },
+    "scope": "fixed_native_Performance_unit_not_full_acceptance",
+    "sessions": 118,
+    "status": "PASS_FIXED_UNIT",
+    "wealth_drawdown_filled_orders_reconciled": true
+  },
+  "fresh_oos": false,
+  "full": {
+    "all_metrics_and_symbol_pnl_equal_f5": true,
+    "canonical_sha256": "23d2e0deda93b1b6ce25e0518665861bf837845900cabd07b8c8dd7e5bdba8c7",
+    "hard_15_40": "PASS_FIXED_ACCOUNT",
+    "metrics": {
+      "account_orders": 22,
+      "annual_turnover": 14.075050810755696,
+      "fees": 65928.056280352,
+      "final_wealth": 29.717003593409824,
+      "max_drawdown": 0.27147361646156465,
+      "slippage_cost": 101142.05689999806
+    },
+    "raw_sha256": "74305d08cded8611848e0649afb7e77818a86933beb05253851f8cee35a9aa51",
+    "read_case_verified": true,
+    "sessions": 869
+  },
+  "future_holdout_used": false,
+  "next": "confirmed_recovery_plan.md",
+  "producer_native_commit": "96dbc4819889a1fc98ae565471ebb601e85952f6",
+  "remote_equivalent_commit": "abb7be46bec92363ac0507e44bcfe1d1f5c277bf",
+  "source_sha256": "b43f3f796aa16a54cb2a0bc009bf14db049df9291100d951127fc346c5bb6046",
+  "status": "NOT_MET_PR_DRAFT"
+}

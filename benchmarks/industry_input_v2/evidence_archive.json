@@ -1,0 +1,18 @@
+{
+  "path": "/dev/shm/uquant_taxonomy_integration_evidence_20260909.tar.gz",
+  "bytes": 107316291,
+  "sha256": "01cbb2efc0451086ab067296767123e5faa5cd7b45322eb9d01f62df252aad62",
+  "members_verified": 73,
+  "daily_envelope_directories_omitted": "Complete hash-verified observations.jsonl.gz retained for every run; redundant per-day envelopes remain locally.",
+  "persistent_upload_status": "SUCCEEDED",
+  "local_archive_sha256_verified": true,
+  "previous_failure": "Prepared transfer failed; diagnostic logs show proxy connection refused/timeouts. No successful finalization or persistent file ID.",
+  "library_file_id": "libfile_399d88b00ee48191aa4ffd31a1f0979e",
+  "file_id": "file_000000007538822fa45d2f2d8e77f85b",
+  "library_path": "/uquant_taxonomy_integration_evidence_20260909.tar.gz",
+  "version": 0,
+  "download_readback_sha256_verified": true,
+  "archive_entries": 74,
+  "archive_entries_note": "73 evidence files plus SHA256SUMS.json",
+  "resolution": "Staged unchanged bytes in the conversation workspace; prepared save and fresh download succeeded. Earlier failed routes preserved."
+}

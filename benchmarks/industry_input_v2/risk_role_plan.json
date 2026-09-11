@@ -1,0 +1,24 @@
+{
+  "question": "Is restoring Jiangfeng to risk references alone sufficient to remove the corrected strict-case gain? This tests sensitivity, not a proven defect.",
+  "registered_after": "three original paired comparisons; no role probe outcome read",
+  "baseline_result_sha256": "f38c4426d0d553f79aa0d0e269e506b4d0fbcbdb28803cfb39d18fe211fc0b19",
+  "baseline_runner_sha256": "b4eb6f11eb6607fd3ef14894e3639354ac9c271fcdc972f810c76d8dfc407fbb",
+  "unchanged_production_source": "3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc",
+  "baseline_roles": "strict all-role exclusion",
+  "probe_roles": {
+    "tradable": "strict unchanged",
+    "qualification": "strict unchanged",
+    "risk": "strict plus sz300666 only",
+    "indexes": "unchanged"
+  },
+  "interval": [
+    "2023-01-03",
+    "2026-08-05"
+  ],
+  "config": "unchanged default",
+  "research_only": true,
+  "not_all_role_exclusion_evidence": true,
+  "interpretation": "Risk reference enters the combined scoring panel too. The probe isolates the declared risk-reference input, not pure risk-overlay logic. Matching remove_all_three would indicate risk/scoring sufficiency; other outcomes leave qualification/tradable effects unresolved. Do not infer a universal removal/blacklist rule.",
+  "budget": "one new 869-session arm after 6-day role/reader sentinel; reuse sealed strict baseline, no parameter search or further role variants",
+  "runner_changes": "Only optional risk_reference_additions branch; empty default produces identical roles and identity fields, formal readers reject nonempty additions unless explicitly expected."
+}

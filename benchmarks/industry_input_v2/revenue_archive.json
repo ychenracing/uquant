@@ -1,0 +1,16 @@
+{
+  "bytes": 162361977,
+  "sha256": "e2aa9f7b3c03f304ad92d10620bc3fd0e040751d7df5ded5a6122f57cd4088bb",
+  "evidence_files": 738,
+  "local_path": "/dev/shm/uquant_revenue_information_evidence_20260909.tar.gz",
+  "status": "SAVED",
+  "library_file_id": "libfile_6fcc3b3434a881918f4c4a2504715953",
+  "file_id": "file_000000002058822f932219ab78786803",
+  "version": 0,
+  "path": "/uquant_revenue_information_evidence_20260909.tar.gz",
+  "duplicate_save_receipt": {
+    "library_file_id": "libfile_68117de7eb5c819193bd53f3868b4493",
+    "path": "/uquant_revenue_information_evidence_20260909.tar(1).gz",
+    "reason": "First session result lost; subsequent helper output arrived after title search was empty. Both preserved, same submitted bytes."
+  }
+}

@@ -14,7 +14,7 @@ from types import MappingProxyType
 
 import numpy as np
 
-from .contracts.universe import default_ai_universe
+from .contracts.universe import decision_ai_universe, default_ai_universe
 
 _FROZEN_COMPATIBILITY_LABELS = MappingProxyType(
     {
@@ -39,6 +39,16 @@ def production_industries() -> Mapping[str, str]:
             for member in universe.members
         }
     )
+
+
+def decision_industries(as_of: str) -> Mapping[str, str]:
+    """Use the same dated input as attribution, retaining decision bucket names."""
+    universe = decision_ai_universe()
+    labels = dict(production_industries())
+    for symbol in universe.symbols_as_of(as_of):
+        industry = universe.industry_of(symbol, as_of)
+        labels[symbol] = _FROZEN_COMPATIBILITY_LABELS.get(industry, industry)
+    return MappingProxyType(labels)
 
 
 @dataclass(frozen=True, slots=True)

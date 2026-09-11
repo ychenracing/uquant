@@ -33,7 +33,7 @@ from uquant.attribution import build_daily_ledger_row, build_economic_attributio
 from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
-from uquant.contracts.universe import default_ai_universe
+from uquant.contracts.universe import decision_ai_universe, default_ai_universe
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine, code_fingerprint, performance_metrics
 from uquant.market import ReplayUniverse
 from uquant.models.strategic_universe import build_strategic_universe_declaration
@@ -48,15 +48,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def case_symbols(
     case_id: str, as_of: str, *, extra_excluded_symbols: tuple[str, ...] = (),
+    risk_reference_additions: tuple[str, ...] = (),
 ) -> dict[str, tuple[str, ...]]:
     """Bind every stock role to the same causal removal, preserving indices."""
     if case_id not in CASE_IDS:
         raise ValueError(f"unknown cross-AI case: {case_id}")
     if any(not isinstance(symbol, str) or not re.fullmatch(r"(?:sh|sz)[0-9]{6}", symbol)
-           or symbol in INDEX_SYMBOLS for symbol in extra_excluded_symbols):
+           or symbol in INDEX_SYMBOLS for symbol in (*extra_excluded_symbols, *risk_reference_additions)):
         raise ValueError("extra exclusions must be canonical stock symbols, never market indexes")
-    universe = default_ai_universe()
-    if set(extra_excluded_symbols) - {member.symbol for member in universe.members}:
+    universe = decision_ai_universe()
+    if set((*extra_excluded_symbols, *risk_reference_additions)) - {member.symbol for member in universe.members}:
         raise ValueError("extra exclusions must belong to the frozen stock universe")
     available = universe.symbols_as_of(as_of)
     removed = (
@@ -70,7 +71,8 @@ def case_symbols(
         tuple(symbol for symbol in CHAMPION_SYMBOLS if symbol in available and symbol not in removed)
         if case_id == "champion" else references
     )
-    return {"tradable": tradable, "qualification": references, "risk": references, "indexes": INDEX_SYMBOLS}
+    risk = tuple(sorted(set(references) | (set(risk_reference_additions) & set(available))))
+    return {"tradable": tradable, "qualification": references, "risk": risk, "indexes": INDEX_SYMBOLS}
 
 
 def diagnostic_json(value: Any) -> Any:
@@ -167,8 +169,32 @@ def rebuild_observation_archive(
             raise ValueError("rebuilt observation archive differs from saved days")
 
 
+def research_data_root(research_data_dir: Path | None, manifest_sha256: str | None) -> Path:
+    """Bind an explicitly sealed research snapshot without changing frozen defaults."""
+    if (research_data_dir is None) != (manifest_sha256 is None):
+        raise ValueError("research data directory and manifest seal are required together")
+    if research_data_dir is None:
+        return ROOT / "data/frozen"
+    root = research_data_dir.resolve()
+    if root == (ROOT / "data/frozen").resolve():
+        raise ValueError("research input must be separate from frozen data")
+    raw = (root / "DATA_MANIFEST.json").read_bytes()
+    if hashlib.sha256(raw).hexdigest() != manifest_sha256:
+        raise ValueError("research data manifest SHA-256 mismatch")
+    manifest = strict_json_loads(raw.decode("utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError("research data manifest must be an object")
+    if manifest.get("research_only") is not True or manifest.get("production_ready") is not False:
+        raise ValueError("input must be explicitly research-only")
+    if manifest.get("parent_frozen_identity") != verify_data_manifest(ROOT / "data/frozen"):
+        raise ValueError("research data parent frozen identity mismatch")
+    verify_data_manifest(root)
+    return root
+
+
 def case_identity(
     case_id: str, start: str, end: str, cfg: SystemConfig = DEFAULT_CONFIG,
+    *, research_data_dir: Path | None = None, research_data_sha256: str | None = None,
 ) -> dict[str, Any]:
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()  # nosec B603, B607
     return {
@@ -178,10 +204,14 @@ def case_identity(
         "source_sha256": code_fingerprint(),
         "config_sha256": config_fingerprint(cfg),
         "runtime": runtime_environment_provenance(ROOT),
-        "data": verify_data_manifest(ROOT / "data/frozen"),
+        "data": verify_data_manifest(research_data_root(research_data_dir, research_data_sha256)),
+        **({"research_data_manifest_sha256": research_data_sha256}
+           if research_data_dir is not None else {}),
         "universe_sha256": hashlib.sha256(
             (ROOT / "uquant/contracts/resources/ai_universe_manifest.json").read_bytes()
         ).hexdigest(),
+        **({"research_universe_sha256": decision_ai_universe().sha256}
+           if decision_ai_universe() != default_ai_universe() else {}),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "commit": commit,
     }
@@ -193,6 +223,9 @@ def run_production_case(
     initial_cash: float | None = None,
     start_session_offset: int = 0,
     extra_excluded_symbols: tuple[str, ...] = (),
+    risk_reference_additions: tuple[str, ...] = (),
+    research_data_dir: Path | None = None,
+    research_data_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Replay one frozen historical case with exact daily observations and fills."""
     if not "2023-01-03" <= start <= end <= "2026-08-05":
@@ -206,14 +239,19 @@ def run_production_case(
             raise ValueError("initial_cash must be finite and positive")
         cfg = cfg.override(initial_cash=float(initial_cash))
     exclusions = tuple(sorted(set(extra_excluded_symbols)))
-    case_symbols(case_id, start, extra_excluded_symbols=exclusions)
+    risk_additions = tuple(sorted(set(risk_reference_additions)))
+    case_symbols(case_id, start, extra_excluded_symbols=exclusions, risk_reference_additions=risk_additions)
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    identity = case_identity(case_id, start, end, cfg)
+    data_root = research_data_root(research_data_dir, research_data_sha256)
+    identity = case_identity(case_id, start, end, cfg, research_data_dir=research_data_dir,
+                             research_data_sha256=research_data_sha256)
     identity.update(effective_config=cfg.to_dict(), initial_cash=cfg.initial_cash,
                     start_session_offset=start_session_offset, extra_excluded_symbols=list(exclusions))
+    if risk_additions:
+        identity["risk_reference_additions"] = list(risk_additions)
     write_json(output_dir / "identity.json", identity)
-    engine = ProductionEngine(ROOT / "data/frozen", cfg=cfg)
+    engine = ProductionEngine(data_root, cfg=cfg)
     engine.workspace.prepare(ReplayUniverse.from_symbols(
         tradable_symbols=(), reference_symbols=(), index_symbols=INDEX_SYMBOLS,
     ))
@@ -235,7 +273,8 @@ def run_production_case(
             raise ValueError("historical interval has fewer than two sessions")
         for date in sessions:
             session = str(date.date())
-            roles = case_symbols(case_id, session, extra_excluded_symbols=exclusions)
+            roles = case_symbols(case_id, session, extra_excluded_symbols=exclusions,
+                                 risk_reference_additions=risk_additions)
             engine.workspace.prepare(ReplayUniverse.from_symbols(
                 tradable_symbols=roles["tradable"],
                 reference_symbols=roles["risk"], index_symbols=roles["indexes"],
@@ -332,7 +371,8 @@ def run_production_case(
             accounting = attribution["accounting"]
             if not accounting["reconciled"]:
                 raise RuntimeError("production accounting does not reconcile")
-        latest_identity = case_identity(case_id, start, end, cfg)
+        latest_identity = case_identity(case_id, start, end, cfg, research_data_dir=research_data_dir,
+                                        research_data_sha256=research_data_sha256)
         if any(identity[key] != value for key, value in latest_identity.items()):
             raise RuntimeError("historical replay input or source identity changed during execution")
         rebuild_observation_archive(output_dir, raw_path, completed_sessions=len(equity_rows))

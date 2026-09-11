@@ -58,27 +58,27 @@ _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
 # the immutable inventory still retains its original reflection and pickle facts.
 _CURRENT_PORTFOLIO_INSTANCE_PICKLES = {
     "LeaderPortfolioPolicy": (
-        "7a60fa0226709c2f383adfb4bc29a84d8afad15ea9755e8dd97b7697823452ef",
-        1890,
+        "7edce58acffd9c2267178775f103ffc91d888ebdd993478abdd94dbce4437ed3",
+        1881,
     ),
     "PortfolioAllocator": (
-        "ad450360759cc479a96f73341151a5f447e6e01a62f864c284934e738bc09b4a",
-        1879,
+        "2ae2d74102de8f9341b0cc7a5a77efa91b37f3f7a9823532e86fe0110ebca6e8",
+        1870,
     ),
     "RecoveryPortfolioPolicy": (
-        "77183c1d7650f2b8cb466b46ad9ad0809d5daf9a8810f296eb836817c366f803",
-        1893,
+        "c65215212cdec12c8b29d1b0355e50184881be037407843dc8936db82863df9c",
+        1884,
     ),
     "StrategicPortfolioPolicy": (
-        "83018673969c690c3e6ef0a0fafbfb46f75b198c680f956a47c8ec2d8d1ebb84",
-        1895,
+        "a5aa5c97a3eb05db4f3c3b74259f5208d86fca3061133fdc07051db4b626a14b",
+        1886,
     ),
 }
 _CURRENT_PORTFOLIO_MODE_SHA256 = {
-    "double_optimized": "dacd1e67ff1ae3210a6217d87ea7d43ec19e0552529bb57e0eaa389a34420af0",
-    "normal": "ddbc4423be3b5d4e4a9b77c60acba6df7c4849bd7c2412e07a9703caee16aa46",
-    "optimized": "ddbc4423be3b5d4e4a9b77c60acba6df7c4849bd7c2412e07a9703caee16aa46",
-    "windows_no_fcntl": "dacd1e67ff1ae3210a6217d87ea7d43ec19e0552529bb57e0eaa389a34420af0",
+    "double_optimized": "1ddcccac9cf0361c5974074e6babb6db5dc2e0e8b77b9f8dcd295135a1090a49",
+    "normal": "7b9853bfae1446c4b5da37ef03811054a61e62c7fdea7171b8630646b9239a30",
+    "optimized": "7b9853bfae1446c4b5da37ef03811054a61e62c7fdea7171b8630646b9239a30",
+    "windows_no_fcntl": "1ddcccac9cf0361c5974074e6babb6db5dc2e0e8b77b9f8dcd295135a1090a49",
 }
 _IMPLEMENTATION_IDENTITIES = {
     "uquant/portfolio.py": (
@@ -235,7 +235,7 @@ def _normalized_method(node: ast.FunctionDef) -> str:
 
 
 def _project_causal_lifecycle_exit(node: ast.FunctionDef) -> ast.FunctionDef:
-    """Project only the exact session clock change back to the frozen counter."""
+    """Project reviewed causal clock and velocity-veto removal, keeping maturity."""
     observation = ast.parse(
         '''
 clock = f"lifecycle_exit_session:{symbol}"
@@ -253,6 +253,9 @@ elif not broken:
 '''
     ).body
     projected = copy.deepcopy(node)
+    assert ast.get_docstring(projected) == "Confirm lost holding structure without a pre-entry-return velocity veto."
+    projected.body[0] = ast.Expr(value=ast.Constant(
+        value="Reuse the existing per-symbol damage confirmation across owner gaps."))
     start = -len(observation) - 2
     assert [ast.dump(item) for item in projected.body[start:-2]] == [
         ast.dump(item) for item in observation
@@ -261,6 +264,20 @@ elif not broken:
         "account.replacement_tenure[key] = "
         "account.replacement_tenure.get(key, 0) + 1 if broken else 0"
     ).body
+    damage = next(item for item in projected.body if isinstance(item, ast.Assign)
+                  and any(isinstance(target, ast.Name) and target.id == "broken" for target in item.targets))
+    expected_damage = ast.parse('''
+broken = bool(
+    not leader.mature
+    and scalar(row, "close") < scalar(row, f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}")
+)
+''').body[0]
+    assert ast.dump(damage) == ast.dump(expected_damage)
+    assert isinstance(damage.value, ast.Call) and isinstance(damage.value.args[0], ast.BoolOp)
+    damage.value.args[0].values.append(ast.parse(
+        'scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)',
+        mode="eval",
+    ).body)
     return projected
 
 
@@ -409,6 +426,8 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
         )
         contract["instance_pickle_sha256"] = pickle_sha256
         contract["instance_pickle_size"] = pickle_size
+    classes['LeaderPortfolioPolicy']["methods"]['_leader_lifecycle_exit_confirmed']["raw_docstring"] = 'Confirm lost holding structure without a pre-entry-return velocity veto.'
+    classes['PortfolioAllocator']["methods"]['_sparse_risk_reduce']["raw_docstring"] = 'Meet every risk cap with one deterministic sparse reduction.\n\n        The lexicographic objective is cap compliance, safer normalized\n        lifecycle composition, sector guard health, stronger retention utility,\n        then the fewest changed symbols among otherwise equivalent plans.\n        At most one symbol receives a partial\n        boundary trim. A guard can only retain or reduce current exposure; it\n        never buys while protection is active.\n        '
     expected["mode_sha256"] = _CURRENT_PORTFOLIO_MODE_SHA256
     assert current_reflection_contract(ROOT) == expected
     assert expected["normal"]["classes"]["PortfolioAllocator"]["mro"] == [
@@ -878,6 +897,8 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
         ("elif not broken:", "elif broken:"),
         (">= self.cfg.replacement_confirm_days", ">= 1"),
         (">= self.cfg.min_hold_days", ">= 1"),
+        ("not leader.mature", "leader.mature"),
+        ("self.cfg.trend_medium if protected_winner", "self.cfg.trend_fast if protected_winner"),
     ),
 )
 def test_portfolio_lifecycle_exit_projection_rejects_clock_and_rule_mutations(

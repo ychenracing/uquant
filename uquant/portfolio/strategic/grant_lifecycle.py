@@ -344,8 +344,7 @@ def _original_reversal_witnesses(self: StrategicPortfolioPolicy, *, symbols: lis
     synchronized = bool(len(witnesses) >= self.cfg.strategic_cohort_min_size
                         and all(leaders[symbol].industry == owner_industry for symbol in witnesses)
                         and float(pd.Series([snapshots[symbol]["ret20"] for symbol in witnesses[:2]]).median())
-                        >= self.cfg.strategic_reversal_min_median_ret20
-                        and float(risk.evidence.get("tech_ret120", math.inf)) <= self.cfg.strategic_reversal_max_tech_ret120)
+                        >= self.cfg.strategic_reversal_min_median_ret20)
     return witnesses, synchronized
 
 

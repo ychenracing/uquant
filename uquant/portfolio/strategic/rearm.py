@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from copy import deepcopy
+from datetime import date as calendar_date
 from types import MappingProxyType
 
 from ...config import SystemConfig, config_fingerprint
@@ -841,6 +842,9 @@ def authorize_ordinary_cash_rearm(
     """Reserve one ready account episode for a currently proven ordinary CORE."""
     repair = account.flat_book_capital_repair
     confirmations = certificate.get("confirmations")
+    mature = certificate.get("qualification_quorum") == "MATURE_CORE"
+    confirmation_key = "credible_maturity" if mature else "independent_core"
+    route = "mature_core" if mature else "independent_core"
     inputs = risk.evidence.get("decision_input_identity")
     if (not isinstance(inputs, dict) or inputs.get("as_of") != observed_session
             or inputs.get("code_hash") != account.code_hash or not inputs.get("data_hash")
@@ -859,8 +863,20 @@ def authorize_ordinary_cash_rearm(
             or certificate.get("as_of") != observed_session
             or certificate.get("required_confirmation") != cfg.leader_tenure_days
             or not isinstance(confirmations, dict)
-            or confirmations.get("independent_core", 0) < cfg.leader_tenure_days):
+            or confirmations.get(confirmation_key, 0) < cfg.leader_tenure_days):
         return False
+    if mature:
+        market = certificate.get("ordinary_market")
+        if (certificate.get("qualification_route") != route
+                or not isinstance(market, dict) or market.get("as_of") != observed_session
+                or market.get("repair_mature_entry_open") is not True
+                or symbol not in market.get("credible_symbols", ())
+                or account.candidate_tenure.get("ordinary_repair_maturity_session")
+                != calendar_date.fromisoformat(observed_session).toordinal()
+                or confirmations.get("credible_maturity")
+                != account.replacement_tenure.get("ordinary_repair_maturity:" + symbol, 0)
+                or account.leader_tenure.get(symbol, 0) < cfg.leader_tenure_days):
+            return False
     proof = {**certificate, "candidate": symbol, "code_hash": account.code_hash,
              "prior_data_hash": account.data_hash, "decision_input_identity": dict(inputs),
              "max_target_weight": strategic_cash_rearm_weight(account=account, risk=risk, cfg=cfg)}
@@ -870,8 +886,8 @@ def authorize_ordinary_cash_rearm(
     ).encode()).hexdigest()
     current = StrategicCashRearmState(
         observed_session=observed_session, repair_episode_id=repair.repair_episode_id,
-        candidate_symbol=symbol, qualification_signature="independent_core:" + symbol,
-        qualification_route="independent_core", qualification_quorum="INDEPENDENT_CORE",
+        candidate_symbol=symbol, qualification_signature=route + ":" + symbol,
+        qualification_route=route, qualification_quorum="MATURE_CORE" if mature else "INDEPENDENT_CORE",
         qualification_evidence_sha256=evidence, capital_budget_level=account.capital_budget_level,
         tradable_universe_identity=universe.tradable_identity,
         qualification_reference_universe_identity=universe.qualification_reference_identity,
@@ -880,7 +896,7 @@ def authorize_ordinary_cash_rearm(
         status=StrategicCashRearmStatus.AUTHORIZED.value, authorized_session=observed_session,
         qualification_ready=True, route_consistent_absolute_quality=True, authorized=True,
         predicate_results=[StrategicCashRearmPredicate(
-            code="current_independent_core", passed=True, authoritative_state=proof)],
+            code="current_" + route, passed=True, authoritative_state=proof)],
     )
     _bind_candidate_rearm_authorization(account, current=current, observed_session=observed_session)
     account.strategic_cash_rearm = current
@@ -910,7 +926,7 @@ def consume_ordinary_cash_rearm_authorization(
     """Commit consumption only after ordinary attribution and native reconciliation."""
     state = account.strategic_cash_rearm
     if (state.status != StrategicCashRearmStatus.AUTHORIZED.value
-            or state.qualification_quorum != "INDEPENDENT_CORE"
+            or state.qualification_quorum not in {"INDEPENDENT_CORE", "MATURE_CORE"}
             or state.authorized_session != observed_session):
         return
     matches = [order for order in orders if _new_ordinary_repair_order_matches(
@@ -928,6 +944,8 @@ def consume_ordinary_cash_rearm_authorization(
     state.status = StrategicCashRearmStatus.CONSUMED.value
     state.authorized = False
     repair.status = FlatBookCapitalRepairStatus.CONSUMED.value
+    account.candidate_tenure["ordinary_repair_capital_active"] = 1
+    account.candidate_tenure[f"ordinary_repair_origin:{order.order_id}:{order.event_id}"] = 1
 
 
 def _ordinary_rearm_order_identity(account: AccountState, order: PendingOrder) -> bool:

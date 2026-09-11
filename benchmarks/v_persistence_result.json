@@ -1,0 +1,84 @@
+{
+  "source": "7c4c3f3c851bf37eae3649329eed8f65ecaed82d83069a9f5b284f26916a3ff1",
+  "producer": {
+    "source": "7c4c3f3c851bf37eae3649329eed8f65ecaed82d83069a9f5b284f26916a3ff1",
+    "local": "e2f56638442cfd16ff0081534293e35f13082b1d",
+    "remote": "f4d0a5a534eb0666b2a9a2c619215491cd3b0d47",
+    "tree": "3b1d21607e9cf62990212c728c7e109d751924f6"
+  },
+  "outcomes": [
+    {
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "fees": 6862.483839172,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264,
+        "slippage_cost": 11918.591199999191
+      },
+      "name": "nominal-noopt",
+      "status": "PASS"
+    },
+    {
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "fees": 13683.726327488,
+        "final_wealth": 2.558617573636256,
+        "max_drawdown": 0.26124595425915076,
+        "slippage_cost": 23773.926400000008
+      },
+      "name": "cost-noopt",
+      "status": "PASS"
+    },
+    {
+      "failures": [],
+      "metrics": {
+        "account_orders": 17,
+        "fees": 7344.863740634,
+        "final_wealth": 2.424668753729683,
+        "max_drawdown": 0.1687012918195071,
+        "slippage_cost": 13004.228799999555
+      },
+      "name": "offset5-champion",
+      "status": "PASS"
+    },
+    {
+      "failures": [
+        "paired initial wealth retention"
+      ],
+      "metrics": {
+        "account_orders": 13,
+        "fees": 3719.1537032600004,
+        "final_wealth": 1.6231494426483701,
+        "max_drawdown": 0.21919000408157907,
+        "slippage_cost": 6680.960999999527
+      },
+      "name": "offset20-noopt",
+      "status": "FAIL"
+    }
+  ],
+  "actual_best": "sh688498",
+  "complete_acceptance": false,
+  "archive": {
+    "path": "/workspace/scratch/4f31235e78e6/runs/v-ordinary-persistence-20260911/v_priority_results_20260911.tar.gz",
+    "bytes": 152969031,
+    "sha256": "00b820b7ff8e932395840c4772f7daceb5ef18595da2532bbae752d742f97d29"
+  },
+  "receipt": {
+    "results": [
+      {
+        "local_path": "/workspace/scratch/4f31235e78e6/runs/v-ordinary-persistence-20260911/v_priority_results_20260911.tar.gz",
+        "purpose": "create_library_file",
+        "status": "succeeded",
+        "file_id": "file_000000001de0822fb556bafe7946337a",
+        "library_file_id": "libfile_e5b270fd99708191a7086675b7d6752d",
+        "file_name": "v_priority_results_20260911.tar.gz",
+        "local_metadata_applied": true,
+        "path": "/v_priority_results_20260911.tar.gz",
+        "current_version_number": 0
+      }
+    ]
+  },
+  "next": "W replaces stock-count breadth with distinct known industry corroboration; no numeric retuning, native sentinels in progress."
+}

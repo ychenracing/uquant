@@ -82,7 +82,7 @@ def _leader_lifecycle_exit_confirmed(
     leaders: dict[str, LeaderScore],
     account: AccountState,
 ) -> bool:
-    """Reuse the existing per-symbol damage confirmation across owner gaps."""
+    """Confirm lost holding structure without a pre-entry-return velocity veto."""
     position = account.positions.get(symbol)
     frame = user_panel.get(symbol)
     leader = leaders.get(symbol)
@@ -100,7 +100,6 @@ def _leader_lifecycle_exit_confirmed(
             row,
             f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
         )
-        and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)
     )
     clock = f"lifecycle_exit_session:{symbol}"
     session = date.toordinal()

@@ -18,7 +18,12 @@ from statistics import median
 from typing import Any, Final, cast
 
 import uquant.validation.promotion_contract as _promotion_contract
-from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
+from uquant.validation.acceptance_tolerance import (
+    acceptance_revision,
+    order_ceiling,
+    principal_wealth_floor,
+    wealth_floor,
+)
 
 from ..config import DEFAULT_CONFIG, config_fingerprint
 from ..config_governance import GOVERNANCE_PATH
@@ -617,10 +622,11 @@ def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str
             continue
         observed = metrics[metric_name]
         limit = gate[gate_name]
-        if metric_name == "account_orders" and name.endswith("/continuous_ai_era"):
+        if metric_name == "account_orders":
             limit = order_ceiling(limit, authorized=authorized)
         elif metric_name == "final_wealth":
-            limit = wealth_floor(limit, authorized=authorized)
+            limit = (principal_wealth_floor(limit, authorized=authorized)
+                     if name.endswith("/continuous_ai_era") else wealth_floor(limit, authorized=authorized))
         breached = observed is None or (observed > limit if maximum else observed < limit)
         if breached:
             direction = "above" if maximum else "below"
@@ -644,12 +650,15 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
     # Keep the historical policy sealed; apply the declared revision to the
     # final-wealth comparison, while preserving drawdown and acute-return gates.
     contract = current_candidate_contract()
-    adjusted_wealth_floor = wealth_floor(
-        contract["thresholds"]["champion_minimum_final_wealth"]
-        if name.split("/", 1)[-1] == "continuous_ai_era"
-        else champion["final_wealth"] * tolerance["wealth_floor_ratio"],
-        authorized=authorized,
-    )
+    if name.endswith("/continuous_ai_era"):
+        adjusted_wealth_floor = principal_wealth_floor(
+            contract["thresholds"]["champion_minimum_final_wealth"], authorized=authorized,
+        )
+    else:
+        adjusted_wealth_floor = wealth_floor(
+            champion["final_wealth"] * tolerance["wealth_floor_ratio"],
+            authorized=authorized, comparison=f"{name}:champion",
+        )
     if metrics["final_wealth"] < adjusted_wealth_floor:
         failures.append(f"{name}: final_wealth regressed from production champion")
     if metrics["max_drawdown"] > champion["max_drawdown"] + tolerance["drawdown_tolerance"]:
@@ -666,9 +675,9 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
 def _authorized_order_limit() -> dict[str, Any]:
     """Explicit user revision; the original compiled policy stays immutable."""
     return {
-        "scenario": "e/continuous_ai_era", "previous_maximum": 15, "maximum": 20,
-        "authorization_id": "cross-ai-performance-e-orders-20260908",
-        "authorization": "User explicitly accepts actual 20 orders against the former 15-order ceiling",
+        "scenario": "all_account_replays", "maximum": 40,
+        "authorization_id": "cross-ai-principal15-orders40-20260910-v4",
+        "authorization": "User explicitly accepts40total orders per replay, including shorter windows",
         "authorized_after_observing_candidate": True,
     }
 
@@ -684,8 +693,8 @@ def current_promotion_acceptance_basis() -> dict[str, Any]:
         "superseded_comparisons": ["continuous_relative_wealth", "relative_orders", "relative_turnover"],
         "authorized_order_limit": _authorized_order_limit(),
         "acceptance_revision": acceptance_revision(),
-        "effective_continuous_minimum_final_wealth": wealth_floor(contract["thresholds"]["champion_minimum_final_wealth"]),
-        "retained_policy": "Original AI_ERA_POLICY retained as evidence; current acceptance_revision supersedes the historical E-only revision. Drawdown, acute, costs, turnover and short-window orders unchanged",
+        "effective_continuous_minimum_final_wealth": principal_wealth_floor(contract["thresholds"]["champion_minimum_final_wealth"]),
+        "retained_policy": "Original AI_ERA_POLICY retained as evidence; current acceptance_revision supersedes earlier revisions only in its explicit scope. All other obligations retained",
     }
 
 

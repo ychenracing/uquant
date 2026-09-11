@@ -1,0 +1,537 @@
+{
+  "status": "FAIL",
+  "additional_outcomes": [
+    {
+      "canonical_sha256": "e2afbcef574d75756615c4cfdce31f8511bb15cfb52e0cff825a2455f09468ac",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 25.104354610948874,
+        "max_drawdown": 0.27148625789153435
+      },
+      "shard": "new-cash0.5-champion",
+      "status": "PASS"
+    },
+    {
+      "baseline_error": "Historical source replay failed; see preserved raw archive and old-baseline-status.json.",
+      "canonical_sha256": "68df769307127bf166ffd7f1bca4605c65bbdd4a0cb7a0cd1f237a06f0cfd200",
+      "failures": [],
+      "limitation": "Only independent absolute checks evaluated; frozen paired acceptance remains unproven",
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 2.5656406077125435,
+        "max_drawdown": 0.2606540270260238
+      },
+      "paired_wealth_evaluated": false,
+      "shard": "new-cash0.5-no_optical",
+      "status": "UNAVAILABLE_OLD_PAIR"
+    },
+    {
+      "canonical_sha256": "76c97828c30cc483ae4e3db2b5161b7c771fc2ab2923d2c9234406ca95bb5158",
+      "failures": [
+        "paired initial wealth retention"
+      ],
+      "metrics": {
+        "account_orders": 9,
+        "final_wealth": 4.194950367522431,
+        "max_drawdown": 0.2516215948313326
+      },
+      "shard": "new-cash2-champion",
+      "status": "FAIL"
+    },
+    {
+      "baseline_error": "Historical source replay failed; see preserved raw archive and old-baseline-status.json.",
+      "canonical_sha256": "2207039556972c6af6f7bf1bc6ecea9e43858af16b1cfee580e1525af634d486",
+      "failures": [],
+      "limitation": "Only independent absolute checks evaluated; frozen paired acceptance remains unproven",
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 1.6415835131037477,
+        "max_drawdown": 0.2575812838127458
+      },
+      "paired_wealth_evaluated": false,
+      "shard": "new-cash2-no_optical",
+      "status": "UNAVAILABLE_OLD_PAIR"
+    },
+    {
+      "canonical_sha256": "4897695b40c360252e9fd51e0149526462792e489e3699a19a1ca9b8c0d5bd91",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554
+      },
+      "shard": "new-confirmation_lower-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "d78857296852d89355555e04679c31446bdb717cd63e1ac662307e3fee654783",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264
+      },
+      "shard": "new-confirmation_lower-no_optical",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "864ed13bbd5095801dd46cb79d28731c5184f2f8fecba21df78f6236a03c2ce4",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "final_wealth": 1.6392413843140603,
+        "max_drawdown": 0.22700561436168354
+      },
+      "shard": "new-confirmation_lower-remove_all_three",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "7de5e664dfe086c4801291e7a7ed095f43cb87899e3b850f5134d21f39864a26",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554
+      },
+      "shard": "new-confirmation_upper-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "64b46135cad535492fd2ae3c9f34a3aec50393b25e57765a0a87857d4d21bc26",
+      "failures": [],
+      "metrics": {
+        "account_orders": 24,
+        "final_wealth": 2.4590150680570306,
+        "max_drawdown": 0.2615765582673669
+      },
+      "shard": "new-confirmation_upper-no_optical",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "f47ba5c03c09d3d430882dc19b813c88a113171accd3e670de2eb73773b8f64e",
+      "failures": [],
+      "metrics": {
+        "account_orders": 25,
+        "final_wealth": 1.5059116525541325,
+        "max_drawdown": 0.2502286450168585
+      },
+      "shard": "new-confirmation_upper-remove_all_three",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "cf43f8cce1d10226e757e3b44f01971b07e9a70acc0b1496b1c4314f5717777b",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 24.98731201562705,
+        "max_drawdown": 0.27244679688670104
+      },
+      "shard": "new-cost_stress-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "9b9fd185b85c837adc402448492029ecdadda7f4422e8b6076a3883784186581",
+      "failures": [],
+      "metrics": {
+        "account_orders": 21,
+        "final_wealth": 1.467850781172264,
+        "max_drawdown": 0.2635382276465762
+      },
+      "shard": "new-cost_stress-remove_all_three",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "d3551269e1b8e394c6af68d6740ecdd843fccdd59ecb73504bbb188633fe5ac8",
+      "failures": [
+        "paired initial wealth retention"
+      ],
+      "metrics": {
+        "account_orders": 11,
+        "final_wealth": 1.1712844779969072,
+        "max_drawdown": 0.19246913489246242
+      },
+      "shard": "new-offset20-champion",
+      "status": "FAIL"
+    },
+    {
+      "canonical_sha256": "b82a82f04c5ee9617998516ac6f2d044a2f2612dfd775edf66b2d5789ea838e1",
+      "failures": [
+        "paired initial wealth retention"
+      ],
+      "metrics": {
+        "account_orders": 13,
+        "final_wealth": 1.6231494426483701,
+        "max_drawdown": 0.21919000408157907
+      },
+      "shard": "new-offset20-no_optical",
+      "status": "FAIL"
+    },
+    {
+      "canonical_sha256": "ba0fb32cf64bc68035568e314db27f404749ac8f7781f7b37754c2eb4e4a0700",
+      "failures": [
+        "paired initial wealth retention"
+      ],
+      "metrics": {
+        "account_orders": 11,
+        "final_wealth": 1.1712844779969072,
+        "max_drawdown": 0.19246913489246242
+      },
+      "shard": "new-offset5-champion",
+      "status": "FAIL"
+    },
+    {
+      "canonical_sha256": "1ed711abaa42d78572a73af8900b57ce863f6e8da95e4eab09e4b41c96cb2f4c",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554
+      },
+      "shard": "new-p2_lower-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "62dad168ceb89b53e94355f9125c5cef686fb2ad7abe8e37daf795b94e92863e",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264
+      },
+      "shard": "new-p2_lower-no_optical",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "fac246d74e9973778453ebe061f7d076b01c73e8e7ad9a1b833f79edcc9f76d9",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "final_wealth": 1.6392413843140603,
+        "max_drawdown": 0.22700561436168354
+      },
+      "shard": "new-p2_lower-remove_all_three",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "de43c590a818c0e2bc0d96db71ebd1f383b0cf44789e87182cbc03675853c932",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554
+      },
+      "shard": "new-p2_upper-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "88e7ce913bbfdcee4ea29c2214f3afd297e478720cb4b2fff39adc9d31df4c1b",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264
+      },
+      "shard": "new-p2_upper-no_optical",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "f15d4bc56eff76f55580f9c54c2687018decef4133c025a77c5584c01d461a5c",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "final_wealth": 1.6392413843140603,
+        "max_drawdown": 0.22700561436168354
+      },
+      "shard": "new-p2_upper-remove_all_three",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "ecd414e1cd51a86f7934daa1bd1765299440077fc79c0f2bd8fa1554937db6a1",
+      "failures": [],
+      "metrics": {
+        "account_orders": 7,
+        "final_wealth": 24.3937716282622,
+        "max_drawdown": 0.2804557115007774
+      },
+      "shard": "new-p7_lower-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "657e271fe0b35a8ae31e995fb222800c19fa1e143f7cb1b9d07b18df4d656bc0",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264
+      },
+      "shard": "new-p7_lower-no_optical",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "9c8422e258d62264e52083b1191069b38f0e8cf74bcd3b1fdb1ebb2ad8595d9f",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "final_wealth": 1.6392413843140603,
+        "max_drawdown": 0.22700561436168354
+      },
+      "shard": "new-p7_lower-remove_all_three",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "df709a82d64e9e03fc58714ded173f3f57922b65b44516d87aa9af67dda50df8",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 25.328263877949688,
+        "max_drawdown": 0.2701525146405157
+      },
+      "shard": "new-p7_upper-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "531d56fadda446090d7749c20ca202065d324c8613ffeb25a1e41b07c5dff297",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264
+      },
+      "shard": "new-p7_upper-no_optical",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "54d4e5d1151a95a7c6a52dd47d9c00f4df124d2b5ff79254ba0628e3f9050d1d",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "final_wealth": 1.6392413843140603,
+        "max_drawdown": 0.22700561436168354
+      },
+      "shard": "new-p7_upper-remove_all_three",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "cf668efe91686e1f0669c9dacf0dc106a99c0908c9e0a40e8088cae19e3ff239",
+      "failures": [],
+      "metrics": {
+        "account_orders": 12,
+        "final_wealth": 25.651802635506442,
+        "max_drawdown": 0.26839583708058834
+      },
+      "shard": "new-p8_lower-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "a26bf60601b45df242acba4c96fbecd28caba213788c7362334753da6cda58d8",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264
+      },
+      "shard": "new-p8_lower-no_optical",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "9222dc0556a9af93098c78f43605e53487fc04d323dd1d8bb0afaa1962f683ae",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "final_wealth": 1.6392413843140603,
+        "max_drawdown": 0.22700561436168354
+      },
+      "shard": "new-p8_lower-remove_all_three",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "2c2d67ea7e4649dec8841efb17c5db26d4f43906f5b2084f652ef265ce83851e",
+      "failures": [],
+      "metrics": {
+        "account_orders": 13,
+        "final_wealth": 25.554475101332045,
+        "max_drawdown": 0.2669209403207722
+      },
+      "shard": "new-p8_upper-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "e48dcbd25b1e72723f943ec6f2c8a2a71165f14cedbdeb364795ee4eb3ec919f",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264
+      },
+      "shard": "new-p8_upper-no_optical",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "8f26e89da183061d4537595f3f74e00bb5c6e59621133ad848f6686171de73bf",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "final_wealth": 1.6392413843140603,
+        "max_drawdown": 0.22700561436168354
+      },
+      "shard": "new-p8_upper-remove_all_three",
+      "status": "PASS"
+    }
+  ],
+  "unscheduled": 5,
+  "complete_acceptance": false,
+  "archives": [
+    {
+      "manifest": {
+        "path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_robustness_batch1_20260911.tar.gz",
+        "sha256": "a3d40162f73c94275027e349e85dd23e991c76279bcd26e0580eb2e0589154ed",
+        "bytes": 398243150,
+        "shards": [
+          "new-confirmation_lower-champion",
+          "new-confirmation_upper-champion",
+          "new-cost_stress-champion",
+          "new-cost_stress-remove_all_three",
+          "new-p2_lower-champion",
+          "new-p2_upper-champion",
+          "new-p7_lower-champion",
+          "new-p7_upper-champion"
+        ]
+      },
+      "receipt": {
+        "results": [
+          {
+            "local_path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_robustness_batch1_20260911.tar.gz",
+            "purpose": "create_library_file",
+            "status": "succeeded",
+            "file_id": "file_000000000f1481f5ab11786719a413bd",
+            "library_file_id": "libfile_2b27f4a25ad8819185e19277e2fd15f0",
+            "file_name": "t_robustness_batch1_20260911.tar.gz",
+            "local_metadata_applied": true,
+            "path": "/t_robustness_batch1_20260911.tar.gz",
+            "current_version_number": 0
+          }
+        ]
+      }
+    },
+    {
+      "manifest": {
+        "path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_robustness_batch2_20260911.tar.gz",
+        "sha256": "cbdb58cf93b2fad00a617ec09f1216743d72a68a41286c9d681bb2c9b3a5cf6e",
+        "bytes": 362094700,
+        "shards": [
+          "new-confirmation_lower-no_optical",
+          "new-confirmation_upper-no_optical",
+          "new-p2_lower-no_optical",
+          "new-p2_upper-no_optical",
+          "new-p7_lower-no_optical",
+          "new-p7_upper-no_optical",
+          "new-p8_lower-champion",
+          "new-p8_upper-champion"
+        ]
+      },
+      "receipt": {
+        "results": [
+          {
+            "local_path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_robustness_batch2_20260911.tar.gz",
+            "purpose": "create_library_file",
+            "status": "succeeded",
+            "file_id": "file_00000000bdc481f5a85146c25a43cba6",
+            "library_file_id": "libfile_7a120eac03748191b5512c77f923b2ee",
+            "file_name": "t_robustness_batch2_20260911.tar.gz",
+            "local_metadata_applied": true,
+            "path": "/t_robustness_batch2_20260911.tar.gz",
+            "current_version_number": 0
+          }
+        ]
+      }
+    },
+    {
+      "manifest": {
+        "path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_robustness_batch3_20260911.tar.gz",
+        "sha256": "98446e593ffceed7e9410d4a23546f5fa790a2a8715a1ed72cfc24ae36ff3994",
+        "bytes": 349841594,
+        "shards": [
+          "new-confirmation_lower-remove_all_three",
+          "new-confirmation_upper-remove_all_three",
+          "new-p2_lower-remove_all_three",
+          "new-p2_upper-remove_all_three",
+          "new-p7_lower-remove_all_three",
+          "new-p7_upper-remove_all_three",
+          "new-p8_lower-no_optical",
+          "new-p8_upper-no_optical"
+        ]
+      },
+      "receipt": {
+        "results": [
+          {
+            "local_path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_robustness_batch3_20260911.tar.gz",
+            "purpose": "create_library_file",
+            "status": "succeeded",
+            "file_id": "file_0000000005d481f5a8bddb17ada784b2",
+            "library_file_id": "libfile_22f25ebfa6488191afa1a2a3a829fde0",
+            "file_name": "t_robustness_batch3_20260911.tar.gz",
+            "local_metadata_applied": true,
+            "path": "/t_robustness_batch3_20260911.tar.gz",
+            "current_version_number": 0
+          }
+        ]
+      }
+    },
+    {
+      "manifest": {
+        "path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_robustness_batch4_20260911.tar.gz",
+        "sha256": "2135de31ee61b3f0c2a60e07346426dce2c43721aac56bc62b0128452eec40ca",
+        "bytes": 378065449,
+        "shards": [
+          "new-cash0.5-champion",
+          "new-cash0.5-no_optical",
+          "new-cash2-champion",
+          "new-cash2-no_optical",
+          "new-offset20-champion",
+          "new-offset20-no_optical",
+          "new-offset5-champion",
+          "new-p8_lower-remove_all_three",
+          "new-p8_upper-remove_all_three"
+        ]
+      },
+      "receipt": {
+        "results": [
+          {
+            "local_path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_robustness_batch4_20260911.tar.gz",
+            "purpose": "create_library_file",
+            "status": "succeeded",
+            "file_id": "file_000000000e64820ca1f2563004646832",
+            "library_file_id": "libfile_7fcbb12327508191bd3c88996e9cdd7e",
+            "file_name": "t_robustness_batch4_20260911.tar.gz",
+            "local_metadata_applied": true,
+            "path": "/t_robustness_batch4_20260911.tar.gz",
+            "current_version_number": 0
+          }
+        ]
+      }
+    },
+    {
+      "manifest": {
+        "path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_old_pairs_and_performance_20260911.tar.gz",
+        "bytes": 384565199,
+        "sha256": "8eceeb9a96af84cd20d441d3763a53a134ebb101cd91501679555d112c5fe400"
+      },
+      "receipt": {
+        "results": [
+          {
+            "local_path": "/workspace/scratch/4f31235e78e6/runs/t-maturity-confirmation-20260911/t_old_pairs_and_performance_20260911.tar.gz",
+            "purpose": "create_library_file",
+            "status": "succeeded",
+            "file_id": "file_00000000ab94822fa13ea27db4a45e54",
+            "library_file_id": "libfile_6e0e6ed3bdf881919c07a4677e091dca",
+            "file_name": "t_old_pairs_and_performance_20260911.tar.gz",
+            "local_metadata_applied": true,
+            "path": "/t_old_pairs_and_performance_20260911.tar.gz",
+            "current_version_number": 0
+          }
+        ]
+      }
+    }
+  ]
+}

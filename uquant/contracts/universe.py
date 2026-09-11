@@ -5,9 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from importlib import resources
 from pathlib import Path
 from typing import Any, Final
@@ -91,6 +93,7 @@ class AIUniverse:
 
     members: tuple[UniverseMember, ...]
     sha256: str
+    industry_revisions: tuple[tuple[str, date, str], ...] = ()
 
     @property
     def symbols(self) -> tuple[str, ...]:
@@ -110,6 +113,9 @@ class AIUniverse:
         point = _parse_date(as_of, label="as_of")
         for member in self.members:
             if member.symbol == symbol and member.active(point):
+                for revised_symbol, effective, industry in self.industry_revisions:
+                    if revised_symbol == symbol and point >= effective:
+                        return industry
                 return member.industry
         return "unknown"
 
@@ -373,3 +379,70 @@ reject_duplicate_keys = _reject_duplicate_keys
 reject_nonstandard_constant = _reject_nonstandard_constant
 resource_bytes = _resource_bytes
 sha256_bytes = _sha256
+
+
+_RESEARCH_INPUT: ContextVar[AIUniverse | None] = ContextVar("research_industry_input", default=None)
+
+
+def decision_ai_universe() -> AIUniverse:
+    """Return the explicitly selected research input, otherwise production."""
+    return _RESEARCH_INPUT.get() or default_ai_universe()
+
+
+@contextmanager
+def research_industry_input(path: Path, *, expected_sha256: str) -> Iterator[AIUniverse]:
+    """Bind a hash-pinned review for one replay/readback, never change membership.
+
+    The caller must keep execution AND account validation within this scope.
+    Research accounts fail the normal production manifest check outside it.
+    Dates before a filing's conservative known-by retain the frozen label.
+    """
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("research taxonomy file SHA-256 mismatch")
+    payload = read_json_bytes(raw, label="research taxonomy")
+    if payload.get("research_only") is not True or payload.get("production_ready") is not False:
+        raise ValueError("taxonomy must be explicitly research-only")
+    if payload.get("frozen_manifest_sha256") != hashlib.sha256(ai_universe_manifest_bytes()).hexdigest():
+        raise ValueError("research taxonomy base manifest mismatch")
+    base = default_ai_universe()
+    members = {member.symbol: member for member in base.members}
+    rows = payload.get("members")
+    if not isinstance(rows, list) or len(rows) != len(members):
+        raise ValueError("research taxonomy must cover the existing membership exactly")
+    revisions = []
+    seen = set()
+    for row in rows:
+        if not isinstance(row, dict) or row.get("symbol") not in members or row["symbol"] in seen:
+            raise ValueError("research taxonomy has duplicate or foreign membership")
+        symbol = row["symbol"]
+        seen.add(symbol)
+        member = members[symbol]
+        if (row.get("recorded_industry") != member.industry
+                or row.get("recorded_effective_from") != member.effective_from.isoformat()):
+            raise ValueError("research taxonomy differs from frozen base membership")
+        industry = row.get("research_industry")
+        if (not isinstance(industry, str) or industry not in CANONICAL_INDUSTRIES
+                or not isinstance(row.get("source_url"), str) or not row["source_url"]):
+            raise ValueError("research taxonomy requires a canonical industry and source")
+        known_by_text = row.get("conservative_known_by")
+        if not isinstance(known_by_text, str):
+            raise ValueError("research taxonomy requires an ISO known-by date")
+        known_by = parse_date(known_by_text, label="conservative_known_by")
+        if known_by.isoformat() > "2026-08-05":
+            raise ValueError("research taxonomy cannot consume protected future evidence")
+        effective = max(member.effective_from, known_by + timedelta(days=1))
+        revisions.append((symbol, effective, industry))
+    universe = AIUniverse(
+        members=base.members,
+        sha256=canonical_sha256({"schema": "research-industry-v1", "base": base.sha256,
+                                 "review_sha256": expected_sha256}),
+        industry_revisions=tuple(sorted(revisions)),
+    )
+    if _RESEARCH_INPUT.get() is not None:
+        raise RuntimeError("research industry contexts cannot be nested")
+    token = _RESEARCH_INPUT.set(universe)
+    try:
+        yield universe
+    finally:
+        _RESEARCH_INPUT.reset(token)

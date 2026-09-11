@@ -493,22 +493,43 @@ def validate_strategic_cash_rearm_state(state: StrategicCashRearmState) -> None:
     _validate_strategic_rearm_identity(state)
     _validate_strategic_rearm_evidence(state)
     _validate_strategic_rearm_lifecycle(state, status=status)
-    if state.qualification_quorum == "INDEPENDENT_CORE":
+    if state.qualification_quorum in {"INDEPENDENT_CORE", "MATURE_CORE"}:
+        route = "mature_core" if state.qualification_quorum == "MATURE_CORE" else "independent_core"
         proofs = [item.authoritative_state for item in state.predicate_results
-                  if item.code == "current_independent_core" and item.passed]
+                  if item.code == "current_" + route and item.passed]
         if len(proofs) != 1:
             raise ValueError("ordinary repair requires its original admission evidence")
         proof = proofs[0]
         digest = hashlib.sha256(json.dumps(proof, sort_keys=True, separators=(",", ":"),
                                            allow_nan=False).encode()).hexdigest()
         inputs = proof.get("decision_input_identity", {})
-        if (not isinstance(inputs, dict) or inputs.get("as_of") != state.authorized_session
+        if (state.qualification_route != route
+                or state.qualification_signature != route + ":" + state.candidate_symbol
+                or not isinstance(inputs, dict) or inputs.get("as_of") != state.authorized_session
                 or inputs.get("code_hash") != proof.get("code_hash") or not inputs.get("data_hash")
                 or digest != state.qualification_evidence_sha256
                 or proof.get("candidate") != state.candidate_symbol
                 or proof.get("as_of") != state.authorized_session
                 or not 0 < proof.get("max_target_weight", 0) <= 1):
             raise ValueError("ordinary repair admission evidence binding is inconsistent")
+        if state.qualification_quorum == "MATURE_CORE":
+            market = proof.get("ordinary_market", {})
+            confirmations = proof.get("confirmations", {})
+            if not isinstance(confirmations, dict):
+                raise ValueError("mature repair confirmations must be an object")
+            if "credible_maturity" in confirmations and (
+                    type(proof.get("required_confirmation")) is not int
+                    or proof["required_confirmation"] < 1
+                    or type(confirmations["credible_maturity"]) is not int
+                    or confirmations["credible_maturity"] < proof["required_confirmation"]):
+                raise ValueError("mature repair credibility confirmation is incomplete")
+            if (proof.get("qualification_quorum") != "MATURE_CORE"
+                    or proof.get("qualification_route") != route
+                    or not isinstance(market, dict)
+                    or market.get("as_of") != state.authorized_session
+                    or market.get("repair_mature_entry_open") is not True
+                    or state.candidate_symbol not in market.get("credible_symbols", ())):
+                raise ValueError("mature repair requires its current ordinary market proof")
 
 
 def _validate_strategic_rearm_identity(state: StrategicCashRearmState) -> None:
@@ -623,8 +644,8 @@ def _validate_strategic_rearm_lifecycle(
                 raise ValueError("repair order reference must be typed")
             _require_rearm_text(state.consumed_order.order_id, field_name="consumed order_id")
             _require_rearm_text(state.consumed_order.event_id, field_name="consumed event_id")
-            if state.qualification_quorum != "INDEPENDENT_CORE":
-                raise ValueError("ordinary repair requires independent CORE evidence")
+            if state.qualification_quorum not in {"INDEPENDENT_CORE", "MATURE_CORE"}:
+                raise ValueError("ordinary repair requires current CORE evidence")
     elif state.consumed_grant_id or state.consumed_order is not None:
         raise ValueError("unconsumed repair cannot retain a consumer identity")
 

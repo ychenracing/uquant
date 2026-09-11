@@ -15,13 +15,21 @@ from typing import Any
 
 import pandas as pd
 
-from research.cross_ai_strategy import ROOT, case_symbols
+from research.cross_ai_strategy import ROOT, case_symbols, decision_ai_universe
 from uquant.account import load_account
 from uquant.attribution import build_economic_attribution
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
+from uquant.contracts.universe import default_ai_universe
 from uquant.engine import code_fingerprint, performance_metrics
-from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, wealth_floor
+from uquant.validation.acceptance_tolerance import (
+    acceptance_revision,
+    half_year_drawdown_ceiling,
+    order_ceiling,
+    principal_drawdown_ceiling,
+    principal_wealth_floor,
+    wealth_floor,
+)
 
 CONTRACT_PATH = ROOT / 'benchmarks/cross_ai_core_strategy_contract.json'
 REMOVALS = ('remove_all_three', 'no_optical')
@@ -48,6 +56,7 @@ def read_case(
     directory: Path, *, case: str, interval: list[str], source: str,
     effective_config: dict[str, Any] | None = None, start_session_offset: int = 0,
     extra_excluded_symbols: tuple[str, ...] = (), runner_sha256: str | None = None,
+    risk_reference_additions: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     result: dict[str, Any] = json.loads((directory / 'result.json').read_text())
     seal = result.pop('canonical_sha256')
@@ -58,6 +67,10 @@ def read_case(
     if result['future_holdout_used'] or not result['accounting']['reconciled']:
         raise ValueError('protected data or unreconciled account')
     identity = result['identity']
+    expected_research = (decision_ai_universe().sha256
+                         if decision_ai_universe() != default_ai_universe() else None)
+    if identity.get('research_universe_sha256') != expected_research:
+        raise ValueError('case research universe identity mismatch')
     expected_config = DEFAULT_CONFIG.to_dict() if effective_config is None else effective_config
     expected_config_sha = config_payload_sha256(expected_config)
     expected_runner = runner_sha256 or hashlib.sha256((ROOT / 'research/cross_ai_strategy.py').read_bytes()).hexdigest()
@@ -67,6 +80,7 @@ def read_case(
             or identity['runner_sha256'] != expected_runner):
         raise ValueError('case/source/config/interval identity mismatch')
     if (identity.get('start_session_offset', 0) != start_session_offset
+            or tuple(identity.get('risk_reference_additions', ())) != tuple(sorted(risk_reference_additions))
             or tuple(identity.get('extra_excluded_symbols', ())) != tuple(sorted(extra_excluded_symbols))
             or ('effective_config' in identity and identity['effective_config'] != expected_config)):
         raise ValueError('case scenario/configuration identity mismatch')
@@ -88,7 +102,8 @@ def read_case(
             date = row['date']
             if not interval[0] <= date <= interval[1] or date <= previous:
                 raise ValueError('noncausal or out-of-interval observation')
-            roles = case_symbols(case, date, extra_excluded_symbols=extra_excluded_symbols)
+            roles = case_symbols(case, date, extra_excluded_symbols=extra_excluded_symbols,
+                                 risk_reference_additions=risk_reference_additions)
             observed = row['observation']['strategic_universe_roles']
             for field, expected in (
                 ('tradable_symbols', roles['tradable']),
@@ -154,8 +169,10 @@ def check_metrics(
         if not condition:
             failures.append(message)
     if case in ('champion', 'full'):
-        require(wealth >= wealth_floor(t[f'{case}_minimum_final_wealth'], authorized=authorized), 'champion/full wealth floor')
-        require(drawdown <= t[f'{case}_maximum_drawdown'], 'champion/full drawdown ceiling')
+        require(wealth >= principal_wealth_floor(t[f'{case}_minimum_final_wealth'], authorized=authorized), 'champion/full wealth floor')
+        require(drawdown <= principal_drawdown_ceiling(
+            t[f'{case}_maximum_drawdown'], case=case, window=window, authorized=authorized),
+            'champion/full drawdown ceiling')
         require(orders <= order_ceiling(t[f'{case}_maximum_orders'], authorized=authorized), 'champion/full order ceiling')
         return failures
     require(drawdown <= t['removal_maximum_drawdown'], 'removal drawdown ceiling')
@@ -168,12 +185,15 @@ def check_metrics(
         cost = number(metrics, 'fees') + number(metrics, 'slippage_cost')
         require(cost / DEFAULT_CONFIG.initial_cash <= t['removal_maximum_all_in_cost_initial_cash_fraction'], 'all-in cost ceiling')
     elif window in HALVES:
-        require(wealth >= wealth_floor(number(baseline, 'final_wealth') * t['half_year_minimum_wealth_ratio_to_valid_baseline'], authorized=authorized), 'half-year wealth retention')
-        require(drawdown <= number(baseline, 'max_drawdown') + t['half_year_maximum_drawdown_buffer'], 'half-year drawdown retention')
-        require(orders <= t['half_year_maximum_orders'], 'half-year order ceiling')
+        require(wealth >= wealth_floor(number(baseline, 'final_wealth') * t['half_year_minimum_wealth_ratio_to_valid_baseline'], authorized=authorized, comparison=f'{case}/{window}'), 'half-year wealth retention')
+        require(drawdown <= half_year_drawdown_ceiling(
+            number(baseline, 'max_drawdown') + t['half_year_maximum_drawdown_buffer'],
+            case=case, window=window, authorized=authorized), 'half-year drawdown retention')
+        require(orders <= order_ceiling(t['half_year_maximum_orders'], authorized=authorized), 'half-year order ceiling')
     else:
-        require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized), 'disjoint later-window benchmark floor')
-        require(orders <= t['post2025_maximum_orders'], 'later-window order ceiling')
+        require(wealth >= wealth_floor(max(t['post2025_minimum_final_wealth'], number(benchmark, 'final_wealth') * t['post2025_benchmark_wealth_ratio']), authorized=authorized,
+                                      comparison=f'{case}/{window}'), 'disjoint later-window benchmark floor')
+        require(orders <= order_ceiling(t['post2025_maximum_orders'], authorized=authorized), 'later-window order ceiling')
     return failures
 
 

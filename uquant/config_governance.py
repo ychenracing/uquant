@@ -301,15 +301,15 @@ def _validate_governed_fields_and_removals(
     if len(entry_names) != len(set(entry_names)):
         raise RuntimeError("configuration governance classifies a field more than once")
     actual_names = {field.name for field in fields(SystemConfig)}
-    retired = set(RETIRED_LEADER_CYCLE_FIELDS)
+    retired = set(RETIRED_LEADER_CYCLE_FIELDS) | set(_retired_reversal_fields())
     if actual_names.intersection(retired):
-        raise RuntimeError("retired leader-cycle configuration field reintroduced")
+        raise RuntimeError("retired strategic configuration field reintroduced")
     for item in entries:
         if item.field in retired and (
             item.category is not ParameterCategory.ECONOMIC
             or item.owner is not SubsystemOwner.STRATEGIC
         ):
-            raise RuntimeError("retired leader-cycle field authority changed")
+            raise RuntimeError("retired strategic field authority changed")
     if set(entry_names) != actual_names | retired:
         missing = sorted((actual_names | retired) - set(entry_names))
         unknown = sorted(set(entry_names) - (actual_names | retired))
@@ -333,6 +333,17 @@ def _validate_governed_fields_and_removals(
 
     economic_count = sum(item.category is ParameterCategory.ECONOMIC for item in entries)
     return economic_count, removed_fields
+
+
+def _retired_reversal_fields() -> tuple[str, ...]:
+    """Read the separately sealed current deletion inventory, never strategy inputs."""
+    path = DEFAULT_GOVERNANCE_PATH.parent / "reversal_index_retirement.json"
+    raw = path.read_bytes()
+    if path.is_symlink() or hashlib.sha256(raw).hexdigest() != (
+        "b06612774fe241aa0705be4b0f54b3a7641e8ba02de38ac7b9e29f53311b9d1a"
+    ):
+        raise RuntimeError("current reversal retirement inventory differs")
+    return tuple(cast(list[str], json.loads(raw)))
 
 
 def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
@@ -386,7 +397,8 @@ def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
     if parsed_counts["after"] != (278, historical_economic_count):
         raise RuntimeError("configuration governance after counts are stale")
 
-    entries = [item for item in entries if item.field not in RETIRED_LEADER_CYCLE_FIELDS]
+    retired = set(RETIRED_LEADER_CYCLE_FIELDS) | set(_retired_reversal_fields())
+    entries = [item for item in entries if item.field not in retired]
     current_economic_count = sum(item.category is ParameterCategory.ECONOMIC for item in entries)
 
     return ConfigGovernance(

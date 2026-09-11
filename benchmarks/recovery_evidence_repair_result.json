@@ -1,0 +1,86 @@
+{
+  "status": "AFFECTED_ENGINEERING_AND_NATIVE_DIAGNOSTIC_PASS",
+  "economic_status": "NOT_MET",
+  "economic_source_unchanged": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+  "research_tests": 41,
+  "affected_api_import_surface_market_checks": "PASS",
+  "all_ruff": "PASS",
+  "all_mypy": "PASS:336sourcefiles",
+  "security": {
+    "status": "PASS_CHANGED_FINDINGS_READBACK",
+    "prior_ci_job_id": 102766349532,
+    "prior_added": 40,
+    "current_added": 0,
+    "remaining_baseline_findings": 8,
+    "unchanged_main_blob": "20146a044f7246ea6ffe8efde51218c348da3ed5",
+    "current_bandit_exit": 1,
+    "note": "Eight unchanged baseline findings remain. Exact main source blob and prior CI baseline count/locations verified; no full local baseline checkout claimed."
+  },
+  "retired_historical_scripts_original_remote": "aef6be1c73c689cef7e5d43fd05180dcd2afb5cd",
+  "raw_archive_receipt": "benchmarks/confirmed_recovery_archive.json",
+  "runner_note": "research_data_root is the same validator with a public name; current cross_ai_strategy runner hash changes. Historical raw identities remain858c71 native. No relabeling or new formal acceptance.",
+  "neutrality": {
+    "existing_promotion_functions_ast_unchanged": 37,
+    "research_runner_ast_equivalent_under_exact_public_rename": true,
+    "economic_source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+    "new_public_diagnostic": "actual previous research screen moved under promotion owner; same native/cache/gates",
+    "native_sentinel": {
+      "complete_full_profile": false,
+      "economic_source_sha256": "77003c981da66da847f51d0bd8bd70d6cd0061128bed2c9e3d84d4fd7eeb4e6e",
+      "failures": [],
+      "interval": [
+        "2024-01-02",
+        "2024-01-08"
+      ],
+      "metrics": {
+        "account_orders": 3,
+        "acute_return": null,
+        "annual_turnover": 48.260078646779995,
+        "cagr": -0.9436241074969165,
+        "calmar": -16.28658342891812,
+        "final_wealth": 0.9423150886936332,
+        "gross_turnover": 0.9971090629499999,
+        "max_drawdown": 0.05793873906183644,
+        "sharpe": -11.895288108411005
+      },
+      "name": "a/h1_sentinel",
+      "original_failures": [],
+      "runtime": {
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "environment": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.12.8"
+        },
+        "production": {
+          "commit": "5a71b1c5c3ead53d6689c1f18f6ef0343c974870",
+          "repository": "ychenracing/uquant",
+          "source_sha256": "8ab9a9480b47b2ac9206c23dcbe0f77ac6a728041b7bd8f783892a8ca304336a"
+        }
+      },
+      "scope": "fixed_native_Performance_unit_not_full_acceptance",
+      "sessions": 5,
+      "status": "COMPLETE_SENTINEL",
+      "wealth_drawdown_filled_orders_reconciled": true
+    },
+    "diagnostic_rejection_and_preservation_tests": "2PASS"
+  },
+  "archive": {
+    "archive": "/workspace/scratch/100af34dc020/uquant_recovery_evidence_repair_20260910.tar.gz",
+    "bytes": 20981,
+    "sha256": "9f01a98a4a73b9c48e714391acdebfc61d34dcd7971dc9e0ca736aa36a55743c",
+    "verified_members": 15,
+    "status": "SAVED",
+    "library_file_id": "libfile_052972c828e08191a596b3fc862ee1fe",
+    "file_id": "file_000000009cb481f5b3e7b9e5b63352b9",
+    "local_metadata_applied": true
+  }
+}

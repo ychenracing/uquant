@@ -1,0 +1,48 @@
+diff --git a/uquant/portfolio/pipeline.py b/uquant/portfolio/pipeline.py
+index 7966170..21b0f70 100644
+--- a/uquant/portfolio/pipeline.py
++++ b/uquant/portfolio/pipeline.py
+@@ -15,7 +15,7 @@ from ..models.ordinary_entry import REASON as PULLBACK_REASON
+ from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, pullback_order_entry
+ from ..models.strategic_universe import StrategicUniverseRoles
+ from ..models.trading import late_strategic_fill_allowed
+-from ..ordinary_pullback import current_pullback_proof
++from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
+ from ..portfolio_core import current_weights, symbol_weight_cap
+ from ..risk.pullback import pullback_risk_open
+ from ..types import (
+@@ -31,7 +31,8 @@ from ..types import (
+     Target,
+ )
+ from .capital import committed_capital, funded_increment
+-from .ordinary import observe_ordinary_market, ordinary_core_entry, ordinary_trend_exit
++from .leaders.lifecycle import ordinary_pullback_exit
++from .ordinary import observe_ordinary_market, ordinary_core_entry
+ from .strategic.authority import assess_strategic_capital_authority
+ from .strategic.discovery import current_core_qualification
+ from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
+@@ -364,7 +365,14 @@ def _ordinary_exits(book: _AllocationBook) -> None:
+         ):
+             continue
+         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
+-        if not ordinary_trend_exit(book.user_panel[symbol], book.date):
++        pullback_exit = ordinary_pullback_exit(
++            book.policy, symbol=symbol, date=book.date, user_panel=book.user_panel,
++            leaders=book.leaders, account=account,
++        )
++        if pullback_exit == "" or (pullback_exit is None and not book.policy._leader_lifecycle_exit_confirmed(
++            symbol=symbol, date=book.date, user_panel=book.user_panel,
++            leaders=book.leaders, account=account,
++        )):
+             continue
+         book.proposed[symbol] = 0.0
+         reset_strategic_candidate_eligibility(account=account, symbol=symbol)
+@@ -376,7 +384,7 @@ def _ordinary_exits(book: _AllocationBook) -> None:
+             account.candidate_tenure["tactical_promotable"] = 0
+         if account.recovery_conviction_symbol == symbol:
+             account.recovery_conviction_symbol = ""
+-        book.reasons[symbol] = "ordinary trend: two closes below MA120"
++        book.reasons[symbol] = pullback_exit or STRUCTURAL_EXIT_REASON
+         book.mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
+         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
+ 

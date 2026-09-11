@@ -1,0 +1,851 @@
+{
+  "diagnostic_only": true,
+  "source": "3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc",
+  "native_paths": 3,
+  "result_sha256": "e31930b5374981321c12abfe6640c9a390770721dd70aada4479a7aed1da4fe5",
+  "cases": [
+    {
+      "case": "full",
+      "native_seal": "756707dbbc91f45bb92af21eb469c49334eff4d24a9d91cce774d326d42696e8",
+      "predicate_streak_mismatches": [],
+      "progression_exceptions": [],
+      "mature_unheld_days": [
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper|absolute_owner_quality",
+          "days": 626
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_owner_quality",
+          "days": 564
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_owner_quality",
+          "days": 408
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "absolute_owner_quality",
+          "days": 291
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|absolute_owner_quality",
+          "days": 243
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "absolute_owner_quality",
+          "days": 180
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper|absolute_owner_quality",
+          "days": 176
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_owner_quality|absolute_route",
+          "days": 152
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper|absolute_owner_quality",
+          "days": 139
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return",
+          "days": 79
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 79
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 69
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower|absolute_owner_quality",
+          "days": 58
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "all_current_predicates_true",
+          "days": 51
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper",
+          "days": 50
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 45
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "absolute_owner_quality|absolute_route",
+          "days": 42
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper",
+          "days": 40
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper",
+          "days": 39
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|absolute_owner_quality",
+          "days": 38
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|absolute_owner_quality|absolute_route",
+          "days": 26
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 26
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return",
+          "days": 25
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_lower|absolute_owner_quality",
+          "days": 18
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper",
+          "days": 12
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "all_current_predicates_true",
+          "days": 11
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower|absolute_owner_quality|absolute_route",
+          "days": 9
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_lower|absolute_owner_quality",
+          "days": 8
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "long_market_upper|absolute_owner_quality",
+          "days": 7
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_lower",
+          "days": 6
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower",
+          "days": 6
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_route",
+          "days": 3
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|absolute_owner_quality|absolute_route",
+          "days": 2
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_lower",
+          "days": 1
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth",
+          "days": 1
+        },
+        {
+          "block": "STRUCTURE_NOT_REPAIRED",
+          "failed_predicates": "absolute_owner_quality|absolute_route",
+          "days": 1
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_route",
+          "days": 1
+        }
+      ],
+      "summary": [
+        {
+          "subset": "full",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 20,
+          "events": 436,
+          "positive_fraction": 0.5435779816513762,
+          "mean_return": 0.08988335704319407,
+          "median_return": 0.015809214084802736,
+          "median_mae_open": -0.0696849219511404
+        },
+        {
+          "subset": "full",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 60,
+          "events": 399,
+          "positive_fraction": 0.6416040100250626,
+          "mean_return": 0.22405018277612113,
+          "median_return": 0.09836681058757257,
+          "median_mae_open": -0.11454573983994987
+        },
+        {
+          "subset": "full",
+          "block": "READY",
+          "horizon": 20,
+          "events": 8,
+          "positive_fraction": 0.75,
+          "mean_return": 0.04875894368548163,
+          "median_return": 0.04813843006189389,
+          "median_mae_open": -0.027401298755575232
+        },
+        {
+          "subset": "full",
+          "block": "READY",
+          "horizon": 60,
+          "events": 8,
+          "positive_fraction": 0.875,
+          "mean_return": 0.6665264976300785,
+          "median_return": 0.49620302235932723,
+          "median_mae_open": -0.05261601174561964
+        },
+        {
+          "subset": "nonoptical",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 20,
+          "events": 321,
+          "positive_fraction": 0.5295950155763239,
+          "mean_return": 0.06359235173394844,
+          "median_return": 0.007406324611411552,
+          "median_mae_open": -0.0690873110814636
+        },
+        {
+          "subset": "nonoptical",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 60,
+          "events": 301,
+          "positive_fraction": 0.6112956810631229,
+          "mean_return": 0.16582577852663666,
+          "median_return": 0.07823542202732581,
+          "median_mae_open": -0.11591514830343375
+        },
+        {
+          "subset": "nonoptical",
+          "block": "READY",
+          "horizon": 20,
+          "events": 3,
+          "positive_fraction": 0.6666666666666666,
+          "mean_return": 0.04099775165244376,
+          "median_return": 0.0128383067314366,
+          "median_mae_open": -0.022206800832755058
+        },
+        {
+          "subset": "nonoptical",
+          "block": "READY",
+          "horizon": 60,
+          "events": 3,
+          "positive_fraction": 1,
+          "mean_return": 0.29487786406464855,
+          "median_return": 0.14245679588977112,
+          "median_mae_open": -0.031200373657169544
+        }
+      ]
+    },
+    {
+      "case": "remove_all_three",
+      "native_seal": "736d9283bf1f39de0f91cb0950668010755db08b005565a41af028d75c4a6b61",
+      "predicate_streak_mismatches": [],
+      "progression_exceptions": [],
+      "mature_unheld_days": [
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper|absolute_owner_quality",
+          "days": 625
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_owner_quality",
+          "days": 498
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_owner_quality",
+          "days": 384
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "absolute_owner_quality",
+          "days": 246
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|absolute_owner_quality",
+          "days": 179
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_owner_quality|absolute_route",
+          "days": 167
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper|absolute_owner_quality",
+          "days": 158
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "absolute_owner_quality",
+          "days": 146
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper|absolute_owner_quality",
+          "days": 127
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 100
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 83
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return",
+          "days": 67
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper",
+          "days": 56
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "absolute_owner_quality|absolute_route",
+          "days": 55
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper",
+          "days": 53
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower|absolute_owner_quality",
+          "days": 50
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 49
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "all_current_predicates_true",
+          "days": 45
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|absolute_owner_quality",
+          "days": 42
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|absolute_owner_quality|absolute_route",
+          "days": 32
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper",
+          "days": 26
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 26
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return",
+          "days": 25
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "all_current_predicates_true",
+          "days": 20
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper",
+          "days": 15
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower|absolute_owner_quality|absolute_route",
+          "days": 10
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_lower|absolute_owner_quality",
+          "days": 9
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_lower",
+          "days": 7
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth",
+          "days": 7
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower",
+          "days": 6
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_lower|absolute_owner_quality",
+          "days": 6
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "long_market_upper|absolute_owner_quality",
+          "days": 6
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_route",
+          "days": 2
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_lower",
+          "days": 1
+        },
+        {
+          "block": "STRUCTURE_NOT_REPAIRED",
+          "failed_predicates": "absolute_owner_quality|absolute_route",
+          "days": 1
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|absolute_owner_quality|absolute_route",
+          "days": 1
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "long_market_upper",
+          "days": 1
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_route",
+          "days": 1
+        }
+      ],
+      "summary": [
+        {
+          "subset": "full",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 20,
+          "events": 425,
+          "positive_fraction": 0.5364705882352941,
+          "mean_return": 0.0793473737278657,
+          "median_return": 0.016594516594516717,
+          "median_mae_open": -0.07017543859649122
+        },
+        {
+          "subset": "full",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 60,
+          "events": 376,
+          "positive_fraction": 0.6063829787234043,
+          "mean_return": 0.17783596982276173,
+          "median_return": 0.08168700885744229,
+          "median_mae_open": -0.11482167284016986
+        },
+        {
+          "subset": "full",
+          "block": "READY",
+          "horizon": 20,
+          "events": 4,
+          "positive_fraction": 0.5,
+          "mean_return": 0.022455342118728017,
+          "median_return": 0.020016547978116972,
+          "median_mae_open": -0.027401298755575232
+        },
+        {
+          "subset": "full",
+          "block": "READY",
+          "horizon": 60,
+          "events": 4,
+          "positive_fraction": 0.75,
+          "mean_return": 0.4449308256105784,
+          "median_return": 0.11465921418233638,
+          "median_mae_open": -0.043535586217497924
+        },
+        {
+          "subset": "nonoptical",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 20,
+          "events": 359,
+          "positive_fraction": 0.5236768802228412,
+          "mean_return": 0.06667437313767714,
+          "median_return": 0.008075481709945986,
+          "median_mae_open": -0.07153353982500965
+        },
+        {
+          "subset": "nonoptical",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 60,
+          "events": 325,
+          "positive_fraction": 0.6092307692307692,
+          "mean_return": 0.1534659084045944,
+          "median_return": 0.07823542202732581,
+          "median_mae_open": -0.11591514830343375
+        },
+        {
+          "subset": "nonoptical",
+          "block": "READY",
+          "horizon": 20,
+          "events": 2,
+          "positive_fraction": 0,
+          "mean_return": -0.023112025183938734,
+          "median_return": -0.023112025183938734,
+          "median_mae_open": -0.043535586217497924
+        },
+        {
+          "subset": "nonoptical",
+          "block": "READY",
+          "horizon": 60,
+          "events": 2,
+          "positive_fraction": 1,
+          "mean_return": 0.11465921418233638,
+          "median_return": 0.11465921418233638,
+          "median_mae_open": -0.043535586217497924
+        }
+      ]
+    },
+    {
+      "case": "strict",
+      "native_seal": "f38c4426d0d553f79aa0d0e269e506b4d0fbcbdb28803cfb39d18fe211fc0b19",
+      "predicate_streak_mismatches": [],
+      "progression_exceptions": [],
+      "mature_unheld_days": [
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper|absolute_owner_quality",
+          "days": 534
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_owner_quality",
+          "days": 477
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_owner_quality",
+          "days": 342
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "absolute_owner_quality",
+          "days": 263
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|absolute_owner_quality",
+          "days": 170
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_owner_quality|absolute_route",
+          "days": 161
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper|absolute_owner_quality",
+          "days": 144
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper|absolute_owner_quality",
+          "days": 117
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 96
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "absolute_owner_quality",
+          "days": 95
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 83
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return",
+          "days": 67
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper",
+          "days": 53
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower|absolute_owner_quality",
+          "days": 49
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_upper",
+          "days": 49
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "absolute_owner_quality|absolute_route",
+          "days": 47
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 47
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|absolute_owner_quality",
+          "days": 40
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|absolute_owner_quality|absolute_route",
+          "days": 32
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "all_current_predicates_true",
+          "days": 29
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_upper",
+          "days": 28
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "all_current_predicates_true",
+          "days": 27
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper|absolute_owner_quality|absolute_route",
+          "days": 25
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return",
+          "days": 25
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|long_market_upper",
+          "days": 13
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower|absolute_owner_quality|absolute_route",
+          "days": 10
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_lower|absolute_owner_quality",
+          "days": 9
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "short_market_return|long_market_lower",
+          "days": 8
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_lower|absolute_owner_quality",
+          "days": 6
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth",
+          "days": 6
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "long_market_upper|absolute_owner_quality",
+          "days": 5
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_lower",
+          "days": 4
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|absolute_route",
+          "days": 2
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "short_market_return|absolute_owner_quality",
+          "days": 1
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "long_market_lower",
+          "days": 1
+        },
+        {
+          "block": "STRUCTURE_NOT_REPAIRED",
+          "failed_predicates": "absolute_owner_quality|absolute_route",
+          "days": 1
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|absolute_owner_quality|absolute_route",
+          "days": 1
+        },
+        {
+          "block": "READY",
+          "failed_predicates": "long_market_upper",
+          "days": 1
+        },
+        {
+          "block": "CONFIRMATION_INCOMPLETE",
+          "failed_predicates": "breadth|short_market_return|long_market_upper|absolute_route",
+          "days": 1
+        }
+      ],
+      "summary": [
+        {
+          "subset": "full",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 20,
+          "events": 400,
+          "positive_fraction": 0.525,
+          "mean_return": 0.07039264478774089,
+          "median_return": 0.007427656483739553,
+          "median_mae_open": -0.07018793295172004
+        },
+        {
+          "subset": "full",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 60,
+          "events": 372,
+          "positive_fraction": 0.5940860215053764,
+          "mean_return": 0.16326789570548897,
+          "median_return": 0.07476047451076806,
+          "median_mae_open": -0.11671446856219359
+        },
+        {
+          "subset": "full",
+          "block": "READY",
+          "horizon": 20,
+          "events": 2,
+          "positive_fraction": 0.5,
+          "mean_return": 0.03801083215789719,
+          "median_return": 0.03801083215789719,
+          "median_mae_open": -0.027401298755575232
+        },
+        {
+          "subset": "full",
+          "block": "READY",
+          "horizon": 60,
+          "events": 2,
+          "positive_fraction": 1,
+          "mean_return": 0.8782671055920062,
+          "median_return": 0.8782671055920062,
+          "median_mae_open": -0.027401298755575232
+        },
+        {
+          "subset": "nonoptical",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 20,
+          "events": 349,
+          "positive_fraction": 0.5243553008595988,
+          "mean_return": 0.06602314079040597,
+          "median_return": 0.0049984047644369145,
+          "median_mae_open": -0.071125
+        },
+        {
+          "subset": "nonoptical",
+          "block": "CONFIRMATION_INCOMPLETE",
+          "horizon": 60,
+          "events": 321,
+          "positive_fraction": 0.5950155763239875,
+          "mean_return": 0.13608562472920163,
+          "median_return": 0.06896377958527355,
+          "median_mae_open": -0.11631205673758871
+        },
+        {
+          "subset": "nonoptical",
+          "block": "READY",
+          "horizon": 20,
+          "events": 1,
+          "positive_fraction": 0,
+          "mean_return": -0.009995329285380605,
+          "median_return": -0.009995329285380605,
+          "median_mae_open": -0.031200373657169544
+        },
+        {
+          "subset": "nonoptical",
+          "block": "READY",
+          "horizon": 60,
+          "events": 1,
+          "positive_fraction": 1,
+          "mean_return": 0.14245679588977112,
+          "median_return": 0.14245679588977112,
+          "median_mae_open": -0.031200373657169544
+        }
+      ]
+    }
+  ],
+  "decision": "NO_INITIALIZATION_COUNTER_BUG_FOUND",
+  "boundary": "No stale positive counter when predicate failed, and no missed increment when all current predicates held, in inspected mature unheld observations. Does not prove every state transition correct. Mature episodes begin anew when absent/not mature/held; events overlap, price labels do not establish executable profits.",
+  "next": "Retain admission controls. Reopen historical roster source feasibility now that direct original-report downloads work; previous network failures no longer establish this route blocked."
+}

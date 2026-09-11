@@ -27,9 +27,11 @@ def _damage(panel, leaders, dates):
     return {symbol: replace(leader, mature=False) for symbol, leader in leaders.items()}
 
 
-def test_confirmed_core_structure_exit_keeps_native_identity_until_final_fill():
+@pytest.mark.parametrize("return20", (-.09, .03))
+def test_confirmed_core_structure_exit_keeps_native_identity_until_final_fill(return20):
     allocator, account, dates, panel, leaders, roles = _aged_core()
     leaders = _damage(panel, leaders, dates)
+    panel[OWNER].loc[dates, "ret20"] = return20
     epoch = account.strategic_epochs[0]
     assert epoch.realized_status == "ACTIVE" and not epoch.terminal
     assert account.strategic_epoch == 0
@@ -80,7 +82,7 @@ def test_structural_confirmation_counts_sessions_once_across_restart():
     assert len(orders) == 1 and orders[0].side == "SELL"
 
 
-@pytest.mark.parametrize("missing", ("maturity", "price", "return", "interrupted", "partial-entry"))
+@pytest.mark.parametrize("missing", ("maturity", "price", "interrupted", "partial-entry"))
 def test_core_exit_preserves_existing_conjunction_and_entry_completion(missing):
     allocator, account, dates, panel, leaders, roles = _aged_core(partial=missing == "partial-entry")
     damaged = _damage(panel, leaders, dates)
@@ -88,8 +90,6 @@ def test_core_exit_preserves_existing_conjunction_and_entry_completion(missing):
         damaged = leaders
     elif missing == "price":
         panel[OWNER].loc[dates, "ma20"] = panel[OWNER].loc[dates, "close"] * .95
-    elif missing == "return":
-        panel[OWNER].loc[dates, "ret20"] = -.07
     for index, date in enumerate(dates[:4]):
         current = leaders if missing == "interrupted" and index == 1 else damaged
         assert not _decide_and_submit(allocator, account, date, panel, current, roles)

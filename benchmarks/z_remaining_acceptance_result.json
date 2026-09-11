@@ -1,0 +1,421 @@
+{
+  "date": "2026-09-11",
+  "overall_status": "NOT_MET",
+  "selected_candidate": "Z",
+  "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+  "producer_local": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+  "producer_remote": "ce93b65a441db19ba672fac2abbfd5ec1cd012ae",
+  "cost_exception": {
+    "user_authorized": true,
+    "applies_to": "Trading-cost overrun strictly below CNY 10000 above original applicable ceiling",
+    "Z_stress_cost": 46002.71695088,
+    "original_ceiling": 40000,
+    "accepted_overrun": 6002.71695088,
+    "status": "ACCEPTED_EXCEPTION"
+  },
+  "nominal": {
+    "cases": 14,
+    "status": "PASS",
+    "cross_window_failures": []
+  },
+  "robustness": {
+    "execution_outcomes": 64,
+    "execution_status_counts": {
+      "COMPLETE": 53,
+      "CONTROL_DELETED": 6,
+      "ERROR": 5
+    },
+    "new_native_outcome_counts": {
+      "PASS": 37,
+      "ACCEPTED_EXCEPTION": 1,
+      "UNAVAILABLE_OLD_PAIR": 5,
+      "FAIL": 1
+    },
+    "confirmed_financial_failures": [
+      {
+        "id": "new-offset20-remove_all_three",
+        "failures": [
+          "paired initial wealth retention"
+        ],
+        "metrics": {
+          "final_wealth": 0.8718030613343799,
+          "max_drawdown": 0.2644605668082183,
+          "account_orders": 15,
+          "fees": 2920.1293312400003,
+          "slippage_cost": 5849.747999999546,
+          "annual_turnover": 0.833744959368669
+        }
+      }
+    ],
+    "unavailable_old_pairs": [
+      "new-offset5-remove_all_three",
+      "new-cash2-remove_all_three",
+      "new-offset5-no_optical",
+      "new-cash0.5-no_optical",
+      "new-cash2-no_optical"
+    ],
+    "original_frozen_evaluator_status": "FAIL",
+    "current_evaluator_status": "FAIL",
+    "aggregate_failures": [
+      "missing complete robustness tail population"
+    ],
+    "new_population_observation": {
+      "new_native_population_count": 44,
+      "expected": 44,
+      "complete_population": true,
+      "paired_comparison_pass": false,
+      "note": "Descriptive new-source population includes actual new accounts whose old pair failed. Frozen evaluator failures remain unchanged.",
+      "metrics": {
+        "p90_drawdown": 0.27146973146234554,
+        "p10_wealth": 1.488906212061738,
+        "p90_orders": 23.0,
+        "positive_fraction": 0.9772727272727273
+      }
+    }
+  },
+  "performance": {
+    "profile": "full",
+    "unit_count": 45,
+    "unit_status_counts": {
+      "FAIL": 32,
+      "PASS": 13
+    },
+    "status": "FAIL",
+    "failures": [
+      "a/h2_2023: max_drawdown regressed from production champion",
+      "a/h1_2024: final_wealth below 1.512000",
+      "a/h1_2024: final_wealth regressed from production champion",
+      "a/h1_2024: acute_return regressed from production champion",
+      "a/h2_2024: max_drawdown regressed from production champion",
+      "a/bull_crash_2025_2026: final_wealth regressed from production champion",
+      "a/year_2024: final_wealth below 1.558260",
+      "a/year_2024: final_wealth regressed from production champion",
+      "a/bull: final_wealth below 11.544300",
+      "a/bull: final_wealth regressed from production champion",
+      "b/h2_2023: max_drawdown regressed from production champion",
+      "b/h1_2024: final_wealth below 1.512000",
+      "b/h1_2024: final_wealth regressed from production champion",
+      "b/h1_2024: acute_return regressed from production champion",
+      "b/h2_2024: max_drawdown regressed from production champion",
+      "b/bull_crash_2025_2026: final_wealth below 7.200000",
+      "b/bull_crash_2025_2026: final_wealth regressed from production champion",
+      "b/year_2024: final_wealth below 1.558260",
+      "b/year_2024: final_wealth regressed from production champion",
+      "b/bull: final_wealth below 11.544300",
+      "b/bull: max_drawdown above 0.180000",
+      "b/bull: final_wealth regressed from production champion",
+      "c/h2_2023: max_drawdown regressed from production champion",
+      "c/h1_2024: final_wealth below 1.512000",
+      "c/h1_2024: final_wealth regressed from production champion",
+      "c/h1_2024: acute_return regressed from production champion",
+      "c/h2_2024: max_drawdown regressed from production champion",
+      "c/bull_crash_2025_2026: final_wealth below 7.200000",
+      "c/bull_crash_2025_2026: final_wealth regressed from production champion",
+      "c/year_2024: final_wealth below 1.558260",
+      "c/year_2024: final_wealth regressed from production champion",
+      "c/bull: final_wealth below 11.544300",
+      "c/bull: max_drawdown above 0.180000",
+      "c/bull: final_wealth regressed from production champion",
+      "d/h2_2023: max_drawdown regressed from production champion",
+      "d/h1_2024: final_wealth below 1.512000",
+      "d/h1_2024: final_wealth regressed from production champion",
+      "d/h1_2024: acute_return regressed from production champion",
+      "d/h2_2024: max_drawdown regressed from production champion",
+      "d/bull_crash_2025_2026: final_wealth below 7.200000",
+      "d/bull_crash_2025_2026: final_wealth regressed from production champion",
+      "d/continuous_ai_era: final_wealth below 15.000000",
+      "d/continuous_ai_era: acute_return below -0.030000",
+      "d/continuous_ai_era: final_wealth regressed from production champion",
+      "d/continuous_ai_era: acute_return regressed from production champion",
+      "d/year_2024: final_wealth below 1.558260",
+      "d/year_2024: final_wealth regressed from production champion",
+      "d/bull: final_wealth below 11.639700",
+      "d/bull: final_wealth regressed from production champion",
+      "e/h1_2023: acute_return regressed from production champion",
+      "e/h2_2023: final_wealth regressed from production champion",
+      "e/h2_2023: acute_return regressed from production champion",
+      "e/h1_2024: final_wealth below 1.512000",
+      "e/h1_2024: final_wealth regressed from production champion",
+      "e/h1_2024: acute_return regressed from production champion",
+      "e/h2_2024: max_drawdown above 0.100000",
+      "e/h2_2024: max_drawdown regressed from production champion",
+      "e/h2_2024: acute_return regressed from production champion",
+      "e/bull_crash_2025_2026: final_wealth below 7.200000",
+      "e/bull_crash_2025_2026: final_wealth regressed from production champion",
+      "e/year_2024: final_wealth below 1.558260",
+      "e/year_2024: final_wealth regressed from production champion",
+      "e/bull: final_wealth below 11.639700",
+      "e/bull: final_wealth regressed from production champion"
+    ],
+    "additional_identity_or_schema_failures": []
+  },
+  "complete_L4": {
+    "status": "NOT_MET",
+    "reason": "Full Performance gate failed; dependent Ownership/Absolute stages were not rerun and are not passed."
+  },
+  "operator_migration": {
+    "status": "PASS",
+    "input_raw_unchanged": true,
+    "economic_fields_preserved": true,
+    "schema_default_added": "strategic_cash_rearm.consumed_order=None; no fabricated consumed order",
+    "changed_after_default_normalization": [
+      "account_migrations",
+      "code_hash"
+    ],
+    "economic_digest": "30ec60e1211cf5d8095ff59c58cdc409af053cfc1ce70b62b7877a9d6d34869c",
+    "scope": "Historical replay account copy only"
+  },
+  "engineering": "Noncritical architecture/style/coverage/full CI deferred; no Actions wait above 10 minutes",
+  "AC_guard_repair": {
+    "branch": "codex/settled-guard-repair-20260911",
+    "remote": "ae9ef72b6cd6da6c87f54d02620509b93d1d582d",
+    "source": "598c582989919bd0aa1932b92e6e32aaf50da7fe3e9cc39d14675f48db7e693c",
+    "targeted_tests_passed": 21,
+    "review": "No Important findings",
+    "h1_2024_wealth": 0.8925906197332182,
+    "offset20_wealth": 0.8718030613343799,
+    "offset20_equal_Z_metrics_and_symbol_pnl": true,
+    "selected_as_replacement": false
+  },
+  "raw_archive_manifests": [
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_nominal_complete_20260911.tar.gz",
+      "bytes": 217340824,
+      "members": 4467,
+      "sha256": "2bfa856e5430273041e56b6d0c2a23c94edf7c6fd08abb0b9a93ef6e9f0b8991",
+      "nominal_status": "PASS",
+      "cases": 14,
+      "dependency_no_optical": "libfile_10a4e007b2cc8191bc1a0a061dfb6d5e",
+      "complete_acceptance": false
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_robustness_batch_1_20260911.tar.gz",
+      "bytes": 388731998,
+      "members": 7044,
+      "sha256": "a489854fab7b050275437840ed9c6d6a89a45d3d1ebdcf88b2e0501b3bc9280f",
+      "cases": [
+        "new-cash0.5-champion",
+        "new-cash0.5-no_optical",
+        "new-cash0.5-remove_all_three",
+        "new-cash2-champion",
+        "new-cash2-no_optical",
+        "new-cash2-remove_all_three",
+        "new-cost_stress-champion",
+        "new-cost_stress-remove_all_three"
+      ],
+      "full_acceptance": false
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_robustness_batch_2_20260911.tar.gz",
+      "bytes": 316855483,
+      "members": 6984,
+      "sha256": "787fcf6861543d9508273f9a08edd7a432eaf37f3e9609c2bc7365bd3e272a22",
+      "cases": [
+        "new-offset20-champion",
+        "new-offset20-remove_all_three",
+        "new-offset5-champion",
+        "new-offset5-no_optical",
+        "new-offset5-remove_all_three",
+        "new-p2_lower-champion",
+        "new-p2_lower-remove_all_three",
+        "new-p2_upper-remove_all_three"
+      ],
+      "full_acceptance": false
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_robustness_batch_3_20260911.tar.gz",
+      "bytes": 267366208,
+      "members": 5256,
+      "sha256": "2d721131509f5c949178a6e9f6b8ed8ff45bf5e6e2030b80a0f2030fc3378778",
+      "cases": [
+        "old-cash0.5-champion",
+        "old-cash0.5-remove_all_three",
+        "old-cash2-champion",
+        "old-offset20-champion",
+        "old-offset20-remove_all_three",
+        "old-offset5-champion"
+      ],
+      "full_acceptance": false
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_1_20260911.tar.gz",
+      "bytes": 134953886,
+      "sha256": "b06db66d96c55101a2a0101d791375aa97af7e95671fa61746dad8c6ac8df863",
+      "members": 2651
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_2_20260911.tar.gz",
+      "bytes": 185778755,
+      "sha256": "8f40621fd01db7ba30b998d090348a1cf14f0998ed272e769c1a9d2316eead0c",
+      "members": 3531
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_3_20260911.tar.gz",
+      "bytes": 351858762,
+      "sha256": "048f7a23fae954f265d4dfb1e42b333cc20b21837da60dfe1b6106761a73ed70",
+      "members": 7037
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_4_20260911.tar.gz",
+      "bytes": 273777485,
+      "sha256": "8d97fc695f9f18934ae579a1bac7866e9df421772416bc8097a503f39d878f5b",
+      "members": 5365
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_5_20260911.tar.gz",
+      "bytes": 94270921,
+      "sha256": "eefb2e83b02e87836c741e3a560315112e78f303be58692255ca4f520916ebd4",
+      "members": 2858
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_6_20260911.tar.gz",
+      "bytes": 71311,
+      "sha256": "d2a5f40169f4af75fdfcf4631d763e039e220b60af9b1fabba6668f0964a692f",
+      "members": 4
+    },
+    {
+      "path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_performance_and_reports_20260911.tar.gz",
+      "bytes": 5596467,
+      "sha256": "a44a66fea8b2be63e5095922cbe569d7997bc3ca32bcc39fa7e0b825d9feeb07",
+      "members": 190
+    }
+  ],
+  "raw_upload_receipts": [
+    {
+      "results": [
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_nominal_complete_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_000000004a1c81f584c85c66a5d8bee1",
+          "library_file_id": "libfile_d3bac274f45c8191a5215f58e170bb1b",
+          "file_name": "z_nominal_complete_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_nominal_complete_20260911.tar.gz",
+          "current_version_number": 0
+        }
+      ]
+    },
+    {
+      "results": [
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_robustness_batch_1_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_00000000c20081f5bda1fe271c513bf8",
+          "library_file_id": "libfile_fb579f4524288191b0408c9a9495ce40",
+          "file_name": "z_robustness_batch_1_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_robustness_batch_1_20260911.tar.gz",
+          "current_version_number": 0
+        },
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_robustness_batch_2_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_00000000ff1481f586b163dfcf1a9704",
+          "library_file_id": "libfile_03459e49ba108191a84f5fdcea3fbd30",
+          "file_name": "z_robustness_batch_2_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_robustness_batch_2_20260911.tar.gz",
+          "current_version_number": 0
+        },
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_robustness_batch_3_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_00000000fe1881f6897c63c18a4e729d",
+          "library_file_id": "libfile_54bc51dc252c8191ae689a1205fb21c4",
+          "file_name": "z_robustness_batch_3_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_robustness_batch_3_20260911.tar.gz",
+          "current_version_number": 0
+        }
+      ]
+    },
+    {
+      "results": [
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_1_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_00000000b708820cbe7c5b58090127f2",
+          "library_file_id": "libfile_93bdf3a7d5948191ac97c8529451bbd7",
+          "file_name": "z_final_robustness_batch_1_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_final_robustness_batch_1_20260911.tar.gz",
+          "current_version_number": 0
+        },
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_2_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_000000000c9881f685c1c4be2edef515",
+          "library_file_id": "libfile_9b570e279ab08191923a998fae56160a",
+          "file_name": "z_final_robustness_batch_2_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_final_robustness_batch_2_20260911.tar.gz",
+          "current_version_number": 0
+        },
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_3_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_000000002acc81f68fd7fdb1f3bd0144",
+          "library_file_id": "libfile_01b38e57b41c8191a8b711e0a5a70de6",
+          "file_name": "z_final_robustness_batch_3_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_final_robustness_batch_3_20260911.tar.gz",
+          "current_version_number": 0
+        },
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_4_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_000000002e1c81f69ee257e216cc0441",
+          "library_file_id": "libfile_88ebe67665548191a612cf143308fa18",
+          "file_name": "z_final_robustness_batch_4_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_final_robustness_batch_4_20260911.tar.gz",
+          "current_version_number": 0
+        },
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_5_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_00000000900081f68c58a1264383691f",
+          "library_file_id": "libfile_dec96cb9df4c8191b1ecbf8dec09f75d",
+          "file_name": "z_final_robustness_batch_5_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_final_robustness_batch_5_20260911.tar.gz",
+          "current_version_number": 0
+        },
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_robustness_batch_6_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_000000007a9c81f6a41ba4428d4d0cb5",
+          "library_file_id": "libfile_465d66212e7881918b54fab75a4db686",
+          "file_name": "z_final_robustness_batch_6_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_final_robustness_batch_6_20260911.tar.gz",
+          "current_version_number": 0
+        },
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-final-acceptance-20260911/z_final_performance_and_reports_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_000000006c6c81f6ae798c9b90c85bc8",
+          "library_file_id": "libfile_b34c8ed73cf48191b6b04063d3b9fd27",
+          "file_name": "z_final_performance_and_reports_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_final_performance_and_reports_20260911.tar.gz",
+          "current_version_number": 0
+        }
+      ]
+    }
+  ],
+  "all_scheduled_Z_jobs_finished": true,
+  "main_merge": false,
+  "post_2026_08_05_holdout_used": false
+}

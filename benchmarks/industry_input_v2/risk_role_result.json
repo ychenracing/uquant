@@ -1,0 +1,68 @@
+{
+  "diagnostic_only": true,
+  "native_readback": true,
+  "sessions_verified": 869,
+  "not_all_role_exclusion_evidence": true,
+  "production_source": "3ad3f4b7e63215484c118d05a864a5c17390ddf5ca5442d624ab92f044fa04bc",
+  "strict_seal": "f38c4426d0d553f79aa0d0e269e506b4d0fbcbdb28803cfb39d18fe211fc0b19",
+  "probe_seal": "725045ef587dcfd42757092948c96dd67c3108083ceb0d854bfa742f1b1572b7",
+  "probe_runner_sha256": "4900313ca0fc67e8d7e6cb36b811a1977ac5f3bfa683451023ac62001bc4b97c",
+  "strict_metrics": {
+    "final_wealth": 2.537405639171974,
+    "max_drawdown": 0.12553223248148693,
+    "account_orders": 19,
+    "fees": 5875.325456052,
+    "slippage_cost": 10013.196199999506
+  },
+  "probe_metrics": {
+    "final_wealth": 1.1779443180726963,
+    "max_drawdown": 0.20696073365474144,
+    "account_orders": 15,
+    "fees": 3313.3954546080004,
+    "slippage_cost": 6317.168399999637
+  },
+  "probe_symbol_pnl": {
+    "sh603986": -45929.086224119936,
+    "sh688019": 545898.149835192,
+    "sh688200": -69676.47242113996,
+    "sh688300": 19064.195156160025,
+    "sh688766": -89587.42798697992,
+    "sz002281": -3880.722213719855
+  },
+  "first_divergence": {
+    "targets": {
+      "date": "2023-01-19",
+      "strict": [],
+      "risk_addition": [
+        {
+          "symbol": "sh603986",
+          "weight": 0.2,
+          "lifecycle": "CORE",
+          "reason_code": "strategy_target",
+          "exit_kind": "strategy"
+        },
+        {
+          "symbol": "sh688200",
+          "weight": 0.266666666667,
+          "lifecycle": "CORE",
+          "reason_code": "strategy_target",
+          "exit_kind": "strategy"
+        },
+        {
+          "symbol": "sh688766",
+          "weight": 0.266666666667,
+          "lifecycle": "CORE",
+          "reason_code": "strategy_target",
+          "exit_kind": "strategy"
+        }
+      ]
+    },
+    "equity": {
+      "date": "2023-01-20",
+      "strict": 2000000.0,
+      "risk_addition": 1993257.25802614
+    }
+  },
+  "all_metrics_equal_remove_all_three": true,
+  "risk_reference_also_enters_scoring": true
+}

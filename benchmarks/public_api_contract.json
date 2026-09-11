@@ -29,7 +29,7 @@
                   "default": {
                     "kind": "dataclass",
                     "type": "uquant.config.SystemConfig",
-                    "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                    "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                   }
                 }
               ],
@@ -1026,15 +1026,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.05
-                  }
-                },
-                {
-                  "name": "strategic_reversal_max_tech_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -3384,14 +3375,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.05
-                }
-              },
-              {
-                "name": "strategic_reversal_max_tech_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -5373,7 +5356,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -6369,7 +6352,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -7757,7 +7740,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -8251,7 +8234,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -9070,15 +9053,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.05
-                  }
-                },
-                {
-                  "name": "strategic_reversal_max_tech_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -11428,14 +11402,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.05
-                }
-              },
-              {
-                "name": "strategic_reversal_max_tech_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -12882,7 +12848,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -13701,15 +13667,6 @@
                   "default": {
                     "kind": "value",
                     "value": -0.05
-                  }
-                },
-                {
-                  "name": "strategic_reversal_max_tech_ret120",
-                  "kind": "POSITIONAL_OR_KEYWORD",
-                  "annotation": "float",
-                  "default": {
-                    "kind": "value",
-                    "value": -0.01
                   }
                 },
                 {
@@ -16059,14 +16016,6 @@
                 "default": {
                   "kind": "value",
                   "value": -0.05
-                }
-              },
-              {
-                "name": "strategic_reversal_max_tech_ret120",
-                "type": "float",
-                "default": {
-                  "kind": "value",
-                  "value": -0.01
                 }
               },
               {
@@ -20766,14 +20715,17 @@
           "UniverseMember",
           "_DEFAULT_UNIVERSE",
           "_MEMBER_FIELDS",
+          "_RESEARCH_INPUT",
           "_SHA256",
           "_SYMBOL",
           "ai_universe_manifest_bytes",
           "canonical_sha256",
+          "decision_ai_universe",
           "default_ai_universe",
           "frozen_champion_bytes",
           "load_ai_universe",
-          "load_performance_frozen_champion"
+          "load_performance_frozen_champion",
+          "research_industry_input"
         ],
         "functions": {
           "ai_universe_manifest_bytes": {
@@ -20792,6 +20744,10 @@
               }
             ],
             "return": "str"
+          },
+          "decision_ai_universe": {
+            "parameters": [],
+            "return": "AIUniverse"
           },
           "default_ai_universe": {
             "parameters": [],
@@ -20828,6 +20784,27 @@
               }
             ],
             "return": "FrozenChampion"
+          },
+          "research_industry_input": {
+            "parameters": [
+              {
+                "name": "path",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "expected_sha256",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "Iterator[AIUniverse]"
           }
         },
         "classes": {
@@ -20848,6 +20825,15 @@
                   "annotation": "str",
                   "default": {
                     "kind": "required"
+                  }
+                },
+                {
+                  "name": "industry_revisions",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "tuple[tuple[str, date, str], ...]",
+                  "default": {
+                    "kind": "tuple",
+                    "value": []
                   }
                 }
               ],
@@ -21134,6 +21120,14 @@
                 "type": "str",
                 "default": {
                   "kind": "required"
+                }
+              },
+              {
+                "name": "industry_revisions",
+                "type": "tuple[tuple[str, date, str], ...]",
+                "default": {
+                  "kind": "tuple",
+                  "value": []
                 }
               }
             ]
@@ -21817,7 +21811,7 @@
                   "default": {
                     "kind": "dataclass",
                     "type": "uquant.config.SystemConfig",
-                    "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                    "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                   }
                 }
               ],
@@ -23289,7 +23283,8 @@
         "path": "uquant/holding_history.py",
         "public_names": [
           "holding_spans_date",
-          "protected_weights_for_current_episode"
+          "protected_weights_for_current_episode",
+          "recovery_owner_open"
         ],
         "functions": {
           "holding_spans_date": {
@@ -23333,6 +23328,36 @@
               }
             ],
             "return": "dict[str, float]"
+          },
+          "recovery_owner_open": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "boundary",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                }
+              }
+            ],
+            "return": "bool"
           }
         },
         "classes": {},
@@ -23345,6 +23370,7 @@
           "IndustrySignal",
           "_FROZEN_COMPATIBILITY_LABELS",
           "compute_industry_signals",
+          "decision_industries",
           "production_industries"
         ],
         "functions": {
@@ -23384,6 +23410,19 @@
               }
             ],
             "return": "dict[str, IndustrySignal]"
+          },
+          "decision_industries": {
+            "parameters": [
+              {
+                "name": "as_of",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "Mapping[str, str]"
           },
           "production_industries": {
             "parameters": [],
@@ -46832,7 +46871,8 @@
         "path": "uquant/portfolio/recovery/cohort_admission.py",
         "public_names": [
           "RecoverySelection",
-          "cohort_admission_targets"
+          "cohort_admission_targets",
+          "scan_recovery_evidence"
         ],
         "functions": {
           "cohort_admission_targets": {
@@ -46951,6 +46991,51 @@
               }
             ],
             "return": "tuple[Target, ...] | None"
+          },
+          "scan_recovery_evidence": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "RecoveryPortfolioPolicy",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "tuple[list[LeaderScore], dict[str, float]]"
           }
         },
         "classes": {
@@ -69147,7 +69232,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -79810,7 +79895,9 @@
         "path": "uquant/validation/acceptance_tolerance.py",
         "public_names": [
           "acceptance_revision",
+          "half_year_drawdown_ceiling",
           "order_ceiling",
+          "principal_wealth_floor",
           "wealth_floor"
         ],
         "functions": {
@@ -79818,7 +79905,67 @@
             "parameters": [],
             "return": "dict[str, typing.Any]"
           },
+          "half_year_drawdown_ceiling": {
+            "parameters": [
+              {
+                "name": "original",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "case",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "window",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "authorized",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                }
+              }
+            ],
+            "return": "float"
+          },
           "order_ceiling": {
+            "parameters": [
+              {
+                "name": "original",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "authorized",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                }
+              }
+            ],
+            "return": "float"
+          },
+          "principal_wealth_floor": {
             "parameters": [
               {
                 "name": "original",
@@ -85998,7 +86145,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -86058,7 +86205,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -86117,7 +86264,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -86191,7 +86338,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -86502,7 +86649,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -86922,7 +87069,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               },
               {
@@ -87030,7 +87177,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -88308,7 +88455,7 @@
                 "default": {
                   "kind": "dataclass",
                   "type": "uquant.config.SystemConfig",
-                  "sha256": "1fa1fabe6d61a335083667a02b32cfa1e88099cc77fdc43d4f96a8255e375ad0"
+                  "sha256": "289e78a1917899fa5891fb038ad5998782f45ddd8459c6ca6d158621b323479e"
                 }
               }
             ],
@@ -94550,12 +94697,34 @@
           "_SHA256",
           "_TOP_LEVEL_FIELDS",
           "current_promotion_acceptance_basis",
+          "diagnose_promotion_unit",
           "run_promotion",
           "validate_promotion_artifact"
         ],
         "functions": {
           "current_promotion_acceptance_basis": {
             "parameters": [],
+            "return": "dict[str, Any]"
+          },
+          "diagnose_promotion_unit": {
+            "parameters": [
+              {
+                "name": "case",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "output",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Path",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
             "return": "dict[str, Any]"
           },
           "run_promotion": {
@@ -94868,6 +95037,15 @@
                   "default": {
                     "kind": "required"
                   }
+                },
+                {
+                  "name": "industry_revisions",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "tuple[tuple[str, date, str], ...]",
+                  "default": {
+                    "kind": "tuple",
+                    "value": []
+                  }
                 }
               ],
               "return": "None"
@@ -95154,6 +95332,14 @@
                 "default": {
                   "kind": "required"
                 }
+              },
+              {
+                "name": "industry_revisions",
+                "type": "tuple[tuple[str, date, str], ...]",
+                "default": {
+                  "kind": "tuple",
+                  "value": []
+                }
               }
             ]
           },
@@ -95314,6 +95500,462 @@
           }
         },
         "enums": {}
+      },
+      "uquant.portfolio.allocation_book": {
+        "path": "uquant/portfolio/allocation_book.py",
+        "public_names": [
+          "AllocationBook"
+        ],
+        "functions": {},
+        "classes": {
+          "AllocationBook": {
+            "signature": {
+              "parameters": [
+                {
+                  "name": "policy",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "PortfolioAllocator",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "date",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "pd.Timestamp",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "risk",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "RiskAssessment",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "user_panel",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, pd.DataFrame]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "leaders",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, LeaderScore]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "account",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "AccountState",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "prices",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "weights_now",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "owned",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "set[str]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "strategic_targets",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, Target]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "proposed",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "committed",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, float]",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "cash_room",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "float",
+                  "default": {
+                    "kind": "required"
+                  }
+                },
+                {
+                  "name": "reasons",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, str]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "mechanisms",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, AttributionMechanism]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "replacements",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, str]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "trace",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, dict[str, Any]]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "recovery_targets",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "dict[str, Target]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                },
+                {
+                  "name": "recovery_restore_symbols",
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "annotation": "set[str]",
+                  "default": {
+                    "kind": "object",
+                    "type": "dataclasses._HAS_DEFAULT_FACTORY_CLASS",
+                    "repr": "<factory>"
+                  }
+                }
+              ],
+              "return": "None"
+            },
+            "methods": {
+              "fund": {
+                "parameters": [
+                  {
+                    "name": "self",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": null,
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "symbol",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": "str",
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "desired",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": "float",
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "phase",
+                    "kind": "KEYWORD_ONLY",
+                    "annotation": "str",
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "minimum",
+                    "kind": "KEYWORD_ONLY",
+                    "annotation": "float",
+                    "default": {
+                      "kind": "value",
+                      "value": 0.0
+                    }
+                  },
+                  {
+                    "name": "symbol_cap",
+                    "kind": "KEYWORD_ONLY",
+                    "annotation": "float | None",
+                    "default": {
+                      "kind": "value",
+                      "value": null
+                    }
+                  },
+                  {
+                    "name": "concentration_cap",
+                    "kind": "KEYWORD_ONLY",
+                    "annotation": "float | None",
+                    "default": {
+                      "kind": "value",
+                      "value": null
+                    }
+                  }
+                ],
+                "return": "bool"
+              },
+              "record": {
+                "parameters": [
+                  {
+                    "name": "self",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": null,
+                    "default": {
+                      "kind": "required"
+                    }
+                  },
+                  {
+                    "name": "symbol",
+                    "kind": "POSITIONAL_OR_KEYWORD",
+                    "annotation": "str",
+                    "default": {
+                      "kind": "required"
+                    }
+                  }
+                ],
+                "return": "dict[str, Any]"
+              }
+            },
+            "properties": [
+              "gross_cap"
+            ]
+          }
+        },
+        "dataclasses": {
+          "AllocationBook": {
+            "fields": [
+              {
+                "name": "policy",
+                "type": "PortfolioAllocator",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "type": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "type": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "type": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "type": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "type": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "prices",
+                "type": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "weights_now",
+                "type": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "owned",
+                "type": "set[str]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "strategic_targets",
+                "type": "dict[str, Target]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "proposed",
+                "type": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "committed",
+                "type": "dict[str, float]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "cash_room",
+                "type": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "reasons",
+                "type": "dict[str, str]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "mechanisms",
+                "type": "dict[str, AttributionMechanism]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "replacements",
+                "type": "dict[str, str]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "trace",
+                "type": "dict[str, dict[str, Any]]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "recovery_targets",
+                "type": "dict[str, Target]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.dict"
+                }
+              },
+              {
+                "name": "recovery_restore_symbols",
+                "type": "set[str]",
+                "default": {
+                  "kind": "factory",
+                  "callable": "builtins.set"
+                }
+              }
+            ]
+          }
+        },
+        "enums": {}
+      },
+      "uquant.portfolio.recovery.current_cohort": {
+        "path": "uquant/portfolio/recovery/current_cohort.py",
+        "public_names": [
+          "allocate_confirmed_recovery"
+        ],
+        "functions": {
+          "allocate_confirmed_recovery": {
+            "parameters": [
+              {
+                "name": "book",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AllocationBook",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "opportunity",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Opportunity",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "frozen",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          }
+        },
+        "classes": {},
+        "dataclasses": {},
+        "enums": {}
       }
     },
     "flat_config_serialization": {
@@ -95408,7 +96050,6 @@
         "strategic_reversal_max_ret240",
         "strategic_reversal_min_ret5",
         "strategic_reversal_min_median_ret20",
-        "strategic_reversal_max_tech_ret120",
         "strategic_long_cycle_min_ret20",
         "strategic_long_cycle_min_ret60",
         "strategic_long_cycle_min_ret120",
@@ -95677,7 +96318,6 @@
         "strategic_reversal_max_ret240": -0.15,
         "strategic_reversal_min_ret5": 0.05,
         "strategic_reversal_min_median_ret20": -0.05,
-        "strategic_reversal_max_tech_ret120": -0.01,
         "strategic_long_cycle_min_ret20": -0.05,
         "strategic_long_cycle_min_ret60": 0.0,
         "strategic_long_cycle_min_ret120": 0.0,
@@ -95855,7 +96495,7 @@
         "risk_overlay_enabled": true,
         "fail_closed": true
       },
-      "sha256": "ff491f722c3f84211eda9953cce1309392f7a89bb86bcc1e2cb33232580d4a26"
+      "sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51"
     },
     "account_state_schema": {
       "schema_version": 8,
@@ -96227,7 +96867,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "2b8a8c9e08f89748c8d5fb32aee211026de762715ca2baeb2049051e073392ae",
+  "contract_sha256": "861fa5d59b2cd9fb726b78f423b5f6f6145a48d4138c5f6add131110eee831db",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

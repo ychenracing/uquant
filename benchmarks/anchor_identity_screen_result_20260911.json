@@ -1,0 +1,157 @@
+{
+  "status": "REJECTED_NO_TARGET_IMPROVEMENT",
+  "rows": [
+    {
+      "id": "new-offset20-remove_all_three",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 0.8718030613343799,
+        "max_drawdown": 0.2644605668082183,
+        "account_orders": 15,
+        "fees": 2920.1293312400003,
+        "slippage_cost": 5849.747999999546,
+        "annual_turnover": 0.833744959368669
+      },
+      "baseline_metrics": {
+        "account_orders": 15,
+        "annual_turnover": 0.833744959368669,
+        "fees": 2920.1293312400003,
+        "final_wealth": 0.8718030613343799,
+        "gross_turnover": 2.924997812,
+        "max_drawdown": 0.2644605668082183,
+        "slippage_cost": 5849.747999999546
+      },
+      "wealth_ratio": 1.0,
+      "producer": "361a495e1902d2845b4d5824f0ad90b2ecbed93d",
+      "source": "7466a6461d648b7a780abb400d49606b40b3e105336ca577f6b913603d6858b7",
+      "raw_sha256": "0e43207b069185f6df6ea6aa4ed6597d8cce70a47b41ce6c0e393e30f1d8eabf",
+      "result_seal": "086c78fb29d8a863418ca6b3c8ec8c599d305e6c1f654f136134d8b1f4a0bf85",
+      "accounting_reconciled": true
+    },
+    {
+      "id": "new-offset5-remove_all_three",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 1.481618166136426,
+        "max_drawdown": 0.26184706402677516,
+        "account_orders": 25,
+        "fees": 6355.807927148,
+        "slippage_cost": 11988.059799999246,
+        "annual_turnover": 1.6787459080969906
+      },
+      "baseline_metrics": {
+        "account_orders": 25,
+        "annual_turnover": 1.6787459080969906,
+        "fees": 6355.807927148,
+        "final_wealth": 1.481618166136426,
+        "gross_turnover": 5.9935391098999995,
+        "max_drawdown": 0.26184706402677516,
+        "slippage_cost": 11988.059799999246
+      },
+      "wealth_ratio": 1.0,
+      "producer": "361a495e1902d2845b4d5824f0ad90b2ecbed93d",
+      "source": "7466a6461d648b7a780abb400d49606b40b3e105336ca577f6b913603d6858b7",
+      "raw_sha256": "eca18c7e31c7999af831cc238fabe365fd873ba79fe6fa4c6123a9589f3bb4a9",
+      "result_seal": "1bdd042b47514fe18b77a841731f951530cfd4ef1548a6dd87b22812b35915fd",
+      "accounting_reconciled": true
+    },
+    {
+      "id": "new-offset20-no_optical",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 2.116899619087978,
+        "max_drawdown": 0.21919000408157907,
+        "account_orders": 18,
+        "fees": 4956.978424044,
+        "slippage_cost": 8624.383399999559,
+        "annual_turnover": 1.2288321064162544
+      },
+      "baseline_metrics": {
+        "account_orders": 18,
+        "annual_turnover": 1.2288321064162544,
+        "fees": 4956.978424044,
+        "final_wealth": 2.116899619087978,
+        "gross_turnover": 4.3110680097000005,
+        "max_drawdown": 0.21919000408157907,
+        "slippage_cost": 8624.383399999559
+      },
+      "wealth_ratio": 1.0,
+      "producer": "361a495e1902d2845b4d5824f0ad90b2ecbed93d",
+      "source": "7466a6461d648b7a780abb400d49606b40b3e105336ca577f6b913603d6858b7",
+      "raw_sha256": "51ec0ab3773beadfc7011b1f8b828ff97aa0785faa4d477e481b1ec302247865",
+      "result_seal": "a949f53ebe47c7479acda315a5c09d78c3ab38899a9f1ba949bb742bb63bb436",
+      "accounting_reconciled": true
+    },
+    {
+      "id": "new-nominal-champion",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554,
+        "account_orders": 14,
+        "fees": 46015.79892394601,
+        "slippage_cost": 66615.9745999966,
+        "annual_turnover": 9.26891228576709
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.26891228576709,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "gross_turnover": 33.2838213898,
+        "max_drawdown": 0.27146973146234554,
+        "slippage_cost": 66615.9745999966
+      },
+      "wealth_ratio": 1.0,
+      "producer": "361a495e1902d2845b4d5824f0ad90b2ecbed93d",
+      "source": "7466a6461d648b7a780abb400d49606b40b3e105336ca577f6b913603d6858b7",
+      "raw_sha256": "8cfbc8c41f6c1143e4529162d91dd7d09e5ef96d93c3dad7915d1c6b79ba8614",
+      "result_seal": "883aa0731b9233d3d2ab29d1f70ec50e0cd16bb29986438c17aaa7622a3302de",
+      "accounting_reconciled": true
+    },
+    {
+      "id": "full",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 29.717003593409824,
+        "max_drawdown": 0.27147361646156465,
+        "account_orders": 22,
+        "fees": 65928.056280352,
+        "slippage_cost": 101142.05689999806,
+        "annual_turnover": 14.075050810755696
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 14.075050810755696,
+        "fees": 65928.056280352,
+        "final_wealth": 29.717003593409824,
+        "gross_turnover": 50.54222791135,
+        "max_drawdown": 0.27147361646156465,
+        "slippage_cost": 101142.05689999806
+      },
+      "wealth_ratio": 1.0,
+      "producer": "361a495e1902d2845b4d5824f0ad90b2ecbed93d",
+      "source": "7466a6461d648b7a780abb400d49606b40b3e105336ca577f6b913603d6858b7",
+      "raw_sha256": "31e73bf1ab4c0826c8358a34dd73e08eef8d7bb9c4e3d29cf30f3bb56bb4e2c8",
+      "result_seal": "3f7535f9e895f0a217f8e0d6571413eef0b076db3b9731ebe987ab5f9610439e",
+      "accounting_reconciled": true
+    }
+  ],
+  "not_final_acceptance": true,
+  "reason": "Three of four preregistered target conditions unchanged; at most one can improve, fewer than required two. All five completed screen accounts reproduce Z wealth, drawdown and orders.",
+  "final_acceptance_run": false,
+  "archive": {
+    "library_file_id": "libfile_ed14138230a481918225911ff537ff2e",
+    "file_id": "file_00000000dc1c81f582b14f023d215aca",
+    "filename": "uquant_anchor_identity_screen_20260911.tar.gz",
+    "bytes": 77042772,
+    "sha256": "49159dff73671b6832fb02298f6d51f6c9423586a0cb3ab26370acfab34ce330",
+    "verified_files": 31,
+    "upload_status": "succeeded"
+  }
+}

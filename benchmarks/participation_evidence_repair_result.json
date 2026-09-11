@@ -1,0 +1,274 @@
+{
+  "scope": "participation proof only, immutable prior raw; full continuity correctly rejects a different production source",
+  "raw_file_sha256": "ba9053fc49327ffa659444eb568150ab1ce65c9c242e5bc1c9b583fa7c192044",
+  "raw_production_source": "a762b7434b497c4307523379c08c5bde9d50ad5b081c1f73a11bfc14f525c2ce",
+  "old_status": "FAIL",
+  "old_reason": "CORE participation lacks current unfrozen capital authority",
+  "status": "PASS",
+  "error": "",
+  "admissions": [
+    {
+      "owner_symbol": "sz300223",
+      "industry_at_entry": "semicap",
+      "admission_session": "2023-01-19",
+      "first_fill_session": "2023-01-20",
+      "order_id": "O000000002",
+      "event_id": "evt_4e8030a06bf5cf91af9c898bf9f8b40ca5f9b029dfa55f0a965de67f32c01ecb",
+      "grant_id": "grant_c36b0b1ce7249b733873d4808a08fc4ede9b599ec1ff69300bba52f58b954687",
+      "epoch_id": "epoch_9b2f898df5588f1267d1cb9743623682ce93d38438539182b7b60e93b0cbb784",
+      "origin_subsystem": "STRATEGIC",
+      "physical_fill_sha256": "53ca8488b5bde5da41f47ea9f83d2474cbf63e766d79ece117052cb1c43d7a23",
+      "independent_entry": null,
+      "closed_session": "2023-05-08"
+    },
+    {
+      "owner_symbol": "sh688200",
+      "industry_at_entry": "semicap",
+      "admission_session": "2023-02-06",
+      "first_fill_session": "2023-02-07",
+      "order_id": "O000000003",
+      "event_id": "evt_b272edbcd66ae48781675babc63086650e3b8f42bbc8a8509c1ebf535e3fd493",
+      "grant_id": "",
+      "epoch_id": "",
+      "origin_subsystem": "LEADER",
+      "physical_fill_sha256": "44d005e63737caaf2be9d864a8861070b8b891dd80d239ea05f7303eafc4ded6",
+      "independent_entry": {
+        "qualification": {
+          "as_of": "2023-02-06",
+          "block": "READY",
+          "confirmations": {
+            "established": 11
+          },
+          "qualification_evidence_sha256": "945dab7dd5ba9afbf4695a6360d84f5ceaebb386bde1e6c1d54175cbe647c625",
+          "qualification_quorum": "FULL_COHORT",
+          "qualification_route": "established",
+          "qualification_signature": "strategic_qualification:SECULAR:sh688200:equipment,sh688256:compute,sz300394:optical:evidence=established",
+          "required_confirmation": 2,
+          "witnesses": [
+            "sh688200",
+            "sh688256",
+            "sz300394"
+          ]
+        },
+        "capital_budget": {
+          "accepted": true,
+          "cash_room": 0.4170840815191143,
+          "correlation_cluster": [
+            "sh688072",
+            "sh688200"
+          ],
+          "correlation_room": 0.5644145148815289,
+          "desired_increment": 0.4,
+          "effective_increment_room": 0.3670840815191143,
+          "funded_increment": 0.3670840815191143,
+          "gross_room": 0.41708408151911436,
+          "industry_room": 0.3670840815191143,
+          "minimum_increment": 0.05,
+          "phase": "CORE_ADMISSION",
+          "position_slots": 3,
+          "reserved_for_intent": 0.0,
+          "symbol_room": 0.6,
+          "unreserved_cash": 0.4170840815191143
+        },
+        "gross_cap": 1.0
+      },
+      "closed_session": "2023-02-21"
+    },
+    {
+      "owner_symbol": "sh688256",
+      "industry_at_entry": "compute",
+      "admission_session": "2023-02-06",
+      "first_fill_session": "2023-02-07",
+      "order_id": "O000000004",
+      "event_id": "evt_6fe201cad905d754397cf1782e538347dbc3a4fa95f49115708db1e71fac9d66",
+      "grant_id": "",
+      "epoch_id": "",
+      "origin_subsystem": "LEADER",
+      "physical_fill_sha256": "bbb725984f6680aea3d5daafe9fb15494ca5c743ba814820bae996470c8c0f0a",
+      "independent_entry": {
+        "qualification": {
+          "as_of": "2023-02-06",
+          "block": "READY",
+          "confirmations": {
+            "established": 3
+          },
+          "qualification_evidence_sha256": "945dab7dd5ba9afbf4695a6360d84f5ceaebb386bde1e6c1d54175cbe647c625",
+          "qualification_quorum": "FULL_COHORT",
+          "qualification_route": "established",
+          "qualification_signature": "strategic_qualification:SECULAR:sh688200:equipment,sh688256:compute,sz300394:optical:evidence=established",
+          "required_confirmation": 2,
+          "witnesses": [
+            "sh688200",
+            "sh688256",
+            "sz300394"
+          ]
+        },
+        "capital_budget": {
+          "accepted": true,
+          "cash_room": 0.6170840815191143,
+          "correlation_cluster": [
+            "sh688256"
+          ],
+          "correlation_room": 0.75,
+          "desired_increment": 0.2,
+          "effective_increment_room": 0.6,
+          "funded_increment": 0.2,
+          "gross_room": 0.6170840815191143,
+          "industry_room": 0.75,
+          "minimum_increment": 0.05,
+          "phase": "CORE_ADMISSION",
+          "position_slots": 4,
+          "reserved_for_intent": 0.0,
+          "symbol_room": 0.6,
+          "unreserved_cash": 0.6170840815191143
+        },
+        "gross_cap": 1.0
+      },
+      "closed_session": "2023-06-29"
+    },
+    {
+      "owner_symbol": "sz300394",
+      "industry_at_entry": "optical",
+      "admission_session": "2023-03-06",
+      "first_fill_session": "2023-03-07",
+      "order_id": "O000000006",
+      "event_id": "evt_3cb4b49f3d35b298607a20533c75cb95f31db2a8a870680637544f01fab4b993",
+      "grant_id": "",
+      "epoch_id": "",
+      "origin_subsystem": "LEADER",
+      "physical_fill_sha256": "3f84795753ed94aa38aa7cb8be862b79e5b054e39707be2df86e8fb25cdc7802",
+      "independent_entry": {
+        "qualification": {
+          "as_of": "2023-03-06",
+          "block": "READY",
+          "confirmations": {
+            "established": 18
+          },
+          "qualification_evidence_sha256": "28e1a24e77d12f93b84316ffcacebaaa6060adb9ecf939eac7544053c65453f9",
+          "qualification_quorum": "FULL_COHORT",
+          "qualification_route": "established",
+          "qualification_signature": "strategic_qualification:SECULAR:sh688200:equipment,sh688256:compute,sz300394:optical:evidence=established",
+          "required_confirmation": 2,
+          "witnesses": [
+            "sh688200",
+            "sh688256",
+            "sz300394"
+          ]
+        },
+        "capital_budget": {
+          "accepted": true,
+          "cash_room": 0.38048064566978634,
+          "correlation_cluster": [
+            "sz300394"
+          ],
+          "correlation_room": 0.75,
+          "desired_increment": 0.5,
+          "effective_increment_room": 0.38048064566978645,
+          "funded_increment": 0.38048064566978634,
+          "gross_room": 0.38048064566978645,
+          "industry_room": 0.75,
+          "minimum_increment": 0.05,
+          "phase": "CORE_ADMISSION",
+          "position_slots": 3,
+          "reserved_for_intent": 0.0,
+          "symbol_room": 0.6,
+          "unreserved_cash": 0.38048064566978634
+        },
+        "gross_cap": 1.0
+      },
+      "closed_session": "2023-08-22"
+    },
+    {
+      "owner_symbol": "sh688082",
+      "industry_at_entry": "semicap",
+      "admission_session": "2025-06-26",
+      "first_fill_session": "2025-06-27",
+      "order_id": "O000000014",
+      "event_id": "evt_dc3bb4a5d7dba1fa05f9bdab0847b9f4acabb453c27435c165921a23bf3a2d23",
+      "grant_id": "grant_161c621514e27e62a9b8647fa25d3269b99a1d1dc2e9620cecee57677ab8e78f",
+      "epoch_id": "epoch_5bef759025a9b943b85e859f538c9f313793f9381341de1a5e79e4d23e92347c",
+      "origin_subsystem": "STRATEGIC",
+      "physical_fill_sha256": "00872b806c1db1dce921facde98cce40011501b278f1f099c46836dc6b0add2e",
+      "independent_entry": null,
+      "closed_session": "2025-11-14"
+    }
+  ],
+  "witness": {
+    "previous": {
+      "owner_symbol": "sz300223",
+      "industry_at_entry": "semicap",
+      "admission_session": "2023-01-19",
+      "first_fill_session": "2023-01-20",
+      "order_id": "O000000002",
+      "event_id": "evt_4e8030a06bf5cf91af9c898bf9f8b40ca5f9b029dfa55f0a965de67f32c01ecb",
+      "grant_id": "grant_c36b0b1ce7249b733873d4808a08fc4ede9b599ec1ff69300bba52f58b954687",
+      "epoch_id": "epoch_9b2f898df5588f1267d1cb9743623682ce93d38438539182b7b60e93b0cbb784",
+      "origin_subsystem": "STRATEGIC",
+      "physical_fill_sha256": "53ca8488b5bde5da41f47ea9f83d2474cbf63e766d79ece117052cb1c43d7a23",
+      "independent_entry": null,
+      "closed_session": "2023-05-08"
+    },
+    "successor": {
+      "owner_symbol": "sh688200",
+      "industry_at_entry": "semicap",
+      "admission_session": "2023-02-06",
+      "first_fill_session": "2023-02-07",
+      "order_id": "O000000003",
+      "event_id": "evt_b272edbcd66ae48781675babc63086650e3b8f42bbc8a8509c1ebf535e3fd493",
+      "grant_id": "",
+      "epoch_id": "",
+      "origin_subsystem": "LEADER",
+      "physical_fill_sha256": "44d005e63737caaf2be9d864a8861070b8b891dd80d239ea05f7303eafc4ded6",
+      "independent_entry": {
+        "qualification": {
+          "as_of": "2023-02-06",
+          "block": "READY",
+          "confirmations": {
+            "established": 11
+          },
+          "qualification_evidence_sha256": "945dab7dd5ba9afbf4695a6360d84f5ceaebb386bde1e6c1d54175cbe647c625",
+          "qualification_quorum": "FULL_COHORT",
+          "qualification_route": "established",
+          "qualification_signature": "strategic_qualification:SECULAR:sh688200:equipment,sh688256:compute,sz300394:optical:evidence=established",
+          "required_confirmation": 2,
+          "witnesses": [
+            "sh688200",
+            "sh688256",
+            "sz300394"
+          ]
+        },
+        "capital_budget": {
+          "accepted": true,
+          "cash_room": 0.4170840815191143,
+          "correlation_cluster": [
+            "sh688072",
+            "sh688200"
+          ],
+          "correlation_room": 0.5644145148815289,
+          "desired_increment": 0.4,
+          "effective_increment_room": 0.3670840815191143,
+          "funded_increment": 0.3670840815191143,
+          "gross_room": 0.41708408151911436,
+          "industry_room": 0.3670840815191143,
+          "minimum_increment": 0.05,
+          "phase": "CORE_ADMISSION",
+          "position_slots": 3,
+          "reserved_for_intent": 0.0,
+          "symbol_room": 0.6,
+          "unreserved_cash": 0.4170840815191143
+        },
+        "gross_cap": 1.0
+      },
+      "closed_session": "2023-02-21"
+    },
+    "relationship": "continued_holding"
+  },
+  "verification": {
+    "focused_tests": 23,
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "production_trading_changed": false,
+    "original_contract_unchanged": true,
+    "full_current_ownership_acceptance": false
+  }
+}

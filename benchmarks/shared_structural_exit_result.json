@@ -1,0 +1,284 @@
+{
+  "status": "PARTIAL_STRUCTURAL_CONTINUITY_IMPROVEMENT_PERFORMANCE_FAIL",
+  "authoritative_acceptance": false,
+  "producer": {
+    "local_commit": "c2a489f028fe8a1b5dd65e4063d3819cba8370fb",
+    "remote_commit": "ce91b23388cce189929e50fa45ce2dcc19d3fab9",
+    "tree": "5873802b58ade1e234f26dd437c9bbbc2e7f6867",
+    "economic_source": "4bd9a024200dbde9da305665d95ef9b338cf0959da8d84a7f07c294f276bf2e2"
+  },
+  "hypothesis": "Reuse the existing confirmed holding-structure exit for genuinely completed native FULL cohorts. No threshold change, CAUTION exception or breach-episode composition.",
+  "principal_accounts": [
+    {
+      "case": "full",
+      "status": "PASS",
+      "failures": [],
+      "original_failures": [
+        "champion/full order ceiling"
+      ],
+      "metrics": {
+        "final_wealth": 29.717003593409824,
+        "max_drawdown": 0.27147361646156465,
+        "account_orders": 22,
+        "fees": 65928.056280352,
+        "slippage_cost": 101142.05689999806
+      }
+    },
+    {
+      "case": "champion",
+      "status": "PASS",
+      "failures": [],
+      "original_failures": [],
+      "metrics": {
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554,
+        "account_orders": 14,
+        "fees": 46015.79892394601,
+        "slippage_cost": 66615.9745999966
+      }
+    }
+  ],
+  "removal_screens": [
+    {
+      "case": "remove_all_three",
+      "window": "continuous_ai_era",
+      "status": "PASS",
+      "failures": [],
+      "original_failures": [],
+      "metrics": {
+        "final_wealth": 1.6145477881394499,
+        "max_drawdown": 0.18930355143790023,
+        "account_orders": 20,
+        "fees": 5753.0351211,
+        "slippage_cost": 10676.388599999535
+      },
+      "result_seal": "7b63708a2c833aea38bded655343de3e0902fa0c85d364e1ec8eab2f914eca35"
+    },
+    {
+      "case": "no_optical",
+      "window": "h1_2023",
+      "status": "PASS",
+      "failures": [],
+      "original_failures": [
+        "half-year drawdown retention"
+      ],
+      "metrics": {
+        "final_wealth": 1.4409999433209701,
+        "max_drawdown": 0.23106445762600292,
+        "account_orders": 11,
+        "fees": 3336.01135806,
+        "slippage_cost": 6108.101999999675
+      },
+      "result_seal": "d80d5c42b645f6c53c5a9274bd334d1ad01cb20f75a48ee59f3371073a561088"
+    }
+  ],
+  "fixed_bull": {
+    "complete_full_profile": false,
+    "economic_source_sha256": "4bd9a024200dbde9da305665d95ef9b338cf0959da8d84a7f07c294f276bf2e2",
+    "failures": [
+      "a/bull: final_wealth below 11.544300",
+      "a/bull: max_drawdown above 0.180000",
+      "a/bull: final_wealth regressed from production champion",
+      "a/bull: max_drawdown regressed from production champion"
+    ],
+    "interval": [
+      "2025-04-01",
+      "2026-06-30"
+    ],
+    "metrics": {
+      "account_orders": 8,
+      "acute_return": null,
+      "annual_turnover": 7.973953558726819,
+      "cagr": 4.054615563037347,
+      "calmar": 16.71744116895546,
+      "final_wealth": 7.553639631084535,
+      "gross_turnover": 9.950966837749998,
+      "max_drawdown": 0.24253804885922547,
+      "sharpe": 3.152549816325859
+    },
+    "name": "a/bull",
+    "original_failures": [
+      "a/bull: final_wealth below 12.827000",
+      "a/bull: max_drawdown above 0.180000",
+      "a/bull: final_wealth regressed from production champion",
+      "a/bull: max_drawdown regressed from production champion"
+    ],
+    "runtime": {
+      "data": {
+        "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+        "files_verified": 36,
+        "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+        "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+      },
+      "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "environment": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "production": {
+        "commit": "c2a489f028fe8a1b5dd65e4063d3819cba8370fb",
+        "repository": "ychenracing/uquant",
+        "source_sha256": "36a70521796afa7c8995204e9eca523c91e6b6255d507090ab6e866d50797074"
+      }
+    },
+    "scope": "fixed_native_Performance_unit_not_full_acceptance",
+    "sessions": 302,
+    "status": "FAIL",
+    "wealth_drawdown_filled_orders_reconciled": true
+  },
+  "synthetic_cross_industry": {
+    "status": "PASS",
+    "final_wealth": 2.287569205382547,
+    "max_drawdown": 0.11586767434626832,
+    "owners": [
+      "sz300308",
+      "sh688019"
+    ],
+    "industry_transition": [
+      "optical",
+      "materials"
+    ],
+    "raw_sha256": "7975e32f231430356dc6c5dabad0ee9dc944797f508a0e8b70d94b0cbaeebf9a"
+  },
+  "tests": {
+    "native_holding_deployment": 28,
+    "lifecycle_risk_exit_settlement": 188,
+    "ruff": "PASS",
+    "mypy": "PASS"
+  },
+  "limitations": [
+    "Full and champion wealth, drawdown, fees and order count match the prior control; this does not prove every intermediate state equal.",
+    "Remove-three continuous wealth1.61455 is materially lower than the stored matched-runtime control3.67841, while drawdown improves .23403->.18930. Passing frozen floors does not erase this opportunity cost.",
+    "Fixed recovery remains7.55364/.24254 and FAIL. It has no strategic epochs, so this FULL holding change cannot repair that path.",
+    "The authorized isolated CAUTION arm also has zero strategic epochs in fixed bull and no-optical later; composition alone has no demonstrated remedy.",
+    "No full14 nominal, complete Ownership, robustness or L4 acceptance; frozen historical failures preserved."
+  ],
+  "real_continuity_diagnostic": {
+    "status": "PASS",
+    "final_wealth": 1.5448671426870102,
+    "max_drawdown": 0.24044618492815417,
+    "actual_strategic_epoch_count": 2,
+    "distinct_owners": [
+      "sh688233",
+      "sz300223"
+    ],
+    "accounting_reconciled": true,
+    "producer": {
+      "local": "9068d7e8f85777a42e30c7d05951831ea41bda25",
+      "remote": "0880dcabc3dcc223f51d2f691c53d77d7c3f7319",
+      "tree": "75335b413122b48813bb7abb7bcd97cc1758ea83",
+      "branch": "codex/shared-exit-integration-20260910"
+    },
+    "production_source_identity": "4bd9a024200dbde9da305665d95ef9b338cf0959da8d84a7f07c294f276bf2e2",
+    "cache_identity": "74e5132aca261599f66e82e7b46595a2a1ab2fb5dab4fea2bdb19ac22a6090cd",
+    "epochs": [
+      {
+        "active_session": "2023-01-20",
+        "authorization_id": "",
+        "authorization_session": "",
+        "close_reason": "owner_exit",
+        "closed_session": "2023-03-28",
+        "epoch_id": "epoch_158ffa2a5a3e29395de8a8da81235ef4dfe7c0f9a392c0ac561a4b8cf91a8060",
+        "fill_session": "2023-01-20",
+        "grant_id": "grant_8211bdbf8862513ed88d94226d78178e9e6ad4f6c7b5511746cb8e70b17468e7",
+        "grant_session": "2023-01-19",
+        "order_session": "2023-01-19",
+        "owner_symbol": "sz300223",
+        "previous_epoch_id": "",
+        "previous_grant_id": "",
+        "qualification_quorum": "FULL_COHORT",
+        "qualification_route": "reversal_industry",
+        "qualification_session": "2023-01-19",
+        "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sh688072:equipment,sh688120:equipment,sz300223:equipment:evidence=reversal_industry",
+        "realized_status": "CLOSED",
+        "target_session": "2023-01-19"
+      },
+      {
+        "active_session": "2025-06-25",
+        "authorization_id": "rearm_46a5aa2e9a658ae4e607651a8da276a45563a641cc0e981bbf26c620ea86dc48",
+        "authorization_session": "2025-06-24",
+        "close_reason": "owner_exit",
+        "closed_session": "2025-08-06",
+        "epoch_id": "epoch_94e56bb9b8e0469d3ba6358c94578527e56c91fb1199cdd8af77c00d385f5867",
+        "fill_session": "2025-06-25",
+        "grant_id": "grant_2300c2166b6474e3121fd48a154e0b0ef2887da64c83b1c9f4d440b11e96ccbb",
+        "grant_session": "2025-06-24",
+        "order_session": "2025-06-24",
+        "owner_symbol": "sh688233",
+        "previous_epoch_id": "epoch_158ffa2a5a3e29395de8a8da81235ef4dfe7c0f9a392c0ac561a4b8cf91a8060",
+        "previous_grant_id": "grant_8211bdbf8862513ed88d94226d78178e9e6ad4f6c7b5511746cb8e70b17468e7",
+        "qualification_quorum": "FULL_COHORT",
+        "qualification_route": "established",
+        "qualification_session": "2025-06-24",
+        "qualification_signature": "strategic_qualification:SECULAR:sh601869:optical,sh688019:materials,sh688233:materials:evidence=established",
+        "realized_status": "CLOSED",
+        "target_session": "2025-06-24"
+      }
+    ],
+    "original_control": {
+      "final_wealth": 1.88338375540882,
+      "max_drawdown": 0.25406028413388815,
+      "actual_strategic_epoch_count": 1
+    },
+    "limits": "Real distinct successor and lower drawdown come with lower wealth; not complete Ownership acceptance."
+  },
+  "ownership_continuity_shard": {
+    "status": "PASS",
+    "source_identity": "4bd9a024200dbde9da305665d95ef9b338cf0959da8d84a7f07c294f276bf2e2",
+    "contract_sha256": "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08",
+    "raw_sha256": "97bbe16ae91fee43d28f1873b50798ca25e386dced785a3bbd5ab5a628fa8aeb",
+    "scenarios": [
+      {
+        "actual_strategic_epoch_count": 2,
+        "cache_hit": true,
+        "distinct_owners": [
+          "sh688233",
+          "sz300223"
+        ],
+        "final_wealth": 1.5448671426870102,
+        "max_drawdown": 0.24044618492815417,
+        "scenario_id": "remove-sz300502",
+        "status": "PASS"
+      },
+      {
+        "actual_strategic_epoch_count": 2,
+        "cache_hit": true,
+        "distinct_owners": [
+          "sh688233",
+          "sz300223"
+        ],
+        "final_wealth": 1.5448671426870102,
+        "max_drawdown": 0.24044618492815417,
+        "scenario_id": "same-industry-crowning",
+        "status": "PASS"
+      },
+      {
+        "actual_strategic_epoch_count": 2,
+        "cache_hit": false,
+        "distinct_owners": [
+          "sh688019",
+          "sz300308"
+        ],
+        "final_wealth": 2.287569205382547,
+        "max_drawdown": 0.11586767434626832,
+        "scenario_id": "cross-industry-crowning",
+        "status": "PASS"
+      },
+      {
+        "actual_strategic_epoch_count": 1,
+        "cache_hit": false,
+        "distinct_owners": [
+          "sz300308"
+        ],
+        "final_wealth": 1.176691401433819,
+        "max_drawdown": -0.0,
+        "scenario_id": "failed-first-grant",
+        "status": "PASS"
+      }
+    ],
+    "scope": "Full continuity shard only, not complete Ownership or total economic acceptance"
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "status": "READ_ONLY_POLICY_CONSTRAINT_AUDIT",
+  "producer": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+  "economic_source": "a39a9542df857fee4ce1f58b32d9f3123aa94fdfdf21452abc046c57ac0e7313",
+  "parameters": {
+    "transition_damage_repair": 0.38,
+    "operating_dd_caution": 0.08,
+    "capital_budget_level2_dd": 0.12,
+    "capital_budget_level3_dd": 0.16,
+    "capital_dd_crisis": 0.2,
+    "capital_budget_repair_days": 5
+  },
+  "interpretation": "Real held books can remain capital-frozen despite the published non-drawdown repair conditions. This is the explicit drawdown guard, not a missing clock or an authorized flat-book certificate. These are overlapping historical observations, not hypothetical profits or permission to release capital. No economic counterfactual executed.",
+  "rows": [
+    {
+      "case": "champion",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/champion/observations.jsonl.gz",
+      "source_file_sha256": "6c006dbbc1fbfdb077bc71a859e654c3179b195e66a7c29f913ffe9d25af5f9f",
+      "drawdown_only_ladder_block_days": 162,
+      "longest_consecutive_observed_block": 14
+    },
+    {
+      "case": "full",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/full/observations.jsonl.gz",
+      "source_file_sha256": "c88e972b483454daff3e38eb6e07bdc85bd4fc60c8dc256513569a838255628b",
+      "drawdown_only_ladder_block_days": 165,
+      "longest_consecutive_observed_block": 14
+    },
+    {
+      "case": "no_optical",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical/observations.jsonl.gz",
+      "source_file_sha256": "e207d1827f6f3dee36892e4f5073c80c889dec5db42e7e06c72667710f5b0f5d",
+      "drawdown_only_ladder_block_days": 297,
+      "longest_consecutive_observed_block": 50
+    },
+    {
+      "case": "no_optical-bull_crash_2025_2026",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-bull_crash_2025_2026/observations.jsonl.gz",
+      "source_file_sha256": "475221ba3996bad2e16eb399dc8ca2356fc7a1afb861e7237f55cb0f153f19fc",
+      "drawdown_only_ladder_block_days": 52,
+      "longest_consecutive_observed_block": 15
+    },
+    {
+      "case": "no_optical-h1_2023",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h1_2023/observations.jsonl.gz",
+      "source_file_sha256": "04cd344405d5153d587b4bb277271f1f4e6bc0d8936d4acaaf10e8016efc2d4f",
+      "drawdown_only_ladder_block_days": 14,
+      "longest_consecutive_observed_block": 4
+    },
+    {
+      "case": "no_optical-h1_2024",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h1_2024/observations.jsonl.gz",
+      "source_file_sha256": "bea98450c2e0c6b916fb7fe2926976557a77bacf69c0cda70fddb478552fec4e",
+      "drawdown_only_ladder_block_days": 0,
+      "longest_consecutive_observed_block": 0
+    },
+    {
+      "case": "no_optical-h2_2023",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h2_2023/observations.jsonl.gz",
+      "source_file_sha256": "e828da0ce45a6f8ada29b8f1e493aff717968d844da3615b85efa6cd01bf3ad3",
+      "drawdown_only_ladder_block_days": 0,
+      "longest_consecutive_observed_block": 0
+    },
+    {
+      "case": "no_optical-h2_2024",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/no_optical-h2_2024/observations.jsonl.gz",
+      "source_file_sha256": "92ef0be1681c39c8fb566ab678dc949162d8b80d9a33b43ce22593c4aec0c827",
+      "drawdown_only_ladder_block_days": 0,
+      "longest_consecutive_observed_block": 0
+    },
+    {
+      "case": "remove_all_three",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three/observations.jsonl.gz",
+      "source_file_sha256": "5c4eb70c78e119f3c187e6ca430b7748642d614473061f33cd15cb3930a15a41",
+      "drawdown_only_ladder_block_days": 62,
+      "longest_consecutive_observed_block": 28
+    },
+    {
+      "case": "remove_all_three-bull_crash_2025_2026",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-bull_crash_2025_2026/observations.jsonl.gz",
+      "source_file_sha256": "ce720473dba606c3c44a7a5f5adee18f5a7f531a6022ceb662a84cac246119f7",
+      "drawdown_only_ladder_block_days": 23,
+      "longest_consecutive_observed_block": 7
+    },
+    {
+      "case": "remove_all_three-h1_2023",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h1_2023/observations.jsonl.gz",
+      "source_file_sha256": "31d0f2991e6948b7c8e548d987e36b37007453a9a68349155ccd7686b44a163a",
+      "drawdown_only_ladder_block_days": 17,
+      "longest_consecutive_observed_block": 6
+    },
+    {
+      "case": "remove_all_three-h1_2024",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h1_2024/observations.jsonl.gz",
+      "source_file_sha256": "e3a30bcb027d0ea4cb1db2dcd3852cbc97956b8d171fab3de35955e3c850f01f",
+      "drawdown_only_ladder_block_days": 0,
+      "longest_consecutive_observed_block": 0
+    },
+    {
+      "case": "remove_all_three-h2_2023",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h2_2023/observations.jsonl.gz",
+      "source_file_sha256": "d727f9e67d8d86579b692feebf7a24b934bb2329970858266ebe2617d2632f39",
+      "drawdown_only_ladder_block_days": 0,
+      "longest_consecutive_observed_block": 0
+    },
+    {
+      "case": "remove_all_three-h2_2024",
+      "source_file": "/workspace/scratch/100af34dc020/runs-20260910/tactical-settled-clock/nominal/remove_all_three-h2_2024/observations.jsonl.gz",
+      "source_file_sha256": "2d88d04b75f438421e71234669562968e32af58e9f9ef6808dc536970a3269e4",
+      "drawdown_only_ladder_block_days": 0,
+      "longest_consecutive_observed_block": 0
+    }
+  ],
+  "raw_archive": "shared_structural_exit_archive.json -> additional_screens -> evidence/held-capital-audit.json"
+}

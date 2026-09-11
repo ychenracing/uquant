@@ -1,0 +1,360 @@
+{
+  "producer": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+  "historical_only": true,
+  "accounts": [
+    {
+      "case": "champion",
+      "flat_days": 33,
+      "flat_ready_days": 1,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 1
+        }
+      ],
+      "funded_ready_dates": [
+        "2023-01-04"
+      ]
+    },
+    {
+      "case": "full",
+      "flat_days": 30,
+      "flat_ready_days": 1,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 1
+        }
+      ],
+      "funded_ready_dates": [
+        "2023-01-04"
+      ]
+    },
+    {
+      "case": "no_optical",
+      "flat_days": 31,
+      "flat_ready_days": 2,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 2
+        }
+      ],
+      "funded_ready_dates": [
+        "2023-01-19"
+      ]
+    },
+    {
+      "case": "no_optical-bull_crash_2025_2026",
+      "flat_days": 218,
+      "flat_ready_days": 15,
+      "ready_repair_without_order": [
+        {
+          "date": "2026-06-22",
+          "risk": "NORMAL",
+          "repair_status": "READY",
+          "healthy_sessions": 20,
+          "repair_rejection": [],
+          "rearm_status": "OBSERVING",
+          "orders": [],
+          "ready_symbols": {
+            "sh688146": {
+              "as_of": "2026-06-22",
+              "block": "READY",
+              "confirmations": {
+                "leader_tenure": 48
+              },
+              "qualification_quorum": "ORDINARY_CORE",
+              "qualification_route": "mature_core",
+              "required_confirmation": 5
+            },
+            "sh688300": {
+              "as_of": "2026-06-22",
+              "block": "READY",
+              "confirmations": {
+                "leader_tenure": 30
+              },
+              "qualification_quorum": "ORDINARY_CORE",
+              "qualification_route": "mature_core",
+              "required_confirmation": 5
+            },
+            "sh688498": {
+              "as_of": "2026-06-22",
+              "block": "READY",
+              "confirmations": {
+                "leader_tenure": 201
+              },
+              "qualification_quorum": "ORDINARY_CORE",
+              "qualification_route": "mature_core",
+              "required_confirmation": 5
+            },
+            "sz002281": {
+              "as_of": "2026-06-22",
+              "block": "READY",
+              "confirmations": {
+                "leader_tenure": 45
+              },
+              "qualification_quorum": "ORDINARY_CORE",
+              "qualification_route": "mature_core",
+              "required_confirmation": 5
+            }
+          }
+        }
+      ],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 1
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [
+            "OPPORTUNITY_NOT_TREND"
+          ],
+          "days": 6
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "ACCUMULATING",
+          "repair_rejection": [],
+          "days": 7
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "READY",
+          "repair_rejection": [],
+          "days": 1
+        }
+      ],
+      "funded_ready_dates": [
+        "2025-07-24"
+      ]
+    },
+    {
+      "case": "no_optical-h1_2023",
+      "flat_days": 13,
+      "flat_ready_days": 2,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 2
+        }
+      ],
+      "funded_ready_dates": [
+        "2023-01-19"
+      ]
+    },
+    {
+      "case": "no_optical-h1_2024",
+      "flat_days": 62,
+      "flat_ready_days": 7,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "ACCUMULATING",
+          "repair_rejection": [],
+          "days": 7
+        }
+      ],
+      "funded_ready_dates": []
+    },
+    {
+      "case": "no_optical-h2_2023",
+      "flat_days": 43,
+      "flat_ready_days": 0,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [],
+      "funded_ready_dates": []
+    },
+    {
+      "case": "no_optical-h2_2024",
+      "flat_days": 16,
+      "flat_ready_days": 4,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 4
+        }
+      ],
+      "funded_ready_dates": [
+        "2024-07-22"
+      ]
+    },
+    {
+      "case": "remove_all_three",
+      "flat_days": 719,
+      "flat_ready_days": 60,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 2
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [
+            "RISK_REFERENCE_UNAVAILABLE",
+            "REFERENCE_COVERAGE_INCOMPLETE"
+          ],
+          "days": 8
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [
+            "OPPORTUNITY_NOT_TREND"
+          ],
+          "days": 13
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "ACCUMULATING",
+          "repair_rejection": [],
+          "days": 33
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "CONSUMED",
+          "repair_rejection": [],
+          "days": 2
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "RESET",
+          "repair_rejection": [
+            "ACTIVE_EPOCH",
+            "NONTERMINAL_EPOCH",
+            "NONTERMINAL_GRANT",
+            "LIVE_CAPITAL_AUTHORITY"
+          ],
+          "days": 1
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [
+            "RISK_VOTES"
+          ],
+          "days": 1
+        }
+      ],
+      "funded_ready_dates": [
+        "2023-01-19",
+        "2025-06-25",
+        "2026-04-24"
+      ]
+    },
+    {
+      "case": "remove_all_three-bull_crash_2025_2026",
+      "flat_days": 288,
+      "flat_ready_days": 8,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 1
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [
+            "OPPORTUNITY_NOT_TREND"
+          ],
+          "days": 6
+        },
+        {
+          "risk": "NORMAL",
+          "repair_status": "CONSUMED",
+          "repair_rejection": [],
+          "days": 1
+        }
+      ],
+      "funded_ready_dates": [
+        "2025-08-01",
+        "2026-04-22"
+      ]
+    },
+    {
+      "case": "remove_all_three-h1_2023",
+      "flat_days": 15,
+      "flat_ready_days": 2,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 2
+        }
+      ],
+      "funded_ready_dates": [
+        "2023-01-19"
+      ]
+    },
+    {
+      "case": "remove_all_three-h1_2024",
+      "flat_days": 62,
+      "flat_ready_days": 7,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "ACCUMULATING",
+          "repair_rejection": [],
+          "days": 7
+        }
+      ],
+      "funded_ready_dates": []
+    },
+    {
+      "case": "remove_all_three-h2_2023",
+      "flat_days": 43,
+      "flat_ready_days": 0,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [],
+      "funded_ready_dates": []
+    },
+    {
+      "case": "remove_all_three-h2_2024",
+      "flat_days": 16,
+      "flat_ready_days": 4,
+      "ready_repair_without_order": [],
+      "ready_day_conditions": [
+        {
+          "risk": "NORMAL",
+          "repair_status": "BLOCKED",
+          "repair_rejection": [],
+          "days": 4
+        }
+      ],
+      "funded_ready_dates": [
+        "2024-07-22"
+      ]
+    }
+  ],
+  "raw_evidence": "caution_selected_nominal_archive.json -> evidence/nominal/<case>/observations/<date>.json"
+}

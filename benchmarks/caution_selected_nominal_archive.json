@@ -1,0 +1,13 @@
+{
+  "path": "/workspace/scratch/100af34dc020/uquant_caution_selected_nominal_evidence_20260910.tar.gz",
+  "bytes": 217983940,
+  "sha256": "453505d1f4c95d26537977511ccb0baeb8b9c145aaf6edc52db16430b0d646b8",
+  "verified_files": 5293,
+  "status": "ALL_MEMBERS_VERIFIED",
+  "file_id": "file_00000000030481f7b46192c035d3bb16",
+  "library_file_id": "libfile_bb3ed0d2cd108191bae403ef4beeaeec",
+  "saved": true,
+  "producer_local": "7698a22bcb5c002b4259e5f5d3deb04615f9b806",
+  "producer_remote": "ece5fd866e63ea7d43e5b09daeb56084af79fb27",
+  "tree": "5a3fd6d8a3a4c8766807dbe15ace565e54b5e250"
+}

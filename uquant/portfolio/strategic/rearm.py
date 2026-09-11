@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from copy import deepcopy
+from datetime import date as calendar_date
 from types import MappingProxyType
 
 from ...config import SystemConfig, config_fingerprint
@@ -842,7 +843,7 @@ def authorize_ordinary_cash_rearm(
     repair = account.flat_book_capital_repair
     confirmations = certificate.get("confirmations")
     mature = certificate.get("qualification_quorum") == "MATURE_CORE"
-    confirmation_key = "leader_tenure" if mature else "independent_core"
+    confirmation_key = "credible_maturity" if mature else "independent_core"
     route = "mature_core" if mature else "independent_core"
     inputs = risk.evidence.get("decision_input_identity")
     if (not isinstance(inputs, dict) or inputs.get("as_of") != observed_session
@@ -870,6 +871,10 @@ def authorize_ordinary_cash_rearm(
                 or not isinstance(market, dict) or market.get("as_of") != observed_session
                 or market.get("repair_mature_entry_open") is not True
                 or symbol not in market.get("credible_symbols", ())
+                or account.candidate_tenure.get("ordinary_repair_maturity_session")
+                != calendar_date.fromisoformat(observed_session).toordinal()
+                or confirmations.get("credible_maturity")
+                != account.replacement_tenure.get("ordinary_repair_maturity:" + symbol, 0)
                 or account.leader_tenure.get(symbol, 0) < cfg.leader_tenure_days):
             return False
     proof = {**certificate, "candidate": symbol, "code_hash": account.code_hash,

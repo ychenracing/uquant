@@ -69,3 +69,20 @@ def test_mature_repair_remainder_loses_permission_when_current_market_weakens():
     assert account.order_ledger[0].status == "CANCELLED"
     restored = account_from_dict(asdict(account))
     assert restored.positions[SYMBOL].shares == shares
+
+
+def test_repair_needs_consecutive_credible_maturity_not_old_low_quality_tenure():
+    policy, account, dates, panel, leaders, risk = _mature_repair()
+    weak = {SYMBOL: replace(leaders[SYMBOL], score=.81)}
+    assert not _decide(policy, account, dates[0], panel, weak, risk)
+    for date in dates[1:5]:
+        assert not _decide(policy, account, date, panel, leaders, risk)
+        assert not _decide(policy, account, date, panel, leaders, risk)
+        account = account_from_dict(asdict(account))
+        assert not account.pending_orders
+    assert _decide(policy, account, dates[5], panel, leaders, risk)
+    state = account.strategic_cash_rearm
+    assert state.consumed_order is not None
+    proof = next(p.authoritative_state for p in state.predicate_results if p.code == 'current_mature_core')
+    assert proof['confirmations']['credible_maturity'] == policy.cfg.leader_tenure_days
+    assert account.replacement_tenure.get(f'strategic_eligibility:independent_core:{SYMBOL}',0) == 0

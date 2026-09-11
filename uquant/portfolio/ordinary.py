@@ -62,6 +62,26 @@ def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
     return local_open
 
 
+def observe_repair_maturity(self: PortfolioAllocator, *, account: AccountState,
+                            date: pd.Timestamp, market: dict[str, Any],
+                            user_panel: dict[str, pd.DataFrame]) -> None:
+    """Confirm the repair route's own credible maturity, not weaker leader tenure."""
+    key, prefix = "ordinary_repair_maturity_session", "ordinary_repair_maturity:"
+    session, previous = date.toordinal(), account.candidate_tenure.get(key, 0)
+    if session < previous:
+        raise ValueError("repair maturity observations must be causal")
+    clock = self._session_clock(user_panel, date)
+    earlier = clock[clock < date]
+    prior = earlier[-1].toordinal() if len(earlier) else 0
+    credible = set(market.get("credible_symbols", ())) if market.get("as_of") == str(date.date()) else set()
+    known = {name[len(prefix):] for name in account.replacement_tenure if name.startswith(prefix)}
+    for symbol in known | credible:
+        count = account.replacement_tenure.get(prefix + symbol, 0) if previous in {prior, session} else 0
+        account.replacement_tenure[prefix + symbol] = (
+            min(self.cfg.leader_tenure_days, count + int(previous != session)) if symbol in credible else 0)
+    account.candidate_tenure[key] = session
+
+
 def ordinary_core_entry(
     self: PortfolioAllocator, *, symbol: str, score: LeaderScore, date: pd.Timestamp,
     user_panel: dict[str, pd.DataFrame], account: AccountState, confirmation_days: int,
@@ -110,17 +130,18 @@ def ordinary_repair_entry(
     if strict.get("block") == "READY":
         return strict
     tenure = account.leader_tenure.get(symbol, 0)
+    credible = account.replacement_tenure.get("ordinary_repair_maturity:" + symbol, 0)
     if (market is None or market.get("as_of") != str(date.date())
             or market.get("repair_mature_entry_open") is not True
             or symbol not in market.get("credible_symbols", ()) or not score.mature
-            or tenure < self.cfg.leader_tenure_days):
+            or tenure < self.cfg.leader_tenure_days or credible < self.cfg.leader_tenure_days):
         return strict
     return candidate_entry(
         self, symbol=symbol, score=score, date=date, user_panel=user_panel,
         account=account, confirmation_days=confirmation_days,
         certificate={"qualification_route": "mature_core", "qualification_quorum": "MATURE_CORE",
                      "required_confirmation": self.cfg.leader_tenure_days,
-                     "confirmations": {"leader_tenure": tenure}, "as_of": str(date.date()),
+                     "confirmations": {"leader_tenure": tenure, "credible_maturity": credible}, "as_of": str(date.date()),
                      "ordinary_market": dict(market)},
     )
 

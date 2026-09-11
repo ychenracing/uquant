@@ -1,0 +1,115 @@
+{
+  "research_only": true,
+  "production_ready": false,
+  "original_frame_counts": {
+    "unresolved": 25,
+    "supported": 23,
+    "outside_scope": 42
+  },
+  "original_ledger_sha256": "d2f39f1dbfa94965b5fa3b53d69ecc1d55ff4e2dffe185a557ecc9f3a1204e5e",
+  "new_information": "Beyond the old generic server+cloud clue, the same original2022H1 report identifies Gem-series servers, Tourmaline workstations, Crystal encrypted drives, and an awarded SDIC storage expansion project. These establish named hardware products and actual supply, the precise previously unresolved question.",
+  "reviewed_disposition": {
+    "symbol": "sz300188",
+    "name": "美亚柏科",
+    "status": "supported_research_compute",
+    "candidate_industry": "compute",
+    "reason": "子公司有服务器和云平台供给线索，需核实产品及实际业务边界。",
+    "evidence_anchor": "服务器+云平台",
+    "source_url": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?stockid=300188&id=8499408",
+    "source_sha256": "6e7fffcc6d4a365737fc7e56e5e14a17e342ccc22c136ec45a0c1b1bfd0c9404",
+    "report_title": "美亚柏科：2022年半年度报告",
+    "disclosed_date": "2022-08-30",
+    "review_as_of": "2022-08-31",
+    "not_before": "2022-09-01",
+    "production_admitted": false,
+    "business_exit_history_verified": false,
+    "evidence_terms": [
+      "宝石",
+      "碧玺石",
+      "水晶石",
+      "中标国投集团存储扩容项目"
+    ]
+  },
+  "unchanged": "Other24 unresolved retained; original23/42/25 ledger immutable. No stock returns, fund weights or subsequent performance used to decide this review. No claim of exhaustive historical membership.",
+  "new_research_counts": {
+    "supported": 24,
+    "outside_scope": 42,
+    "unresolved": 24
+  },
+  "fixed_price_pilot": {
+    "symbol": "sz300188",
+    "start": "2022-01-01",
+    "end": "2026-08-05",
+    "purpose": "Availability, source schema, same-units corporate action support; no return-ranked inclusion."
+  },
+  "admission": "Research only, not before2022-09-01; subsequent actual historical exits and corporate actions still need validation.",
+  "continuation": "If original price/action evidence unavailable, retain bounded source blocker and continue E/F. Do not add another company merely because its prices are easier.",
+  "annual_membership_sources": [
+    {
+      "title": "2025年年度报告",
+      "disclosed_date": "2026-04-18",
+      "url": "https://static.cninfo.com.cn/finalpage/2026-04-18/1225120062.PDF",
+      "sha256": "7d3a82a92f9f676376cc3b0901ca12dfbf778f1119ab69dc71ad0e3748e2375d",
+      "status": "original_fetched",
+      "path": "/workspace/scratch/ae548cbb4004/historical_actions_pilot/membership_reports/1225120062.pdf"
+    },
+    {
+      "title": "2024年年度报告",
+      "disclosed_date": "2025-03-31",
+      "url": "https://static.cninfo.com.cn/finalpage/2025-03-31/1222950752.PDF",
+      "sha256": "b89ca110cd9cac7b1bddfe9c46de21c4b04f0456fddc446da2b8989fb76eff39",
+      "status": "original_fetched",
+      "path": "/workspace/scratch/ae548cbb4004/historical_actions_pilot/membership_reports/1222950752.pdf"
+    },
+    {
+      "title": "2023年年度报告",
+      "disclosed_date": "2024-04-13",
+      "url": "https://static.cninfo.com.cn/finalpage/2024-04-13/1219596350.PDF",
+      "sha256": "f76c7f192d28f58cbaea64338a94ddeb6557207ffd2f4210f9fd2ec2bb8ebc6b",
+      "status": "original_fetched",
+      "path": "/workspace/scratch/ae548cbb4004/historical_actions_pilot/membership_reports/1219596350.pdf"
+    },
+    {
+      "title": "2022年年度报告",
+      "disclosed_date": "2023-04-01",
+      "url": "https://static.cninfo.com.cn/finalpage/2023-04-01/1216302851.PDF",
+      "sha256": "248c4f4c45797beec78ff1b4ae5c941122171d6deaa2f623b6ddcfb9218e0611",
+      "status": "original_fetched",
+      "path": "/workspace/scratch/ae548cbb4004/historical_actions_pilot/membership_reports/1216302851.pdf"
+    }
+  ],
+  "membership_limit": "Original annual reports for2022-2025 retain controlled Meiya Guoyun, named server and workstation supply/development. No exit identified at those disclosure checkpoints; this is conditional fixed-cohort research, not exhaustive daily announcement/exit eligibility.",
+  "corporate_actions": [
+    {
+      "ex_date": "2021-06-18",
+      "cash_adjustment_per_share": "0.1299472",
+      "share_change_ratio": "0",
+      "original_sha256": "cffe4fdcbbbb70b333f19eecd0977951fd6f0e4d19e2a7561d6c3b5b1695bf8a"
+    },
+    {
+      "ex_date": "2022-06-17",
+      "cash_adjustment_per_share": "0.120000",
+      "share_change_ratio": "0",
+      "original_sha256": "8172e64289ae784e2a9a07435f2403c3c9537f7658179c1f59a8105f6909727a"
+    },
+    {
+      "ex_date": "2023-06-16",
+      "cash_adjustment_per_share": "0.045000",
+      "share_change_ratio": "0",
+      "original_sha256": "52a5bb367ac8ac431ad9ad05168af694bbfc52249d284531dfe5e5209012e5e2"
+    }
+  ],
+  "warmup_acquisition": "Extended to2021-01-01 before any account comparison to match existing cohort warmup; same fixed company and2026-08-05 end. Original2022 pilot preserved.",
+  "comparison_plan": {
+    "fixed_before_accounts": true,
+    "baseline": "current main economic mechanism, original23 research members",
+    "candidate": "same mechanism plus single prereviewed sz300188 compute member, effective2022-09-01",
+    "input": "Both arms use identical26-file research dataset: unchanged25 original files plus independently adjusted sz300188. No production/frozen inputs changed.",
+    "interval": [
+      "2023-01-03",
+      "2026-08-05"
+    ],
+    "configuration": "default full account, same risk/leader references as respective conditional membership",
+    "decision": "Improvement here is new-input conditional research only, cannot substitute55 fixed original acceptance accounts or reopen rejected quarter ordering. No parameter or company variants."
+  }
+}

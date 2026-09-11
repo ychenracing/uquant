@@ -1,0 +1,16 @@
+{
+  "first_different_signal_date": "2023-04-04",
+  "baseline_selected": "sh688041",
+  "candidate_selected": "sh688012",
+  "interpretation": "Same initial14 orders; fixed revenue ordering changed the later admissible core choice. Subsequent risk cuts, capital and later participation also changed. No root implementation error established; loss is a portfolio consequence, not a data-seal failure.",
+  "symbol_net_pnl_delta": {
+    "sh688012": 3856.034350080008,
+    "sh688041": -36698.00494140008,
+    "sh688146": -1243746.6675428518,
+    "sh688256": 66.88213091972284,
+    "sh688498": 79116.56967456033,
+    "sz002281": -386455.0826188801
+  },
+  "sum_delta": -1583860.268947572,
+  "wealth_cash_delta": -1583860.2689475722
+}

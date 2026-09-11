@@ -1,0 +1,12 @@
+{
+  "rows": 1354,
+  "calendar_exact": true,
+  "corporate_action_dates": [
+    "2021-06-18",
+    "2022-06-17",
+    "2023-06-16"
+  ],
+  "unchanged_parent_files": 25,
+  "new_manifest_sha256": "55b1b08fed6309e606c93c6cd8c82fff25647871b7f0c5e159d232b1aefe9e0b",
+  "research_only": true
+}

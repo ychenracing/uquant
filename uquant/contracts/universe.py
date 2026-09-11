@@ -449,8 +449,10 @@ def research_industry_input(path: Path, *, expected_sha256: str) -> Iterator[AIU
 
 
 @contextmanager
-def research_historical_cohort(ledger_path: Path) -> Iterator[AIUniverse]:
-    """Bind only the previously reviewed 23-company historical research cohort.
+def research_historical_cohort(
+    ledger_path: Path, *, coverage_supplement: Path | None = None,
+) -> Iterator[AIUniverse]:
+    """Bind the fixed23 cohort and optional independently reviewed one-member supplement.
 
     This fixed source frame is not production eligibility or an exhaustive AI
     universe. No caller-supplied reseal can admit a different company or date.
@@ -471,9 +473,26 @@ def research_historical_cohort(ledger_path: Path) -> Iterator[AIUniverse]:
             reviewed_at=parse_date(row["review_as_of"], label="historical review"),
         ) for row in payload["rows"] if row["status"] == "supported"
     ), key=lambda member: member.symbol))
-    universe = AIUniverse(members=members, sha256=canonical_sha256({
-        "schema": "fixed-historical-cohort-v2", "source_sha256": source,
-    }))
+    identity = {"schema": "fixed-historical-cohort-v2", "source_sha256": source}
+    if coverage_supplement is not None:
+        supplement_raw = coverage_supplement.read_bytes()
+        supplement_sha = hashlib.sha256(supplement_raw).hexdigest()
+        if supplement_sha != "c2e82d5bceea513e037db70ef4f33f9073078e16711be220e0accaa5ecc0b459":
+            raise ValueError("historical coverage supplement differs from reviewed source")
+        review = read_json_bytes(supplement_raw, label="historical coverage supplement")
+        row = review["reviewed_disposition"]
+        addition = UniverseMember(
+            symbol=row["symbol"], ai_domain=review["new_information"],
+            industry=row["candidate_industry"],
+            effective_from=parse_date(row["not_before"], label="historical admission"),
+            effective_to=None, tradable=True,
+            evidence=row["source_url"] + "#sha256=" + row["source_sha256"],
+            reviewed_at=parse_date(row["review_as_of"], label="historical review"),
+        )
+        members = tuple(sorted((*members, addition), key=lambda member: member.symbol))
+        identity = {**identity, "schema": "fixed-historical-cohort-coverage-v3",
+                    "supplement_sha256": supplement_sha}
+    universe = AIUniverse(members=members, sha256=canonical_sha256(identity))
     if _RESEARCH_INPUT.get() is not None:
         raise RuntimeError("research input contexts cannot be nested")
     token = _RESEARCH_INPUT.set(universe)

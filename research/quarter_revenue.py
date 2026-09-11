@@ -18,7 +18,7 @@ def original_prior(row: dict[str, Any]) -> float | None:
 
 def quarter_panel(reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Keep earliest original versions; never overwrite them with restatements."""
-    originals = {}
+    originals: dict[tuple[str, str], dict[str, Any]] = {}
     for row in sorted(reports, key=lambda r: (r['disclosed_date'] or '9999', r['source_url'])):
         if row['status'] == 'verified_numeric_original':
             originals.setdefault((row['symbol'], row['period']), row)

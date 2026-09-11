@@ -1,0 +1,39 @@
+{
+  "source": "dae2253579458f2a91ca8e601dfd815b2c3e69d74cec5a3a4a68060576354769",
+  "data": {
+    "checksums_sha256": "155dcf855d32e58869150c9711cc862bdf51e10bf389506b4d75f0bcb78e79ec",
+    "files_verified": 26,
+    "manifest_sha256": "55b1b08fed6309e606c93c6cd8c82fff25647871b7f0c5e159d232b1aefe9e0b",
+    "snapshot_id": "uquant-research-historical-coverage-v2-20260911"
+  },
+  "baseline_seal": "a4cc20a82de62d1c52118b8efaea5b1def40d9939d8c55e54501362e923ebfa2",
+  "candidate_seal": "07677dc6a90c4763a0fb9163c1887d6007fcdca1fb3490420fcdc0c47590b631",
+  "baseline_23_matches_valid_A_all_metrics": true,
+  "paired_wealth_ratio": 2.197045166001934,
+  "baseline": {
+    "final_wealth": 0.9195537777027546,
+    "max_drawdown": 0.2150959302699269,
+    "account_orders": 17
+  },
+  "candidate": {
+    "final_wealth": 2.020301182180654,
+    "max_drawdown": 0.15574819021309194,
+    "account_orders": 31
+  },
+  "new_member_attribution": {
+    "all_in_costs": 5646.860700289919,
+    "cash_fees": 1945.5397002899997,
+    "gross_transaction_value": 3701085.3539999994,
+    "open_pnl": 0.0,
+    "realized_pnl": 229999.13929971016,
+    "slippage": 3701.320999999919,
+    "total_pnl": 229999.13929971016
+  },
+  "status": "POSITIVE_CONDITIONAL_INPUT_RESEARCH_NOT_PRODUCTION_ACCEPTANCE",
+  "limitations": [
+    "single fixed historical account pair; not two independent conditions",
+    "fixed-end affine prices, not real-share corporate-action ledger",
+    "annual membership checkpoints, not complete daily historical exit eligibility",
+    "not a replacement for55 original frozen-input accounts"
+  ]
+}

@@ -44,3 +44,19 @@ def test_historical_leader_reference_uses_members_outside_production():
         scores = compute_structural_leaders({s: features for s in sorted(symbols)},
                                             as_of=dates[-1], tech=features, cfg=DEFAULT_CONFIG)
         assert set(scores) == symbols
+
+
+def test_reviewed_coverage_addition_is_fixed_and_separate(tmp_path):
+    supplement = LEDGER.parents[1] / 'historical_coverage_followup_20260911.json'
+    with research_historical_cohort(LEDGER) as original:
+        original_symbols = set(original.symbols)
+    with research_historical_cohort(LEDGER, coverage_supplement=supplement) as extended:
+        assert set(extended.symbols) == original_symbols | {'sz300188'}
+        assert extended.symbols_as_of('2022-08-31') == ()
+        assert extended.sha256 != original.sha256
+        assert decision_ai_universe() is extended
+    assert decision_ai_universe() is default_ai_universe()
+    altered = tmp_path / 'review.json'
+    altered.write_bytes(supplement.read_bytes() + b' ')
+    with pytest.raises(ValueError), research_historical_cohort(LEDGER, coverage_supplement=altered):
+        pass

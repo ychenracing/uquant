@@ -1004,7 +1004,7 @@ verify_inventory_seal = _private_inventory.verify_inventory_seal
 
 
 def build_inventory_from_immutable_git(root: Path = ROOT) -> dict[str, object]:
-    relative = _private_inventory.INVENTORY_PATH.relative_to(ROOT).as_posix()
+    relative = "artifacts/architecture_refactor/task10_private_import_remediation_inventory.json"
     baseline = subprocess.run(
         [
             "git",

@@ -80,11 +80,12 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 
 | 必需结论 | 组成 |
 |---|---|
-| `Engineering` | `quality`、`security` 与原生 `Windows smoke` 都成功后才成功；summary 总是运行 |
-| `Performance Acceptance` | 未删减的 `promotion --profile full`、精确 HEAD 与完整 provenance |
+| `Engineering` | `quality`、五个测试 shard、合并覆盖率、`security` 与原生 `Windows smoke` 都成功后才成功；summary 总是运行 |
+| `Strategic Grant Acceptance` | 授冠意图、账户、执行和身份检查及固定 native eligibility 回放 |
+| `Strategic Ownership Acceptance` | 合同列明的五个确定性 shard 与完整身份聚合 |
 | `Absolute Generalization Acceptance` | 固定八 shard、34 个 leave-one-out 场景及 production recovery/reachability 原始证据的阻断聚合；最终 `passed` 是 runner 与 capability 的合取 |
 
-旧六窗口 234-cell 矩阵只保留为手动 `Extended Economic Matrix Diagnostics`，不是
+六窗口 234-cell 矩阵只保留为手动 `Extended Economic Matrix Diagnostics`，不是
 自动 Absolute 结论的输入。Targeted 单场景只用于诊断，不能进入 final 聚合；缓存只保存
 严格身份绑定的原始 cell，special shard 和 final report 写盘后必须重新校验 seal。
 

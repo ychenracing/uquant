@@ -428,7 +428,7 @@ def test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_
         (
             "scripts/run_risk_differential.py",
             "research/risk_differential_cli.py",
-            (("preregister", {"checkout_identity": "_derive_checkout_identity"}),),
+            (("preregister", {}),),
         ),
         (
             "scripts/future_holdout.py",
@@ -436,17 +436,14 @@ def test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_
             (
                 (
                     "_compute_risk_differential_payload",
-                    {
-                        "future_holdout_trade_replay": "run_trade_cell",
-                        "future_holdout_uquant_replay": "run_uquant_cell",
-                    },
+                    {},
                 ),
             ),
         ),
         (
             "scripts/run_five_window_outperformance.py",
             "research/five_window_outperformance.py",
-            (("main", {"outperformance_build": "build"}),),
+            (("main", {}),),
         ),
         (
             "scripts/backfill_tencent_history.py",
@@ -454,10 +451,7 @@ def test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_
             (
                 (
                     "main",
-                    {
-                        "backfill_symbol": "_backfill_one",
-                        "prepend_tech_history": "_prepend_tech_proxy",
-                    },
+                    {},
                 ),
             ),
         ),
@@ -465,26 +459,35 @@ def test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_
             "scripts/run_performance_diagnostic.py",
             "research/performance_diagnostic.py",
             (
-                ("_source_provenance", {"diagnostic_git": "_git"}),
-                ("_runner_provenance", {"diagnostic_git": "_git"}),
+                ("_source_provenance", {}),
+                ("_runner_provenance", {}),
                 (
                     "_run_trace",
-                    {"diagnostic_runner_provenance": "_runner_provenance"},
+                    {},
                 ),
                 (
                     "_compare",
-                    {"diagnostic_runner_provenance": "_runner_provenance"},
+                    {},
                 ),
             ),
         ),
         (
             "scripts/run_window_outperformance.py",
             "research/window_outperformance.py",
-            (("main", {"outperformance_build": "build"}),),
+            (("main", {}),),
         ),
     ):
         current_source = (ROOT / current_path).read_text(encoding="utf-8")
         if frozen_path == "scripts/run_performance_diagnostic.py":
+            # The current runner additionally binds its actual implementation.
+            # Remove only these exact additions for the retained-body proof;
+            # runtime tests independently require both new bindings.
+            for addition in (
+                "        Path(__file__).resolve(),\n",
+                '            "research/performance_diagnostic.py",\n',
+            ):
+                assert current_source.count(addition) == 1
+                current_source = current_source.replace(addition, "", 1)
             current_source = current_source.replace(
                 "run_performance_diagnostic.py",
                 "run_phase1_diagnostic.py",

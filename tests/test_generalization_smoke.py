@@ -1,24 +1,15 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
-
 import pandas as pd
 import pytest
 
-from research import generalization_smoke as smoke_module
-from research.generalization_smoke import build_smoke_scenarios, run_generalization_smoke
+from uquant.validation.ai_era import require_ai_era_interval
 from uquant.validation.generalization import compute_pre_window_evidence
 from uquant.validation.generalization_contract import (
-    CORE_SYMBOLS,
     build_official_scenarios,
     official_windows,
 )
 from uquant.validation.universe import load_ai_universe
-
-
-def _industries() -> dict[str, str]:
-    return {member.symbol: member.industry for member in load_ai_universe().members}
 
 
 def _prices() -> dict[str, pd.Series]:
@@ -33,89 +24,36 @@ def _prices() -> dict[str, pd.Series]:
     }
 
 
-def test_smoke_adapter_selects_the_canonical_economic_window_contract() -> None:
-    """Catches revival of the old fixed 24-case/11-industry smoke matrix."""
-    scenarios = build_smoke_scenarios(
-        _prices(),
-        load_ai_universe().symbols,
-        _industries(),
-        CORE_SYMBOLS,
-        window_start="2023-01-03",
-    )
-    pit_symbols = load_ai_universe().symbols_as_of("2023-01-02")
+def test_canonical_economic_scenarios_use_only_pre_window_evidence() -> None:
+    canonical = load_ai_universe()
     evidence = compute_pre_window_evidence(
-        _prices(),
-        pit_symbols,
-        window_start="2023-01-03",
-        lookback_sessions=120,
+        _prices(), canonical.symbols_as_of("2023-01-02"),
+        window_start="2023-01-03", lookback_sessions=120,
     )
-    expected = build_official_scenarios(
-        window=official_windows(("h1_2023",))[0],
-        evidence=evidence,
+    scenarios = build_official_scenarios(
+        window=official_windows(("h1_2023",))[0], evidence=evidence,
     )
-
-    assert len(scenarios) == 32
-    assert tuple(item.name for item in scenarios) == tuple(
-        item.name for item in expected if item.economic
-    )
+    assert len([item for item in scenarios if item.economic]) == 32
 
 
-def test_smoke_adapter_rejects_duplicate_or_noncanonical_universe_rules() -> None:
-    """Catches an adapter accepting a second industry or universe source."""
-    industries = _industries()
-    industries[next(iter(industries))] = "invented"
-    with pytest.raises(ValueError, match="canonical AI universe"):
-        build_smoke_scenarios(
-            _prices(),
-            load_ai_universe().symbols,
-            industries,
-            CORE_SYMBOLS,
-            window_start="2023-01-03",
-        )
+def test_canonical_universe_rejects_changed_industry_authority(tmp_path) -> None:
+    import json
+    from pathlib import Path
+
+    source = Path(__file__).parents[1] / "uquant/contracts/resources/ai_universe_manifest.json"
+    payload = json.loads(source.read_bytes())
+    payload["members"][0]["industry"] = "invented"
+    altered = tmp_path / "universe.json"
+    altered.write_text(json.dumps(payload))
+    with pytest.raises((ValueError, RuntimeError)):
+        load_ai_universe(altered)
 
 
-def test_smoke_runner_delegates_only_an_exact_official_window(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Catches independent smoke execution or configurable random seed counts."""
-    observed: dict[str, Any] = {}
-
-    def fake_matrix(**kwargs: Any) -> Mapping[str, Any]:
-        observed.update(kwargs)
-        return {"passed": True, "cells": []}
-
-    monkeypatch.setattr(smoke_module, "run_generalization_matrix", fake_matrix)
-    result = run_generalization_smoke(
-        data_dir="fixture-data",
-        universe=load_ai_universe().symbols,
-        industries=_industries(),
-        prior_symbols=CORE_SYMBOLS,
-        start="2023-01-03",
-        end="2023-06-30",
-    )
-
-    assert result == {"passed": True, "cells": []}
-    assert observed == {
-        "data_dir": "fixture-data",
-        "window_names": ("h1_2023",),
-        "lookback_sessions": 120,
-    }
+def test_matrix_rejects_nonofficial_window_before_execution() -> None:
+    with pytest.raises(ValueError, match="unknown"):
+        official_windows(("custom-window",))
 
 
-def test_smoke_runner_rejects_pre_2023_before_delegation(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        smoke_module,
-        "run_generalization_matrix",
-        lambda **_: pytest.fail("old interval must not reach matrix execution"),
-    )
+def test_economic_interval_rejects_pre_2023() -> None:
     with pytest.raises(RuntimeError, match="cannot start before 2023-01-01"):
-        run_generalization_smoke(
-            data_dir="fixture-data",
-            universe=load_ai_universe().symbols,
-            industries=_industries(),
-            prior_symbols=CORE_SYMBOLS,
-            start="2022-01-03",
-            end="2022-06-30",
-        )
+        require_ai_era_interval("2022-01-03", "2022-06-30")

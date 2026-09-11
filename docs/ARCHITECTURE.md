@@ -259,8 +259,8 @@ canonical AI universe manifest 同时拥有点时成员与行业身份；General
 关键删除、见证者删除和 grant 失败恢复，并上传紧凑事实。
 `Absolute Generalization Acceptance` 另以六个固定 LOO shard、champion shard 和
 recovery/reachability shard封闭当前 checkout；special evidence 携可严格重建的账户、
-风险、角色、leader、qualification 与物理执行事实，Task 6/7 validator 重算结论而不信任
-producer 自报的 pass、健康 predicate 或 Task 7 之前的汇总结论。
+风险、角色、leader、qualification 与物理执行事实；专用校验器从这些原始事实重算结论，
+不信任 producer 自报的 pass、健康 predicate 或未经核验的摘要。
 完整性能和泛化矩阵保留为手动触发的 `Extended Performance Matrix` 与
 `Extended Economic Matrix`。精确窗口、矩阵、指标与复现命令由
 [性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复

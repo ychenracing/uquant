@@ -559,7 +559,18 @@ bind_ordinary_entry_authorizations(
         ast.dump(node, include_attributes=False) for node in expected
     ]
     assert {"uquant.portfolio", "uquant.portfolio.strategic.rearm"} <= fan_out
-    return fan_out - {"uquant.portfolio.strategic.rearm"}
+    industry_imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+                        and node.module == "industry"]
+    assert len(industry_imports) == 1 and industry_imports[0].level == 2
+    assert [(alias.name, alias.asname) for alias in industry_imports[0].names] == [("decision_industries", None)]
+    industry_calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+                      and isinstance(node.func, ast.Name) and node.func.id == "decision_industries"]
+    assert len(industry_calls) == 1
+    assert ast.dump(industry_calls[0]) == ast.dump(ast.parse(
+        "decision_industries(str(date.date()))", mode="eval").body)
+    assert {"uquant.contracts.universe", "uquant.industry"} <= fan_out
+    # The independently verified point-in-time lookup shares the universe authority.
+    return fan_out - {"uquant.portfolio.strategic.rearm", "uquant.industry"}
 
 
 def test_execution_facade_and_decision_fanout_are_bounded() -> None:

@@ -549,6 +549,20 @@ def test_matrix_validator_rejects_changed_producer_bytes(tmp_path: Path) -> None
         current_heads_main(["--adapter", str(producer)])
 
 
+def test_audited_matrix_cannot_be_modified_and_resealed(tmp_path: Path) -> None:
+    payload = json.loads(
+        (evidence_root() / "benchmarks/current_heads_competitor_matrix.json").read_bytes()
+    )
+    payload["legacy_source_diagnostic"]["evidence_class"] = "changed"
+    payload["payload_sha256"] = canonical_sha256(
+        {key: value for key, value in payload.items() if key != "payload_sha256"}
+    )
+    changed = tmp_path / "changed.json"
+    changed.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="schema is incomplete or unsupported"):
+        current_heads_main(["--matrix", str(changed)])
+
+
 def test_competitor_cli_exposes_only_domain_named_generalization_inputs(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

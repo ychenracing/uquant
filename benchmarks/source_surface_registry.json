@@ -346,7 +346,6 @@
         "research/first_divergence.py",
         "research/five_window_outperformance.py",
         "research/future_holdout_cli.py",
-        "research/generalization_smoke.py",
         "research/parameter_stress.py",
         "research/performance_diagnostic.py",
         "research/risk_counterfactual.py",
@@ -550,7 +549,6 @@
         "research/five_window_outperformance.py",
         "research/fixed_promotion_screen.py",
         "research/future_holdout_cli.py",
-        "research/generalization_smoke.py",
         "research/global_bottleneck_audit.py",
         "research/historical_cohort_audit.py",
         "research/historical_prices.py",
@@ -573,7 +571,6 @@
         "research/risk_differential_models.py",
         "research/risk_replay_runtime.py",
         "research/sentinel_evidence_closure.py",
-        "research/slow_damage_exit_audit.py",
         "research/source_unit_replay.py",
         "research/statistics.py",
         "research/strategic_evidence/__init__.py",
@@ -846,5 +843,5 @@
       ]
     }
   ],
-  "canonical_sha256": "7c8675ed23a7c9cc2df35a1ebac8a0f82f2cc274090f5206af149f6428aa9bbf"
+  "canonical_sha256": "dea858555643c09aec57eb69270e326683e7583e1a1bda088bf038d7ece00f89"
 }

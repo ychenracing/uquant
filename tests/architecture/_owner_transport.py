@@ -276,6 +276,7 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
         "research/generalization_ablation_cli.py", "research/ablation_registry.py",
         "scripts/run_generalization_ablation.py",
         "scripts/run_risk_negative_controls.py",
+        "research/generalization_smoke.py", "research/slow_damage_exit_audit.py",
     }
 
 

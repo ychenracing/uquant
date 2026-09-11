@@ -1152,12 +1152,6 @@ def assemble_matrix(
         "runtimes": runtimes,
         "summary": summary,
         "aggregates": _matrix_aggregates(cells),
-        "legacy_source_diagnostic": {
-            "evidence_class": "diagnostic_only_not_current_HEAD",
-            "aquant": "3c38fbbf679a0fb1b4ee8f3d47b6931d3eb8fdbd",
-            "qwenquant": "0b3681e10b75425ad8600e75835677a6a125ed13",
-            "trade": "cee1620f40af3af8f839e15db188a9e388a78dd0",
-        },
         "cells": cells,
     }
     payload["payload_sha256"] = canonical_sha256(payload)

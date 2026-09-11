@@ -8,11 +8,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from research.generalization_smoke import run_generalization_smoke
 from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
-from uquant.leader import INDUSTRY
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 from uquant.validation.competitor import REQUIRED_COMPETITORS, REQUIRED_POOLS
+from uquant.validation.generalization_matrix import run_generalization_matrix
 
 _REQUIRED_COMPETITOR_CELLS = len(REQUIRED_POOLS) * len(AI_ERA_WINDOWS) * len(REQUIRED_COMPETITORS)
 _REQUIRED_COMPETITOR_WINDOWS = {
@@ -87,32 +86,6 @@ def audit_references(repository_root: str | Path) -> dict[str, Any]:
     }
 
 
-def smoke_inputs(repository_root: str | Path) -> dict[str, Any]:
-    """Load the reviewed Pool E smoke contract from committed repository inputs."""
-    root = Path(repository_root)
-    promotion = _load_json(root / "benchmarks" / "promotion_baseline.json")
-    pools = promotion.get("pools", {})
-    contract = promotion.get("contract", {})
-    windows = contract.get("windows", {}) if isinstance(contract, Mapping) else {}
-    if not isinstance(pools, Mapping) or not isinstance(windows, Mapping):
-        raise RuntimeError("promotion baseline is missing pools or AI-era windows")
-    universe_raw = pools.get("e", ())
-    continuous = windows.get("continuous_ai_era", {})
-    if not isinstance(universe_raw, list) or not isinstance(continuous, Mapping):
-        raise RuntimeError("promotion baseline is missing Pool E or continuous_ai_era")
-    universe = tuple(str(symbol) for symbol in universe_raw)
-    industries = {symbol: INDUSTRY.get(symbol, "unknown") for symbol in universe}
-    if any(industry == "unknown" for industry in industries.values()):
-        raise RuntimeError("Pool E contains symbols without reviewed industry evidence")
-    return {
-        "data_dir": root / "data" / "frozen",
-        "universe": universe,
-        "industries": industries,
-        "prior_symbols": tuple(sorted(str(symbol) for symbol in pools.get("a", ()))),
-        "start": str(continuous["start"]),
-        "end": str(continuous["end"]),
-    }
-
 
 def _write(
     payload: Mapping[str, Any],
@@ -155,13 +128,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         payload = audit_references(root)
     else:
-        inputs = smoke_inputs(root)
+        data_dir = root / "data" / "frozen"
         protected_paths = validate_atomic_output_boundary(
             args.output,
-            protected_paths=(root / "benchmarks" / "promotion_baseline.json",),
-            protected_roots=(Path(inputs["data_dir"]),),
+            protected_roots=(data_dir, root / "benchmarks", root / "uquant"),
         )
-        payload = run_generalization_smoke(**inputs)
+        payload = run_generalization_matrix(
+            data_dir=data_dir, window_names=("continuous_ai_era",),
+        )
     _write(payload, args.output, protected_paths=protected_paths)
     return 0
 

@@ -462,10 +462,15 @@ def load_current_heads_matrix(
         "runtimes",
         "summary",
         "aggregates",
-        "legacy_source_diagnostic",
         "cells",
         "payload_sha256",
     }
+    # Only the byte-exact audited matrix retains its recorded source diagnostic.
+    # Current producers emit the strict current structure without historical labels.
+    if hashlib.sha256(path.read_bytes()).hexdigest() == (
+        "4a732dcea7687ec98653220b71030798294bb24a9e999d0ea3f9ae8b6d93342e"
+    ):
+        expected_fields.add("legacy_source_diagnostic")
     if set(payload) != expected_fields or payload.get("schema_version") != 1:
         raise ValueError("current-head matrix schema is incomplete or unsupported")
     if payload.get("contract_sha256") != contract["payload_sha256"]:

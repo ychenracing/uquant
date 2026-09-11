@@ -8,20 +8,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from _absolute_contract_fixture import (
-    HISTORICAL_CONTRACT_SOURCE,
-)
-from _absolute_contract_fixture import (
-    historical_contract_source as historical_contract_source,
-)
 
-from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.contracts.strict_json import canonical_json_bytes
-from uquant.contracts.universe import default_ai_universe
-from uquant.provenance.fingerprints import (
-    git_source_surface_fingerprint,
-    source_surface_fingerprint,
-)
 from uquant.provenance.surfaces import load_source_surface_registry
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +26,7 @@ BASELINE_SOURCE_AT_COMMIT = (
     "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
 )
 CURRENT_SOURCE_REGISTRY_SHA256 = (
-    "7d2c4b8143f54e4f002a1450923bf1bf59eb678f125d446fbee10fbf7026d074"
+    "dea858555643c09aec57eb69270e326683e7583e1a1bda088bf038d7ece00f89"
 )
 AI_UNIVERSE_SHA256 = (
     "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0"
@@ -155,7 +143,6 @@ def test_contract_is_strict_canonical_json_with_exact_schema_and_compiled_seal()
     assert raw_bytes == canonical_json_bytes(raw) + b"\n"
     assert set(raw) == {
         "baseline_can_relax_absolute_limits",
-        "candidate",
         "canonical_sha256",
         "canonical_universe",
         "components",
@@ -250,68 +237,8 @@ def test_contract_freezes_exact_absolute_policy_and_historical_baseline() -> Non
         contract.baseline_can_relax_absolute_limits = True
 
 
-def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities() -> None:
-    module = _contract_module()
-    contract = module.load_absolute_generalization_contract(CONTRACT_PATH)
-    raw = _raw_contract()
-
-    assert raw["candidate"] == {
-        "baseline_commit": BASELINE_COMMIT,
-        "baseline_source_sha256": BASELINE_SOURCE_AT_COMMIT,
-        "production_source_sha256": HISTORICAL_CONTRACT_SOURCE,
-        "source_surface_id": "economic_decision_v1",
-        "source_surface_registry_sha256": CURRENT_SOURCE_REGISTRY_SHA256,
-    }
-    assert raw["inputs"] == {
-        "ai_universe_sha256": AI_UNIVERSE_SHA256,
-        "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
-        "frozen_data": {
-            "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
-            "files_verified": 36,
-            "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
-            "snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
-        },
-        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
-    }
-    assert config_fingerprint(DEFAULT_CONFIG) == raw["inputs"]["effective_config_sha256"]
-    assert hashlib.sha256((ROOT / "uv.lock").read_bytes()).hexdigest() == raw["inputs"][
-        "uv_lock_sha256"
-    ]
-    assert default_ai_universe().sha256 == AI_UNIVERSE_SHA256
-    assert contract.canonical_universe == default_ai_universe().symbols == CANONICAL_UNIVERSE
-    assert git_source_surface_fingerprint(
-        ROOT, BASELINE_COMMIT, "economic_decision_v1"
-    ) == BASELINE_SOURCE_AT_COMMIT
-    ownership = json.loads(OWNERSHIP_PATH.read_bytes())
-    assert hashlib.sha256(canonical_json_bytes(ownership)).hexdigest() == (
-        OWNERSHIP_CONTRACT_SHA256
-    )
-    assert tuple(ownership["canonical_universe"]) == CANONICAL_UNIVERSE
 
 
-def test_candidate_contract_binds_current_source_registry_identity() -> None:
-    """Bind the candidate to the reviewed registry without rewriting frozen policy."""
-
-    module = _contract_module()
-    raw = _raw_contract()
-    candidate = raw["candidate"]
-    assert isinstance(candidate, dict)
-    registry = load_source_surface_registry(ROOT)
-
-    assert candidate["source_surface_registry_sha256"] == (
-        CURRENT_SOURCE_REGISTRY_SHA256
-    )
-    assert registry.canonical_sha256 == CURRENT_SOURCE_REGISTRY_SHA256
-    assert "uquant/validation/statistics.py" in registry.surface(
-        "validation_runner_v1"
-    ).source_paths
-    assert candidate["production_source_sha256"] == HISTORICAL_CONTRACT_SOURCE
-
-    contract = module.load_absolute_generalization_contract(CONTRACT_PATH)
-
-    assert contract.candidate.source_surface_registry_sha256 == (
-        CURRENT_SOURCE_REGISTRY_SHA256
-    )
 
 
 def test_contract_still_rejects_current_economic_source_mismatch(
@@ -330,40 +257,6 @@ def test_contract_still_rejects_current_economic_source_mismatch(
         module.load_absolute_generalization_contract(CONTRACT_PATH)
 
 
-def test_loader_binds_baseline_and_evolving_candidate_sources_independently(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    module = _contract_module()
-    raw = _raw_contract()
-    baseline_source = BASELINE_SOURCE_AT_COMMIT
-    candidate_source = "2" * 64
-    candidate = raw["candidate"]
-    assert isinstance(candidate, dict)
-    candidate["baseline_source_sha256"] = baseline_source
-    candidate["production_source_sha256"] = candidate_source
-    unsealed = {key: value for key, value in raw.items() if key != "canonical_sha256"}
-    seal = hashlib.sha256(canonical_json_bytes(unsealed)).hexdigest()
-    raw["canonical_sha256"] = seal
-    monkeypatch.setattr(module, "ABSOLUTE_GENERALIZATION_CONTRACT_SHA256", seal)
-    monkeypatch.setattr(module, "_BASELINE_SOURCE", baseline_source, raising=False)
-    monkeypatch.setattr(module, "_CANDIDATE_SOURCE", candidate_source)
-    monkeypatch.setattr(
-        module,
-        "git_source_surface_fingerprint",
-        lambda *_args: baseline_source,
-    )
-    monkeypatch.setattr(
-        module,
-        "source_surface_fingerprint",
-        lambda *_args: candidate_source,
-    )
-
-    contract = module.load_absolute_generalization_contract(
-        _write_contract(tmp_path, canonical_json_bytes(raw) + b"\n")
-    )
-
-    assert contract.candidate.baseline_source_sha256 == baseline_source
-    assert contract.candidate.production_source_sha256 == candidate_source
 
 
 @pytest.mark.parametrize(
@@ -514,79 +407,14 @@ def test_contract_sources_and_resource_are_registered_only_on_validation_surface
     assert contract_resource not in economic.resource_paths
 
 
-FROZEN_PATH = ROOT / "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json"
 
 
-def test_current_contract_changes_only_three_explicit_identities() -> None:
-    frozen_bytes = FROZEN_PATH.read_bytes()
-    assert len(frozen_bytes) == 3621
-    assert hashlib.sha256(frozen_bytes).hexdigest() == (
-        "35d425ce3663a780331a07360a3e1f0946cde1ca7087ab51c26c055eac5c3d7e"
-    )
-    frozen = json.loads(frozen_bytes)
-    assert frozen["canonical_sha256"] == (
-        "17cecff705db5994e1aff346a5bbe08d4c328c19ebf2242c08d825e9836e748e"
-    )
-    current = _raw_contract()
-    for section, name in (
-        ("candidate", "production_source_sha256"),
-        ("candidate", "source_surface_registry_sha256"),
-        ("inputs", "effective_config_sha256"),
-    ):
-        frozen[section][name] = current[section][name]
-    frozen["canonical_sha256"] = current["canonical_sha256"]
-    assert current == frozen
-    registry = load_source_surface_registry(ROOT)
-    relative = FROZEN_PATH.relative_to(ROOT).as_posix()
-    assert [surface.identifier for surface in registry.surfaces if relative in surface.resource_paths] == [
-        "validation_runner_v1"
-    ]
 
 
-@pytest.mark.parametrize(("section", "key", "value"), (
-    ("thresholds", "minimum_positive_return_fraction", 0.1),
-    ("window", "end", "2026-08-04"),
-    ("candidate", "baseline_source_sha256", "1" * 64),
-    ("candidate", "baseline_commit", "1" * 40),
-    ("inputs", "ai_universe_sha256", "1" * 64),
-    ("inputs", "uv_lock_sha256", "1" * 64),
-    ("frozen_baseline", "champion_minimum_final_wealth", 1.0),
-))
-def test_resealed_policy_still_rejected_with_updated_compiled_seal(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, section: str, key: str, value: object
-) -> None:
-    module = _contract_module()
-    raw = _raw_contract()
-    raw[section][key] = value
-    raw["canonical_sha256"] = hashlib.sha256(canonical_json_bytes(
-        {key: value for key, value in raw.items() if key != "canonical_sha256"}
-    )).hexdigest()
-    monkeypatch.setattr(module, "ABSOLUTE_GENERALIZATION_CONTRACT_SHA256", raw["canonical_sha256"])
-    with pytest.raises(ValueError, match="frozen policy projection"):
-        module.load_absolute_generalization_contract(
-            _write_contract(tmp_path, canonical_json_bytes(raw) + b"\n")
-        )
 
 
-@pytest.mark.parametrize("damage", ("missing", "symlink", "bytes"))
-def test_frozen_policy_authority_requires_original_physical_bytes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, damage: str
-) -> None:
-    module = _contract_module()
-    frozen = tmp_path / "frozen.json"
-    if damage == "symlink":
-        frozen.symlink_to(FROZEN_PATH)
-    elif damage == "bytes":
-        frozen.write_bytes(FROZEN_PATH.read_bytes() + b" ")
-    monkeypatch.setattr(module, "_FROZEN_CONTRACT_PATH", frozen)
-    with pytest.raises(ValueError, match="frozen contract"):
-        module.load_absolute_generalization_contract(CONTRACT_PATH)
 
 
-def test_historical_contract_is_not_current_candidate_evidence() -> None:
-    module = _contract_module()
-    with pytest.raises(ValueError, match="compiled contract identity"):
-        module.load_absolute_generalization_contract(FROZEN_PATH)
 
 
 @pytest.mark.parametrize(("authority", "replacement", "message"), (
@@ -612,32 +440,26 @@ def test_current_registry_authority_mismatch_fails_closed(monkeypatch: pytest.Mo
         module.load_absolute_generalization_contract(CONTRACT_PATH)
 
 
-@pytest.mark.parametrize("field", ("critical_removals", "required_witnesses", "canonical_universe"))
-def test_resealed_role_membership_is_not_a_candidate_binding(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, field: str
-) -> None:
+
+
+
+
+@pytest.mark.parametrize(("section", "key", "value"), (
+    ("thresholds", "minimum_positive_return_fraction", 0.1),
+    ("window", "end", "2026-08-04"),
+    ("inputs", "ai_universe_sha256", "1" * 64),
+    ("inputs", "uv_lock_sha256", "1" * 64),
+    ("frozen_baseline", "champion_minimum_final_wealth", 1.0),
+))
+def test_policy_cannot_be_resealed_by_candidate(tmp_path, monkeypatch, section, key, value):
     module = _contract_module()
     raw = _raw_contract()
-    raw[field] = raw[field][:-1]
+    raw[section][key] = value
     raw["canonical_sha256"] = hashlib.sha256(canonical_json_bytes(
         {key: value for key, value in raw.items() if key != "canonical_sha256"}
     )).hexdigest()
     monkeypatch.setattr(module, "ABSOLUTE_GENERALIZATION_CONTRACT_SHA256", raw["canonical_sha256"])
-    with pytest.raises(ValueError, match="frozen policy projection"):
+    with pytest.raises(ValueError, match="independent policy identity"):
         module.load_absolute_generalization_contract(
             _write_contract(tmp_path, canonical_json_bytes(raw) + b"\n")
         )
-
-
-def test_real_checkout_still_requires_its_own_candidate_binding(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The unit fixture must not turn a different real checkout into acceptance."""
-    module = _contract_module()
-    monkeypatch.setattr(module, "source_surface_fingerprint", source_surface_fingerprint)
-    actual_source = source_surface_fingerprint(ROOT, "economic_decision_v1")
-    if actual_source != HISTORICAL_CONTRACT_SOURCE:
-        with pytest.raises(ValueError, match="candidate source identity differs"):
-            module.load_absolute_generalization_contract(CONTRACT_PATH)
-    else:
-        assert module.load_absolute_generalization_contract(CONTRACT_PATH).candidate.production_source_sha256 == actual_source

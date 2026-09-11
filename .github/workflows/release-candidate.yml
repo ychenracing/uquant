@@ -14,8 +14,6 @@ jobs:
     name: Release Candidate Source Equality
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      UQUANT_RELEASE_CANDIDATE: "1"
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

@@ -2,26 +2,18 @@ from __future__ import annotations
 
 import ast
 import gzip
-import importlib.util
 import json
 from pathlib import Path
 
 from research.risk_differential_models import canonical_sha256, validate_capabilities
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
 
 
 def _load(path: str) -> dict:
-    return json.loads((ROOT / path).read_text(encoding="utf-8"))
-
-
-def _load_negative_control_runner():
-    path = ROOT / "scripts/run_risk_negative_controls.py"
-    spec = importlib.util.spec_from_file_location("risk_negative_control_runner", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    root = evidence_root() if Path(path).parts[0] == "artifacts" else ROOT
+    return json.loads((root / path).read_text(encoding="utf-8"))
 
 
 def test_preregistered_contract_and_registry_are_canonically_sealed() -> None:
@@ -67,7 +59,7 @@ def test_closure_preserves_negative_controls_and_production_boundary() -> None:
 
 def test_complete_matrix_binds_deterministic_daily_trace() -> None:
     matrix = _load("artifacts/sentinel/risk_differential/risk_differential_matrix.json")
-    compressed = (ROOT / "artifacts/sentinel/risk_differential/risk_differential_daily.json.gz").read_bytes()
+    compressed = (evidence_root() / 'artifacts/sentinel/risk_differential/risk_differential_daily.json.gz').read_bytes()
     daily = json.loads(gzip.decompress(compressed))
     assert matrix["summary"]["status"] == "COMPLETE"
     assert matrix["summary"]["cells"] == 264
@@ -79,7 +71,7 @@ def test_complete_matrix_binds_deterministic_daily_trace() -> None:
 
 def test_pinned_trade_challenger_trace_is_complete_and_source_bound() -> None:
     compressed = (
-        ROOT / "artifacts/sentinel/risk_differential/trade_challenger_trace.json.gz"
+        evidence_root() / 'artifacts/sentinel/risk_differential/trade_challenger_trace.json.gz'
     ).read_bytes()
     trace = json.loads(gzip.decompress(compressed))
     registry = _load("benchmarks/risk_differential_source_registry.json")
@@ -189,13 +181,6 @@ def test_negative_controls_are_detached_reruns_not_constants() -> None:
     assert evidence_recovery["matches_archived_evidence"] is True
     assert evidence_recovery["actionable_buy_intents"] == 0
     assert evidence_recovery["exact_economic_equivalence"] is True
-
-
-def test_negative_control_git_commands_use_an_absolute_executable() -> None:
-    runner = _load_negative_control_runner()
-    command = runner._git_command("cat-file", "-e", "HEAD^{commit}")
-    assert Path(command[0]).is_absolute()
-    assert command[1:] == ["cat-file", "-e", "HEAD^{commit}"]
 
 
 def test_incomplete_forward_outcomes_are_right_censored() -> None:

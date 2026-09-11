@@ -262,7 +262,7 @@ def path_after_checkpoint(
 
 @dataclass(frozen=True, slots=True)
 class ReachNode:
-    """One graph node containing every dimension frozen by the v1 contract."""
+    """One graph node containing every dimension frozen by the sealed contract."""
 
     node_id: str
     risk: str

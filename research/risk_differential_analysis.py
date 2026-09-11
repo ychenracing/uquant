@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import gzip
 import hashlib
 import json
@@ -577,7 +578,10 @@ def _closure_outcome(decisions: list[dict[str, Any]]) -> dict[str, Any]:
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    target = root / "artifacts/sentinel/risk_differential"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-dir", type=Path, required=True, help="Preregistered risk evidence directory; outputs are sealed here")
+    args = parser.parse_args()
+    target = args.input_dir
     matrix = json.loads((target / "risk_differential_matrix.json").read_text())
     daily_gzip = (target / "risk_differential_daily.json.gz").read_bytes()
     daily = json.loads(gzip.decompress(daily_gzip))

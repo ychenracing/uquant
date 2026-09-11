@@ -40,20 +40,20 @@ from research.strategic_evidence.witness_ablation_runner import (
     assemble_full_route_shard,
     build_executable_source_manifest,
     build_resume_identity,
-    build_task4_scenario,
+    build_witness_ablation_scenario,
     capture_runtime_metadata,
     comparison_baseline_scope,
     derive_balanced_industry_universe,
     read_cell_shard,
-    recompute_task4_identities,
+    recompute_witness_ablation_identities,
     resolve_ablation_reference_roles,
     resolve_ablation_universe,
     resolve_resume_runtime_metadata,
-    task4_sentinel_specs,
     validate_final_summary_contract,
     verify_full_route_linkage,
     verify_streaming_shard,
-    verify_task4_manifest,
+    verify_witness_ablation_manifest,
+    witness_ablation_sentinel_specs,
     write_cell_shard,
     write_compact_and_manifest,
     write_streaming_shard,
@@ -391,7 +391,7 @@ def test_minimal_decisive_witnesses_include_singles_and_reject_nonminimal_roles(
 
 
 def test_resume_identity_is_exact_across_every_provenance_field() -> None:
-    """Catches Task 3-style source/commit rebinding of Task 4 economic shards."""
+    """Catches Forced-owner-style source/commit rebinding of Witness-ablation economic shards."""
 
     spec = AblationSpec(
         scope="CANONICAL_LEAVE_ONE_OUT",
@@ -413,7 +413,7 @@ def test_provenance_recomputes_executable_sources_and_real_runtime() -> None:
 
     contract = load_contract(ROOT / "benchmarks/strategic_evidence_closure_contract.json")
     source = build_executable_source_manifest(ROOT, require_clean=False)
-    identities = recompute_task4_identities(ROOT, contract=contract)
+    identities = recompute_witness_ablation_identities(ROOT, contract=contract)
     runtime = capture_runtime_metadata(ROOT)
     scenario = {"source_manifest": source}
     provenance = build_provenance(
@@ -475,12 +475,12 @@ def test_resume_reuses_first_run_timestamp_but_verifies_current_runtime(tmp_path
 
 
 def test_scenario_binds_exact_initial_matrix_and_search_bounds() -> None:
-    """Catches resume treating Task 4 as only the 34 economic single removals."""
+    """Catches resume treating Witness-ablation as only the 34 economic single removals."""
 
     contract = load_contract(ROOT / "benchmarks/strategic_evidence_closure_contract.json")
     specs = enumerate_initial_specs(contract)
     balanced = derive_balanced_industry_universe(ROOT / "data" / "frozen", contract=contract)
-    scenario = build_task4_scenario(
+    scenario = build_witness_ablation_scenario(
         contract=contract,
         initial_specs=specs,
         balanced=balanced,
@@ -488,6 +488,7 @@ def test_scenario_binds_exact_initial_matrix_and_search_bounds() -> None:
     )
 
     assert scenario["required_initial_cell_count"] == 117
+    assert "replacement_reason" not in scenario
     assert scenario["economic_initial_cell_count"] == 49
     assert scenario["diagnostic_initial_cell_count"] == 68
     assert scenario["top_symbol_limit"] == 8
@@ -499,7 +500,7 @@ def test_sentinel_plan_precedes_the_matrix_with_one_economic_and_two_diagnostics
     """Catches launching the 117-cell matrix without representative axis sentinels."""
 
     contract = load_contract(ROOT / "benchmarks/strategic_evidence_closure_contract.json")
-    sentinels = task4_sentinel_specs(enumerate_initial_specs(contract))
+    sentinels = witness_ablation_sentinel_specs(enumerate_initial_specs(contract))
 
     assert tuple((spec.subject, spec.axis, spec.evidence_class) for spec in sentinels) == (
         ("sz300308", FULL_REMOVAL, ECONOMIC),
@@ -527,7 +528,7 @@ def test_industry_balanced_is_a_sealed_causal_pit_retained_universe() -> None:
         contract=contract,
         balanced=balanced,
     )
-    scenario = build_task4_scenario(
+    scenario = build_witness_ablation_scenario(
         contract=contract,
         initial_specs=specs,
         balanced=balanced,
@@ -553,7 +554,7 @@ def test_industry_balanced_is_a_sealed_causal_pit_retained_universe() -> None:
         symbols_sha256=balanced.symbols_sha256,
     )
     with pytest.raises(ValueError, match="balanced industry universe"):
-        build_task4_scenario(
+        build_witness_ablation_scenario(
             contract=contract,
             initial_specs=specs,
             balanced=malformed,
@@ -569,7 +570,7 @@ def test_report_outer_removal_uses_matching_sealed_report13_baseline() -> None:
     report_spec = next(spec for spec in specs if spec.scope == "REPORT_UNIVERSE_LEAVE_ONE_OUT")
     canonical_spec = next(spec for spec in specs if spec.scope == "CANONICAL_LEAVE_ONE_OUT")
     balanced = derive_balanced_industry_universe(ROOT / "data" / "frozen", contract=contract)
-    scenario = build_task4_scenario(
+    scenario = build_witness_ablation_scenario(
         contract=contract,
         initial_specs=specs,
         balanced=balanced,
@@ -899,12 +900,10 @@ def test_atomic_shard_fsyncs_parent_directory_after_replace(
 
 
 def test_manifest_is_portable_and_readback_is_linked(tmp_path: Path) -> None:
-    """Catches absolute scratch paths entering canonical Task 4 seals."""
+    """Catches absolute scratch paths entering canonical Witness-ablation seals."""
 
-    relative_summary = Path("artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json")
-    relative_manifest = Path(
-        "artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_manifest.json"
-    )
+    relative_summary = Path("artifacts/strategic_evidence_closure/witness_ablation_full.json")
+    relative_manifest = Path("artifacts/strategic_evidence_closure/witness_ablation_manifest.json")
     route_metadata = {
         "path": "/tmp/private/full.jsonl.gz",
         "byte_size": 123,
@@ -933,7 +932,7 @@ def test_manifest_is_portable_and_readback_is_linked(tmp_path: Path) -> None:
             (
                 (repository / relative_summary).read_bytes(),
                 (repository / relative_manifest).read_bytes(),
-                verify_task4_manifest(
+                verify_witness_ablation_manifest(
                     repository,
                     summary_path=relative_summary,
                     manifest_path=relative_manifest,
@@ -944,14 +943,14 @@ def test_manifest_is_portable_and_readback_is_linked(tmp_path: Path) -> None:
         assert summary["route_shard"] == {
             "logical_path": (
                 "artifacts/strategic_evidence_closure/external/"
-                "checkpoint4_witness_ablation_full_routes.jsonl.gz"
+                "witness_ablation_full_routes.jsonl.gz"
             ),
             **{key: value for key, value in route_metadata.items() if key != "path"},
         }
         assert manifest["summary"]["path"] == relative_summary.as_posix()
         assert manifest["route_shard"]["logical_path"] == (
             "artifacts/strategic_evidence_closure/external/"
-            "checkpoint4_witness_ablation_full_routes.jsonl.gz"
+            "witness_ablation_full_routes.jsonl.gz"
         )
         assert "/tmp" not in json.dumps(manifest)
 

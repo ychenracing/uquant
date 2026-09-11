@@ -36,7 +36,7 @@
 | 泛化能力 | 手动 `Extended Economic Matrix` 保留六个固定窗口完整矩阵的 literal 诊断、逐 cell、intrinsic 与 random-tail 有效边界 |
 | 绝对泛化 | 自动 `Absolute Generalization Acceptance` 固定八 shard/34 场景；champion 与 recovery special producer 只用 ProductionEngine、AccountState、allocator 和 execution 原始生命周期，final 重新计算七组件且拒绝 targeted/旧摘要 |
 
-上述门禁均为阻断条件，不能用另一项检查的成功抵消失败。
+自动检查分别保留阻断结论，手动矩阵保留其自身的完整验收结果；不能用另一项检查的成功抵消失败。
 
 代码/测试/helper 物理行数、函数长度、branch point 和 CLI 行数作为治理信号记录，
 用于安排后续维护，不因接近某个整数阈值单独阻断发布。经济等价、冻结数据完整性、

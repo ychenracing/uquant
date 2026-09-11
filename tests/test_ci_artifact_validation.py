@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.generalization_matrix import _hash_json
 from uquant.validation.promotion import _artifact_binding, current_promotion_acceptance_basis
 
@@ -359,7 +360,7 @@ def test_ci_artifact_scalar_helpers_reject_malformed_inputs(
 
 def _champion() -> dict[str, Any]:
     return json.loads(
-        (ROOT / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
+        ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )

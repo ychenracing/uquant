@@ -270,8 +270,7 @@ def validate_complete_coverage(
         raise ValueError(f"ablation observed status differs from frozen evidence: {changed}")
 
 
-# Performance compatibility helpers remain repository-local and are not used by
-# the immutable generalization registry.
+# Configuration ablations and candidate-minus-baseline arithmetic.
 @dataclass(frozen=True, slots=True)
 class AblationCase:
     """One named shared configuration in a capability ablation set."""
@@ -321,7 +320,7 @@ def compare_ablations(
     baseline: CandidateEvaluation,
     variants: Iterable[tuple[str, CandidateEvaluation]],
 ) -> tuple[AblationDelta, ...]:
-    """Express every legacy ablation as candidate-minus-production deltas."""
+    """Express each ablation as candidate-minus-production deltas."""
     return tuple(
         AblationDelta(
             name=name,

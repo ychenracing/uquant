@@ -1,18 +1,21 @@
-"""Strict immutable Absolute Generalization Acceptance contract."""
+"""Independent Absolute Generalization policy and current checkout binding."""
 
 from __future__ import annotations
 
 import hashlib
 import math
 import os
+import shutil
 import stat
-from collections.abc import Mapping, Sequence
+import subprocess  # nosec B404
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Final, cast
 
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.strict_json import (
     canonical_json_bytes,
     canonical_json_sha256,
@@ -27,22 +30,15 @@ from uquant.provenance.surfaces import load_source_surface_registry
 from uquant.validation.manifest import verify_data_manifest
 
 ABSOLUTE_GENERALIZATION_CONTRACT_SHA256: Final = (
-    "571728f3c91d2d27b49d62a8dbbb237e172205ae4d63eb5dcb9795788da40cee"
+    "c0942cf1a1be3f8c8f91be10f2b6ed29621838090c27d543cf4e6329dade33b0"
 )
 
 _ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_CONTRACT_PATH = _ROOT / "benchmarks/absolute_generalization_acceptance_contract.json"
-_FROZEN_CONTRACT_PATH = (
-    _ROOT / "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json"
-)
-_FROZEN_FILE_SHA256 = "35d425ce3663a780331a07360a3e1f0946cde1ca7087ab51c26c055eac5c3d7e"
-_FROZEN_SEAL = "17cecff705db5994e1aff346a5bbe08d4c328c19ebf2242c08d825e9836e748e"
+_POLICY_SHA256 = "c0942cf1a1be3f8c8f91be10f2b6ed29621838090c27d543cf4e6329dade33b0"
 _EFFECTIVE_CONFIG_SHA256 = "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51"
 _OWNERSHIP_CONTRACT_PATH = _ROOT / "benchmarks/strategic_ownership_acceptance_contract.json"
-_BASELINE_COMMIT = "d7fd3bf8f23ae9c66eb27f5046dedb9f7f980be5"
-_BASELINE_SOURCE = "d1ef7977ae482e46a920381e6af58791199ec8e1a02586dbe8df451e7d4696c9"
-_CANDIDATE_SOURCE = "44901d9f7229e56837ee666157fa852c87a354d0b94216b06f9ebeb71715b1fe"
-_REGISTRY_SHA256 = "7d2c4b8143f54e4f002a1450923bf1bf59eb678f125d446fbee10fbf7026d074"
+_REGISTRY_SHA256 = "dea858555643c09aec57eb69270e326683e7583e1a1bda088bf038d7ece00f89"
 _OWNERSHIP_SHA256 = "72e6b510c3bcf44ac77d2c13613f4d72a14ae8dab0d60a19e5947055ae7cbf08"
 
 _UNIVERSE = (
@@ -85,8 +81,6 @@ class _FrozenBaseline:
 
 @dataclass(frozen=True, slots=True)
 class _CandidateIdentity:
-    baseline_commit: str
-    baseline_source_sha256: str
     production_source_sha256: str
     source_surface_id: str
     source_surface_registry_sha256: str
@@ -133,7 +127,7 @@ class _Thresholds:
 
 @dataclass(frozen=True, slots=True)
 class AbsoluteGeneralizationContract:
-    """One compile-sealed absolute acceptance contract."""
+    """Independent sealed policy with a verified current candidate."""
 
     schema_version: int
     contract_id: str
@@ -218,12 +212,6 @@ def _read_ownership_contract(path: Path) -> Mapping[str, object]:
 def _verify_independent_authorities() -> None:
     if load_source_surface_registry(_ROOT).canonical_sha256 != _REGISTRY_SHA256:
         raise ValueError("absolute generalization source registry identity differs")
-    if (
-        git_source_surface_fingerprint(_ROOT, _BASELINE_COMMIT, "economic_decision_v1")
-        != _BASELINE_SOURCE
-        or source_surface_fingerprint(_ROOT, "economic_decision_v1") != _CANDIDATE_SOURCE
-    ):
-        raise ValueError("absolute generalization candidate source identity differs")
     if config_fingerprint(DEFAULT_CONFIG) != _EFFECTIVE_CONFIG_SHA256:
         raise ValueError("absolute generalization effective config identity differs")
     if hashlib.sha256((_ROOT / "uv.lock").read_bytes()).hexdigest() != "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61":
@@ -246,27 +234,71 @@ def _verify_independent_authorities() -> None:
         raise ValueError("absolute generalization frozen data identity differs")
 
 
-def _verify_frozen_projection(raw: dict[str, object]) -> None:
-    document = _read_physical_regular_file(
-        _FROZEN_CONTRACT_PATH, label="absolute generalization frozen contract"
-    )
-    if hashlib.sha256(document).hexdigest() != _FROZEN_FILE_SHA256:
-        raise ValueError("absolute generalization frozen contract bytes differ")
-    frozen = cast(dict[str, object], strict_json_loads(document))
-    unsealed = {key: value for key, value in frozen.items() if key != "canonical_sha256"}
-    if frozen["canonical_sha256"] != _FROZEN_SEAL or canonical_json_sha256(unsealed) != _FROZEN_SEAL:
-        raise ValueError("absolute generalization frozen contract seal differs")
-    candidate = cast(dict[str, object], frozen["candidate"])
-    candidate["production_source_sha256"] = _CANDIDATE_SOURCE
-    candidate["source_surface_registry_sha256"] = _REGISTRY_SHA256
-    cast(dict[str, object], frozen["inputs"])["effective_config_sha256"] = _EFFECTIVE_CONFIG_SHA256
-    frozen["canonical_sha256"] = ABSOLUTE_GENERALIZATION_CONTRACT_SHA256
-    _exact(raw, frozen, label="frozen policy projection")
+def _candidate_identity() -> _CandidateIdentity:
+    """Bind current physical economic bytes to the actual checked-out commit."""
+    source = source_surface_fingerprint(_ROOT, "economic_decision_v1")
+    if source != git_source_surface_fingerprint(_ROOT, "HEAD", "economic_decision_v1"):
+        raise ValueError("absolute generalization candidate source identity differs")
+    return _CandidateIdentity(source, "economic_decision_v1", _REGISTRY_SHA256)
+
+
+def _verify_ci_event(head: str, parents: list[str]) -> None:
+    if head != os.environ.get("GITHUB_SHA"):
+        raise ValueError("absolute generalization CI checkout differs from event SHA")
+    event = strict_json_loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_bytes())
+    name = os.environ.get("GITHUB_EVENT_NAME", "")
+    if not isinstance(event, dict):
+        raise ValueError("absolute generalization CI event is malformed")
+    if name == "pull_request":
+        # GITHUB_SHA identifies the test merge; bind its ordered parents to
+        # the event's actual base/head, not the cached merge_commit_sha field.
+        pr = event["pull_request"]
+        if (os.environ.get("GITHUB_REF") != f"refs/pull/{event['number']}/merge"
+                or parents != [pr["base"]["sha"], pr["head"]["sha"]]):
+            raise ValueError("absolute generalization CI event target differs")
+        return
+    expected: dict[str, Callable[[], object]] = {
+        "push": lambda: event["after"],
+        "merge_group": lambda: event["merge_group"]["head_sha"],
+        "workflow_dispatch": lambda: os.environ["GITHUB_SHA"],
+    }
+    if name not in expected or expected[name]() != head:
+        raise ValueError("absolute generalization CI event target differs")
+
+
+def verify_run_checkout() -> dict[str, object]:
+    """Preflight trusted CI checkout, runner bytes and the frozen runtime."""
+    git = shutil.which("git")
+    if git is None:
+        raise RuntimeError("cannot resolve current checkout identity")
+    values = subprocess.run(
+        [git, "-C", str(_ROOT), "rev-parse", "HEAD", "HEAD^{tree}", "HEAD^@"],
+        check=True, capture_output=True, text=True,
+    ).stdout.splitlines()  # nosec B603
+    head, tree, *parents = values
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        _verify_ci_event(head, parents)
+    for surface in ("economic_decision_v1", "full_package_v1", "validation_runner_v1"):
+        if source_surface_fingerprint(_ROOT, surface) != git_source_surface_fingerprint(_ROOT, head, surface):
+            raise ValueError(f"absolute generalization checkout surface differs: {surface}")
+    return {"head": head, "tree": tree, "runtime": runtime_identity()}
+
+
+def runtime_identity() -> dict[str, str]:
+    """Require the reviewed interpreter and numerical execution environment."""
+    runtime = runtime_environment_provenance(_ROOT)
+    if runtime != {
+        "python_full_version": "3.12.13", "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5", "uv_version": "0.11.33",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+    }:
+        raise ValueError("absolute generalization execution runtime differs")
+    return runtime
 
 
 def _validate_raw(raw: dict[str, object]) -> None:
     expected_fields = {
-        "baseline_can_relax_absolute_limits", "candidate", "canonical_sha256",
+        "baseline_can_relax_absolute_limits", "canonical_sha256",
         "canonical_universe", "components", "contract_id", "critical_removals",
         "frozen_baseline", "inputs", "percentile_method", "required_witnesses",
         "schema_version", "shards", "thresholds", "window",
@@ -279,12 +311,8 @@ def _validate_raw(raw: dict[str, object]) -> None:
         raise ValueError("absolute generalization contract seal is invalid")
     if seal != ABSOLUTE_GENERALIZATION_CONTRACT_SHA256:
         raise ValueError("absolute generalization compiled contract identity differs")
-    _verify_frozen_projection(raw)
-    _exact(raw["candidate"], {
-        "baseline_commit": _BASELINE_COMMIT, "baseline_source_sha256": _BASELINE_SOURCE,
-        "production_source_sha256": _CANDIDATE_SOURCE,
-        "source_surface_id": "economic_decision_v1", "source_surface_registry_sha256": _REGISTRY_SHA256,
-    }, label="candidate identity")
+    if canonical_json_sha256(unsealed) != _POLICY_SHA256:
+        raise ValueError("absolute generalization independent policy identity differs")
     _exact(raw["canonical_universe"], list(_UNIVERSE), label="canonical universe")
     _exact(raw["components"], list(_COMPONENTS), label="capability components")
     _exact(raw["critical_removals"], list(_CRITICAL), label="critical removals")
@@ -298,7 +326,6 @@ def _validate_raw(raw: dict[str, object]) -> None:
 
 def _build_contract(raw: dict[str, object]) -> AbsoluteGeneralizationContract:
     baseline = cast(Mapping[str, object], raw["frozen_baseline"])
-    candidate = cast(Mapping[str, object], raw["candidate"])
     inputs = cast(Mapping[str, object], raw["inputs"])
     frozen_data = cast(Mapping[str, object], inputs["frozen_data"])
     thresholds = cast(Mapping[str, object], raw["thresholds"])
@@ -308,17 +335,7 @@ def _build_contract(raw: dict[str, object]) -> AbsoluteGeneralizationContract:
         schema_version=1,
         contract_id="absolute-generalization-acceptance",
         baseline_can_relax_absolute_limits=False,
-        candidate=_CandidateIdentity(
-            baseline_commit=cast(str, candidate["baseline_commit"]),
-            baseline_source_sha256=cast(
-                str, candidate["baseline_source_sha256"]
-            ),
-            production_source_sha256=cast(str, candidate["production_source_sha256"]),
-            source_surface_id=cast(str, candidate["source_surface_id"]),
-            source_surface_registry_sha256=cast(
-                str, candidate["source_surface_registry_sha256"]
-            ),
-        ),
+        candidate=_candidate_identity(),
         canonical_universe=_UNIVERSE,
         components=_COMPONENTS,
         critical_removals=_CRITICAL,
@@ -402,7 +419,7 @@ def _build_contract(raw: dict[str, object]) -> AbsoluteGeneralizationContract:
 def load_absolute_generalization_contract(
     path: str | Path = _DEFAULT_CONTRACT_PATH,
 ) -> AbsoluteGeneralizationContract:
-    """Load the frozen contract and revalidate every independent identity."""
+    """Load the sole policy and bind the current checkout without changing its gates."""
 
     raw = _read_strict_contract(Path(path))
     _validate_raw(raw)

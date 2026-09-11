@@ -165,7 +165,7 @@ def test_engineering_summary_catches_quality_or_security_failure_without_skippin
     assert workflow["permissions"] == {"contents": "read"}
     assert set(workflow["jobs"]) == {"source_equality"}
     job = workflow["jobs"]["source_equality"]
-    assert job["env"] == {"UQUANT_RELEASE_CANDIDATE": "1"}
+    assert "env" not in job
     checkout = next(
         step
         for step in _steps(job)

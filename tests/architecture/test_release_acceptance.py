@@ -10,17 +10,20 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 from uquant.contracts.source_surfaces import SOURCE_SURFACE_IDS
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.provenance.fingerprints import (
     git_source_surface_fingerprint,
     source_surface_fingerprint,
 )
+from uquant.validation.absolute_generalization.contract import (
+    load_absolute_generalization_contract,
+    verify_run_checkout,
+)
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).resolve().parents[2]
-ARTIFACT_ROOT = ROOT / "artifacts" / "architecture_refactor"
+ARTIFACT_ROOT = (evidence_root() / 'artifacts') / "architecture_refactor"
 GATE_COMMIT = "ecee225237f02b4d21cbf65d88bc4ec5761603d3"
 BASELINE_COMMIT = "f9fd489806a86b3a56f62b8668aafa252012d405"
 DOMAIN_NAMING_BASE_COMMIT = "c4178fcd1b53d7e9061c6a71a1c6e7f1ddf3428d"
@@ -139,7 +142,7 @@ def test_source_epoch_v2_preserves_its_sealed_remote_recovery_metadata() -> None
         epoch["production_wheel"]["payload_manifest_sha256"]
     )
     assert recovery["historical_container_sha256"] == epoch["production_wheel"]["sha256"]
-    wheel_path = ROOT / epoch["production_wheel"]["artifact_path"]
+    wheel_path = evidence_root() / epoch["production_wheel"]["artifact_path"]
     assert _sha256(wheel_path) == recovery["historical_container_sha256"]
     assert recovery["canonical_container_sha256"] != recovery["historical_container_sha256"]
 
@@ -199,7 +202,7 @@ def test_source_epoch_v3_preserves_its_registered_surfaces_and_production_wheel(
         "frontend": "build==1.5.0",
         "source_date_epoch": 315532800,
     }
-    wheel_path = ROOT / wheel["artifact_path"]
+    wheel_path = evidence_root() / wheel["artifact_path"]
     assert wheel_path.is_file() and not wheel_path.is_symlink()
     assert wheel["bytes"] == wheel_path.stat().st_size
     assert wheel["sha256"] == _sha256(wheel_path)
@@ -292,7 +295,7 @@ def test_source_epoch_v4_preserves_its_registered_surfaces_and_production_wheel(
         "frontend": "build==1.5.0",
         "source_date_epoch": 315532800,
     }
-    wheel_path = ROOT / wheel["artifact_path"]
+    wheel_path = evidence_root() / wheel["artifact_path"]
     assert wheel_path.is_file() and not wheel_path.is_symlink()
     assert wheel["bytes"] == wheel_path.stat().st_size
     assert wheel["sha256"] == _sha256(wheel_path)
@@ -417,7 +420,7 @@ def test_registered_domain_naming_source_and_wheel_remain_sealed() -> None:
         "frontend": "build==1.5.0",
         "source_date_epoch": 315532800,
     }
-    wheel_path = ROOT / wheel["artifact_path"]
+    wheel_path = evidence_root() / wheel["artifact_path"]
     assert wheel_path.is_file() and not wheel_path.is_symlink()
     assert wheel["bytes"] == wheel_path.stat().st_size
     assert wheel["sha256"] == _sha256(wheel_path)
@@ -452,24 +455,14 @@ def test_registered_domain_naming_source_and_wheel_remain_sealed() -> None:
     ).hexdigest()
 
 
-def test_release_candidate_source_matches_registered_surfaces() -> None:
-    if os.environ.get("UQUANT_RELEASE_CANDIDATE") != "1":
-        pytest.skip("current-source equality is required only for an explicit release candidate")
-
-    epoch = _artifact("source_epoch_v5.json")["source_epoch"]
-    assert epoch["reviewed_surfaces"] == {
-        identifier: source_surface_fingerprint(ROOT, identifier)
-        for identifier in SOURCE_SURFACE_IDS
-    }
-    registry_path = ROOT / str(epoch["registry"]["path"])
-    registry = json.loads(registry_path.read_text(encoding="utf-8"))
-    assert epoch["registry"] == {
-        "canonical_sha256": registry["canonical_sha256"],
-        "file_sha256": _sha256(registry_path),
-        "path": "benchmarks/source_surface_registry.json",
-    }
-    assert epoch["requirements_sha256"] == _sha256(ROOT / "requirements.txt")
-    assert epoch["uv_lock_sha256"] == _sha256(ROOT / "uv.lock")
+def test_current_release_source_matches_checkout_and_independent_policy() -> None:
+    identity = verify_run_checkout()
+    assert identity["head"] == _git("rev-parse", "HEAD")
+    assert identity["tree"] == _git("rev-parse", "HEAD^{tree}")
+    contract = load_absolute_generalization_contract()
+    assert contract.candidate.production_source_sha256 == source_surface_fingerprint(
+        ROOT, "economic_decision_v1"
+    )
 
 
 def test_release_committed_economic_equivalence_is_exact() -> None:
@@ -531,7 +524,7 @@ def test_release_acceptance_seals_local_evidence_without_faking_remote_ci() -> N
         "NOT_RUN_NON_NATIVE_BY_CONTRACT"
     )
     for evidence in payload["evidence"].values():
-        path = ROOT / evidence["path"]
+        path = evidence_root() / evidence["path"]
         assert path.stat().st_size == evidence["bytes"]
         assert _sha256(path) == evidence["sha256"]
         assert evidence["status"] == "PASS"

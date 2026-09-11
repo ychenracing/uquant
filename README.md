@@ -38,11 +38,11 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 `NORMAL/CAUTION` 且 `reduction_level <= 1`、没有行业/战略损伤/急性撤离 guard、策略本身
 也不要求减仓的场景；只能冻结既有敞口，不能新增风险。`CRISIS` 和其他硬风险上限始终生效。
 
-## 验证与演进边界
+## 验证与证据边界
 
-已知 Actions 工程失败的[修复记录](docs/ci-repair-20260911.md)说明了当前测试、来源绑定与保留的真实合同失败。
-
-2026-09-11 的[生效锚点记忆修复与首批清理](docs/active-anchor-memory-20260911.md)完成 55 个原生账户验证，经济结果均与 Z 基线一致，生产代码净减少 58 行。该交付不声明盈利或泛化提升，原完整合同仍为 NOT_MET；历史失败与 CI 限制见交付记录。
+当前验收入口先核对源码、独立政策、数据及运行环境，再执行真实账户。完整八分片聚合
+区分执行成功与经济达标；单场景诊断不能代替完整验收。命令和失败语义见
+[当前验收链](docs/ACCEPTANCE.md)。
 
 生产、绩效门和泛化门共用经过摘要保护的 34 只 A 股 AI 产业链证券及点时行业身份。
 性能验收验证六个完整 AI-era 窗口；泛化验收在固定全集、行业、移除核心与随机池场景中
@@ -216,7 +216,7 @@ date,open,high,low,close,volume
 - [质量契约](docs/QUALITY.md)
 - [经济权限与因果执行决策](docs/decisions/0001-economic-authority-and-causal-execution.md)
 - [源码身份与 holdout epoch 决策](docs/decisions/0002-source-identity-and-holdout-epochs.md)
-- [历史证据索引](artifacts/README.md)
+- [历史证据索引](https://github.com/ychenracing/uquant/blob/7fcf9562e6c7f96250811acd80c2dd4ee46485e3/artifacts/README.md)
 
 发布 wheel 只包含生产命名空间 `uquant*`；`research/`、`scripts/`、`tests/`、文档、
 验证工件和冻结数据仍保留在仓库中供复现与治理，但不是可安装的生产 API。

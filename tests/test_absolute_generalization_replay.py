@@ -9,7 +9,6 @@ from typing import Any, get_type_hints
 
 import pandas as pd
 import pytest
-from _absolute_contract_fixture import historical_contract_source as historical_contract_source
 
 import uquant.validation.absolute_generalization.replay as replay_module
 from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads

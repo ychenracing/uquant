@@ -15,6 +15,7 @@ import pytest
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.portfolio import PortfolioAllocator
+from uquant.validation.evidence_source import evidence_root
 
 from . import _portfolio_trace as trace_module
 from ._analysis import (
@@ -51,7 +52,7 @@ _PORTFOLIO_REFERENCE_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
 _TRACE_LOGIC_COMMIT = "3aadf021dce9ed77c2359065146e38209866789c"
 _TRACE_LOGIC_BLOB = "cce9498d851d4007c57b2ba5eaa2e6f3216c444e"
 _TRACE_RUNNER_SHA256 = "00672c67b31374c50e1e56e236a45609374637b86f9900d47dc550abe5b1f1c3"
-_INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task8_cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts') / "architecture_refactor" / "task8_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
 # Current eight-field leader-cycle retirement changes instance configuration bytes;
@@ -75,10 +76,10 @@ _CURRENT_PORTFOLIO_INSTANCE_PICKLES = {
     ),
 }
 _CURRENT_PORTFOLIO_MODE_SHA256 = {
-    "double_optimized": "1ddcccac9cf0361c5974074e6babb6db5dc2e0e8b77b9f8dcd295135a1090a49",
-    "normal": "7b9853bfae1446c4b5da37ef03811054a61e62c7fdea7171b8630646b9239a30",
-    "optimized": "7b9853bfae1446c4b5da37ef03811054a61e62c7fdea7171b8630646b9239a30",
-    "windows_no_fcntl": "1ddcccac9cf0361c5974074e6babb6db5dc2e0e8b77b9f8dcd295135a1090a49",
+    "double_optimized": "55153ae91593190d69b0910546b3befbdf7aa3dabd502f9011bfbfa42058e87a",
+    "normal": "6df7eed1769a6e9fe8aff2443012fd413ffe309d2a3587127f021e11595a0293",
+    "optimized": "6df7eed1769a6e9fe8aff2443012fd413ffe309d2a3587127f021e11595a0293",
+    "windows_no_fcntl": "55153ae91593190d69b0910546b3befbdf7aa3dabd502f9011bfbfa42058e87a",
 }
 _IMPLEMENTATION_IDENTITIES = {
     "uquant/portfolio.py": (
@@ -428,6 +429,22 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
         contract["instance_pickle_size"] = pickle_size
     classes['LeaderPortfolioPolicy']["methods"]['_leader_lifecycle_exit_confirmed']["raw_docstring"] = 'Confirm lost holding structure without a pre-entry-return velocity veto.'
     classes['PortfolioAllocator']["methods"]['_sparse_risk_reduce']["raw_docstring"] = 'Meet every risk cap with one deterministic sparse reduction.\n\n        The lexicographic objective is cap compliance, safer normalized\n        lifecycle composition, sector guard health, stronger retention utility,\n        then the fewest changed symbols among otherwise equivalent plans.\n        At most one symbol receives a partial\n        boundary trim. A guard can only retain or reduce current exposure; it\n        never buys while protection is active.\n        '
+    # Reflection exposes the existing executable qualification arguments directly.
+    qualification_arguments = (
+        ", qualification_panel: 'dict[str, pd.DataFrame] | None' = None"
+        ", qualification_leaders: 'dict[str, LeaderScore] | None' = None"
+        ", strategic_universe: 'StrategicUniverseRoles | None' = None"
+    )
+    for class_name, method_names in (
+        ("PortfolioAllocator", ("allocate", "_allocate_strategy")),
+        ("StrategicPortfolioPolicy", ("_initialize_strategic_cohort", "_strategic_cohort_targets")),
+    ):
+        for method_name in method_names:
+            method = classes[class_name]["methods"][method_name]
+            assert "qualification_panel" not in method["signature"]
+            method["signature"] = method["signature"].replace(
+                ") ->", qualification_arguments + ") ->", 1
+            )
     expected["mode_sha256"] = _CURRENT_PORTFOLIO_MODE_SHA256
     assert current_reflection_contract(ROOT) == expected
     assert expected["normal"]["classes"]["PortfolioAllocator"]["mro"] == [
@@ -469,9 +486,10 @@ def test_portfolio_historical_machine_evidence_and_requirements_remain_bytes_exa
         historical - {"benchmarks/architecture_refactor_public_api.json"}
     ) | {"requirements.txt"}
     for path in paths:
-        assert (ROOT / path).read_bytes() == _git_source(path)
+        source_root = evidence_root() if path.startswith("artifacts/") else ROOT
+        assert (source_root / path).read_bytes() == _git_source(path)
     baseline_inventory = json.loads(
-        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(
+        ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(
             encoding="utf-8"
         )
     )
@@ -536,8 +554,8 @@ def test_portfolio_candidate_daily_trace_preserves_sessions_and_checkpoint_integ
     observed, _, diagnostics = candidate_portfolio_traces
     current = observed[scenario_index]
     historical = payload["scenarios"][scenario_index]
-    # The redesign intentionally supersedes old target and owner trajectories.
-    # Preserve the causal replay inputs and checkpoint coverage, not their values.
+    # Preserve the audited causal inputs and checkpoint coverage. Current account
+    # behavior is verified against its applicable production contract.
     for field in ("name", "requested_start", "requested_end", "symbols", "record_count"):
         assert current[field] == historical[field]
     assert [record["date"] for record in current["records"]] == [

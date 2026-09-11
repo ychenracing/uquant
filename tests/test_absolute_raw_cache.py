@@ -5,7 +5,6 @@ from copy import deepcopy
 from dataclasses import replace
 
 import pytest
-from _absolute_contract_fixture import historical_contract_source as historical_contract_source
 from _absolute_generalization_metrics_fixture import complete_replay
 
 from uquant.contracts.strict_json import canonical_json_sha256
@@ -38,8 +37,14 @@ def test_reader_failure_does_not_skip_other_native_cells(monkeypatch, tmp_path):
         data_dir=runner.Path(runner.__file__).resolve().parents[1] / "data/frozen",
         shard_root=None, artifact_prefix=None, upstream_result=None,
     )
-    with pytest.raises(RuntimeError, match="independent cells completed"):
+    with pytest.raises(ExceptionGroup, match="independent cells completed") as captured:
         runner._run_execution(options, contract)
+    assert len(captured.value.exceptions) == 1
+    cause = captured.value.exceptions[0]
+    assert isinstance(cause, ValueError)
+    assert str(cause) == "reader failure"
+    assert cause.__traceback__ is not None
+    assert cause.__notes__ == [f"Absolute cell: {scenarios[0].cell_id}"]
     assert calls == [scenario.cell_id for scenario in scenarios]
     assert len(list((tmp_path / "cache/reader-errors").glob("*.json"))) == 1
     assert not options.output.exists()

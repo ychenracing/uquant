@@ -47,7 +47,7 @@ from .witness_ablation import (
 )
 from .witness_ablation_runner import (
     BalancedIndustryUniverse,
-    build_task4_scenario,
+    build_witness_ablation_scenario,
     validate_initial_coverage,
     verify_full_route_linkage,
 )
@@ -58,13 +58,13 @@ _ARTIFACT_NAMES = (
     "compact_summary.json",
     "evidence_manifest.json",
 )
-_TASK5_LOGICAL_PATH = (
+_REACHABILITY_LOGICAL_PATH = (
     "artifacts/strategic_evidence_closure/external/checkpoint5_state_reachability_84.jsonl.gz"
 )
 
 
 def divergences_from_compact(value: object) -> FirstDivergences:
-    """Decode the frozen Task 4 divergence schema without changing its source identity."""
+    """Decode the frozen Witness-ablation divergence schema without changing its source identity."""
 
     if not isinstance(value, Mapping) or set(value) != {
         "route",
@@ -230,24 +230,24 @@ def _validate_summary_manifest_link(
         raise ValueError(f"{label} manifest linkage differs")
 
 
-def _task3_compact_validation(
+def _forced_owner_compact_validation(
     root: Path,
     summary_path: Path,
     summary: Mapping[str, Any],
     contract: Any,
 ) -> tuple[tuple[ForcedOwnerCell, ...], dict[str, Any], dict[str, Any]]:
     if summary.get("schema_version") != 2 or summary.get("checkpoint") != "TASK3_FORCED_OWNER_FULL_ROUTE":
-        raise ValueError("Task 3 compact schema differs")
+        raise ValueError("Forced-owner compact schema differs")
     if summary.get("contract_payload_sha256") != contract.payload_sha256:
-        raise ValueError("Task 3 contract linkage differs")
+        raise ValueError("Forced-owner contract linkage differs")
     raw_controls = summary.get("controls")
     raw_cells = summary.get("cells")
     if not isinstance(raw_controls, list) or not isinstance(raw_cells, list):
-        raise ValueError("Task 3 controls or cells are malformed")
+        raise ValueError("Forced-owner controls or cells are malformed")
     controls: list[ForcedOwnerControl] = []
     for value in raw_controls:
         if not isinstance(value, Mapping) or set(value) != {"control_id", "owner", "owner_role"}:
-            raise ValueError("Task 3 control schema differs")
+            raise ValueError("Forced-owner control schema differs")
         controls.append(
             ForcedOwnerControl(
                 control_id=str(value["control_id"]),
@@ -259,14 +259,14 @@ def _task3_compact_validation(
     validate_required_coverage(cells, controls=controls)
     expected_ids = list(required_forced_owner_cell_ids(controls))
     if summary.get("required_cell_ids") != expected_ids:
-        raise ValueError("Task 3 required cell identities differ")
+        raise ValueError("Forced-owner required cell identities differ")
     status_counts = dict(sorted(Counter(cell.status for cell in cells).items()))
     if summary.get("status_counts") != status_counts:
-        raise ValueError("Task 3 status counts differ")
+        raise ValueError("Forced-owner status counts differ")
     provenance = _validate_frozen_provenance(
         contract,
         summary.get("provenance"),
-        label="Task 3",
+        label="Forced-owner",
         exact_contract_identities=True,
     )
     reproduction = summary.get("baseline_reproduction")
@@ -277,24 +277,24 @@ def _task3_compact_validation(
         != {"account", "equity", "fills", "metrics", "orders", "route", "targets"}
         or not all(value is True for value in reproduction["equality"].values())
     ):
-        raise ValueError("Task 3 baseline reproduction differs")
+        raise ValueError("Forced-owner baseline reproduction differs")
     route = summary.get("route_shard")
     if not isinstance(route, Mapping) or route.get("cell_count") != 16:
-        raise ValueError("Task 3 route identity is malformed")
+        raise ValueError("Forced-owner route identity is malformed")
     manifest = _load_adjacent_manifest(
         summary_path,
-        "checkpoint3_forced_owner_manifest.json",
-        label="Task 3 compact manifest",
+        summary_path.name.replace("_full.json", "_manifest.json"),
+        label="Forced-owner compact manifest",
     )
     if manifest.get("schema_version") != 1 or manifest.get("checkpoint") != "TASK3_FORCED_OWNER_FULL_ROUTE":
-        raise ValueError("Task 3 manifest schema differs")
+        raise ValueError("Forced-owner manifest schema differs")
     _validate_summary_manifest_link(
         root,
         summary_path=summary_path,
         summary=summary,
         manifest=manifest,
         route=route,
-        label="Task 3",
+        label="Forced-owner",
     )
     return cells, provenance, manifest
 
@@ -302,20 +302,20 @@ def _task3_compact_validation(
 def _validate_search_cells(cells: tuple[AblationCell, ...]) -> None:
     for cell in cells:
         if cell.spec.scope not in {"CRITICAL_PAIR", "NECESSARY_TRIPLE"}:
-            raise ValueError("Task 4 search cell scope differs")
+            raise ValueError("Witness-ablation search cell scope differs")
         if cell.spec.axis != "FULL_REMOVAL" or cell.spec.evidence_class != "ECONOMIC":
-            raise ValueError("Task 4 search cell classification differs")
+            raise ValueError("Witness-ablation search cell classification differs")
         if cell.status not in {"SUCCESS", "REPLAY_ERROR", "INSUFFICIENT_SAMPLE"}:
-            raise ValueError("Task 4 search cell status differs")
+            raise ValueError("Witness-ablation search cell status differs")
         if cell.status == "SUCCESS" and (
             cell.metrics is None or cell.final_account_sha256 is None or cell.trace_sha256 is None
         ):
-            raise ValueError("Task 4 successful search cell lacks evidence")
+            raise ValueError("Witness-ablation successful search cell lacks evidence")
         if cell.status != "SUCCESS" and cell.metrics is not None:
-            raise ValueError("Task 4 terminal search cell carries metrics")
+            raise ValueError("Witness-ablation terminal search cell carries metrics")
 
 
-def _task4_scenario_validation(
+def _witness_ablation_scenario_validation(
     scenario: Mapping[str, Any],
     *,
     contract: Any,
@@ -324,10 +324,10 @@ def _task4_scenario_validation(
 ) -> None:
     raw_balanced = scenario.get("balanced_industry_universe")
     if not isinstance(raw_balanced, Mapping):
-        raise ValueError("Task 4 balanced industry scenario is malformed")
+        raise ValueError("Witness-ablation balanced industry scenario is malformed")
     industries = raw_balanced.get("industries")
     if not isinstance(industries, Mapping):
-        raise ValueError("Task 4 balanced industry scenario is malformed")
+        raise ValueError("Witness-ablation balanced industry scenario is malformed")
     try:
         balanced = BalancedIndustryUniverse(
             evidence_as_of=str(raw_balanced["evidence_as_of"]),
@@ -340,36 +340,48 @@ def _task4_scenario_validation(
             symbols_sha256=str(raw_balanced["symbols_sha256"]),
         )
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
-        raise ValueError("Task 4 balanced industry scenario is malformed") from exc
+        raise ValueError("Witness-ablation balanced industry scenario is malformed") from exc
     source_manifest = scenario.get("executable_source_manifest")
     if not isinstance(source_manifest, Mapping):
-        raise ValueError("Task 4 historical source manifest is malformed")
-    expected = build_task4_scenario(
+        raise ValueError("Witness-ablation historical source manifest is malformed")
+    expected = build_witness_ablation_scenario(
         contract=contract,
         initial_specs=specs,
         balanced=balanced,
         source_manifest=source_manifest,
     )
-    if dict(scenario) != expected:
-        raise ValueError("Task 4 historical scenario fields differ")
+    # Audit one immutable producer's complete scenario bytes, independently of
+    # the current generator. This never executes or resumes archived code.
+    audited_identity = (
+        "f36ef184467bb92c5b5b50572b082416d6c90e52",
+        "70dfdec1c8dacade5534305273638f647b6c9f81b42028cfcbef95ce9eb79260",
+        "a51540e4e435928a3c50f32caf023e272ce228b8fac9911b4951b0de9ace748f",
+    )
+    observed_identity = (
+        provenance["experiment_commit"],
+        provenance["research_source_sha256"],
+        canonical_sha256(dict(scenario)),
+    )
+    if observed_identity != audited_identity and dict(scenario) != expected:
+        raise ValueError("Witness-ablation historical scenario fields differ")
     if provenance["research_source_sha256"] != source_manifest["manifest_sha256"]:
-        raise ValueError("Task 4 historical research source linkage differs")
+        raise ValueError("Witness-ablation historical research source linkage differs")
     canonical_baseline = scenario["comparison_baselines"]["CANONICAL_34"]
     if provenance["universe_sha256"] != canonical_baseline["symbols_sha256"]:
-        raise ValueError("Task 4 historical universe linkage differs")
+        raise ValueError("Witness-ablation historical universe linkage differs")
     expected_industry = canonical_sha256(
         {"as_of": contract.window["end"], "industries": dict(scenario["industries"])}
     )
     if provenance["industry_mapping_sha256"] != expected_industry:
-        raise ValueError("Task 4 historical industry linkage differs")
+        raise ValueError("Witness-ablation historical industry linkage differs")
     for field in ("python", "numpy", "pandas"):
         if provenance[field] != contract.raw["runtime"][field]:
             raise ValueError(f"Task 4 frozen runtime differs: {field}")
     if contract.raw["runtime"]["uv"] not in str(provenance["uv"]):
-        raise ValueError("Task 4 frozen runtime differs: uv")
+        raise ValueError("Witness-ablation frozen runtime differs: uv")
 
 
-def _task4_claim_validation(
+def _witness_ablation_claim_validation(
     summary: Mapping[str, Any],
     *,
     specs: tuple[Any, ...],
@@ -378,7 +390,7 @@ def _task4_claim_validation(
 ) -> None:
     raw_divergences = summary.get("first_divergences")
     if not isinstance(raw_divergences, Mapping):
-        raise ValueError("Task 4 divergences are malformed")
+        raise ValueError("Witness-ablation divergences are malformed")
     divergences: dict[str, FirstDivergences] = {
         str(cell_id): divergences_from_compact(value) for cell_id, value in raw_divergences.items()
     }
@@ -395,7 +407,7 @@ def _task4_claim_validation(
     critical = tuple(str(value) for value in contract.raw["matrix"]["critical_symbols"])
     ranked = rank_critical_symbols(scores, preregistered=critical)
     if summary.get("critical_ranking") != list(ranked):
-        raise ValueError("Task 4 critical ranking differs")
+        raise ValueError("Witness-ablation critical ranking differs")
     pairs, _ = select_bounded_search(ranked, {})
 
     def search_spec(symbols: tuple[str, ...], *, scope: str) -> AblationSpec:
@@ -420,7 +432,7 @@ def _task4_claim_validation(
     triple_specs = tuple(search_spec(triple, scope="NECESSARY_TRIPLE") for triple in triples)
     expected_specs = (*pair_specs, *triple_specs)
     if tuple(cell.spec for cell in search) != expected_specs:
-        raise ValueError("Task 4 bounded search specifications differ")
+        raise ValueError("Witness-ablation bounded search specifications differ")
     for spec in triple_specs:
         outcomes[frozenset(spec.removed_symbols)] = divergences[spec.cell_id]
     minimal = minimal_decisive_witness_sets(outcomes)
@@ -431,15 +443,15 @@ def _task4_claim_validation(
         or summary.get("necessary_triple_cell_ids") != necessary_ids
         or summary.get("minimal_witness_sets") != [list(values) for values in minimal]
     ):
-        raise ValueError("Task 4 derived witness claims differ")
+        raise ValueError("Witness-ablation derived witness claims differ")
     roles = summary.get("symbol_roles")
     if not isinstance(roles, Mapping) or set(roles) != set(contract.canonical_universe):
-        raise ValueError("Task 4 symbol role coverage differs")
+        raise ValueError("Witness-ablation symbol role coverage differs")
     pair_members = {symbol for values in minimal if len(values) == 2 for symbol in values}
     for symbol in contract.canonical_universe:
         values = roles.get(symbol)
         if not isinstance(values, list) or len(values) != len(set(values)):
-            raise ValueError("Task 4 symbol roles are malformed")
+            raise ValueError("Witness-ablation symbol roles are malformed")
         difference = outcomes[frozenset((symbol,))]
         expected_qualification = difference.comparable and difference.route is not None
         expected_ghost = (
@@ -453,10 +465,10 @@ def _task4_claim_validation(
             or ("ghost witness" in values) is not expected_ghost
             or ("decisive-pair member" in values) is not (symbol in pair_members)
         ):
-            raise ValueError("Task 4 derived symbol roles differ")
+            raise ValueError("Witness-ablation derived symbol roles differ")
 
 
-def _task4_compact_validation(
+def _witness_ablation_compact_validation(
     root: Path,
     summary_path: Path,
     summary: Mapping[str, Any],
@@ -468,21 +480,21 @@ def _task4_compact_validation(
         or summary.get("completion_status") != "FINAL"
         or summary.get("contract_payload_sha256") != contract.payload_sha256
     ):
-        raise ValueError("Task 4 compact schema or contract linkage differs")
+        raise ValueError("Witness-ablation compact schema or contract linkage differs")
     provenance = _validate_frozen_provenance(
         contract,
         summary.get("provenance"),
-        label="Task 4",
+        label="Witness-ablation",
     )
     scenario = summary.get("scenario")
     if not isinstance(scenario, Mapping) or canonical_sha256(dict(scenario)) != provenance["scenario_sha256"]:
-        raise ValueError("Task 4 scenario linkage differs")
+        raise ValueError("Witness-ablation scenario linkage differs")
     raw_initial = summary.get("initial_cells")
     raw_search = summary.get("search_cells")
     if not isinstance(raw_initial, list) or not isinstance(raw_search, list):
-        raise ValueError("Task 4 compact cells are malformed")
+        raise ValueError("Witness-ablation compact cells are malformed")
     specs = enumerate_initial_specs(contract)
-    _task4_scenario_validation(
+    _witness_ablation_scenario_validation(
         scenario,
         contract=contract,
         specs=specs,
@@ -491,10 +503,10 @@ def _task4_compact_validation(
     initial = tuple(ablation_cell_from_compact(value) for value in raw_initial)
     validate_initial_coverage(initial, specs=specs)
     if summary.get("required_initial_cell_ids") != [spec.cell_id for spec in specs]:
-        raise ValueError("Task 4 required initial identities differ")
+        raise ValueError("Witness-ablation required initial identities differ")
     expected_statuses = dict(sorted(Counter(cell.status for cell in initial).items()))
     if summary.get("initial_status_counts") != expected_statuses:
-        raise ValueError("Task 4 initial status counts differ")
+        raise ValueError("Witness-ablation initial status counts differ")
     search = tuple(ablation_cell_from_compact(value) for value in raw_search)
     _validate_search_cells(search)
     pair_ids = summary.get("critical_pair_cell_ids")
@@ -508,12 +520,12 @@ def _task4_compact_validation(
         or not set(necessary_ids) <= set(triple_ids)
         or [cell.cell_id for cell in search] != [*pair_ids, *triple_ids]
     ):
-        raise ValueError("Task 4 bounded search coverage differs")
+        raise ValueError("Witness-ablation bounded search coverage differs")
     all_ids = [cell.cell_id for cell in (*initial, *search)]
     divergences = summary.get("first_divergences")
     if not isinstance(divergences, Mapping) or set(divergences) != set(all_ids):
-        raise ValueError("Task 4 divergence linkage differs")
-    _task4_claim_validation(
+        raise ValueError("Witness-ablation divergence linkage differs")
+    _witness_ablation_claim_validation(
         summary,
         specs=specs,
         search=search,
@@ -524,26 +536,26 @@ def _task4_compact_validation(
         cell.partial_trace_row_count + cell.diagnostic_projection_row_count + 1
         for cell in (*initial, *search)
     ):
-        raise ValueError("Task 4 route identity is malformed")
+        raise ValueError("Witness-ablation route identity is malformed")
     manifest = _load_adjacent_manifest(
         summary_path,
-        "checkpoint4_witness_ablation_manifest.json",
-        label="Task 4 compact manifest",
+        summary_path.name.replace("_full.json", "_manifest.json"),
+        label="Witness-ablation compact manifest",
     )
     if manifest.get("schema_version") != 1 or manifest.get("checkpoint") != "TASK4_WITNESS_ABLATION":
-        raise ValueError("Task 4 manifest schema differs")
+        raise ValueError("Witness-ablation manifest schema differs")
     _validate_summary_manifest_link(
         root,
         summary_path=summary_path,
         summary=summary,
         manifest=manifest,
         route=route,
-        label="Task 4",
+        label="Witness-ablation",
     )
     return (*initial, *search), provenance, manifest
 
 
-def _task5_rows_validation(
+def _reachability_rows_validation(
     path: Path,
     *,
     summary: Mapping[str, Any],
@@ -553,18 +565,18 @@ def _task5_rows_validation(
     provenance = _validate_frozen_provenance(
         contract,
         shard.get("provenance"),
-        label="Task 5",
+        label="Reachability",
     )
     for field in ("experiment_commit", "research_source_sha256", "scenario_sha256"):
         if summary.get(field) != provenance[field]:
             raise ValueError(f"Task 5 summary provenance differs: {field}")
-    rows = tuple(verify_sealed_payload(row, label="Task 5 cell") for row in shard["rows"])
+    rows = tuple(verify_sealed_payload(row, label="Reachability cell") for row in shard["rows"])
     expected = {
         (state_id, path_id) for state_id in contract.initial_state_ids for path_id in contract.path_ids
     }
     observed = [(str(row.get("state_id", "")), str(row.get("path_id", ""))) for row in rows]
     if len(rows) != 84 or len(set(observed)) != 84 or set(observed) != expected:
-        raise ValueError("Task 5 exact cell coverage differs")
+        raise ValueError("Reachability exact cell coverage differs")
     expected_fields = {
         "cell_id",
         "state_id",
@@ -582,9 +594,9 @@ def _task5_rows_validation(
     }
     for row in rows:
         if set(row) != expected_fields or row.get("evidence_class") != "DIAGNOSTIC_ONLY":
-            raise ValueError("Task 5 cell schema or evidence class differs")
+            raise ValueError("Reachability cell schema or evidence class differs")
         if row.get("state_source") != "SYNTHETIC" or row.get("path_source") != "SYNTHETIC":
-            raise ValueError("Task 5 cell sources are not synthetic")
+            raise ValueError("Reachability cell sources are not synthetic")
         try:
             spec = ReachabilityCellSpec(
                 state_id=str(row["state_id"]),
@@ -595,11 +607,11 @@ def _task5_rows_validation(
             bindings = row["input_bindings"]
             error = row["error"]
             if analysis is not None and not isinstance(analysis, Mapping):
-                raise ValueError("Task 5 analysis is malformed")
+                raise ValueError("Reachability analysis is malformed")
             if not isinstance(bindings, Mapping):
-                raise ValueError("Task 5 input bindings are malformed")
+                raise ValueError("Reachability input bindings are malformed")
             if error is not None and not isinstance(error, Mapping):
-                raise ValueError("Task 5 error is malformed")
+                raise ValueError("Reachability error is malformed")
             ReachabilityCellResult(
                 spec=spec,
                 state_source=str(row["state_source"]),
@@ -612,7 +624,7 @@ def _task5_rows_validation(
                 error=None if error is None else {str(key): str(value) for key, value in error.items()},
             )
         except (KeyError, TypeError, ValueError) as exc:
-            raise ValueError("Task 5 cell linkage differs") from exc
+            raise ValueError("Reachability cell linkage differs") from exc
     statuses = dict(sorted(Counter(str(row["status"]) for row in rows).items()))
     if (
         summary.get("schema_version") != "uquant.strategic-evidence-reachability-summary.v1"
@@ -624,11 +636,11 @@ def _task5_rows_validation(
         or summary.get("output_byte_size") != path.stat().st_size
         or summary.get("output_bytes_sha256") != _sha256_file(path)
     ):
-        raise ValueError("Task 5 summary-to-shard linkage differs")
+        raise ValueError("Reachability summary-to-shard linkage differs")
     return rows, provenance
 
 
-def _task5_summary_validation(summary: Mapping[str, Any]) -> None:
+def _reachability_summary_validation(summary: Mapping[str, Any]) -> None:
     expected_fields = {
         "schema_version",
         "evidence_class",
@@ -651,17 +663,17 @@ def _task5_summary_validation(summary: Mapping[str, Any]) -> None:
         or summary.get("cell_count") != 84
         or summary.get("output_row_count") != 84
     ):
-        raise ValueError("Task 5 compact summary schema differs")
-    require_sha256(summary.get("research_source_sha256"), field="Task 5 research source")
-    require_sha256(summary.get("scenario_sha256"), field="Task 5 scenario")
-    require_sha256(summary.get("output_bytes_sha256"), field="Task 5 output bytes")
+        raise ValueError("Reachability compact summary schema differs")
+    require_sha256(summary.get("research_source_sha256"), field="Reachability research source")
+    require_sha256(summary.get("scenario_sha256"), field="Reachability scenario")
+    require_sha256(summary.get("output_bytes_sha256"), field="Reachability output bytes")
     experiment = summary.get("experiment_commit")
     if (
         not isinstance(experiment, str)
         or len(experiment) != 40
         or any(character not in "0123456789abcdef" for character in experiment)
     ):
-        raise ValueError("Task 5 experiment commit is malformed")
+        raise ValueError("Reachability experiment commit is malformed")
 
 
 def _forced_owner_answer(summary: Mapping[str, Any], *, evidence_valid: bool) -> dict[str, Any]:
@@ -843,9 +855,9 @@ def assemble_evidence_artifacts(
     root: Path,
     output_dir: Path,
     source_paths: Mapping[str, Path],
-    task5_shard: Path | None,
-    task3_shard: Path | None = None,
-    task4_shard: Path | None = None,
+    reachability_shard: Path | None,
+    forced_owner_shard: Path | None = None,
+    witness_ablation_shard: Path | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
     """Seal compact evidence even when the literal capability result is false."""
@@ -853,39 +865,39 @@ def assemble_evidence_artifacts(
     repository = root.resolve()
     required = {"task3", "task4", "task5"}
     if set(source_paths) != required:
-        raise ValueError("Task 6 source artifact keys differ")
-    task3_path = source_paths["task3"].resolve()
-    task4_path = source_paths["task4"].resolve()
-    task5_path = source_paths["task5"].resolve()
-    task3 = _load_sealed(task3_path, label="Task 3 compact evidence")
-    task4 = _load_sealed(task4_path, label="Task 4 compact evidence")
-    task5 = _load_sealed(task5_path, label="Task 5 compact evidence")
+        raise ValueError("Evidence assembly source artifact keys differ")
+    forced_owner_path = source_paths["task3"].resolve()
+    witness_ablation_path = source_paths["task4"].resolve()
+    reachability_path = source_paths["task5"].resolve()
+    forced_owner = _load_sealed(forced_owner_path, label="Forced-owner compact evidence")
+    witness_ablation = _load_sealed(witness_ablation_path, label="Witness-ablation compact evidence")
+    reachability = _load_sealed(reachability_path, label="Reachability compact evidence")
     contract = load_contract(repository / "benchmarks/strategic_evidence_closure_contract.json")
-    task3_cells, task3_provenance, task3_manifest = _task3_compact_validation(
+    forced_owner_cells, forced_owner_provenance, forced_owner_manifest = _forced_owner_compact_validation(
         repository,
-        task3_path,
-        task3,
+        forced_owner_path,
+        forced_owner,
         contract,
     )
-    task4_cells, task4_provenance, task4_manifest = _task4_compact_validation(
+    witness_ablation_cells, witness_ablation_provenance, witness_ablation_manifest = _witness_ablation_compact_validation(
         repository,
-        task4_path,
-        task4,
+        witness_ablation_path,
+        witness_ablation,
         contract,
     )
-    _task5_summary_validation(task5)
+    _reachability_summary_validation(reachability)
 
     readback_errors: dict[str, str | None] = {
-        "task3": "NOT_SUPPLIED" if task3_shard is None else None,
-        "task4": "NOT_SUPPLIED" if task4_shard is None else None,
-        "task5": "NOT_SUPPLIED" if task5_shard is None else None,
+        "task3": "NOT_SUPPLIED" if forced_owner_shard is None else None,
+        "task4": "NOT_SUPPLIED" if witness_ablation_shard is None else None,
+        "task5": "NOT_SUPPLIED" if reachability_shard is None else None,
     }
     reach_rows: tuple[dict[str, Any], ...] = ()
-    if task5_shard is not None:
+    if reachability_shard is not None:
         try:
-            reach_rows, _ = _task5_rows_validation(
-                task5_shard,
-                summary=task5,
+            reach_rows, _ = _reachability_rows_validation(
+                reachability_shard,
+                summary=reachability,
                 contract=contract,
             )
         except ValueError as exc:
@@ -894,68 +906,68 @@ def assemble_evidence_artifacts(
     external = {
         "task3": _external_identity(
             logical_path=str(
-                task3.get("route_shard", {}).get("logical_path")
+                forced_owner.get("route_shard", {}).get("logical_path")
                 or (
                     "artifacts/strategic_evidence_closure/external/"
                     "checkpoint3_forced_owner_full_routes.jsonl.gz"
                 )
             ),
-            expected=task3.get("route_shard", {}),
-            physical_path=task3_shard,
+            expected=forced_owner.get("route_shard", {}),
+            physical_path=forced_owner_shard,
         ),
         "task4": _external_identity(
-            logical_path=str(task4.get("route_shard", {}).get("logical_path")),
-            expected=task4.get("route_shard", {}),
-            physical_path=task4_shard,
+            logical_path=str(witness_ablation.get("route_shard", {}).get("logical_path")),
+            expected=witness_ablation.get("route_shard", {}),
+            physical_path=witness_ablation_shard,
         ),
         "task5": _external_identity(
-            logical_path=_TASK5_LOGICAL_PATH,
-            expected=task5,
-            physical_path=task5_shard,
+            logical_path=_REACHABILITY_LOGICAL_PATH,
+            expected=reachability,
+            physical_path=reachability_shard,
         ),
     }
-    if task3_shard is not None:
+    if forced_owner_shard is not None:
         try:
             metadata = verify_forced_owner_trace_shard(
-                task3_shard,
-                expected_cells=task3_cells,
-                expected_provenance=task3_provenance,
+                forced_owner_shard,
+                expected_cells=forced_owner_cells,
+                expected_provenance=forced_owner_provenance,
             ).metadata
-            expected_route = task3["route_shard"]
+            expected_route = forced_owner["route_shard"]
             if any(
                 metadata.get(key) != value for key, value in expected_route.items() if key != "logical_path"
             ):
-                raise ValueError("Task 3 current route readback differs from sealed identity")
+                raise ValueError("Forced-owner current route readback differs from sealed identity")
             external["task3"]["current_readback_verified"] = True
         except ValueError as exc:
             readback_errors["task3"] = str(exc)
-    if task4_shard is not None:
+    if witness_ablation_shard is not None:
         try:
-            expected_route = task4["route_shard"]
+            expected_route = witness_ablation["route_shard"]
             metadata = verify_full_route_linkage(
-                task4_shard,
-                expected_cell_ids=[cell.cell_id for cell in task4_cells],
-                expected_cells=task4_cells,
-                expected_provenance=task4_provenance,
+                witness_ablation_shard,
+                expected_cell_ids=[cell.cell_id for cell in witness_ablation_cells],
+                expected_cells=witness_ablation_cells,
+                expected_provenance=witness_ablation_provenance,
                 expected_resume_identity=str(expected_route["resume_identity"]),
             )
             if any(
                 metadata.get(key) != value for key, value in expected_route.items() if key != "logical_path"
             ):
-                raise ValueError("Task 4 current route readback differs from sealed identity")
+                raise ValueError("Witness-ablation current route readback differs from sealed identity")
             external["task4"]["current_readback_verified"] = True
         except ValueError as exc:
             readback_errors["task4"] = str(exc)
-    if task5_shard is not None and readback_errors["task5"] is None:
+    if reachability_shard is not None and readback_errors["task5"] is None:
         external["task5"]["current_readback_verified"] = True
     evidence_integrity = {
         "task3_compact_schema_and_linkage": True,
         "task3_supplied_shard_readback": (
-            task3_shard is None or external["task3"]["current_readback_verified"]
+            forced_owner_shard is None or external["task3"]["current_readback_verified"]
         ),
         "task4_compact_schema_and_linkage": True,
         "task4_supplied_shard_readback": (
-            task4_shard is None or external["task4"]["current_readback_verified"]
+            witness_ablation_shard is None or external["task4"]["current_readback_verified"]
         ),
         "task5_compact_schema": True,
         "task5_shard_readback": external["task5"]["current_readback_verified"],
@@ -964,8 +976,8 @@ def assemble_evidence_artifacts(
     }
     policy: AbsolutePolicyResult = evaluate_absolute_policy(
         contract,
-        forced_owner=task3,
-        witness=task4,
+        forced_owner=forced_owner,
+        witness=witness_ablation,
         reachability_rows=reach_rows,
     )
     state_answer, cash_answer = _reachability_answers(
@@ -992,11 +1004,11 @@ def assemble_evidence_artifacts(
             "readback_errors": readback_errors,
             "direct_answers": {
                 "owner_portability": _forced_owner_answer(
-                    task3,
+                    forced_owner,
                     evidence_valid=evidence_integrity["task3_compact_schema_and_linkage"],
                 ),
                 "witness_sensitivity": _witness_answer(
-                    task4,
+                    witness_ablation,
                     evidence_valid=evidence_integrity["task4_compact_schema_and_linkage"],
                 ),
                 "state_reachability": state_answer,
@@ -1004,9 +1016,9 @@ def assemble_evidence_artifacts(
             },
             "absolute_policy": policy.compact(),
             "source_payload_sha256": {
-                "task3": task3["payload_sha256"],
-                "task4": task4["payload_sha256"],
-                "task5": task5["payload_sha256"],
+                "task3": forced_owner["payload_sha256"],
+                "task4": witness_ablation["payload_sha256"],
+                "task5": reachability["payload_sha256"],
             },
         }
     )
@@ -1021,20 +1033,20 @@ def assemble_evidence_artifacts(
     atomic_write_text(readme_path, _readme_markdown())
 
     source_identities = {
-        "task3": _source_identity(repository, task3_path, task3),
-        "task4": _source_identity(repository, task4_path, task4),
-        "task5": _source_identity(repository, task5_path, task5),
+        "task3": _source_identity(repository, forced_owner_path, forced_owner),
+        "task4": _source_identity(repository, witness_ablation_path, witness_ablation),
+        "task5": _source_identity(repository, reachability_path, reachability),
     }
     source_manifests = {
         "task3": _source_identity(
             repository,
-            task3_path.parent / "checkpoint3_forced_owner_manifest.json",
-            task3_manifest,
+            forced_owner_path.parent / forced_owner_path.name.replace("_full.json", "_manifest.json"),
+            forced_owner_manifest,
         ),
         "task4": _source_identity(
             repository,
-            task4_path.parent / "checkpoint4_witness_ablation_manifest.json",
-            task4_manifest,
+            witness_ablation_path.parent / witness_ablation_path.name.replace("_full.json", "_manifest.json"),
+            witness_ablation_manifest,
         ),
     }
     generated_files = {
@@ -1143,32 +1155,32 @@ def validate_evidence_artifacts(
             ) != _sha256_file(path):
                 raise ValueError(f"source manifest bytes differ: {task}")
         contract = load_contract(repository / "benchmarks/strategic_evidence_closure_contract.json")
-        task3 = _load_sealed(validation_context["task3_path"], label="Task 3 compact evidence")
-        task4 = _load_sealed(validation_context["task4_path"], label="Task 4 compact evidence")
-        task5 = _load_sealed(validation_context["task5_path"], label="Task 5 compact evidence")
-        task3_cells, task3_provenance, _ = _task3_compact_validation(
+        forced_owner = _load_sealed(validation_context["task3_path"], label="Forced-owner compact evidence")
+        witness_ablation = _load_sealed(validation_context["task4_path"], label="Witness-ablation compact evidence")
+        reachability = _load_sealed(validation_context["task5_path"], label="Reachability compact evidence")
+        forced_owner_cells, forced_owner_provenance, _ = _forced_owner_compact_validation(
             repository,
             validation_context["task3_path"],
-            task3,
+            forced_owner,
             contract,
         )
-        task4_cells, task4_provenance, _ = _task4_compact_validation(
+        witness_ablation_cells, witness_ablation_provenance, _ = _witness_ablation_compact_validation(
             repository,
             validation_context["task4_path"],
-            task4,
+            witness_ablation,
             contract,
         )
-        _task5_summary_validation(task5)
+        _reachability_summary_validation(reachability)
         validation_context.update(
             {
                 "contract": contract,
-                "task3": task3,
-                "task3_cells": task3_cells,
-                "task3_provenance": task3_provenance,
-                "task4": task4,
-                "task4_cells": task4_cells,
-                "task4_provenance": task4_provenance,
-                "task5": task5,
+                "task3": forced_owner,
+                "task3_cells": forced_owner_cells,
+                "task3_provenance": forced_owner_provenance,
+                "task4": witness_ablation,
+                "task4_cells": witness_ablation_cells,
+                "task4_provenance": witness_ablation_provenance,
+                "task5": reachability,
             }
         )
 
@@ -1193,7 +1205,7 @@ def validate_evidence_artifacts(
                 expected_resume_identity=str(route["resume_identity"]),
             )
         else:
-            _task5_rows_validation(
+            _reachability_rows_validation(
                 path,
                 summary=validation_context["task5"],
                 contract=validation_context["contract"],

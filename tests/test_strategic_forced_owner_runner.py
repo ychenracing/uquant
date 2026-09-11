@@ -19,16 +19,17 @@ from research.strategic_evidence.forced_owner_runner import (
     build_forced_owner_scenario,
     economically_compatible_provenance,
     economically_compatible_selection_evidence,
+    verify_forced_owner_outputs,
     verify_frozen_inputs,
-    verify_task3_outputs,
 )
 from research.strategic_evidence.provenance import validate_provenance
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
 
 
 def test_frozen_input_verifier_rejects_manifest_identity_drift() -> None:
-    """Catches a matrix being attributed to a manifest other than sealed v1."""
+    """Catches a matrix being attributed to a manifest other than sealed contract."""
 
     contract = load_contract(ROOT / "benchmarks/strategic_evidence_closure_contract.json")
     raw = deepcopy(contract.raw)
@@ -121,8 +122,7 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
 
     source = json.loads(
         (
-            ROOT
-            / "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json"
+            (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json')
         ).read_text(encoding="utf-8")
     )
     provenance = validate_provenance(source["provenance"])
@@ -156,12 +156,8 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
         "status_counts": {NO_NATIVE_ELIGIBILITY: 16},
         "route_shard": route_metadata,
     }
-    relative_summary = Path(
-        "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json"
-    )
-    relative_manifest = Path(
-        "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_manifest.json"
-    )
+    relative_summary = Path("artifacts/forced_owner/summary.json")
+    relative_manifest = Path("artifacts/forced_owner/manifest.json")
     roots = (tmp_path / "checkout-a", tmp_path / "moved" / "checkout-b")
     results = []
     for root in roots:
@@ -171,7 +167,7 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
         contract_path = root / "benchmarks/strategic_evidence_closure_contract.json"
         contract_path.parent.mkdir(parents=True)
         contract_path.write_bytes(
-            (ROOT / "benchmarks/strategic_evidence_closure_contract.json").read_bytes()
+            (evidence_root() / "benchmarks/strategic_evidence_closure_contract.json").read_bytes()
         )
         _write_summary_and_manifest(
             repository=root,
@@ -181,7 +177,7 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
             route_metadata=route_metadata,
         )
         results.append(
-            verify_task3_outputs(
+            verify_forced_owner_outputs(
                 root,
                 summary_path=relative_summary,
                 manifest_path=relative_manifest,

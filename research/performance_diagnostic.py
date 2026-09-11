@@ -12,11 +12,9 @@ import shutil
 
 # Security: Git and uv are invoked without a shell and with fixed executable names.
 import subprocess  # nosec B404
-from collections.abc import Callable, Iterator, Mapping, Sequence
-from contextlib import contextmanager
+from collections.abc import Mapping, Sequence
 from datetime import date
 from pathlib import Path
-from threading import RLock
 from typing import Any
 
 import numpy as np
@@ -96,7 +94,6 @@ def _git(root: Path, arguments: Sequence[str]) -> bytes:
         raise RuntimeError("cannot inspect diagnostic source checkout") from exc
 
 
-diagnostic_git: Callable[[Path, Sequence[str]], bytes] = _git
 
 
 def _source_paths(root: Path) -> tuple[Path, ...]:
@@ -154,8 +151,8 @@ def _source_provenance(
     expected_source_sha256: str,
     expected_trace_adapter_sha256: str,
 ) -> dict[str, Any]:
-    commit = diagnostic_git(root, ("rev-parse", "HEAD")).decode().strip()
-    status = diagnostic_git(
+    commit = _git(root, ("rev-parse", "HEAD")).decode().strip()
+    status = _git(
         root,
         (
             "status",
@@ -166,7 +163,7 @@ def _source_provenance(
             *_PRODUCTION_FILES,
         ),
     ).decode()
-    patch = diagnostic_git(
+    patch = _git(
         root,
         ("diff", "HEAD", "--binary", "--", "uquant", *_PRODUCTION_FILES),
     )
@@ -197,10 +194,11 @@ def _runner_provenance() -> dict[str, str]:
     root = Path(__file__).resolve().parents[1]
     runner_paths = (
         root / "scripts" / "run_performance_diagnostic.py",
+        Path(__file__).resolve(),
         root / "research" / "first_divergence.py",
         root / "uv.lock",
     )
-    status = diagnostic_git(
+    status = _git(
         root,
         (
             "status",
@@ -208,6 +206,7 @@ def _runner_provenance() -> dict[str, str]:
             "--untracked-files=all",
             "--",
             "scripts/run_performance_diagnostic.py",
+            "research/performance_diagnostic.py",
             "research/first_divergence.py",
             "uv.lock",
         ),
@@ -215,13 +214,12 @@ def _runner_provenance() -> dict[str, str]:
     if status.strip():
         raise RuntimeError("diagnostic runner and runtime lock must be committed")
     return {
-        "commit": diagnostic_git(root, ("rev-parse", "HEAD")).decode().strip(),
+        "commit": _git(root, ("rev-parse", "HEAD")).decode().strip(),
         "source_sha256": _source_digest(root, runner_paths),
         "uv_lock_sha256": _sha256((root / "uv.lock").read_bytes()),
     }
 
 
-diagnostic_runner_provenance: Callable[[], dict[str, str]] = _runner_provenance
 
 
 def _uv_version() -> str:
@@ -271,7 +269,7 @@ def _run_trace(args: argparse.Namespace) -> dict[str, Any]:
         expected_source_sha256=args.expected_source_sha256,
         expected_trace_adapter_sha256=args.expected_trace_adapter_sha256,
     )
-    runner = diagnostic_runner_provenance()
+    runner = _runner_provenance()
     manifest = verify_data_manifest(data_dir)
     result, trace = trace_backtest(
         ProductionEngine(data_dir, config),
@@ -288,7 +286,7 @@ def _run_trace(args: argparse.Namespace) -> dict[str, Any]:
         expected_trace_adapter_sha256=args.expected_trace_adapter_sha256,
     ):
         raise RuntimeError("diagnostic source changed during replay")
-    if runner != diagnostic_runner_provenance():
+    if runner != _runner_provenance():
         raise RuntimeError("diagnostic runner changed during replay")
     if manifest != verify_data_manifest(data_dir):
         raise RuntimeError("diagnostic data changed during replay")
@@ -341,7 +339,7 @@ def _compare(args: argparse.Namespace) -> dict[str, Any]:
     comparator_path = Path(inspect.getfile(first_executable_divergence)).resolve()
     if not comparator_path.is_relative_to(runner_root):
         raise RuntimeError("diagnostic comparator does not belong to the runner checkout")
-    diagnostic_runner_provenance()
+    _runner_provenance()
     left = _load_trace(args.left)
     right = _load_trace(args.right)
     for field in ("data", "environment", "interval", "symbols"):
@@ -393,39 +391,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     output.write_bytes(_canonical_bytes(payload) + b"\n")
     return 0
 
-
-_CLI_SEAM_LOCK = RLock()
-
-
-@contextmanager
-def performance_cli_seams(
-    *,
-    git_command: Callable[[Path, Sequence[str]], bytes],
-    runner_provenance: Callable[[], dict[str, str]],
-) -> Iterator[None]:
-    """Install the two frozen diagnostic seams for one bounded CLI call."""
-
-    global diagnostic_git, diagnostic_runner_provenance
-    with _CLI_SEAM_LOCK:
-        originals = (diagnostic_git, diagnostic_runner_provenance)
-        diagnostic_git = git_command
-        diagnostic_runner_provenance = runner_provenance
-        try:
-            yield
-        finally:
-            diagnostic_git, diagnostic_runner_provenance = originals
-
-
-PRODUCTION_FILES = _PRODUCTION_FILES
-canonical_bytes = _canonical_bytes
-compare_diagnostics = _compare
-git_command = _git
-load_trace = _load_trace
-runner_provenance = _runner_provenance
-sha256 = _sha256
-source_digest = _source_digest
-source_provenance = _source_provenance
-source_sha256 = _source_sha256
 
 
 if __name__ == "__main__":

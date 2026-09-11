@@ -334,7 +334,7 @@ PnL 必须与最终权益变化对账，cash drag 与 paired risk avoidance 只�
 独立 subsystem ablation 只有在行为确实分叉、证据身份有效且所有受保护维度无回归时
 才能证明可删除。无行为 divergence 或证据无效只能得到 `INCONCLUSIVE`；任一受保护
 tail/generalization cell 存在独特保护就必须保留。市场与安全规则从不作为消融候选。
-冻结结论见[消融证据](../artifacts/phase2/ablations/conclusions.md)。
+冻结结论见[消融证据](https://github.com/ychenracing/uquant/blob/7fcf9562e6c7f96250811acd80c2dd4ee46485e3/artifacts/phase2/ablations/conclusions.md)。
 
 Future Holdout 与冻结数据隔离，按真实 session 向前追加并遵守 no-backfill；观察结果不能
 反向调参。人工真实执行由 append-only Journal 记录，但不参与生产决策或账户状态。完整

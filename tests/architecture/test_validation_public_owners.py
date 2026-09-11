@@ -282,11 +282,6 @@ def test_architecture_validation_direct_importers_keep_exact_local_legacy_bindin
     ("relative", "original", "mutation"),
     (
         (
-            "research/generalization_ablation_cli.py",
-            "CAUSAL_STAGES as TRACE_STAGES",
-            "CAUSAL_STAGES as TRACE_STAGE_VALUES",
-        ),
-        (
             "uquant/validation/generalization_reference.py",
             "_load_baseline_cells = _cells.load_baseline_cells",
             "_load_baseline_cells = _cells.load_generalization_baseline",

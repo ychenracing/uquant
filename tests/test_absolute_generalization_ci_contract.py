@@ -47,6 +47,7 @@ def test_absolute_workflow_is_unconditional_read_only_and_locked() -> None:
     assert workflow["name"] == "Absolute Generalization Acceptance"
     assert workflow["on"] == {
         "pull_request": "",
+        "merge_group": "",
         "push": {"branches": ["main"]},
         "workflow_dispatch": {},
     }
@@ -95,7 +96,7 @@ def test_absolute_workflow_has_exact_eight_shards_and_identity_bound_cache() -> 
     ):
         assert value in key
     upload = _step(shard, "Upload sealed shard manifest")
-    assert upload["if"] == "${{ always() }}"
+    assert "outputs.artifact_path" in upload["if"]
     assert upload["with"]["if-no-files-found"] == "error"
     assert upload["with"]["name"] == (
         "absolute-generalization-${{ github.run_id }}-attempt-"
@@ -107,16 +108,16 @@ def test_absolute_final_job_always_aggregates_and_blocks_on_one_conjunction() ->
     workflow = _workflow()
     final = workflow["jobs"]["generalization-acceptance"]
     assert final["name"] == "Generalization Acceptance"
-    assert final["needs"] == "absolute-shard"
+    assert final["needs"] == ["absolute-preflight", "absolute-shard"]
     assert final["if"] == "${{ always() }}"
     download = _step(final, "Download every sealed shard manifest")
-    assert download["if"] == "${{ always() }}"
+    assert "if" not in download
     assert download["with"]["merge-multiple"] == "false"
     assert download["with"]["pattern"] == (
-        "absolute-generalization-${{ github.run_id }}-attempt-*"
+        "absolute-generalization-${{ github.run_id }}-attempt-${{ github.run_attempt }}-*"
     )
     aggregate = _step(final, "Aggregate exact eight shard manifests")
-    assert aggregate["if"] == "${{ always() }}"
+    assert "if" not in aggregate
     assert aggregate["env"] == {
         "SHARD_JOB_RESULT": "${{ needs.absolute-shard.result }}"
     }
@@ -126,7 +127,7 @@ def test_absolute_final_job_always_aggregates_and_blocks_on_one_conjunction() ->
     assert '--upstream-result "$SHARD_JOB_RESULT"' in run
     assert "absolute-generalization" in run
     upload = _step(final, "Upload sealed final report")
-    assert upload["if"] == "${{ always() }}"
+    assert "outputs.artifact_path" in upload["if"]
     assert upload["with"]["if-no-files-found"] == "error"
 
 

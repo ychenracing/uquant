@@ -34,6 +34,7 @@ from test_absolute_generalization_reachability import (
 )
 
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.strict_json import (
     canonical_json_bytes,
     canonical_json_sha256,
@@ -276,6 +277,7 @@ def _envelope(shard: str, cells: list[dict[str, object]]) -> dict[str, object]:
         "status": "COMPLETE",
         "upstream_success": True,
         "error": "",
+        "runtime": runtime_environment_provenance(ROOT),
         "run_id": "task7-fixture-run",
         "run_attempt": 1,
         "head": head,

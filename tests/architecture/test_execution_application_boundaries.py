@@ -17,6 +17,7 @@ import pytest
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
 from uquant.provenance.fingerprints import source_surface_fingerprint
+from uquant.validation.evidence_source import evidence_root
 
 from ._analysis import (
     _EXECUTION_RELOCATED_FUNCTION_DEBT,
@@ -49,7 +50,7 @@ from ._validation_relocation import (
 
 _EXECUTION_REFERENCE_COMMIT = "908399a80f27a028c35f201b9bf5f1688eb412c0"
 _EXECUTION_REFERENCE_TREE = "8fd744507922e3d143923939e7d5e75f9148afc1"
-_INVENTORY = ROOT / "artifacts" / "architecture_refactor" / "task6_cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts') / "architecture_refactor" / "task6_cleanup_inventory.json"
 
 _EXECUTION_PACKAGE_PATHS = {
     "uquant/execution/__init__.py",
@@ -558,7 +559,18 @@ bind_ordinary_entry_authorizations(
         ast.dump(node, include_attributes=False) for node in expected
     ]
     assert {"uquant.portfolio", "uquant.portfolio.strategic.rearm"} <= fan_out
-    return fan_out - {"uquant.portfolio.strategic.rearm"}
+    industry_imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+                        and node.module == "industry"]
+    assert len(industry_imports) == 1 and industry_imports[0].level == 2
+    assert [(alias.name, alias.asname) for alias in industry_imports[0].names] == [("decision_industries", None)]
+    industry_calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+                      and isinstance(node.func, ast.Name) and node.func.id == "decision_industries"]
+    assert len(industry_calls) == 1
+    assert ast.dump(industry_calls[0]) == ast.dump(ast.parse(
+        "decision_industries(str(date.date()))", mode="eval").body)
+    assert {"uquant.contracts.universe", "uquant.industry"} <= fan_out
+    # The independently verified point-in-time lookup shares the universe authority.
+    return fan_out - {"uquant.portfolio.strategic.rearm", "uquant.industry"}
 
 
 def test_execution_facade_and_decision_fanout_are_bounded() -> None:
@@ -595,7 +607,7 @@ def test_execution_private_edges_are_exactly_bound_to_the_mechanical_split() -> 
 
     execution_prefixes = ("uquant.application", "uquant.engine", "uquant.execution")
     baseline = json.loads(
-        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(encoding="utf-8")
+        ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(encoding="utf-8")
     )
     allowed = set(baseline["architecture_debt"]["temporary_allowlist"]["cross_module_private_imports"])
     assert (

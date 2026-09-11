@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
+from uquant.validation.evidence_source import evidence_root
 
 
 def test_gross_cap_rejection_is_compact_exact_and_non_production() -> None:
-    path = Path("artifacts/sentinel/phase6/phase5_gross_cap_rejection.json")
+    path = (evidence_root() / 'artifacts/sentinel/phase6/phase5_gross_cap_rejection.json')
     payload = json.loads(path.read_text(encoding="utf-8"))
 
     assert path.stat().st_size < 4_096

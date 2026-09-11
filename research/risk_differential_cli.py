@@ -13,13 +13,10 @@ import shutil
 import subprocess  # nosec B404 - fixed git/date commands, never shell execution
 import sys
 from collections import Counter
-from collections.abc import Callable, Iterator
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from threading import RLock
 from typing import Any, cast
 
 import numpy as np
@@ -47,6 +44,7 @@ from research.risk_replay_runtime import (
     run_uquant_cell,
 )
 from uquant.atomic_io import atomic_write_bytes, atomic_write_text
+from uquant.validation.evidence_source import evidence_root
 
 STARTING_MAIN = "ba314003044a229969270bee6854240dfb7f211e"
 TRADE_COMMIT = "2066fbf0f99be94142c5d0cb0b6c99d276c2472d"
@@ -571,7 +569,6 @@ def _derive_checkout_identity(
     return identity
 
 
-checkout_identity: Callable[..., dict[str, str]] = _derive_checkout_identity
 
 
 def _hash_checkout_python_sources(root: Path) -> str:
@@ -808,7 +805,7 @@ def seal_trade_trace(root: Path, trade_root: Path, *, workers: int) -> None:
 
 
 def _replay_cells(root: Path, scope: str) -> tuple[list[ReplayCell], list[dict[str, Any]]]:
-    matrix = json.loads((root / "benchmarks/current_heads_competitor_matrix.json").read_text())
+    matrix = json.loads((evidence_root() / "benchmarks/current_heads_competitor_matrix.json").read_text())
     grouped: dict[tuple[str, str, str], dict[str, dict[str, Any]]] = {}
     for item in matrix["cells"]:
         if item["system"] not in {"uquant", "trade"}:
@@ -1209,10 +1206,10 @@ def preregister(
         }
     )
     baseline_lock_files = ("pyproject.toml", "requirements.txt", "uv.lock")
-    uquant_identity = checkout_identity(
+    uquant_identity = _derive_checkout_identity(
         baseline_root, lock_files=baseline_lock_files
     )
-    trade_identity = checkout_identity(
+    trade_identity = _derive_checkout_identity(
         trade_root,
         lock_files=TRADE_LOCK_FILES,
         risk_files=TRADE_RISK_FILES,
@@ -1317,12 +1314,12 @@ def preregister(
     )
     _require_unchanged_checkout(
         uquant_identity,
-        checkout_identity(baseline_root, lock_files=baseline_lock_files),
+        _derive_checkout_identity(baseline_root, lock_files=baseline_lock_files),
         label="uquant",
     )
     _require_unchanged_checkout(
         trade_identity,
-        checkout_identity(
+        _derive_checkout_identity(
             trade_root,
             lock_files=TRADE_LOCK_FILES,
             risk_files=TRADE_RISK_FILES,
@@ -1339,7 +1336,7 @@ def seal_initial_evidence(root: Path) -> None:
     registry = json.loads((root / "benchmarks/risk_differential_source_registry.json").read_text())
     contract = json.loads((root / "benchmarks/risk_differential_contract.json").read_text())
     capability = json.loads((root / "benchmarks/risk_capability_registry.json").read_text())
-    matrix = json.loads((root / "benchmarks/current_heads_competitor_matrix.json").read_text())
+    matrix = json.loads((evidence_root() / "benchmarks/current_heads_competitor_matrix.json").read_text())
     cells: dict[tuple[str, str, str], dict[str, Any]] = {}
     for item in matrix["cells"]:
         if item["system"] not in {"uquant", "trade"}:
@@ -1476,33 +1473,6 @@ def main() -> int:
         replay(root, trade_root=args.trade_root, workers=args.workers, scope=args.scope)
     return 0
 
-
-_CLI_SEAM_LOCK = RLock()
-
-
-@contextmanager
-def risk_differential_cli_seams(
-    *, derive_identity: Callable[..., dict[str, str]]
-) -> Iterator[None]:
-    """Install the frozen checkout-identity seam for one bounded CLI call."""
-
-    global checkout_identity
-    with _CLI_SEAM_LOCK:
-        original = checkout_identity
-        checkout_identity = derive_identity
-        try:
-            yield
-        finally:
-            checkout_identity = original
-
-
-cell_cache_identity = _cell_cache_identity
-derive_checkout_identity = _derive_checkout_identity
-hash_checkout_python_sources = _hash_checkout_python_sources
-load_replay_cache = _load_replay_cache
-replay_result_sha256 = _replay_result_sha256
-require_unchanged_checkout = _require_unchanged_checkout
-standard_warning_sets = _standard_warning_sets
 
 
 if __name__ == "__main__":

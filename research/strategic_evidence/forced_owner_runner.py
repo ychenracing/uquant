@@ -55,14 +55,14 @@ from .replay import (
 from .trace import strip_intervention_provenance
 
 _GENERATED_AT = "2026-08-26T00:00:00Z"
-_TASK3_TEMP_ROOT = Path(tempfile.gettempdir()) / "uquant-strategic-evidence" / "task3"
-_DEFAULT_TRACE_SHARD = _TASK3_TEMP_ROOT / "forced_owner_full_routes.jsonl.gz"
-_DEFAULT_RESUME_DIR = _TASK3_TEMP_ROOT / "resume"
+_FORCED_OWNER_TEMP_ROOT = Path(tempfile.gettempdir()) / "uquant-strategic-evidence" / "task3"
+_DEFAULT_TRACE_SHARD = _FORCED_OWNER_TEMP_ROOT / "forced_owner_full_routes.jsonl.gz"
+_DEFAULT_RESUME_DIR = _FORCED_OWNER_TEMP_ROOT / "resume"
 _DEFAULT_SUMMARY = Path(
-    "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json"
+    "artifacts/strategic_evidence_closure/forced_owner_full.json"
 )
 _DEFAULT_MANIFEST = Path(
-    "artifacts/strategic_evidence_closure/checkpoint3_forced_owner_manifest.json"
+    "artifacts/strategic_evidence_closure/forced_owner_manifest.json"
 )
 _RUNTIME_ROUTE_METADATA_FIELDS = frozenset({"path"})
 
@@ -105,11 +105,11 @@ def verify_frozen_inputs(
     manifest_path = repository / "data" / "frozen" / "DATA_MANIFEST.json"
     observed_manifest_sha = _sha256_file(manifest_path)
     if observed_manifest_sha != identities.get("data_manifest_sha256"):
-        raise ValueError("frozen data manifest identity differs from sealed v1")
+        raise ValueError("frozen data manifest identity differs from sealed contract")
     if _sha256_file(repository / "uv.lock") != identities.get("uv_lock_sha256"):
-        raise ValueError("uv lock identity differs from sealed v1")
+        raise ValueError("uv lock identity differs from sealed contract")
     if config_fingerprint(DEFAULT_CONFIG) != identities.get("config_sha256"):
-        raise ValueError("production config identity differs from sealed v1")
+        raise ValueError("production config identity differs from sealed contract")
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -117,7 +117,7 @@ def verify_frozen_inputs(
     if not isinstance(manifest, dict):
         raise ValueError("frozen data manifest is malformed")
     if manifest.get("snapshot_id") != identities.get("data_snapshot_id"):
-        raise ValueError("frozen data snapshot identity differs from sealed v1")
+        raise ValueError("frozen data snapshot identity differs from sealed contract")
     results = manifest.get("results")
     if not isinstance(results, list):
         raise ValueError("frozen data manifest results are malformed")
@@ -131,7 +131,7 @@ def verify_frozen_inputs(
         manifest_rows[symbol] = raw
     expected_symbols = {"sh000300", "sh000682", *contract.canonical_universe}
     if set(manifest_rows) != expected_symbols:
-        raise ValueError("frozen data manifest universe differs from sealed v1")
+        raise ValueError("frozen data manifest universe differs from sealed contract")
     checksum_path = repository / "data" / "frozen" / "SHA256SUMS"
     checksums: dict[str, str] = {}
     try:
@@ -524,10 +524,10 @@ def _write_summary_and_manifest(
     _write_json(summary_path, summary)
     observed_summary = verify_sealed_payload(
         json.loads(summary_path.read_text(encoding="utf-8")),
-        label="checkpoint3 forced-owner summary",
+        label="forced-owner summary",
     )
     if observed_summary != summary:
-        raise ValueError("checkpoint3 forced-owner summary readback differs")
+        raise ValueError("forced-owner summary readback differs")
     manifest = seal_payload(
         {
             "schema_version": 1,
@@ -536,7 +536,7 @@ def _write_summary_and_manifest(
                 "path": _relative_artifact_identity(
                     repository,
                     summary_path,
-                    label="checkpoint3 forced-owner summary",
+                    label="forced-owner summary",
                 ),
                 "byte_size": summary_path.stat().st_size,
                 "bytes_sha256": _sha256_file(summary_path),
@@ -548,10 +548,10 @@ def _write_summary_and_manifest(
     _write_json(manifest_path, manifest)
     observed_manifest = verify_sealed_payload(
         json.loads(manifest_path.read_text(encoding="utf-8")),
-        label="checkpoint3 forced-owner manifest",
+        label="forced-owner manifest",
     )
     if observed_manifest != manifest:
-        raise ValueError("checkpoint3 forced-owner manifest readback differs")
+        raise ValueError("forced-owner manifest readback differs")
     return summary, manifest
 
 
@@ -799,7 +799,7 @@ def execute_forced_owner_matrix(
         summary_payload=summary_payload,
         route_metadata=route_metadata,
     )
-    verification = verify_task3_outputs(
+    verification = verify_forced_owner_outputs(
         repository,
         summary_path=summary_target,
         manifest_path=manifest_target,
@@ -821,7 +821,7 @@ def _control_from_mapping(value: object) -> ForcedOwnerControl:
         "owner",
         "owner_role",
     }:
-        raise ValueError("checkpoint3 forced-owner control is malformed")
+        raise ValueError("forced-owner control is malformed")
     return ForcedOwnerControl(
         control_id=str(value["control_id"]),
         owner=str(value["owner"]),
@@ -829,7 +829,7 @@ def _control_from_mapping(value: object) -> ForcedOwnerControl:
     )
 
 
-def verify_task3_outputs(
+def verify_forced_owner_outputs(
     root: str | Path,
     *,
     summary_path: str | Path,
@@ -847,17 +847,17 @@ def verify_task3_outputs(
         manifest_target = repository / manifest_target
     summary = verify_sealed_payload(
         json.loads(summary_target.read_text(encoding="utf-8")),
-        label="checkpoint3 forced-owner summary",
+        label="forced-owner summary",
     )
     manifest = verify_sealed_payload(
         json.loads(manifest_target.read_text(encoding="utf-8")),
-        label="checkpoint3 forced-owner manifest",
+        label="forced-owner manifest",
     )
     contract = load_contract(
         repository / "benchmarks" / "strategic_evidence_closure_contract.json"
     )
     if summary.get("contract_payload_sha256") != contract.payload_sha256:
-        raise ValueError("checkpoint3 forced-owner contract identity differs")
+        raise ValueError("forced-owner contract identity differs")
     raw_controls = summary.get("controls")
     raw_cells = summary.get("cells")
     provenance = summary.get("provenance")
@@ -866,15 +866,15 @@ def verify_task3_outputs(
         or not isinstance(raw_cells, list)
         or not isinstance(provenance, Mapping)
     ):
-        raise ValueError("checkpoint3 forced-owner summary shape differs")
+        raise ValueError("forced-owner summary shape differs")
     controls = tuple(_control_from_mapping(value) for value in raw_controls)
     cells = tuple(forced_owner_cell_from_compact(value) for value in raw_cells)
     if summary.get("required_cell_ids") != list(required_forced_owner_cell_ids(controls)):
-        raise ValueError("checkpoint3 forced-owner required cell identities differ")
+        raise ValueError("forced-owner required cell identities differ")
     validate_required_coverage(cells, controls=controls)
     expected_counts = dict(sorted(Counter(cell.status for cell in cells).items()))
     if summary.get("status_counts") != expected_counts:
-        raise ValueError("checkpoint3 forced-owner status counts differ")
+        raise ValueError("forced-owner status counts differ")
     validated_provenance = validate_provenance(provenance)
     shard_readback = verify_forced_owner_trace_shard(
         trace_shard_path,
@@ -884,38 +884,38 @@ def verify_task3_outputs(
     route_metadata = dict(shard_readback.metadata)
     portable_route_identity = _portable_route_identity(route_metadata)
     if summary.get("route_shard") != portable_route_identity:
-        raise ValueError("checkpoint3 forced-owner route manifest differs")
+        raise ValueError("forced-owner route manifest differs")
     manifest_summary = manifest.get("summary")
     if not isinstance(manifest_summary, Mapping):
-        raise ValueError("checkpoint3 forced-owner compact summary identity differs")
+        raise ValueError("forced-owner compact summary identity differs")
     manifest_summary_target = _resolve_artifact_identity(
         repository,
         manifest_summary.get("path"),
-        label="checkpoint3 forced-owner summary",
+        label="forced-owner summary",
     )
     if manifest_summary_target != summary_target.resolve():
-        raise ValueError("checkpoint3 forced-owner compact summary path differs")
+        raise ValueError("forced-owner compact summary path differs")
     expected_manifest_summary = {
         "path": _relative_artifact_identity(
             repository,
             summary_target,
-            label="checkpoint3 forced-owner summary",
+            label="forced-owner summary",
         ),
         "byte_size": summary_target.stat().st_size,
         "bytes_sha256": _sha256_file(summary_target),
         "payload_sha256": summary["payload_sha256"],
     }
     if manifest.get("summary") != expected_manifest_summary:
-        raise ValueError("checkpoint3 forced-owner compact summary identity differs")
+        raise ValueError("forced-owner compact summary identity differs")
     if manifest.get("route_shard") != portable_route_identity:
-        raise ValueError("checkpoint3 forced-owner external route identity differs")
+        raise ValueError("forced-owner external route identity differs")
     reproduction = summary.get("baseline_reproduction")
     if (
         not isinstance(reproduction, Mapping)
         or not isinstance(reproduction.get("equality"), Mapping)
         or not all(reproduction["equality"].values())
     ):
-        raise ValueError("checkpoint3 forced-owner baseline reproduction differs")
+        raise ValueError("forced-owner baseline reproduction differs")
     return {
         "summary_payload_sha256": summary["payload_sha256"],
         "manifest_payload_sha256": manifest["payload_sha256"],
@@ -958,7 +958,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             resume=args.resume,
         )
     else:
-        result = verify_task3_outputs(
+        result = verify_forced_owner_outputs(
             args.root,
             summary_path=args.summary,
             manifest_path=args.manifest,
@@ -978,6 +978,6 @@ __all__ = (
     "economically_compatible_selection_evidence",
     "execute_forced_owner_matrix",
     "main",
+    "verify_forced_owner_outputs",
     "verify_frozen_inputs",
-    "verify_task3_outputs",
 )

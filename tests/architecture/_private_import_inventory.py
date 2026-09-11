@@ -12,12 +12,12 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Protocol
 
+from uquant.validation.evidence_source import evidence_root
+
 from . import _private_import_ast as _private_ast
-from ._analysis_authorities import ROOT
 
 INVENTORY_PATH = (
-    ROOT
-    / "artifacts"
+    (evidence_root() / 'artifacts')
     / "architecture_refactor"
     / "task10_private_import_remediation_inventory.json"
 )

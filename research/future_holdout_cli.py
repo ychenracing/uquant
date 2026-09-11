@@ -5,11 +5,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from collections.abc import Callable, Iterable, Iterator
-from contextlib import contextmanager
+from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
-from threading import RLock
 from typing import Any
 
 from research.risk_differential import (
@@ -59,10 +57,6 @@ from uquant.validation.holdout.cli_operations import (
 )
 from uquant.validation.holdout_lanes import load_lane_registry
 
-type _ReplayCellRunner = Callable[..., dict[str, Any]]
-future_holdout_trade_replay: _ReplayCellRunner = run_trade_cell
-future_holdout_uquant_replay: _ReplayCellRunner = run_uquant_cell
-
 _DIFFERENTIAL_AXIS_FIELDS = (
     "trade_only_axes",
     "sentinel_only_axes",
@@ -87,7 +81,7 @@ def _parser() -> argparse.ArgumentParser:
     lanes = sub.add_parser("validate-static-lanes")
     lanes.add_argument("--repository-root", default=".")
     lanes.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
-    lanes.add_argument("--evidence", default="artifacts/holdout/lane_validation.json")
+    lanes.add_argument("--evidence", help="Explicit reference evidence; defaults to immutable audited input")
     local = sub.add_parser("report-lanes")
     local.add_argument("--repository-root", default=".")
     local.add_argument("--registry", default="benchmarks/future_holdout_lane_registry.json")
@@ -284,8 +278,8 @@ def _compute_risk_differential_payload(
         start="2023-01-03",
         end=date,
     )
-    uquant = future_holdout_uquant_replay(cell, data_directory)
-    trade = future_holdout_trade_replay(cell, trade_root, data_directory)
+    uquant = run_uquant_cell(cell, data_directory)
+    trade = run_trade_cell(cell, trade_root, data_directory)
     if uquant["dates"] != trade["dates"] or not uquant["dates"] or uquant["dates"][-1] != date:
         raise ValueError("holdout replay does not end on the requested source-bound session")
     trade_row = trade["trade"][-1]
@@ -507,35 +501,6 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps(record_to_dict(record), ensure_ascii=False, sort_keys=True))
     return 0
 
-
-_CLI_SEAM_LOCK = RLock()
-
-
-@contextmanager
-def future_holdout_cli_seams(
-    *,
-    trade_replay: _ReplayCellRunner,
-    uquant_replay: _ReplayCellRunner,
-) -> Iterator[None]:
-    """Install the two frozen replay seams for one bounded CLI call."""
-
-    global future_holdout_trade_replay, future_holdout_uquant_replay
-    with _CLI_SEAM_LOCK:
-        originals = (future_holdout_trade_replay, future_holdout_uquant_replay)
-        future_holdout_trade_replay = trade_replay
-        future_holdout_uquant_replay = uquant_replay
-        try:
-            yield
-        finally:
-            future_holdout_trade_replay, future_holdout_uquant_replay = originals
-
-
-compute_risk_differential_payload = _compute_risk_differential_payload
-differential_formal_scores = _differential_formal_scores
-future_holdout_parser = _parser
-validate_differential_session = _validate_differential_session
-validate_prior_differential_source_identity = _validate_prior_differential_source_identity
-validate_risk_differential_payload = _validate_risk_differential_payload
 
 
 if __name__ == "__main__":

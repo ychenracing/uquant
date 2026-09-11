@@ -67,7 +67,7 @@ def _git_commit(root: Path) -> str:
         text=True,
     ).strip()
     if len(commit) != 40 or any(character not in "0123456789abcdef" for character in commit):
-        raise ValueError("Task 5 experiment commit is malformed")
+        raise ValueError("Reachability experiment commit is malformed")
     return commit
 
 
@@ -82,12 +82,12 @@ def build_executable_source_manifest(
     paths = [repository / "research" / "candidate_runner.py"]
     paths.extend(sorted((repository / "research" / "strategic_evidence").glob("*.py")))
     if not paths or len(paths) != len(set(paths)):
-        raise ValueError("Task 5 source manifest paths are empty or duplicated")
+        raise ValueError("Reachability source manifest paths are empty or duplicated")
     files: dict[str, str] = {}
     for path in sorted(paths):
         resolved = path.resolve()
         if not resolved.is_relative_to(repository) or not resolved.is_file():
-            raise ValueError("Task 5 source manifest path is missing or escapes repository")
+            raise ValueError("Reachability source manifest path is missing or escapes repository")
         files[resolved.relative_to(repository).as_posix()] = _sha256_file(resolved)
     if require_clean:
         relative_paths = tuple(files)
@@ -97,7 +97,7 @@ def build_executable_source_manifest(
             text=True,
         )
         if status.strip():
-            raise ValueError("Task 5 executable research source is dirty")
+            raise ValueError("Reachability executable research source is dirty")
         head = _git_commit(repository)
         for relative, digest in files.items():
             committed = subprocess.check_output(  # nosec B603, B607
@@ -105,7 +105,7 @@ def build_executable_source_manifest(
                 cwd=repository,
             )
             if hashlib.sha256(committed).hexdigest() != digest:
-                raise ValueError("Task 5 executable source differs from exact HEAD")
+                raise ValueError("Reachability executable source differs from exact HEAD")
     return {"files": files, "manifest_sha256": canonical_sha256({"files": files})}
 
 
@@ -136,7 +136,7 @@ def recompute_reachability_identities(
         for symbol in contract.canonical_universe
     }
     if any(industry == "unknown" for industry in industries.values()):
-        raise ValueError("Task 5 canonical industry mapping is incomplete")
+        raise ValueError("Reachability canonical industry mapping is incomplete")
     return {
         "production_source_sha256": canonical_sha256({"files": production_files}),
         "research_source_sha256": research_source_sha256,
@@ -163,13 +163,13 @@ def select_specs(
     """Select a deterministic exact subset without admitting unknown identities."""
 
     if not state_ids or len(state_ids) != len(set(state_ids)):
-        raise ValueError("Task 5 selected states are empty or duplicated")
+        raise ValueError("Reachability selected states are empty or duplicated")
     if not path_ids or len(path_ids) != len(set(path_ids)):
-        raise ValueError("Task 5 selected paths are empty or duplicated")
+        raise ValueError("Reachability selected paths are empty or duplicated")
     if not set(state_ids) <= set(INITIAL_STATE_IDS):
-        raise ValueError("Task 5 selected state lies outside S01-S14")
+        raise ValueError("Reachability selected state lies outside S01-S14")
     if not set(path_ids) <= set(PATH_IDS):
-        raise ValueError("Task 5 selected path lies outside P01-P06")
+        raise ValueError("Reachability selected path lies outside P01-P06")
     selected_states = set(state_ids)
     selected_paths = set(path_ids)
     return tuple(
@@ -221,9 +221,9 @@ def _historical_checkpoints(path: Path | None) -> tuple[HistoricalCheckpoint, ..
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise ValueError("Task 5 historical checkpoints are unreadable") from exc
+        raise ValueError("Reachability historical checkpoints are unreadable") from exc
     if not isinstance(payload, list) or not all(isinstance(item, Mapping) for item in payload):
-        raise ValueError("Task 5 historical checkpoints must be an array of objects")
+        raise ValueError("Reachability historical checkpoints must be an array of objects")
     return extract_historical_checkpoints(payload)
 
 
@@ -232,7 +232,7 @@ def _runtime_metadata(*, generated_at: str) -> dict[str, str]:
         ["uv", "--version"], text=True
     ).strip()
     if not uv:
-        raise ValueError("Task 5 uv runtime version is empty")
+        raise ValueError("Reachability uv runtime version is empty")
     return {
         "python": sys.version.split()[0],
         "numpy": np.__version__,
@@ -248,10 +248,10 @@ def _resume_generated_at(output: Path) -> str | None:
     payload = read_gzip_shard(output)
     provenance = payload.get("provenance")
     if not isinstance(provenance, Mapping):
-        raise ValueError("Task 5 resume provenance is malformed")
+        raise ValueError("Reachability resume provenance is malformed")
     generated_at = provenance.get("generated_at")
     if not isinstance(generated_at, str) or not generated_at:
-        raise ValueError("Task 5 resume generated_at is malformed")
+        raise ValueError("Reachability resume generated_at is malformed")
     return generated_at
 
 
@@ -300,7 +300,7 @@ def execute(
 
     contract = load_contract(contract_path)
     if tuple(contract.initial_state_ids) != INITIAL_STATE_IDS or tuple(contract.path_ids) != PATH_IDS:
-        raise ValueError("Task 5 contract state/path coverage differs")
+        raise ValueError("Reachability contract state/path coverage differs")
     verify_frozen_inputs(root, contract)
     source_manifest = build_executable_source_manifest(root, require_clean=True)
     research_sha = str(source_manifest["manifest_sha256"])

@@ -1,25 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 from pathlib import Path
-from types import ModuleType
 from typing import Any
 
 import pytest
 
-
-def _load_diagnostic() -> ModuleType:
-    path = Path(__file__).parents[1] / "scripts" / "run_performance_diagnostic.py"
-    spec = importlib.util.spec_from_file_location("run_performance_diagnostic", path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError("cannot load diagnostic runner")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-diagnostic = _load_diagnostic()
+from research import performance_diagnostic as diagnostic
 
 
 def test_source_fingerprint_includes_config_parameter_governance(tmp_path: Path) -> None:
@@ -57,6 +44,7 @@ def test_runner_provenance_binds_script_comparator_and_lock(
 
     paths = (
         root / "scripts" / "run_performance_diagnostic.py",
+        root / "research" / "performance_diagnostic.py",
         root / "research" / "first_divergence.py",
         root / "uv.lock",
     )
@@ -66,6 +54,7 @@ def test_runner_provenance_binds_script_comparator_and_lock(
         "uv_lock_sha256": hashlib.sha256((root / "uv.lock").read_bytes()).hexdigest(),
     }
     assert "scripts/run_performance_diagnostic.py" in observed_status
+    assert "research/performance_diagnostic.py" in observed_status
     assert "research/first_divergence.py" in observed_status
     assert "uv.lock" in observed_status
 

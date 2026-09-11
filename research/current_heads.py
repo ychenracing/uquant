@@ -13,6 +13,7 @@ from typing import Any, Final, cast
 
 from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.validation.competitor import CANONICAL_EXECUTION_CONTRACT
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.generalization_contract import (
     CORE_SYMBOLS,
     INDUSTRY_MIN_SAMPLE,
@@ -461,10 +462,15 @@ def load_current_heads_matrix(
         "runtimes",
         "summary",
         "aggregates",
-        "legacy_source_diagnostic",
         "cells",
         "payload_sha256",
     }
+    # Only the byte-exact audited matrix retains its recorded source diagnostic.
+    # Current producers emit the strict current structure without historical labels.
+    if hashlib.sha256(path.read_bytes()).hexdigest() == (
+        "4a732dcea7687ec98653220b71030798294bb24a9e999d0ea3f9ae8b6d93342e"
+    ):
+        expected_fields.add("legacy_source_diagnostic")
     if set(payload) != expected_fields or payload.get("schema_version") != 1:
         raise ValueError("current-head matrix schema is incomplete or unsupported")
     if payload.get("contract_sha256") != contract["payload_sha256"]:
@@ -565,14 +571,14 @@ def load_current_heads_matrix(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Validate a committed current-HEAD matrix from an independent entry point."""
+    """Validate a matrix against its independently registered producer identity."""
 
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(prog="python -m research.current_heads")
     parser.add_argument(
         "--matrix",
         type=Path,
-        default=root / "benchmarks/current_heads_competitor_matrix.json",
+        default=evidence_root() / "benchmarks/current_heads_competitor_matrix.json",
     )
     parser.add_argument(
         "--contract",
@@ -587,7 +593,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--adapter",
         type=Path,
-        default=root / "scripts/run_current_heads_competitor_matrix.py",
+        default=evidence_root() / "research/current_heads_competitor_matrix.py",
+        help="Producer bytes to audit; defaults to the frozen reference producer (never executed)",
     )
     args = parser.parse_args(argv)
     payload = load_current_heads_matrix(

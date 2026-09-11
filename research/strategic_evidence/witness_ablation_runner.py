@@ -77,13 +77,13 @@ _ROUTE_METADATA_FIELDS = frozenset(
 )
 _LOGICAL_ROUTE_PATH = (
     "artifacts/strategic_evidence_closure/external/"
-    "checkpoint4_witness_ablation_full_routes.jsonl.gz"
+    "witness_ablation_full_routes.jsonl.gz"
 )
-_DEFAULT_SUMMARY = Path("artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_full.json")
-_DEFAULT_MANIFEST = Path("artifacts/strategic_evidence_closure/checkpoint4_witness_ablation_manifest.json")
-_TASK4_TEMP_ROOT = Path(tempfile.gettempdir()) / "uquant-strategic-evidence" / "task4"
-_DEFAULT_TRACE_SHARD = _TASK4_TEMP_ROOT / "witness_ablation_full_routes.jsonl.gz"
-_DEFAULT_RESUME_DIR = _TASK4_TEMP_ROOT / "resume"
+_DEFAULT_SUMMARY = Path("artifacts/strategic_evidence_closure/witness_ablation_full.json")
+_DEFAULT_MANIFEST = Path("artifacts/strategic_evidence_closure/witness_ablation_manifest.json")
+_WITNESS_ABLATION_TEMP_ROOT = Path(tempfile.gettempdir()) / "uquant-strategic-evidence" / "task4"
+_DEFAULT_TRACE_SHARD = _WITNESS_ABLATION_TEMP_ROOT / "witness_ablation_full_routes.jsonl.gz"
+_DEFAULT_RESUME_DIR = _WITNESS_ABLATION_TEMP_ROOT / "resume"
 _SENTINEL_END = "2023-01-10"
 
 
@@ -93,12 +93,12 @@ class _BinaryWriter(Protocol):
 
 def _source_file_manifest(repository: Path, paths: Sequence[Path]) -> dict[str, str]:
     if not paths or len(paths) != len(set(paths)):
-        raise ValueError("Task 4 source manifest paths are empty or duplicated")
+        raise ValueError("Witness-ablation source manifest paths are empty or duplicated")
     result: dict[str, str] = {}
     for path in sorted(paths):
         resolved = path.resolve()
         if not resolved.is_relative_to(repository) or not resolved.is_file():
-            raise ValueError("Task 4 source manifest path is missing or escapes the repository")
+            raise ValueError("Witness-ablation source manifest path is missing or escapes the repository")
         result[resolved.relative_to(repository).as_posix()] = _sha256_file(resolved)
     return result
 
@@ -121,7 +121,7 @@ def build_executable_source_manifest(
             text=True,
         )
         if status.strip():
-            raise ValueError("Task 4 executable research source is dirty")
+            raise ValueError("Witness-ablation executable research source is dirty")
         head = _git_commit(repository)
         for relative, digest in files.items():
             committed = subprocess.check_output(  # nosec B603, B607
@@ -129,11 +129,11 @@ def build_executable_source_manifest(
                 cwd=repository,
             )
             if hashlib.sha256(committed).hexdigest() != digest:
-                raise ValueError("Task 4 executable source differs from exact HEAD")
+                raise ValueError("Witness-ablation executable source differs from exact HEAD")
     return {"files": files, "manifest_sha256": canonical_sha256({"files": files})}
 
 
-def recompute_task4_identities(
+def recompute_witness_ablation_identities(
     root: str | Path,
     *,
     contract: StrategicEvidenceContract,
@@ -177,7 +177,7 @@ def capture_runtime_metadata(root: str | Path) -> dict[str, str]:
         ["uv", "--version"], text=True
     ).strip()
     if not uv:
-        raise ValueError("Task 4 uv runtime version is empty")
+        raise ValueError("Witness-ablation uv runtime version is empty")
     return {
         "python": subprocess.check_output(  # nosec B603, B607
             ["python", "-c", "import platform; print(platform.python_version())"],
@@ -224,7 +224,7 @@ def resolve_resume_runtime_metadata(
     if set(current) != required or not all(
         isinstance(value, str) and value for value in current.values()
     ):
-        raise ValueError("Task 4 current runtime metadata differs")
+        raise ValueError("Witness-ablation current runtime metadata differs")
     result = dict(current)
     checkpoints = sorted(Path(resume_dir).glob("*.jsonl.gz")) if resume else []
     if not checkpoints:
@@ -237,7 +237,7 @@ def resolve_resume_runtime_metadata(
     for checkpoint in checkpoints[1:]:
         observed = _checkpoint_provenance(checkpoint)
         if any(observed[field] != first_provenance[field] for field in required):
-            raise ValueError("Task 4 resume checkpoints bind different runtimes")
+            raise ValueError("Witness-ablation resume checkpoints bind different runtimes")
     result["generated_at"] = historical["generated_at"]
     return result
 
@@ -249,7 +249,7 @@ def _contract_industries(contract: StrategicEvidenceContract) -> tuple[tuple[str
         for symbol in contract.canonical_universe
     )
     if any(industry == "unknown" for _, industry in result):
-        raise ValueError("Task 4 canonical industry mapping is incomplete")
+        raise ValueError("Witness-ablation canonical industry mapping is incomplete")
     return result
 
 
@@ -330,7 +330,7 @@ def derive_balanced_industry_universe(
     day_before = date.fromisoformat(contract.window["start"]) - timedelta(days=1)
     pit_symbols = universe.symbols_as_of(day_before)
     if not pit_symbols or not set(pit_symbols) <= set(contract.canonical_universe):
-        raise ValueError("balanced industry PIT universe differs from the Task 4 contract")
+        raise ValueError("balanced industry PIT universe differs from the Witness-ablation contract")
     engine = ProductionEngine(data_dir)
     engine.workspace.load(pit_symbols)
     histories = {symbol: engine.workspace.raw_frame(symbol)["close"] for symbol in pit_symbols}
@@ -383,7 +383,7 @@ def derive_balanced_industry_universe(
     return result
 
 
-def task4_sentinel_specs(initial_specs: Sequence[AblationSpec]) -> tuple[AblationSpec, ...]:
+def witness_ablation_sentinel_specs(initial_specs: Sequence[AblationSpec]) -> tuple[AblationSpec, ...]:
     """Select the preregistered critical symbol across all three removal axes."""
 
     desired = (FULL_REMOVAL, EVIDENCE_REMOVAL, TRADABLE_REMOVAL)
@@ -393,7 +393,7 @@ def task4_sentinel_specs(initial_specs: Sequence[AblationSpec]) -> tuple[Ablatio
         if spec.scope == "CANONICAL_LEAVE_ONE_OUT" and spec.subject == "sz300308"
     }
     if set(by_axis) != set(desired):
-        raise ValueError("Task 4 representative sentinel coverage differs")
+        raise ValueError("Witness-ablation representative sentinel coverage differs")
     return tuple(by_axis[axis] for axis in desired)
 
 
@@ -407,7 +407,7 @@ def comparison_baseline_scope(spec: AblationSpec) -> str:
     )
 
 
-def build_task4_scenario(
+def build_witness_ablation_scenario(
     *,
     contract: StrategicEvidenceContract,
     initial_specs: Sequence[AblationSpec],
@@ -421,21 +421,21 @@ def build_task4_scenario(
     economic = sum(spec.evidence_class == ECONOMIC for spec in specs)
     diagnostic = sum(spec.evidence_class == DIAGNOSTIC_ONLY for spec in specs)
     if len(specs) != 117 or len(set(cell_ids)) != 117 or economic != 49 or diagnostic != 68:
-        raise ValueError("Task 4 scenario requires exact 117/49/68 initial coverage")
+        raise ValueError("Witness-ablation scenario requires exact 117/49/68 initial coverage")
     matrix = contract.raw.get("matrix")
     if not isinstance(matrix, Mapping):
-        raise ValueError("Task 4 scenario matrix contract is missing")
+        raise ValueError("Witness-ablation scenario matrix contract is missing")
     critical = matrix.get("critical_symbols")
     if not isinstance(critical, list) or critical != ["sz300308", "sz300502", "sz300394"]:
-        raise ValueError("Task 4 preregistered critical symbols differ")
+        raise ValueError("Witness-ablation preregistered critical symbols differ")
     balanced.validate(contract=contract)
     if set(source_manifest) != {"files", "manifest_sha256"} or not isinstance(
         source_manifest.get("files"), Mapping
     ):
-        raise ValueError("Task 4 executable source manifest differs")
+        raise ValueError("Witness-ablation executable source manifest differs")
     source_files = dict(source_manifest["files"])
     if source_manifest["manifest_sha256"] != canonical_sha256({"files": source_files}):
-        raise ValueError("Task 4 executable source manifest seal differs")
+        raise ValueError("Witness-ablation executable source manifest seal differs")
     for required_path in (
         "research/candidate_runner.py",
         "research/strategic_evidence/replay.py",
@@ -443,12 +443,12 @@ def build_task4_scenario(
         "research/strategic_evidence/witness_ablation_runner.py",
     ):
         if required_path not in source_files:
-            raise ValueError("Task 4 executable source manifest coverage differs")
+            raise ValueError("Witness-ablation executable source manifest coverage differs")
     industries = _contract_industries(contract)
-    sentinels = task4_sentinel_specs(specs)
+    sentinels = witness_ablation_sentinel_specs(specs)
     report13 = matrix.get("report_universe_13")
     if not isinstance(report13, list) or not all(isinstance(symbol, str) for symbol in report13):
-        raise ValueError("Task 4 report comparison baseline differs")
+        raise ValueError("Witness-ablation report comparison baseline differs")
     return {
         "kind": "task4-witness-ablation-and-first-divergence",
         "contract_payload_sha256": contract.payload_sha256,
@@ -464,9 +464,6 @@ def build_task4_scenario(
         "top_symbol_limit": 8,
         "required_pair_count": 28,
         "triple_rule": "only data-supported necessary triples",
-        "replacement_reason": (
-            "prior Task 4 runner materialized all gzip route rows during assembly and verification"
-        ),
         "executable_source_manifest": {
             "files": source_files,
             "manifest_sha256": source_manifest["manifest_sha256"],
@@ -1066,7 +1063,7 @@ def read_cell_shard(
 
 def _portable_metadata(metadata: Mapping[str, Any]) -> dict[str, Any]:
     if set(metadata) != _ROUTE_METADATA_FIELDS:
-        raise ValueError("Task 4 route metadata fields differ")
+        raise ValueError("Witness-ablation route metadata fields differ")
     byte_size = metadata["byte_size"]
     row_count = metadata["row_count"]
     if (
@@ -1077,7 +1074,7 @@ def _portable_metadata(metadata: Mapping[str, Any]) -> dict[str, Any]:
         or not isinstance(row_count, int)
         or row_count < 0
     ):
-        raise ValueError("Task 4 route metadata counts are malformed")
+        raise ValueError("Witness-ablation route metadata counts are malformed")
     for field in (
         "bytes_sha256",
         "rows_sha256",
@@ -1137,7 +1134,7 @@ def write_compact_and_manifest(
     """Write portable compact evidence and its repository-relative manifest."""
 
     if summary_payload.get("completion_status") != "FINAL":
-        raise ValueError("Task 4 compact outputs require FINAL completion")
+        raise ValueError("Witness-ablation compact outputs require FINAL completion")
     root = Path(repository).resolve()
     summary_target = Path(summary_path).resolve()
     manifest_target = Path(manifest_path).resolve()
@@ -1153,16 +1150,16 @@ def write_compact_and_manifest(
     _write_json(summary_target, summary)
     observed_summary = verify_sealed_payload(
         json.loads(summary_target.read_text(encoding="utf-8")),
-        label="checkpoint4 witness ablation summary",
+        label="witness-ablation summary",
     )
     if canonical_json_bytes(observed_summary) != canonical_json_bytes(summary):
-        raise ValueError("checkpoint4 witness ablation summary readback differs")
+        raise ValueError("witness-ablation summary readback differs")
     manifest = seal_payload(
         {
             "schema_version": 1,
             "checkpoint": "TASK4_WITNESS_ABLATION",
             "summary": {
-                "path": _relative_identity(root, summary_target, label="Task 4 summary"),
+                "path": _relative_identity(root, summary_target, label="Witness-ablation summary"),
                 "byte_size": summary_target.stat().st_size,
                 "bytes_sha256": _sha256_file(summary_target),
                 "payload_sha256": summary["payload_sha256"],
@@ -1173,14 +1170,14 @@ def write_compact_and_manifest(
     _write_json(manifest_target, manifest)
     observed_manifest = verify_sealed_payload(
         json.loads(manifest_target.read_text(encoding="utf-8")),
-        label="checkpoint4 witness ablation manifest",
+        label="witness-ablation manifest",
     )
     if canonical_json_bytes(observed_manifest) != canonical_json_bytes(manifest):
-        raise ValueError("checkpoint4 witness ablation manifest readback differs")
+        raise ValueError("witness-ablation manifest readback differs")
     return summary, manifest
 
 
-def verify_task4_manifest(
+def verify_witness_ablation_manifest(
     repository: str | Path,
     *,
     summary_path: str | Path,
@@ -1198,11 +1195,11 @@ def verify_task4_manifest(
         manifest_target = root / manifest_target
     summary = verify_sealed_payload(
         json.loads(summary_target.read_text(encoding="utf-8")),
-        label="checkpoint4 witness ablation summary",
+        label="witness-ablation summary",
     )
     manifest = verify_sealed_payload(
         json.loads(manifest_target.read_text(encoding="utf-8")),
-        label="checkpoint4 witness ablation manifest",
+        label="witness-ablation manifest",
     )
     if (
         set(manifest)
@@ -1219,24 +1216,24 @@ def verify_task4_manifest(
         or summary.get("checkpoint") != "TASK4_WITNESS_ABLATION"
         or summary.get("completion_status") != "FINAL"
     ):
-        raise ValueError("checkpoint4 witness ablation compact schema differs")
+        raise ValueError("witness-ablation compact schema differs")
     manifest_summary = manifest.get("summary")
     if not isinstance(manifest_summary, Mapping):
-        raise ValueError("checkpoint4 witness ablation summary manifest is malformed")
-    resolved = _resolve_identity(root, manifest_summary.get("path"), label="Task 4 summary")
+        raise ValueError("witness-ablation summary manifest is malformed")
+    resolved = _resolve_identity(root, manifest_summary.get("path"), label="Witness-ablation summary")
     if resolved != summary_target.resolve():
-        raise ValueError("checkpoint4 witness ablation summary path differs")
+        raise ValueError("witness-ablation summary path differs")
     expected_summary = {
-        "path": _relative_identity(root, summary_target, label="Task 4 summary"),
+        "path": _relative_identity(root, summary_target, label="Witness-ablation summary"),
         "byte_size": summary_target.stat().st_size,
         "bytes_sha256": _sha256_file(summary_target),
         "payload_sha256": summary["payload_sha256"],
     }
     portable_route = _portable_metadata(route_metadata)
     if manifest_summary != expected_summary:
-        raise ValueError("checkpoint4 witness ablation summary linkage differs")
+        raise ValueError("witness-ablation summary linkage differs")
     if summary.get("route_shard") != portable_route or manifest.get("route_shard") != portable_route:
-        raise ValueError("checkpoint4 witness ablation route linkage differs")
+        raise ValueError("witness-ablation route linkage differs")
     return {
         "summary_payload_sha256": summary["payload_sha256"],
         "manifest_payload_sha256": manifest["payload_sha256"],
@@ -1255,17 +1252,17 @@ def validate_initial_coverage(
     expected = {spec.cell_id: spec for spec in specs}
     observed = {cell.cell_id: cell for cell in cells}
     if len(expected) != 117 or len(observed) != len(cells) or set(observed) != set(expected):
-        raise ValueError("Task 4 initial cell coverage differs")
+        raise ValueError("Witness-ablation initial cell coverage differs")
     for cell_id, cell in observed.items():
         if cell.spec != expected[cell_id]:
-            raise ValueError("Task 4 initial cell specification differs")
+            raise ValueError("Witness-ablation initial cell specification differs")
         if cell.status not in {"SUCCESS", "REPLAY_ERROR", "INSUFFICIENT_SAMPLE"}:
-            raise ValueError("Task 4 initial cell status is not terminal")
+            raise ValueError("Witness-ablation initial cell status is not terminal")
         if cell.status == "SUCCESS" and cell.spec.evidence_class == ECONOMIC:
             if cell.metrics is None or cell.final_account_sha256 is None or cell.trace_sha256 is None:
-                raise ValueError("successful Task 4 economic cell lacks evidence")
+                raise ValueError("successful Witness-ablation economic cell lacks evidence")
         elif cell.metrics is not None:
-            raise ValueError("Task 4 terminal/diagnostic cell carries economic metrics")
+            raise ValueError("Witness-ablation terminal/diagnostic cell carries economic metrics")
 
 
 def _git_commit(repository: Path) -> str:
@@ -1273,14 +1270,14 @@ def _git_commit(repository: Path) -> str:
         ["git", "rev-parse", "HEAD"], cwd=repository, text=True
     ).strip()
     if len(commit) != 40 or any(character not in "0123456789abcdef" for character in commit):
-        raise ValueError("Task 4 experiment commit is malformed")
+        raise ValueError("Witness-ablation experiment commit is malformed")
     return commit
 
 
 def _research_source_sha256(repository: Path) -> str:
     files = sorted((repository / "research" / "strategic_evidence").glob("*.py"))
     if not files:
-        raise ValueError("Task 4 research source is missing")
+        raise ValueError("Witness-ablation research source is missing")
     return canonical_sha256({path.relative_to(repository).as_posix(): _sha256_file(path) for path in files})
 
 
@@ -1312,7 +1309,7 @@ def resolve_ablation_universe(
     if spec.scope == "REPORT_UNIVERSE_LEAVE_ONE_OUT":
         raw_report = matrix["report_universe_13"]
         if not isinstance(raw_report, list):
-            raise ValueError("Task 4 report universe is malformed")
+            raise ValueError("Witness-ablation report universe is malformed")
         source = tuple(str(symbol) for symbol in raw_report)
         removed = spec.removed_symbols
     elif spec.scope == "INDUSTRY_REMOVAL":
@@ -1334,9 +1331,9 @@ def resolve_ablation_universe(
         removed = spec.removed_symbols
     concrete = tuple(symbol for symbol in removed if not symbol.startswith("industry:"))
     if spec.axis != BASELINE and not concrete:
-        raise ValueError("Task 4 concrete removal is empty")
+        raise ValueError("Witness-ablation concrete removal is empty")
     if not set(concrete) <= set(source):
-        raise ValueError("Task 4 removal lies outside its production universe")
+        raise ValueError("Witness-ablation removal lies outside its production universe")
     return source, tuple(sorted(concrete))
 
 
@@ -1446,7 +1443,7 @@ def _result_for_spec(
     return replace(result, intervention_provenance=audit), ()
 
 
-def _run_task4_sentinels(
+def _run_witness_ablation_sentinels(
     *,
     data_dir: Path,
     contract: StrategicEvidenceContract,
@@ -1468,7 +1465,7 @@ def _run_task4_sentinels(
     if baseline.status != "SUCCESS":
         raise ValueError(f"Task 4 sentinel baseline failed: {baseline.status}: {baseline.error}")
     observations: list[dict[str, Any]] = []
-    for spec in task4_sentinel_specs(specs):
+    for spec in witness_ablation_sentinel_specs(specs):
         result, projection = _result_for_spec(
             data_dir=data_dir,
             contract=contract,
@@ -1521,7 +1518,7 @@ def _execute_or_resume(
             expected_resume_identity=identity,
         )
         if cell.spec != spec:
-            raise ValueError("Task 4 resumed cell scenario differs")
+            raise ValueError("Witness-ablation resumed cell scenario differs")
         return cell, trace, divergences, True
     result, projection = _result_for_spec(
         data_dir=data_dir,
@@ -1563,7 +1560,7 @@ def verify_full_route_linkage(
     expected = tuple(expected_cell_ids)
     expected_payloads = None if expected_cells is None else tuple(expected_cells)
     if expected_payloads is not None and tuple(cell.cell_id for cell in expected_payloads) != expected:
-        raise ValueError("Task 4 expected full-route cell identities differ")
+        raise ValueError("Witness-ablation expected full-route cell identities differ")
     observed: list[str] = []
     current_cell: str | None = None
     expected_routes = 0
@@ -1580,15 +1577,15 @@ def verify_full_route_linkage(
             if current_cell is not None and (
                 observed_routes != expected_routes or observed_projections != expected_projections
             ):
-                raise ValueError("Task 4 full route/projection cell count differs")
+                raise ValueError("Witness-ablation full route/projection cell count differs")
             raw_cell = payload.get("cell")
             if not isinstance(raw_cell, Mapping):
-                raise ValueError("Task 4 full route cell header is malformed")
+                raise ValueError("Witness-ablation full route cell header is malformed")
             cell = ablation_cell_from_compact(raw_cell)
             if expected_payloads is not None:
                 index = len(observed)
                 if index >= len(expected_payloads) or cell != expected_payloads[index]:
-                    raise ValueError("Task 4 full route cell payload differs")
+                    raise ValueError("Witness-ablation full route cell payload differs")
             cell_id = raw_cell.get("cell_id")
             count = payload.get("route_row_count")
             projection_count = payload.get("diagnostic_projection_row_count")
@@ -1601,7 +1598,7 @@ def verify_full_route_linkage(
                 or not isinstance(projection_count, int)
                 or projection_count < 0
             ):
-                raise ValueError("Task 4 full route cell linkage is malformed")
+                raise ValueError("Witness-ablation full route cell linkage is malformed")
             observed.append(cell_id)
             current_cell = cell_id
             expected_routes = count
@@ -1610,24 +1607,24 @@ def verify_full_route_linkage(
             observed_projections = 0
         elif record_type == "ROUTE":
             if current_cell is None or payload.get("cell_id") != current_cell:
-                raise ValueError("Task 4 full route row linkage differs")
+                raise ValueError("Witness-ablation full route row linkage differs")
             if payload.get("route_index") != observed_routes:
-                raise ValueError("Task 4 full route row ordering differs")
+                raise ValueError("Witness-ablation full route row ordering differs")
             observed_routes += 1
         elif record_type == "DIAGNOSTIC_PROJECTION":
             if current_cell is None or payload.get("cell_id") != current_cell:
-                raise ValueError("Task 4 full diagnostic projection linkage differs")
+                raise ValueError("Witness-ablation full diagnostic projection linkage differs")
             if payload.get("projection_index") != observed_projections:
-                raise ValueError("Task 4 full diagnostic projection ordering differs")
+                raise ValueError("Witness-ablation full diagnostic projection ordering differs")
             observed_projections += 1
         else:
-            raise ValueError("Task 4 full route record type differs")
+            raise ValueError("Witness-ablation full route record type differs")
     if current_cell is not None and (
         observed_routes != expected_routes or observed_projections != expected_projections
     ):
-        raise ValueError("Task 4 full route/projection final cell count differs")
+        raise ValueError("Witness-ablation full route/projection final cell count differs")
     if tuple(observed) != expected or len(set(observed)) != len(observed):
-        raise ValueError("Task 4 full route exact cell coverage differs")
+        raise ValueError("Witness-ablation full route exact cell coverage differs")
     return verify_streaming_shard(
         path,
         expected_provenance=expected_provenance,
@@ -1664,7 +1661,7 @@ def _search_spec(symbols: Sequence[str], *, scope: str) -> AblationSpec:
     )
 
 
-def execute_task4_matrix(
+def execute_witness_ablation_matrix(
     root: str | Path,
     *,
     summary_path: str | Path = _DEFAULT_SUMMARY,
@@ -1687,20 +1684,20 @@ def execute_task4_matrix(
     trace_target = Path(trace_shard_path).resolve()
     resume_target = Path(resume_dir).resolve()
     if trace_target.is_relative_to(repository) or resume_target.is_relative_to(repository):
-        raise ValueError("large Task 4 routes and resume shards must remain outside Git")
+        raise ValueError("large Witness-ablation routes and resume shards must remain outside Git")
     contract = load_contract(repository / "benchmarks" / "strategic_evidence_closure_contract.json")
     input_verification = verify_frozen_inputs(repository, contract)
     specs = enumerate_initial_specs(contract)
     data_dir = repository / "data" / "frozen"
     balanced = derive_balanced_industry_universe(data_dir, contract=contract)
     source_manifest = build_executable_source_manifest(repository, require_clean=True)
-    observed_identities = recompute_task4_identities(repository, contract=contract)
+    observed_identities = recompute_witness_ablation_identities(repository, contract=contract)
     runtime_metadata = resolve_resume_runtime_metadata(
         resume_target,
         resume=resume,
         current=capture_runtime_metadata(repository),
     )
-    scenario = build_task4_scenario(
+    scenario = build_witness_ablation_scenario(
         contract=contract,
         initial_specs=specs,
         balanced=balanced,
@@ -1715,7 +1712,7 @@ def execute_task4_matrix(
         observed_identities=observed_identities,
         runtime_metadata=runtime_metadata,
     )
-    sentinel_verification = _run_task4_sentinels(
+    sentinel_verification = _run_witness_ablation_sentinels(
         data_dir=data_dir,
         contract=contract,
         specs=specs,
@@ -1809,7 +1806,7 @@ def execute_task4_matrix(
     matrix = contract.raw["matrix"]
     critical_raw = matrix["critical_symbols"]
     if not isinstance(critical_raw, list):
-        raise ValueError("Task 4 critical symbols must be a list")
+        raise ValueError("Witness-ablation critical symbols must be a list")
     ranked = rank_critical_symbols(
         _causal_scores(specs, divergences),
         preregistered=tuple(str(symbol) for symbol in critical_raw),
@@ -1873,7 +1870,7 @@ def execute_task4_matrix(
         expected_resume_identity=final_identity,
     )
     if verified_route != route_metadata:
-        raise ValueError("Task 4 final route verification metadata differs")
+        raise ValueError("Witness-ablation final route verification metadata differs")
     summary_payload = {
         "completion_status": "FINAL",
         "schema_version": 1,
@@ -1933,7 +1930,7 @@ def execute_task4_matrix(
         summary_payload=summary_payload,
         route_metadata=route_metadata,
     )
-    verification = verify_task4_outputs(
+    verification = verify_witness_ablation_outputs(
         repository,
         summary_path=summary_target,
         manifest_path=manifest_target,
@@ -1995,44 +1992,44 @@ def validate_final_summary_contract(
     """Recompute every preregistered final-search and provenance obligation."""
 
     if set(summary) != _FINAL_SUMMARY_FIELDS:
-        raise ValueError("Task 4 final summary fields differ")
+        raise ValueError("Witness-ablation final summary fields differ")
     if (
         summary["completion_status"] != "FINAL"
         or summary["schema_version"] != 1
         or summary["checkpoint"] != "TASK4_WITNESS_ABLATION"
         or summary["large_traces_committed"] is not False
     ):
-        raise ValueError("Task 4 final summary completion differs")
+        raise ValueError("Witness-ablation final summary completion differs")
 
     repository = Path(root).resolve()
     contract = load_contract(repository / "benchmarks" / "strategic_evidence_closure_contract.json")
     if summary["contract_payload_sha256"] != contract.payload_sha256:
-        raise ValueError("Task 4 final summary contract linkage differs")
+        raise ValueError("Witness-ablation final summary contract linkage differs")
     specs = enumerate_initial_specs(contract)
     balanced = derive_balanced_industry_universe(repository / "data" / "frozen", contract=contract)
     source_manifest = build_executable_source_manifest(repository, require_clean=True)
-    expected_scenario = build_task4_scenario(
+    expected_scenario = build_witness_ablation_scenario(
         contract=contract,
         initial_specs=specs,
         balanced=balanced,
         source_manifest=source_manifest,
     )
     if summary["scenario"] != expected_scenario:
-        raise ValueError("Task 4 final summary scenario linkage differs")
+        raise ValueError("Witness-ablation final summary scenario linkage differs")
     if summary["input_verification"] != verify_frozen_inputs(repository, contract):
-        raise ValueError("Task 4 final frozen input verification differs")
+        raise ValueError("Witness-ablation final frozen input verification differs")
     expected_window = {
         **contract.window,
         "future_holdout_boundary": contract.future_holdout_boundary,
     }
     if summary["window"] != expected_window:
-        raise ValueError("Task 4 final window linkage differs")
+        raise ValueError("Witness-ablation final window linkage differs")
 
     raw_provenance = summary["provenance"]
     if not isinstance(raw_provenance, Mapping):
-        raise ValueError("Task 4 final summary provenance is malformed")
+        raise ValueError("Witness-ablation final summary provenance is malformed")
     provenance = validate_provenance(raw_provenance)
-    observed_identities = recompute_task4_identities(repository, contract=contract)
+    observed_identities = recompute_witness_ablation_identities(repository, contract=contract)
     current_runtime = capture_runtime_metadata(repository)
     for field in ("python", "numpy", "pandas", "uv"):
         if provenance[field] != current_runtime[field]:
@@ -2050,30 +2047,30 @@ def validate_final_summary_contract(
         },
     )
     if provenance != expected_provenance:
-        raise ValueError("Task 4 final summary provenance linkage differs")
+        raise ValueError("Witness-ablation final summary provenance linkage differs")
 
     raw_ids = _exact_string_list(
         summary["required_initial_cell_ids"], label="required initial cell identities"
     )
     if raw_ids != [spec.cell_id for spec in specs]:
-        raise ValueError("Task 4 final required initial identities differ")
+        raise ValueError("Witness-ablation final required initial identities differ")
     raw_cells = summary["initial_cells"]
     if not isinstance(raw_cells, list):
-        raise ValueError("Task 4 final initial cells are malformed")
+        raise ValueError("Witness-ablation final initial cells are malformed")
     cells = tuple(ablation_cell_from_compact(item) for item in raw_cells)
     validate_initial_coverage(cells, specs=specs)
     expected_status_counts = dict(sorted(Counter(cell.status for cell in cells).items()))
     if summary["initial_status_counts"] != expected_status_counts:
-        raise ValueError("Task 4 final initial status counts differ")
+        raise ValueError("Witness-ablation final initial status counts differ")
 
     raw_search = summary["search_cells"]
     if not isinstance(raw_search, list):
-        raise ValueError("Task 4 final search cells are malformed")
+        raise ValueError("Witness-ablation final search cells are malformed")
     search_cells = tuple(ablation_cell_from_compact(item) for item in raw_search)
     all_ids = [cell.cell_id for cell in (*cells, *search_cells)]
     raw_divergences = summary["first_divergences"]
     if not isinstance(raw_divergences, Mapping) or set(raw_divergences) != set(all_ids):
-        raise ValueError("Task 4 final divergence coverage differs")
+        raise ValueError("Witness-ablation final divergence coverage differs")
     divergences = {
         str(cell_id): _divergences_from_compact(value)
         for cell_id, value in raw_divergences.items()
@@ -2082,24 +2079,24 @@ def validate_final_summary_contract(
     matrix = contract.raw["matrix"]
     critical_raw = matrix["critical_symbols"]
     if not isinstance(critical_raw, list):
-        raise ValueError("Task 4 final preregistered critical symbols differ")
+        raise ValueError("Witness-ablation final preregistered critical symbols differ")
     ranked = rank_critical_symbols(
         _causal_scores(specs, divergences),
         preregistered=tuple(str(symbol) for symbol in critical_raw),
     )
     if _exact_string_list(summary["critical_ranking"], label="critical ranking") != list(ranked):
-        raise ValueError("Task 4 final critical ranking differs")
+        raise ValueError("Witness-ablation final critical ranking differs")
     pairs, _ = select_bounded_search(ranked, {})
     pair_specs = tuple(_search_spec(pair, scope="CRITICAL_PAIR") for pair in pairs)
     if _exact_string_list(
         summary["critical_pair_cell_ids"], label="critical pair identities"
     ) != [spec.cell_id for spec in pair_specs]:
-        raise ValueError("Task 4 final 28-pair search differs")
+        raise ValueError("Witness-ablation final 28-pair search differs")
     if len(search_cells) < len(pair_specs) or any(
         cell.spec != spec
         for cell, spec in zip(search_cells[: len(pair_specs)], pair_specs, strict=True)
     ):
-        raise ValueError("Task 4 final pair cell specifications differ")
+        raise ValueError("Witness-ablation final pair cell specifications differ")
 
     outcomes: dict[frozenset[str], FirstDivergences] = {
         frozenset((spec.subject,)): divergences[spec.cell_id]
@@ -2109,7 +2106,7 @@ def validate_final_summary_contract(
     for spec in pair_specs:
         difference = divergences.get(spec.cell_id)
         if difference is None:
-            raise ValueError("Task 4 final pair divergence is absent")
+            raise ValueError("Witness-ablation final pair divergence is absent")
         outcomes[frozenset(spec.removed_symbols)] = difference
     support = {
         triple: necessary_triple_support(triple, outcomes)
@@ -2120,12 +2117,12 @@ def validate_final_summary_contract(
     if _exact_string_list(
         summary["supported_triple_cell_ids"], label="supported triple identities"
     ) != [spec.cell_id for spec in triple_specs]:
-        raise ValueError("Task 4 final supported triple search differs")
+        raise ValueError("Witness-ablation final supported triple search differs")
     expected_search_specs = (*pair_specs, *triple_specs)
     if len(search_cells) != len(expected_search_specs) or any(
         cell.spec != spec for cell, spec in zip(search_cells, expected_search_specs, strict=True)
     ):
-        raise ValueError("Task 4 final search cell specifications differ")
+        raise ValueError("Witness-ablation final search cell specifications differ")
     for spec in triple_specs:
         outcomes[frozenset(spec.removed_symbols)] = divergences[spec.cell_id]
     necessary_ids = [
@@ -2134,10 +2131,10 @@ def validate_final_summary_contract(
     if _exact_string_list(
         summary["necessary_triple_cell_ids"], label="necessary triple identities"
     ) != necessary_ids:
-        raise ValueError("Task 4 final necessary triples differ")
+        raise ValueError("Witness-ablation final necessary triples differ")
     minimal_sets = minimal_decisive_witness_sets(outcomes)
     if summary["minimal_witness_sets"] != [list(symbols) for symbols in minimal_sets]:
-        raise ValueError("Task 4 final minimal witness sets differ")
+        raise ValueError("Witness-ablation final minimal witness sets differ")
 
     roles = summary["symbol_roles"]
     allowed_roles = {
@@ -2156,7 +2153,7 @@ def validate_final_summary_contract(
         and len(values) == len(set(values))
         for symbol, values in roles.items()
     ):
-        raise ValueError("Task 4 final symbol roles are malformed")
+        raise ValueError("Witness-ablation final symbol roles are malformed")
     expected_pair_members = {
         symbol for symbols in minimal_sets if len(symbols) == 2 for symbol in symbols
     }
@@ -2166,17 +2163,17 @@ def validate_final_summary_contract(
         if "decisive-pair member" in values
     }
     if observed_pair_members != expected_pair_members:
-        raise ValueError("Task 4 final decisive-pair roles are non-minimal")
+        raise ValueError("Witness-ablation final decisive-pair roles are non-minimal")
 
-    sentinels = task4_sentinel_specs(specs)
+    sentinels = witness_ablation_sentinel_specs(specs)
     sentinel = summary["sentinel_verification"]
     if not isinstance(sentinel, Mapping) or set(sentinel) != {"window", "observations"}:
-        raise ValueError("Task 4 final sentinel verification is malformed")
+        raise ValueError("Witness-ablation final sentinel verification is malformed")
     if sentinel["window"] != expected_scenario["sentinel_window"]:
-        raise ValueError("Task 4 final sentinel window differs")
+        raise ValueError("Witness-ablation final sentinel window differs")
     observations = sentinel["observations"]
     if not isinstance(observations, list) or len(observations) != len(sentinels):
-        raise ValueError("Task 4 final sentinel observations differ")
+        raise ValueError("Witness-ablation final sentinel observations differ")
     for spec, observation in zip(sentinels, observations, strict=True):
         expected_keys = {
             "cell_id",
@@ -2186,7 +2183,7 @@ def validate_final_summary_contract(
             "comparable",
         }
         if not isinstance(observation, Mapping) or set(observation) != expected_keys:
-            raise ValueError("Task 4 final sentinel observation fields differ")
+            raise ValueError("Witness-ablation final sentinel observation fields differ")
         count = observation["trace_row_count"]
         expected_comparable = spec.evidence_class == ECONOMIC
         if (
@@ -2199,24 +2196,24 @@ def validate_final_summary_contract(
             or observation["comparable"] is not expected_comparable
             or (not expected_comparable and count != 0)
         ):
-            raise ValueError("Task 4 final sentinel observation differs")
+            raise ValueError("Witness-ablation final sentinel observation differs")
 
     baselines = summary["comparison_baseline_seals"]
     if not isinstance(baselines, Mapping) or set(baselines) != {
         "CANONICAL_34",
         "REPORT_UNIVERSE_13",
     }:
-        raise ValueError("Task 4 final comparison baseline seals differ")
+        raise ValueError("Witness-ablation final comparison baseline seals differ")
     for value in baselines.values():
         if not isinstance(value, Mapping) or set(value) != {
             "trace_sha256",
             "final_account_payload_sha256",
         }:
-            raise ValueError("Task 4 final comparison baseline seal fields differ")
-        require_sha256(value["trace_sha256"], field="Task 4 comparison baseline trace")
+            raise ValueError("Witness-ablation final comparison baseline seal fields differ")
+        require_sha256(value["trace_sha256"], field="Witness-ablation comparison baseline trace")
         require_sha256(
             value["final_account_payload_sha256"],
-            field="Task 4 comparison baseline account",
+            field="Witness-ablation comparison baseline account",
         )
     resume_summary = summary["resume"]
     if not isinstance(resume_summary, Mapping) or set(resume_summary) != {
@@ -2224,10 +2221,10 @@ def validate_final_summary_contract(
         "executed_cell_count",
         "checkpoint_count",
     }:
-        raise ValueError("Task 4 final resume summary differs")
+        raise ValueError("Witness-ablation final resume summary differs")
     counts = tuple(resume_summary[field] for field in sorted(resume_summary))
     if any(isinstance(count, bool) or not isinstance(count, int) or count < 0 for count in counts):
-        raise ValueError("Task 4 final resume counts are malformed")
+        raise ValueError("Witness-ablation final resume counts are malformed")
     if (
         resume_summary["checkpoint_count"] != len(cells) + len(search_cells)
         or resume_summary["reused_cell_count"] + resume_summary["executed_cell_count"]
@@ -2235,11 +2232,11 @@ def validate_final_summary_contract(
         or summary["execution_entrypoint"]
         != "python -m research.strategic_evidence.witness_ablation_runner run --resume"
     ):
-        raise ValueError("Task 4 final execution summary differs")
+        raise ValueError("Witness-ablation final execution summary differs")
     return cells, search_cells, provenance
 
 
-def verify_task4_outputs(
+def verify_witness_ablation_outputs(
     root: str | Path,
     *,
     summary_path: str | Path = _DEFAULT_SUMMARY,
@@ -2257,7 +2254,7 @@ def verify_task4_outputs(
         manifest_target = repository / manifest_target
     summary = verify_sealed_payload(
         json.loads(summary_target.read_text(encoding="utf-8")),
-        label="checkpoint4 witness ablation summary",
+        label="witness-ablation summary",
     )
     cells, search_cells, provenance = validate_final_summary_contract(repository, summary)
     all_cells = (*cells, *search_cells)
@@ -2275,7 +2272,7 @@ def verify_task4_outputs(
         expected_provenance=provenance,
         expected_resume_identity=final_identity,
     )
-    manifest_verification = verify_task4_manifest(
+    manifest_verification = verify_witness_ablation_manifest(
         repository,
         summary_path=summary_target,
         manifest_path=manifest_target,
@@ -2314,7 +2311,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     args = _parser().parse_args(argv)
     if args.command == "run":
-        result = execute_task4_matrix(
+        result = execute_witness_ablation_matrix(
             args.root,
             summary_path=args.summary,
             manifest_path=args.manifest,
@@ -2324,7 +2321,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             include_bounded_search=not args.initial_only,
         )
     elif args.command == "verify":
-        result = verify_task4_outputs(
+        result = verify_witness_ablation_outputs(
             args.root,
             summary_path=args.summary,
             manifest_path=args.manifest,
@@ -2345,24 +2342,24 @@ __all__ = (
     "assemble_full_route_shard",
     "build_executable_source_manifest",
     "build_resume_identity",
-    "build_task4_scenario",
+    "build_witness_ablation_scenario",
     "capture_runtime_metadata",
     "comparison_baseline_scope",
     "derive_balanced_industry_universe",
-    "execute_task4_matrix",
+    "execute_witness_ablation_matrix",
     "iter_streaming_rows",
     "main",
     "read_cell_shard",
-    "recompute_task4_identities",
+    "recompute_witness_ablation_identities",
     "resolve_ablation_universe",
     "resolve_resume_runtime_metadata",
-    "task4_sentinel_specs",
     "validate_final_summary_contract",
     "validate_initial_coverage",
     "verify_full_route_linkage",
     "verify_streaming_shard",
-    "verify_task4_manifest",
-    "verify_task4_outputs",
+    "verify_witness_ablation_manifest",
+    "verify_witness_ablation_outputs",
+    "witness_ablation_sentinel_specs",
     "write_cell_shard",
     "write_compact_and_manifest",
     "write_streaming_shard",

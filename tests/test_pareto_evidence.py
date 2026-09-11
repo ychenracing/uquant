@@ -93,17 +93,22 @@ def test_reference_audit_rejects_non_ai_era_competitor_windows(tmp_path: Path) -
     assert report["can_run_fail_closed_gates"] is False
 
 
-def test_smoke_inputs_reuse_frozen_pool_e_and_point_in_time_industries() -> None:
-    root = Path(__file__).resolve().parents[1]
+def test_smoke_uses_the_canonical_official_window(monkeypatch, tmp_path: Path) -> None:
+    module = _module()
+    observed = {}
 
-    payload = _module().smoke_inputs(root)
+    def capture_matrix(**kwargs):
+        observed.update(kwargs)
+        return {"transport_probe": True}
 
-    assert len(payload["universe"]) == 32
-    assert payload["prior_symbols"] == ("sz300308", "sz300394", "sz300502")
-    assert payload["start"] == AI_ERA_WINDOWS["continuous_ai_era"][0]
-    assert payload["end"] == AI_ERA_WINDOWS["continuous_ai_era"][1]
-    assert set(payload["industries"]) == set(payload["universe"])
-    assert all(industry != "unknown" for industry in payload["industries"].values())
+    monkeypatch.setattr(module, "run_generalization_matrix", capture_matrix)
+    assert module.main([
+        "--repo-root", str(tmp_path), "smoke", "--output", str(tmp_path / "report.json"),
+    ]) == 0
+    assert observed == {
+        "data_dir": tmp_path / "data" / "frozen",
+        "window_names": ("continuous_ai_era",),
+    }
 
 
 def test_reference_audit_output_cannot_overwrite_a_reviewed_input(
@@ -153,7 +158,7 @@ def test_smoke_output_preflights_the_consumed_market_data_tree(
     def fail_replay(**_: object) -> dict[str, object]:
         raise AssertionError("smoke replay started before output preflight")
 
-    monkeypatch.setattr(module, "run_generalization_smoke", fail_replay)
+    monkeypatch.setattr(module, "run_generalization_matrix", fail_replay)
     with pytest.raises(ValueError, match="protected input tree"):
         module.main(
             [

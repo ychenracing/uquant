@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
+from research import window_outperformance as outperformance
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "run_window_outperformance.py"
-SPEC = importlib.util.spec_from_file_location("window_outperformance_under_test", SCRIPT)
-assert SPEC is not None and SPEC.loader is not None
-outperformance = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = outperformance
-SPEC.loader.exec_module(outperformance)
+
 
 
 def _row(system: str, pool: str, **overrides: object) -> dict[str, object]:

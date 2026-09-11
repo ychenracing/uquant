@@ -1,4 +1,4 @@
-"""Assemble the historical recovery policy from explicit owners."""
+"""Assemble the recovery policy from explicit owners."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from .admission import RecoveryPortfolioPolicy as RecoveryPortfolioPolicy
 from .substitution import recovery_anchor_substitution as _recovery_anchor_substitution
 
 
-def _recovery_compatibility_method[Function: Callable[..., Any]](
+def _recovery_assembly_method[Function: Callable[..., Any]](
     function: Function, name: str
 ) -> Function:
     runtime_function = cast(FunctionType, function)
@@ -28,13 +28,13 @@ def _recovery_compatibility_method[Function: Callable[..., Any]](
     return function
 
 
-def _bind_recovery_compatibility_method[Function: Callable[..., Any]](
+def _bind_recovery_assembly_method[Function: Callable[..., Any]](
     name: str, function: Function
 ) -> None:
-    compatible = _recovery_compatibility_method(function, name)
+    compatible = _recovery_assembly_method(function, name)
     setattr(RecoveryPortfolioPolicy, name, compatible)
 
 
-_bind_recovery_compatibility_method(
+_bind_recovery_assembly_method(
     "_recovery_anchor_substitution", _recovery_anchor_substitution
 )

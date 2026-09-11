@@ -1,4 +1,4 @@
-"""Assemble the historical leader policy from explicit mechanical owners."""
+"""Assemble the leader policy from explicit mechanical owners."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ from .lifecycle import (
 from .targets import cap_opportunity_gross as _cap_opportunity_gross
 
 
-def _leader_compatibility_method[Function: Callable[..., Any]](
+def _leader_assembly_method[Function: Callable[..., Any]](
     function: Function, name: str
 ) -> Function:
     runtime_function = cast(FunctionType, function)
@@ -63,32 +63,32 @@ def _leader_compatibility_method[Function: Callable[..., Any]](
     return function
 
 
-def _bind_leader_compatibility_method[Function: Callable[..., Any]](
+def _bind_leader_assembly_method[Function: Callable[..., Any]](
     name: str,
     function: Function,
     *,
     static: bool = False,
 ) -> None:
-    compatible = _leader_compatibility_method(function, name)
+    compatible = _leader_assembly_method(function, name)
     descriptor: object = staticmethod(compatible) if static else compatible
     setattr(LeaderPortfolioPolicy, name, descriptor)
 
 
-_bind_leader_compatibility_method("_cap_opportunity_gross", _cap_opportunity_gross)
-_bind_leader_compatibility_method("_conviction_shares", _conviction_shares)
-_bind_leader_compatibility_method(
+_bind_leader_assembly_method("_cap_opportunity_gross", _cap_opportunity_gross)
+_bind_leader_assembly_method("_conviction_shares", _conviction_shares)
+_bind_leader_assembly_method(
     "_conviction_evidence_qualified", _conviction_evidence_qualified
 )
-_bind_leader_compatibility_method("_session_clock", _session_clock, static=True)
-_bind_leader_compatibility_method(
+_bind_leader_assembly_method("_session_clock", _session_clock, static=True)
+_bind_leader_assembly_method(
     "_session_distance", _leader_session_distance, static=True
 )
-_bind_leader_compatibility_method("_correlations", _correlations)
-_bind_leader_compatibility_method("_admission_utility", _admission_utility)
-_bind_leader_compatibility_method("_dynamic_k", _dynamic_k)
-_bind_leader_compatibility_method("_rotation_allowed", _rotation_allowed)
-_bind_leader_compatibility_method("_retention_score", _retention_score, static=True)
-_bind_leader_compatibility_method(
+_bind_leader_assembly_method("_correlations", _correlations)
+_bind_leader_assembly_method("_admission_utility", _admission_utility)
+_bind_leader_assembly_method("_dynamic_k", _dynamic_k)
+_bind_leader_assembly_method("_rotation_allowed", _rotation_allowed)
+_bind_leader_assembly_method("_retention_score", _retention_score, static=True)
+_bind_leader_assembly_method(
     "_leader_lifecycle_exit_confirmed", _leader_lifecycle_exit_confirmed
 )
-_bind_leader_compatibility_method("_industry_handoff", _industry_handoff)
+_bind_leader_assembly_method("_industry_handoff", _industry_handoff)

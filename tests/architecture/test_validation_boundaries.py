@@ -12,6 +12,7 @@ from typing import Any, cast
 import pytest
 
 from uquant.contracts.strict_json import canonical_json_sha256
+from uquant.validation.evidence_source import evidence_root
 
 from ._analysis import (
     _VALIDATION_RELOCATED_FUNCTION_DEBT,
@@ -55,9 +56,9 @@ _CANDIDATE_RUNNER_BLOB = "37f09a28ee3c96cc71b36b5156576fc0e870e720"
 _CANDIDATE_RUNNER_SHA256 = (
     "39a3cb1e9e410560f9cb2ea4fbc28930cc287f3d3b5d8759753b9700668c1282"
 )
-_INVENTORY = ROOT / "artifacts/architecture_refactor/task9_cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts/architecture_refactor/task9_cleanup_inventory.json')
 _VALIDATION_ORACLE = (
-    ROOT / "artifacts/architecture_refactor/task9_validation_contract_oracle.json"
+    evidence_root() / 'artifacts/architecture_refactor/task9_validation_contract_oracle.json'
 )
 _LEGACY_IMPLEMENTATIONS = (
     "uquant/validation/generalization.py",
@@ -553,7 +554,7 @@ def test_validation_policy_relocated_debt_is_exact_bidirectional_and_non_growing
     )
     assert set(_VALIDATION_RELOCATED_FUNCTION_DEBT) == projected_functions
     baseline_debt = json.loads(
-        (ROOT / "artifacts/architecture_refactor/baseline_inventory.json").read_text(
+        ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(
             encoding="utf-8"
         )
     )["architecture_debt"]["initial"]

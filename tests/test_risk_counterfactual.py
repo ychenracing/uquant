@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gzip
 import hashlib
-import importlib.util
 import json
 from copy import deepcopy
 from datetime import date, timedelta
@@ -12,6 +11,8 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
+from research import risk_counterfactual_cli as counterfactual
+from research import risk_differential_analysis as _ANALYZER
 from research.risk_counterfactual import (
     NEGATIVE_CONTROL_IDS,
     POLICY_SET,
@@ -27,23 +28,6 @@ from research.risk_differential_models import canonical_sha256
 from uquant.config import DEFAULT_CONFIG
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import AccountState, Position, Target
-
-_SCRIPT_SPEC = importlib.util.spec_from_file_location(
-    "risk_counterfactual_runner_under_test",
-    Path(__file__).parents[1] / "scripts/run_risk_counterfactual.py",
-)
-assert _SCRIPT_SPEC is not None and _SCRIPT_SPEC.loader is not None
-_SCRIPT = importlib.util.module_from_spec(_SCRIPT_SPEC)
-_SCRIPT_SPEC.loader.exec_module(_SCRIPT)
-_layered_targets = _SCRIPT._layered_targets
-
-_ANALYZER_SPEC = importlib.util.spec_from_file_location(
-    "risk_differential_analyzer_under_test",
-    Path(__file__).parents[1] / "scripts/analyze_risk_differential.py",
-)
-assert _ANALYZER_SPEC is not None and _ANALYZER_SPEC.loader is not None
-_ANALYZER = importlib.util.module_from_spec(_ANALYZER_SPEC)
-_ANALYZER_SPEC.loader.exec_module(_ANALYZER)
 
 
 def _target(symbol: str, weight: float) -> Target:
@@ -163,7 +147,7 @@ def test_axis_calibration_does_not_substitute_global_warning_signals() -> None:
                 },
             }
         )
-    result = _ANALYZER._calibration(
+    result = _ANALYZER.calibration(
         [{"status": "SUCCESS", "days": days}], "trade", axis="block_new_entries"
     )
     assert result["axis"] == "block_new_entries"
@@ -190,7 +174,7 @@ def test_detection_gate_emits_each_axis_specific_metric_and_reason() -> None:
         "missed_shock_count": 2,
         "missed_shock_depth": -0.08,
     }
-    result = _ANALYZER._detection_gate_details(exclusive, candidate_axis, base_axis)
+    result = _ANALYZER.detection_gate_details(exclusive, candidate_axis, base_axis)
     assert result["passed"] is True
     assert result["precision_pass"] is True
     assert result["lead_time_pass"] is True
@@ -237,7 +221,7 @@ def test_counterfactual_deltas_are_positive_only_for_improvement() -> None:
             },
         ],
     }
-    _, aggregate = _ANALYZER._counterfactual_summary(raw)
+    _, aggregate = _ANALYZER.counterfactual_summary(raw)
     assert aggregate["candidate"]["median_mdd_delta"] == pytest.approx(0.05)
     assert aggregate["candidate"]["best_acute_return_delta"] == pytest.approx(0.05)
 
@@ -270,10 +254,10 @@ def test_economic_gate_requires_real_risk_cell_mdd_improvement() -> None:
             },
         ],
     }
-    _, aggregate = _ANALYZER._counterfactual_summary(raw)
+    _, aggregate = _ANALYZER.counterfactual_summary(raw)
     economic = aggregate["candidate"]
     assert economic.get("real_risk_cell_count") == 0
-    assert _ANALYZER._economic_gate(economic)["passed"] is False
+    assert _ANALYZER.economic_gate(economic)["passed"] is False
 
 
 def test_economic_gate_accepts_preregistered_half_point_real_risk_mdd_gain() -> None:
@@ -288,7 +272,7 @@ def test_economic_gate_accepts_preregistered_half_point_real_risk_mdd_gain() -> 
         "max_order_delta_pct": 0.03,
         "max_turnover_delta_pct": 0.05,
     }
-    result = _ANALYZER._economic_gate(economic)
+    result = _ANALYZER.economic_gate(economic)
     assert result["passed"] is True
     assert result["mdd_real_risk_pass"] is True
 
@@ -306,7 +290,7 @@ def test_economic_gate_accepts_preregistered_one_point_real_risk_acute_gain() ->
         "max_order_delta_pct": 0.03,
         "max_turnover_delta_pct": 0.05,
     }
-    result = _ANALYZER._economic_gate(economic)
+    result = _ANALYZER.economic_gate(economic)
     assert result["passed"] is True
     assert result["mdd_real_risk_pass"] is False
     assert result["acute_real_risk_pass"] is True
@@ -318,13 +302,13 @@ def test_closure_decision_is_derived_from_candidate_outcomes() -> None:
     rejected = [
         {"candidate_id": "entry", "decision": "REJECTED_ECONOMIC_REGRESSION", "gates": {}}
     ]
-    assert _ANALYZER._closure_outcome(passing)["final_decision"] == (
+    assert _ANALYZER.closure_outcome(passing)["final_decision"] == (
         "PROMOTION_CANDIDATE_REQUIRES_FUTURE_HOLDOUT"
     )
-    assert _ANALYZER._closure_outcome(insufficient)["final_decision"] == (
+    assert _ANALYZER.closure_outcome(insufficient)["final_decision"] == (
         "INCREMENTAL_EVIDENCE_INSUFFICIENT_SAMPLE"
     )
-    assert _ANALYZER._closure_outcome(rejected)["final_decision"] == (
+    assert _ANALYZER.closure_outcome(rejected)["final_decision"] == (
         "NO_PROMOTABLE_INCREMENTAL_RISK"
     )
 
@@ -384,14 +368,14 @@ def test_analyzer_inputs_fail_closed_on_tampered_canonical_seal() -> None:
     matrix, daily, daily_gzip, exclusive, raw, negative, capability = _analysis_inputs()
     matrix["summary"]["tampered"] = True
     with pytest.raises(RuntimeError, match="matrix canonical seal"):
-        _ANALYZER._validate_analysis_inputs(
+        _ANALYZER.validate_analysis_inputs(
             matrix, daily, daily_gzip, exclusive, raw, negative, capability
         )
 
 
 def test_analyzer_inputs_accept_matching_canonical_bindings() -> None:
     matrix, daily, daily_gzip, exclusive, raw, negative, capability = _analysis_inputs()
-    _ANALYZER._validate_analysis_inputs(
+    _ANALYZER.validate_analysis_inputs(
         matrix, daily, daily_gzip, exclusive, raw, negative, capability
     )
 
@@ -401,7 +385,7 @@ def test_analyzer_inputs_fail_closed_on_cross_artifact_mismatch() -> None:
     raw["provenance"]["risk_differential_matrix_sha256"] = "other"
     raw["payload_sha256"] = canonical_sha256(raw)
     with pytest.raises(RuntimeError, match="raw-to-matrix binding"):
-        _ANALYZER._validate_analysis_inputs(
+        _ANALYZER.validate_analysis_inputs(
             matrix, daily, daily_gzip, exclusive, raw, negative, capability
         )
 
@@ -411,7 +395,7 @@ def test_generalization_gate_is_calculated_from_distribution() -> None:
         {"matrix_axis": "generalization", "mdd_delta": 0.0, "wealth_retention": 1.0},
         {"matrix_axis": "generalization", "mdd_delta": -0.004, "wealth_retention": 0.99},
     ]
-    gate = _ANALYZER._generalization_gate(rows)
+    gate = _ANALYZER.generalization_gate(rows)
     assert gate["evaluable"] is True
     assert gate["passed"] is True
 
@@ -419,9 +403,9 @@ def test_generalization_gate_is_calculated_from_distribution() -> None:
 def test_counterfactual_job_checkpoint_resumes_only_matching_identity(tmp_path: Path) -> None:
     checkpoint = tmp_path / "cell.json"
     result = {"cell_id": "official_pool/h1_2024/a", "policy_id": "baseline_uquant"}
-    _SCRIPT._write_job_checkpoint(checkpoint, identity="identity-a", result=result)
-    assert _SCRIPT._load_job_checkpoint(checkpoint, identity="identity-a") == result
-    assert _SCRIPT._load_job_checkpoint(checkpoint, identity="identity-b") is None
+    counterfactual.write_job_checkpoint(checkpoint, identity="identity-a", result=result)
+    assert counterfactual.load_job_checkpoint(checkpoint, identity="identity-a") == result
+    assert counterfactual.load_job_checkpoint(checkpoint, identity="identity-b") is None
 
 
 def test_layered_shadow_emits_canonical_risk_attribution() -> None:
@@ -437,7 +421,7 @@ def test_layered_shadow_emits_canonical_risk_attribution() -> None:
         avg_cost=10.0,
         highest_close=10.0,
     )
-    targets, triggered = _layered_targets(
+    targets, triggered = counterfactual.layered_targets(
         engine=SimpleNamespace(
             workspace=SimpleNamespace(
                 loaded_symbols=("sz000001",),

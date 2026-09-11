@@ -1,22 +1,17 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
+from research import future_holdout_cli as _SCRIPT
 from research.risk_differential import append_observation
 from research.risk_differential_models import canonical_sha256
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
-_SCRIPT_SPEC = importlib.util.spec_from_file_location(
-    "future_holdout_risk_differential_under_test",
-    ROOT / "scripts/future_holdout.py",
-)
-assert _SCRIPT_SPEC is not None and _SCRIPT_SPEC.loader is not None
-_SCRIPT = importlib.util.module_from_spec(_SCRIPT_SPEC)
-_SCRIPT_SPEC.loader.exec_module(_SCRIPT)
+
 
 
 def _payload() -> dict[str, object]:
@@ -48,7 +43,7 @@ def test_differential_lane_is_observing_and_cannot_backfill(tmp_path: Path) -> N
 
 
 def test_scores_remain_null_before_twenty_sessions() -> None:
-    closure = json.loads((ROOT / "artifacts/sentinel/risk_differential/closure.json").read_text())
+    closure = json.loads(((evidence_root() / 'artifacts/sentinel/risk_differential/closure.json')).read_text())
     holdout = closure["future_holdout"]
     assert holdout["status"] == "OBSERVING"
     assert holdout["review_status"] == "NON_REVIEWABLE"
@@ -186,7 +181,7 @@ def test_differential_lane_is_bound_to_immutable_source_identity() -> None:
 
 
 def test_observation_append_does_not_change_decision_digest(tmp_path: Path) -> None:
-    production = ROOT / "artifacts/sentinel/risk_differential/production_economic_equivalence.json"
+    production = (evidence_root() / 'artifacts/sentinel/risk_differential/production_economic_equivalence.json')
     proof = json.loads(production.read_text())
     assert proof["passed"] is True
     assert proof["exact_dimensions"]["decision_digest"] is True

@@ -9,6 +9,7 @@ import pytest
 
 from research.sentinel_evidence_closure import run_evidence_closure
 from uquant.config import DEFAULT_CONFIG
+from uquant.validation.evidence_source import evidence_root
 
 EVIDENCE_RECOVERY_CHANGED_PATHS = {
     "artifacts/sentinel/exclusive_freeze/README.md",
@@ -49,9 +50,7 @@ _HISTORICAL_CONFIG_SHA256 = (
 
 
 def _inventory() -> dict[str, object]:
-    path = Path(
-        "artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json"
-    )
+    path = (evidence_root() / 'artifacts/sentinel/evidence_closure/phase7_recovery_inventory.json')
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -126,7 +125,7 @@ def test_evidence_recovery_inventory_excludes_candidate_authority_assets() -> No
     ]
     assert payload["production_causal_confirmation_enabled"] is False
     assert payload["whole_merge_or_cherry_pick"] is False
-    assert not Path("artifacts/sentinel/exclusive_freeze/candidate_lock.json").exists()
+    assert not (evidence_root() / 'artifacts/sentinel/exclusive_freeze/candidate_lock.json').exists()
     assert not Path("research/sentinel_exclusive_freeze.py").exists()
 
 
@@ -144,7 +143,7 @@ def test_consolidated_production_modes_reject_candidate_and_gross_cap_values() -
 
 def test_evidence_closure_economic_equivalence_artifact_is_exact_and_complete() -> None:
     payload = json.loads(
-        Path("artifacts/sentinel/evidence_closure/economic_equivalence.json").read_text(
+        (evidence_root() / 'artifacts/sentinel/evidence_closure/economic_equivalence.json').read_text(
             encoding="utf-8"
         )
     )
@@ -207,7 +206,7 @@ def test_evidence_closure_seal_matches_historical_analyzer(
     tmp_path: Path,
 ) -> None:
     committed = json.loads(
-        Path("artifacts/sentinel/evidence_closure/evidence_closure.json").read_text(
+        (evidence_root() / 'artifacts/sentinel/evidence_closure/evidence_closure.json').read_text(
             encoding="utf-8"
         )
     )
@@ -270,9 +269,7 @@ def test_evidence_closure_seal_matches_historical_analyzer(
 
 def test_evidence_closure_account_migration_changes_identity_only() -> None:
     payload = json.loads(
-        Path(
-            "artifacts/sentinel/evidence_closure/account_code_identity_migration.json"
-        ).read_text(encoding="utf-8")
+        (evidence_root() / 'artifacts/sentinel/evidence_closure/account_code_identity_migration.json').read_text(encoding="utf-8")
     )
 
     assert payload["status"] == "PASS"

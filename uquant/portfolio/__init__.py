@@ -8,27 +8,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 from ..portfolio_core import current_weights, effective_n
 
-if TYPE_CHECKING:
-    import pandas as pd
 
-    from ..types import AccountState, LeaderScore, Opportunity, RiskAssessment, Target
-
-
-def _allocator_public_signature(
-    self: Any,
-    *,
-    date: pd.Timestamp,
-    opportunity: Opportunity,
-    risk: RiskAssessment,
-    user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    prices: dict[str, float],
-) -> tuple[Target, ...]:
-    raise NotImplementedError
-
-
-def _compatibility_method[Function: Callable[..., Any]](function: Function, name: str) -> Function:
+def _assembly_method[Function: Callable[..., Any]](function: Function, name: str) -> Function:
     runtime_function = cast(FunctionType, function)
     raw_docstring = runtime_function.__doc__
     if isinstance(raw_docstring, str) and "\n" in raw_docstring:
@@ -41,29 +22,24 @@ def _compatibility_method[Function: Callable[..., Any]](function: Function, name
     runtime_function.__annotations__ = annotations
     runtime_function.__module__ = "uquant.portfolio"
     runtime_function.__qualname__ = f"PortfolioAllocator.{name}"
-    if name in {"allocate", "_allocate_strategy"}:
-        public_annotations = dict(_allocator_public_signature.__annotations__)
-        public_annotations.pop("self", None)
-        _allocator_public_signature.__annotations__ = public_annotations
-        cast(Any, runtime_function).__wrapped__ = _allocator_public_signature
     return function
 
 
-def _bind_compatibility_method[Function: Callable[..., Any]](
+def _bind_method[Function: Callable[..., Any]](
     owner: type[Any],
     name: str,
     function: Function,
     *,
     static: bool = False,
 ) -> None:
-    compatible = _compatibility_method(function, name)
+    compatible = _assembly_method(function, name)
     descriptor: object = staticmethod(compatible) if static else compatible
     setattr(owner, name, descriptor)
 
 
 def _load_allocator() -> type[Any]:
     # This remains the one eager assembly step. Keeping the imports inside it
-    # lets the historical leader facade load its nested owner package while
+    # lets the leader facade load its nested owner package while
     # the parent portfolio package is still initializing.
     from .allocator import (
         PortfolioAllocator as owner,
@@ -102,69 +78,69 @@ def _load_allocator() -> type[Any]:
         turnover_aware_sector_cap as _turnover_aware_sector_cap,
     )
 
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_confirmed_recovery_gross",
         _confirmed_recovery_gross,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_risk_attribution_mechanism",
         _risk_attribution_mechanism,
         static=True,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_risk_retention_score",
         _risk_retention_score,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_risk_retention_vector",
         _risk_retention_vector,
         static=True,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_risk_lifecycle_rank",
         _risk_lifecycle_rank,
         static=True,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_subset_retention_vector",
         _subset_retention_vector,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_sparse_risk_reduce",
         _sparse_risk_reduce,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_risk_reduction_metadata",
         _risk_reduction_metadata,
         static=True,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_turnover_aware_sector_cap",
         _turnover_aware_sector_cap,
     )
-    _bind_compatibility_method(owner, "allocate", allocate)
-    _bind_compatibility_method(
+    _bind_method(owner, "allocate", allocate)
+    _bind_method(
         owner,
         "_commit_frozen_exit_state",
         _commit_frozen_exit_state,
         static=True,
     )
-    _bind_compatibility_method(
+    _bind_method(
         owner,
         "_frozen_existing_targets",
         _frozen_existing_targets,
         static=True,
     )
-    _bind_compatibility_method(owner, "_allocate_strategy", _allocate_strategy)
+    _bind_method(owner, "_allocate_strategy", _allocate_strategy)
     return owner
 
 

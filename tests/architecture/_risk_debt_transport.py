@@ -33,6 +33,7 @@ _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
         "uquant.validation._promotion_cache",
         "uquant.validation.acceptance_tolerance",
         "uquant.validation.competitor_reference",
+        "uquant.validation.evidence_source",
         "uquant.validation.generalization_matrix_evidence",
         "uquant.validation.generalization_matrix_validation",
         "uquant.validation.generalization_policy.cell_policy",

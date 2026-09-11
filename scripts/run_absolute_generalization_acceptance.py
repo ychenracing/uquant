@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import shutil
 import subprocess  # nosec B404
 import sys
@@ -43,6 +44,8 @@ from uquant.validation.absolute_generalization import (
     validate_cell_artifact,
     validate_shard_manifest,
 )
+from uquant.validation.absolute_generalization._acceptance_evidence import relative_policy_reference
+from uquant.validation.absolute_generalization.contract import runtime_identity, verify_run_checkout
 from uquant.validation.manifest import verify_data_manifest
 
 CANONICAL_SHARDS = (
@@ -73,6 +76,7 @@ class RunnerOptions:
     shard_root: Path | None
     artifact_prefix: str | None
     upstream_result: str | None
+    preflight_only: bool = False
 
     @property
     def mode(self) -> str:
@@ -98,6 +102,7 @@ def _parser() -> argparse.ArgumentParser:
         "--shard", choices=_SHARDS, required=True, action=_UniqueValueAction
     )
     parser.add_argument("--symbol", action=_UniqueValueAction)
+    parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--run-id", required=True, action=_UniqueValueAction)
     parser.add_argument(
         "--run-attempt", type=int, required=True, action=_UniqueValueAction
@@ -118,6 +123,7 @@ def parse_cli(argv: Sequence[str] | None = None) -> RunnerOptions:
     parser = _parser()
     parsed = parser.parse_args(arguments)
     options = RunnerOptions(
+        preflight_only=bool(parsed.preflight_only),
         shard=str(parsed.shard),
         symbol=None if parsed.symbol is None else str(parsed.symbol),
         run_id=str(parsed.run_id),
@@ -134,11 +140,6 @@ def parse_cli(argv: Sequence[str] | None = None) -> RunnerOptions:
         ),
     )
     _validate_transport(options, parser)
-    if options.symbol is not None:
-        try:
-            selected_scenarios(options, load_absolute_generalization_contract())
-        except ValueError as exc:
-            parser.error(str(exc))
     return options
 
 
@@ -348,6 +349,7 @@ def build_loo_shard_manifest(
         "status": "COMPLETE",
         "upstream_success": True,
         "error": "",
+        "runtime": runtime_identity(),
         "run_id": options.run_id,
         "run_attempt": options.run_attempt,
         "head": head,
@@ -389,6 +391,7 @@ def _special_shard_manifest(
         "status": "COMPLETE",
         "upstream_success": True,
         "error": "",
+        "runtime": runtime_identity(),
         "run_id": options.run_id,
         "run_attempt": options.run_attempt,
         "head": head,
@@ -455,7 +458,7 @@ def _run_execution(
         raise ValueError("absolute generalization selected frozen data identity differs")
     if options.shard in _LOO_SHARDS:
         artifacts: list[CellArtifact] = []
-        errors: list[str] = []
+        errors: list[Exception] = []
         for scenario in selected_scenarios(options, contract):
             try:
                 artifact = read_cached_cell(cache_dir, scenario, contract)
@@ -474,9 +477,10 @@ def _run_execution(
                 validate_atomic_output_boundary(path, protected_roots=(data_dir,))
                 if not path.exists():
                     atomic_write_bytes(path, canonical_json_bytes(failure))
-                errors.append(scenario.cell_id)
+                exc.add_note(f"Absolute cell: {scenario.cell_id}")
+                errors.append(exc)
         if errors:
-            raise RuntimeError(f"absolute cells failed; independent cells completed: {', '.join(errors)}")
+            raise ExceptionGroup("absolute cells failed; independent cells completed", errors)
         manifest = build_loo_shard_manifest(options, artifacts, contract)
     elif options.shard == "champion":
         champion_evidence = run_champion_runtime_evidence(
@@ -554,14 +558,9 @@ def _discover_final_manifests(
         ):
             raise ValueError("absolute generalization final artifact directory set differs")
         artifacts[key] = directory
-    complete_attempts = tuple(
-        attempt
-        for attempt in range(1, options.run_attempt + 1)
-        if all((attempt, shard) in artifacts for shard in CANONICAL_SHARDS)
-    )
-    if not complete_attempts:
-        raise ValueError("absolute generalization final artifact directory set differs")
-    selected_attempt = complete_attempts[-1]
+    selected_attempt = options.run_attempt
+    if set(artifacts) != {(selected_attempt, shard) for shard in CANONICAL_SHARDS}:
+        raise ValueError("absolute generalization final artifact attempt or shard set differs")
     for shard in CANONICAL_SHARDS:
         directory = artifacts[(selected_attempt, shard)]
         if directory.is_symlink() or not directory.is_dir():
@@ -606,20 +605,20 @@ def _readback_final_report(
     return raw
 
 
-def run(options: RunnerOptions) -> int:
+def _run_verified(options: RunnerOptions, contract: AbsoluteGeneralizationContract) -> int:
     """Run one validated transport selection and return its blocking exit status."""
 
-    contract = load_absolute_generalization_contract()
     if options.shard != "final":
         try:
             return _run_execution(options, contract)
         except Exception as exc:
             print("".join(traceback.format_exception(exc)), file=sys.stderr)
+            _write_diagnostic(options, exc)
             head, tree = _git_identity()
             error = build_error_shard_manifest(
                 shard=options.shard,
                 mode=options.mode,
-                error=f"execution failed: {type(exc).__name__}",
+                error=f"execution failed: {type(exc).__name__}: {exc}",
                 run_id=options.run_id,
                 run_attempt=options.run_attempt,
                 head=head,
@@ -643,6 +642,75 @@ def run(options: RunnerOptions) -> int:
     _write_final_report(options, report)
     trusted = _readback_final_report(options, report)
     return 0 if trusted.get("passed") is True else 1
+
+
+def _action_output(name: str, path: Path) -> None:
+    destination = os.environ.get("GITHUB_OUTPUT")
+    if destination:
+        value = str(path.absolute())
+        if "\n" in value or "\r" in value:
+            raise ValueError("unsafe Actions output path")
+        with open(destination, "a", encoding="utf-8") as stream:
+            stream.write(f"{name}={value}\n")
+
+
+def _invalid_evidence_error(exc: BaseException) -> bool:
+    if isinstance(exc, BaseExceptionGroup):
+        return all(_invalid_evidence_error(item) for item in exc.exceptions)
+    return isinstance(exc, ValueError)
+
+
+def _write_diagnostic(options: RunnerOptions, exc: Exception) -> None:
+    diagnostic = {
+        "status": "INVALID_EVIDENCE" if _invalid_evidence_error(exc) else "ENGINEERING_ERROR",
+        "error_type": type(exc).__name__, "error": str(exc),
+        "traceback": "".join(traceback.format_exception(exc)),
+        "run_id": options.run_id, "run_attempt": options.run_attempt,
+        "shard": options.shard, "event_name": os.environ.get("GITHUB_EVENT_NAME"),
+        "event_sha": os.environ.get("GITHUB_SHA"),
+    }
+    try:
+        head, tree = _git_identity()
+        diagnostic.update(head=head, tree=tree)
+    except Exception as identity_error:
+        diagnostic["identity_error"] = str(identity_error)
+    path = options.output.with_name(canonical_json_sha256(diagnostic) + ".diagnostic.json")
+    protected = tuple(path for path in (options.data_dir, options.cache_dir, options.shard_root) if path)
+    validate_atomic_output_boundary(path, protected_roots=protected)
+    if not path.exists():
+        atomic_write_bytes(path, canonical_json_bytes(diagnostic))
+    _action_output("diagnostic_path", path)
+
+
+def run(options: RunnerOptions) -> int:
+    """Retain preflight failures without creating an economic evidence seal."""
+    try:
+        # Event identity is checked before policy loading or any costly execution.
+        verify_run_checkout()
+        contract = load_absolute_generalization_contract()
+        relative_policy_reference()
+        if options.symbol is not None:
+            selected_scenarios(options, contract)
+        if options.data_dir is not None:
+            frozen = contract.inputs.frozen_data
+            if verify_data_manifest(options.data_dir) != {
+                "snapshot_id": frozen.snapshot_id, "files_verified": frozen.files_verified,
+                "manifest_sha256": frozen.manifest_sha256,
+                "checksums_sha256": frozen.checksums_sha256,
+            }:
+                raise ValueError("absolute generalization selected frozen data identity differs")
+        if options.preflight_only:
+            return 0
+        if options.output.exists():
+            raise ValueError("absolute generalization output already exists; preserve original attempt")
+        result = _run_verified(options, contract)
+        if options.output.is_file():
+            _action_output("artifact_path", options.output)
+        return result
+    except Exception as exc:
+        print("".join(traceback.format_exception(exc)), file=sys.stderr)
+        _write_diagnostic(options, exc)
+        return 2
 
 
 def main(argv: Sequence[str] | None = None) -> int:

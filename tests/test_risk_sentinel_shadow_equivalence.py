@@ -8,9 +8,10 @@ from pathlib import Path
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import code_fingerprint
 from uquant.risk_sentinel.cli import sentinel_source_fingerprint
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / "artifacts" / "sentinel" / "shadow_equivalence.json"
+ARTIFACT = (evidence_root() / 'artifacts') / "sentinel" / "shadow_equivalence.json"
 BASELINE_COMMIT = "87f4366683e4531d0744d78380bf5c336fce2f57"
 SOURCE_COMMIT = "e02b0ad5c38aa119b2d21cb3142589b1f3f2fae1"
 SENTINEL_SOURCE_SHA256 = "0f26fc5be244a985b20cb426b025a909f85939ee7a5ee8905b9367559093b46e"

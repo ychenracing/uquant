@@ -31,6 +31,7 @@ from research.current_heads import (
     load_source_registry,
 )
 from uquant.atomic_io import atomic_write_text
+from uquant.validation.evidence_source import evidence_root
 
 _MARKET_COLUMNS = ("date", "open", "high", "low", "close", "volume", "amount")
 _SHA40 = 40
@@ -1151,12 +1152,6 @@ def assemble_matrix(
         "runtimes": runtimes,
         "summary": summary,
         "aggregates": _matrix_aggregates(cells),
-        "legacy_source_diagnostic": {
-            "evidence_class": "diagnostic_only_not_current_HEAD",
-            "aquant": "3c38fbbf679a0fb1b4ee8f3d47b6931d3eb8fdbd",
-            "qwenquant": "0b3681e10b75425ad8600e75835677a6a125ed13",
-            "trade": "cee1620f40af3af8f839e15db188a9e388a78dd0",
-        },
         "cells": cells,
     }
     payload["payload_sha256"] = canonical_sha256(payload)
@@ -1188,7 +1183,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     prepare.add_argument(
         "--generalization-baseline",
         type=Path,
-        default=root / "artifacts/current_heads/baseline/uquant_phase2.json",
+        default=evidence_root() / "artifacts/current_heads/baseline/uquant_phase2.json",
     )
     prepare.add_argument("--data-dir", type=Path, default=root / "data/frozen")
     prepare.add_argument("--runtime-dir", type=Path, required=True)
@@ -1204,14 +1199,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     assemble.add_argument(
         "--generalization-summary",
         type=Path,
-        default=root / "artifacts/current_heads/baseline/uquant_phase2.json",
+        default=evidence_root() / "artifacts/current_heads/baseline/uquant_phase2.json",
     )
     assemble.add_argument("--generalization-matrix", type=Path, required=True)
     assemble.add_argument("--runtime-dir", type=Path, required=True)
     assemble.add_argument(
         "--output",
         type=Path,
-        default=root / "benchmarks/current_heads_competitor_matrix.json",
+        default=root / "artifacts/competitor_matrix.json",
     )
     assemble.add_argument("--uquant-workers", type=int, default=6)
     args = parser.parse_args(argv)

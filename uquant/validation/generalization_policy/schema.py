@@ -20,7 +20,7 @@ from ..generalization_contract import (
 _ROOT = Path(__file__).resolve().parents[3]
 GENERALIZATION_BASELINE_PATH: Final = _ROOT / "benchmarks" / "ai_era_generalization_baseline.json"
 GENERALIZATION_POLICY_PATH: Final = _ROOT / "benchmarks" / "ai_era_generalization_policy.json"
-CHAMPION_MATRIX_PATH: Final = _ROOT / "artifacts" / "phase2" / "champion-generalization-matrix.json"
+CHAMPION_MATRIX_PATH: Final = Path("artifacts") / "phase2" / "champion-generalization-matrix.json"
 
 REQUIRED_GENERALIZATION_BASELINE_SHA256: Final = (
     "8603c4572fbf15a3de4f89737ab078d7e61d76f9e197f210a24704b8a4aabd79"

@@ -12,8 +12,10 @@ from typing import Any
 
 import pytest
 
+from uquant.validation.evidence_source import evidence_root
+
 ROOT = Path(__file__).parents[1]
-DIAGNOSTICS = ROOT / "artifacts" / "phase1" / "diagnostics"
+DIAGNOSTICS = (evidence_root() / 'artifacts') / "phase1" / "diagnostics"
 SHA256 = re.compile(r"[0-9a-f]{64}")
 COMMIT = re.compile(r"[0-9a-f]{40}")
 METRICS = {
@@ -69,7 +71,7 @@ def _assert_common_contract(payload: dict[str, Any]) -> None:
     assert method["runner"] == "scripts/run_phase1_diagnostic.py"
     assert method["runner_commit"] == RUNNER_COMMIT
     assert method["runner_source_sha256"] == RUNNER_SOURCE_SHA256
-    assert method["history_bundle"] == str(HISTORY_BUNDLE.relative_to(ROOT))
+    assert method["history_bundle"] == str(HISTORY_BUNDLE.relative_to(evidence_root()))
     assert method["history_bundle_sha256"] == HISTORY_BUNDLE_SHA256
     assert method["replay_exit_code"] == 0
 
@@ -88,7 +90,7 @@ def _assert_replay_closure(commands: list[str], *, trace_count: int) -> None:
     assert parsed[0] == [
         "git",
         "fetch",
-        str(HISTORY_BUNDLE.relative_to(ROOT)),
+        str(HISTORY_BUNDLE.relative_to(evidence_root())),
         "HEAD:refs/remotes/phase1-evidence/head",
     ]
     assert any(
@@ -257,7 +259,7 @@ def test_ablation_evidence_closes_each_reported_regression() -> None:
         assert case["candidate_minus_counterfactual"] == pytest.approx(expected_delta)
         carrier = case["mechanism_carrier"]
         if carrier["type"] == "patch":
-            patch = ROOT / carrier["path"]
+            patch = evidence_root() / carrier["path"]
             assert patch.is_file()
             assert hashlib.sha256(patch.read_bytes()).hexdigest() == carrier["sha256"]
             counterfactual_command = next(

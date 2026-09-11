@@ -33,12 +33,8 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 
 新增模块前先确认职责不能放入现有边界。不要复制第二套决策、执行或账户逻辑。
 
-构建发布物时，setuptools 只发现 `uquant*`。`research/` 是仓库内离线工具，不是安装后
-可依赖的公共包；脚本、测试、证据、冻结数据和文档也不进入 wheel。`requirements.txt`
-及 `full_package_v1` 保持 `KEEP_AUTHORITATIVE`；`production_wheel_v1/v2/v3` 保留为历史身份，
-当前 `production_wheel_v4` source epoch 登记可校验 wheel、确定性 ZIP 容器与 source-surface
-摘要。v2 原始 gate 只存在于本地历史；其 artifact 已记录远程 main 的 package-input-equivalent
-恢复锚点和精确 payload manifest，同时透明保留历史容器权限元数据不确定这一事实。
+构建发布物时，setuptools 只发现 `uquant*`。研究、脚本、测试、证据、冻结数据和文档
+不进入 wheel。登记的源码面和逐成员摘要决定发布物身份，不从可变目录推断历史等价。
 
 发布构建只有一个入口。它从登记 commit 的 `git archive` 导出到临时目录，使用锁定环境中的
 `setuptools==84.0.0`、`build==1.5.0`、`SOURCE_DATE_EPOCH=315532800`，再规范化 ZIP 顺序、
@@ -46,11 +42,11 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 
 ```bash
 uv run --no-sync python -m scripts.build_reproducible_wheel \
-  --source-ref 89cd79a282a6eca0be35e7eeef251a8e6e39ad1d \
+  --source-ref HEAD \
   --output-dir /tmp/uquant-wheel
 ```
 
-后续身份变化必须创建新 epoch，并按 no-backfill 向前追加，不能把新结果回填到 v1/v2/v3。
+账户与观察始终保留各自来源身份，源码变化后按 no-backfill 边界向前追加。
 
 ## 渐进式检查
 
@@ -84,11 +80,12 @@ Git 忽略；发布证据必须由 checkout 后的命令重建，不能提交一
 
 | 必需结论 | 组成 |
 |---|---|
-| `Engineering` | `quality`、`security` 与原生 `Windows smoke` 都成功后才成功；summary 总是运行 |
-| `Performance Acceptance` | 未删减的 `promotion --profile full`、精确 HEAD 与完整 provenance |
+| `Engineering` | `quality`、五个测试 shard、合并覆盖率、`security` 与原生 `Windows smoke` 都成功后才成功；summary 总是运行 |
+| `Strategic Grant Acceptance` | 授冠意图、账户、执行和身份检查及固定 native eligibility 回放 |
+| `Strategic Ownership Acceptance` | 合同列明的五个确定性 shard 与完整身份聚合 |
 | `Absolute Generalization Acceptance` | 固定八 shard、34 个 leave-one-out 场景及 production recovery/reachability 原始证据的阻断聚合；最终 `passed` 是 runner 与 capability 的合取 |
 
-旧六窗口 234-cell 矩阵只保留为手动 `Extended Economic Matrix Diagnostics`，不是
+六窗口 234-cell 矩阵只保留为手动 `Extended Economic Matrix Diagnostics`，不是
 自动 Absolute 结论的输入。Targeted 单场景只用于诊断，不能进入 final 聚合；缓存只保存
 严格身份绑定的原始 cell，special shard 和 final report 写盘后必须重新校验 seal。
 

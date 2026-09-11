@@ -10,6 +10,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, cast
 
+from uquant.validation.evidence_source import evidence_root
+
 from ..generalization_contract import (
     RANDOM_BASE_SEED,
     RANDOM_POOL_SIZES,
@@ -254,7 +256,7 @@ def _reviewed_baseline_artifact(
     artifact_size: int,
     artifact_sha256: str,
 ) -> tuple[str, str]:
-    artifact_source = CHAMPION_MATRIX_PATH if artifact_path is None else Path(artifact_path)
+    artifact_source = evidence_root() / CHAMPION_MATRIX_PATH if artifact_path is None else Path(artifact_path)
     if artifact_source.is_symlink() or not artifact_source.is_file():
         raise ValueError(f"generalization champion artifact is missing: {artifact_source}")
     artifact_bytes = artifact_source.read_bytes()

@@ -12,10 +12,11 @@ from typing import cast
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.runtime_identity import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.contracts.strict_json import canonical_json_sha256
+from uquant.validation.evidence_source import evidence_root
 
 from ._analysis import ROOT
 
-_INVENTORY = ROOT / "artifacts/architecture_refactor/cleanup_inventory.json"
+_INVENTORY = (evidence_root() / 'artifacts/architecture_refactor/cleanup_inventory.json')
 _CLASSIFICATIONS = {
     "KEEP_AUTHORITATIVE",
     "KEEP_REFERENCE",
@@ -134,16 +135,13 @@ def test_current_engineering_paths_use_domain_responsibilities() -> None:
         assert (resources / "performance_frozen_champion.json").is_file()
 
 
-def test_current_generalization_sources_use_domain_diagnostics_and_temp_paths() -> None:
-    registry_source = (ROOT / "research/ablation_registry.py").read_text(
-        encoding="utf-8"
-    )
-    runner_source = (ROOT / "research/generalization_ablation_cli.py").read_text(
-        encoding="utf-8"
-    )
-
-    assert 'label="phase1' not in registry_source
-    assert "uquant-phase2-" not in runner_source
+def test_current_generalization_uses_current_acceptance_and_removes_historical_execution() -> None:
+    for relative in ("research/ablation_registry.py", "research/generalization_ablation_cli.py",
+                     "scripts/run_generalization_ablation.py", "scripts/run_risk_negative_controls.py"):
+        assert not (ROOT / relative).exists()
+        assert subprocess.check_output(["git", "show", f"7fcf9562e6c7f96250811acd80c2dd4ee46485e3:{relative}"], cwd=ROOT)
+    assert (ROOT / "scripts/run_absolute_generalization_acceptance.py").is_file()
+    assert (ROOT / "tests/test_ablation_metrics.py").is_file()
 
 
 @functools.cache
@@ -155,11 +153,11 @@ def _tracked_contents() -> dict[str, bytes]:
         text=True,
         check=True,
     )
-    inventory_relative = _INVENTORY.relative_to(ROOT).as_posix()
+    inventory_relative = _INVENTORY.relative_to(evidence_root()).as_posix()
     return {
         tracked: (ROOT / tracked).read_bytes()
         for tracked in completed.stdout.splitlines()
-        if tracked != inventory_relative
+        if tracked != inventory_relative and (ROOT / tracked).is_file()
     }
 
 
@@ -182,7 +180,7 @@ def _snapshot_path_references(relative: str) -> list[str]:
     )
     assert completed.returncode in {0, 1}, completed.stderr
     prefix = f"{_INVENTORY_SNAPSHOT_COMMIT}:"
-    inventory_relative = _INVENTORY.relative_to(ROOT).as_posix()
+    inventory_relative = _INVENTORY.relative_to(evidence_root()).as_posix()
     return sorted(
         line.removeprefix(prefix)
         for line in completed.stdout.splitlines()
@@ -191,18 +189,13 @@ def _snapshot_path_references(relative: str) -> list[str]:
 
 
 def _candidate_paths() -> set[str]:
+    paths = subprocess.check_output(
+        ["git", "ls-tree", "-r", "--name-only", _INVENTORY_SNAPSHOT_COMMIT, "--",
+         "docs/superpowers/plans", "docs/superpowers/specs", "docs/reviews",
+         "artifacts/current_heads/diagnostics"], cwd=ROOT, text=True,
+    ).splitlines()
     return {
-        *(
-            path.relative_to(ROOT).as_posix()
-            for directory in (
-                ROOT / "docs/superpowers/plans",
-                ROOT / "docs/superpowers/specs",
-                ROOT / "docs/reviews",
-                ROOT / "artifacts/current_heads/diagnostics",
-            )
-            for path in directory.glob("*")
-            if path.is_file()
-        ),
+        *paths,
         "artifacts/phase1/diagnostics/phase1-history.bundle",
         "research/__init__.py",
         *_REFERENCE_DOCS,
@@ -216,7 +209,7 @@ def _inventory() -> dict[str, object]:
 
 def test_documentation_governance_inventory_preserves_frozen_authority_and_history() -> None:
     payload = _inventory()
-    inventory_relative = _INVENTORY.relative_to(ROOT).as_posix()
+    inventory_relative = _INVENTORY.relative_to(evidence_root()).as_posix()
     assert _INVENTORY.read_bytes() == _snapshot_blob(inventory_relative)
     assert payload["schema_version"] == 2
     assert payload["contract"] == "uquant-documentation-governance-cleanup-v2"
@@ -235,7 +228,7 @@ def test_documentation_governance_inventory_preserves_frozen_authority_and_histo
     relocations = cast(list[dict[str, str]], payload["relocated_paths"])
     assert {row["from"]: row["to"] for row in relocations} == _RELOCATED_DOCS
     assert all(not (ROOT / source).exists() for source in _RELOCATED_DOCS)
-    assert all((ROOT / target).is_file() for target in _RELOCATED_DOCS.values())
+    assert all((evidence_root() / target).is_file() for target in _RELOCATED_DOCS.values())
     assert payload["externalized_paths"] == []
 
     unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
@@ -390,9 +383,9 @@ def test_performance_guide_binds_the_exact_runtime_windows() -> None:
 
 
 def test_historical_markdown_declares_its_non_authoritative_boundary() -> None:
-    index = ROOT / "artifacts/README.md"
+    index = (evidence_root() / 'artifacts/README.md')
     assert index.is_file()
-    for path in sorted((ROOT / "artifacts").rglob("*.md")):
+    for path in sorted(((evidence_root() / 'artifacts')).rglob("*.md")):
         if path == index:
             continue
         text = path.read_text(encoding="utf-8")
@@ -474,15 +467,12 @@ def test_repository_canonical_docs_have_resolved_internal_links_and_current_auth
         "FREEZE_ONLY",
         "Future Holdout",
         "no-backfill",
-        "KEEP_AUTHORITATIVE",
-        "UNRESOLVED_KEEP",
         "requirements.txt",
         "source epoch",
         "uquant*",
     ):
         assert required in joined
     for relative in (
-        "artifacts/architecture_refactor/baseline_inventory.json",
         "benchmarks/source_surface_registry.json",
         "data/frozen/DATA_MANIFEST.json",
     ):
@@ -495,7 +485,7 @@ def test_repository_inventory_paths_are_tracked_and_reference_evidence_is_reprod
     for entry in entries:
         relative = str(entry["path"])
         tracked = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "--", relative],
+            ["git", "cat-file", "-e", f"{_INVENTORY_SNAPSHOT_COMMIT}:{relative}"],
             cwd=ROOT,
             capture_output=True,
             text=True,

@@ -76,12 +76,7 @@ TEST_RELOCATION_PATHS: Mapping[str, tuple[str, ...]] = {
         "tests/_lifecycle_leader_recovery_cases.py",
         "tests/_lifecycle_restoration_risk_cases.py",
     ),
-    "tests/test_phase2_ablation.py": (
-        "tests/test_generalization_ablation.py",
-        "tests/_generalization_carrier_worker_cases.py",
-        "tests/_generalization_checkpoint_evidence_cases.py",
-        "tests/_generalization_trust_boundary_cases.py",
-    ),
+    "tests/test_phase2_ablation.py": ("tests/test_ablation_metrics.py",),
     "tests/test_recovery_contracts.py": (
         "tests/test_recovery_contracts.py",
         "tests/_recovery_restore_completion_cases.py",

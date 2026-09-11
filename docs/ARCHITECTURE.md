@@ -259,8 +259,8 @@ canonical AI universe manifest 同时拥有点时成员与行业身份；General
 关键删除、见证者删除和 grant 失败恢复，并上传紧凑事实。
 `Absolute Generalization Acceptance` 另以六个固定 LOO shard、champion shard 和
 recovery/reachability shard封闭当前 checkout；special evidence 携可严格重建的账户、
-风险、角色、leader、qualification 与物理执行事实，Task 6/7 validator 重算结论而不信任
-producer 自报的 pass、健康 predicate 或 Task 7 之前的汇总结论。
+风险、角色、leader、qualification 与物理执行事实；专用校验器从这些原始事实重算结论，
+不信任 producer 自报的 pass、健康 predicate 或未经核验的摘要。
 完整性能和泛化矩阵保留为手动触发的 `Extended Performance Matrix` 与
 `Extended Economic Matrix`。精确窗口、矩阵、指标与复现命令由
 [性能与证据](PERFORMANCE.md)唯一维护。缺文件、重复
@@ -284,12 +284,9 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 
 ## 源码身份与发布边界
 
-生产 wheel 只发现 `uquant*`；仓库内的 `research/`、`scripts/`、`tests/`、`artifacts/`、
-`benchmarks/`、`data/` 和 `docs/` 不进入安装包。仓库证据仍以
-`artifacts/architecture_refactor/baseline_inventory.json`、
-`benchmarks/source_surface_registry.json` 和 `data/frozen/DATA_MANIFEST.json` 为高风险
-锚点。`full_package_v1` 与 `requirements.txt` 继续是 `KEEP_AUTHORITATIVE` 的历史身份面；
-`production_wheel_v1/v2/v3` 作为历史 epoch 保留；当前 `production_wheel_v4` 登记文档、
-构建治理与生产叙事一致性后的确定性 wheel、逐成员 manifest 和 source-surface 摘要，只对新账户和新观察向前
-生效。v2 的远程恢复保证 payload 精确，并明确保留历史 ZIP 权限元数据差异。任何后续身份变化都必须创建新 epoch，不能回填旧 epoch、修改冻结 oracle
-或重写既有 Holdout Lane 来伪造连续性。
+生产 wheel 只发现 `uquant*`；研究、脚本、测试、证据、冻结数据和文档不进入安装包。
+`benchmarks/source_surface_registry.json` 明确定义经济源码、整个包和验证运行器的成员。
+数据依据独立 manifest 核验。当前验收核对实际 checkout，不把其他生产者的历史结果
+转为当前证据。源码身份切换必须核对真实账户，不回填既有 Holdout Lane 或历史观察。
+
+构建使用[开发指南](DEVELOPMENT.md)中的唯一确定性入口；验收使用[当前验收链](ACCEPTANCE.md)。

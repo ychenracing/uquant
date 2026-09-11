@@ -20,12 +20,14 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
+from uquant.validation.evidence_source import evidence_root
+
 from ._analysis import ROOT
 
 ARCHITECTURE_REFERENCE_COMMIT = "a6a77deb7ae6c3bb0878895729e9a5a72cf75482"
 ARCHITECTURE_REFERENCE_TREE = "cd3551ab769dece496b6599210a0dd14c9cd98ad"
 ARCHITECTURE_INVENTORY_PATH = (
-    ROOT / "artifacts" / "architecture_refactor" / "task10_governance_inventory.json"
+    (evidence_root() / 'artifacts') / "architecture_refactor" / "task10_governance_inventory.json"
 )
 
 GOVERNED_SCRIPTS = (
@@ -60,13 +62,15 @@ OVERSIZED_TEST_FILES = (
     "tests/architecture/test_task7_risk_boundaries.py",
 )
 
+RETIRED_GOVERNED_SCRIPTS = frozenset({"scripts/run_phase2_ablation.py"})
+
 CURRENT_GOVERNED_SCRIPTS = {
     "scripts/run_phase2_ablation.py": "scripts/run_generalization_ablation.py",
     "scripts/run_phase1_diagnostic.py": "scripts/run_performance_diagnostic.py",
 }
 
 CURRENT_OVERSIZED_TEST_FILES = {
-    "tests/test_phase2_ablation.py": "tests/test_generalization_ablation.py",
+    "tests/test_phase2_ablation.py": "tests/test_ablation_metrics.py",
     "tests/architecture/_task3_baseline.py": (
         "tests/architecture/_compatibility_baseline.py"
     ),

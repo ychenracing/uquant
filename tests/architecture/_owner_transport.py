@@ -93,6 +93,8 @@ _SENTINEL_ADDITIONS = frozenset(
 _VALIDATION_ADDITIONS = frozenset(
     {
         "research/cross_ai_acceptance.py",
+        "research/execution_stress.py",
+        "uquant/validation/evidence_source.py",
         "research/cross_ai_benchmark.py",
         "research/cross_ai_robustness.py",
         "research/cross_ai_strategy.py",
@@ -100,16 +102,11 @@ _VALIDATION_ADDITIONS = frozenset(
         "research/five_window_outperformance.py",
         "research/future_holdout_cli.py",
         "research/performance_diagnostic.py",
-        "research/generalization_ablation_cli.py",
-        "research/post_generalization_trust_closure_checkpoint_b.py",
-        "research/post_generalization_trust_closure_checkpoint_c.py",
-        "research/post_generalization_trust_closure_checkpoint_c_adjudication.py",
         "research/risk_counterfactual_cli.py",
         "research/risk_differential_analysis.py",
         "research/risk_differential_cli.py",
         "research/strategic_evidence/__init__.py",
         "research/strategic_evidence/absolute_policy.py",
-        "research/strategic_evidence/checkpoint2_verifier.py",
         "research/strategic_evidence/contract.py",
         "research/strategic_evidence/forced_owner.py",
         "research/strategic_evidence/forced_owner_runner.py",
@@ -258,7 +255,6 @@ _RESOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
     "validation_runner_v1": frozenset(
         {
             "benchmarks/absolute_generalization_acceptance_contract.json",
-            "benchmarks/absolute_generalization_acceptance_contract_frozen_17ce.json",
             "benchmarks/cross_ai_ownership_participation_overlay.json",
         }
     ),
@@ -276,7 +272,12 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
             projected.remove(previous)
             projected.add(current)
     assert not (projected & additions)
-    return (projected | set(additions)) - RETIRED_ALLOCATION_SOURCES
+    return (projected | set(additions)) - RETIRED_ALLOCATION_SOURCES - {
+        "research/generalization_ablation_cli.py", "research/ablation_registry.py",
+        "scripts/run_generalization_ablation.py",
+        "scripts/run_risk_negative_controls.py",
+        "research/generalization_smoke.py", "research/slow_damage_exit_audit.py",
+    }
 
 
 def architecture_resource_surface_projection(
@@ -286,7 +287,9 @@ def architecture_resource_surface_projection(
 
     assert identifier in _RESOURCE_SURFACE_ADDITIONS
     projected = {_CURRENT_RESOURCE_PATHS.get(path, path) for path in historical}
-    return sorted(projected | _RESOURCE_SURFACE_ADDITIONS[identifier])
+    return sorted((projected | _RESOURCE_SURFACE_ADDITIONS[identifier]) - {
+        "benchmarks/current_heads_competitor_matrix.json",
+    })
 
 
 def _definitions(source: str) -> dict[str, ast.FunctionDef]:

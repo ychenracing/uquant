@@ -209,7 +209,7 @@ MA120 与成本灾难退出继续保护实际持仓。
 账户 schema 8 的 `lifecycle_events` 增加明确的入场许可与成熟转换事件种类；提交前的许可
 事件没有虚构 `shares`，成熟转换保存当时成交序列长度作为观察边界。完整事件、原订单与
 真实成交必须一起保存。旧解码器不认识这些种类时会拒绝读取，不得删事件降级。迁移代码
-身份不重写历史凭证；新源码不自动继承旧源码未成交订单的新增权限，实际余单须按新版本
+身份不重写历史凭证；新源码不自动继承旧源码未成交订单的新增权限，实际余单须按待运行源码
 核验并取消不再有效部分。历史已成交持仓的原始依据与单向成熟状态仍保留。
 
 换仓的 `transfer feasibility after settlement` 只展示记录的卖出完成后预算估计：
@@ -378,15 +378,15 @@ CLI 通过 `--account` 文件路径选择账户，没有全局“当前券商账
 
 每个账户同一时间只运行一个写入命令。切回旧账户前，先对账离开期间发生的真实成交、
 取消和当前现金持仓，再选择晚于其 `last_successful_run` 的决策日。仅切换账户文件无需
-`account-code-migrate`；出现代码身份差异时按下一节执行版本切换，不能手改哈希绕过。
+`account-code-migrate`；出现代码身份差异时按下一节核对账户源码身份，不能手改哈希绕过。
 
-## 统一核心版本的一次性切换
+## 账户源码身份核对
 
 先确认待切换提交完成[开发指南](DEVELOPMENT.md)与[性能与证据](PERFORMANCE.md)要求的验收。
-诊断 checkpoint 不是正式验收通过或激活记录。先在独立副本上完成以下预演，再由 operator
+诊断结果不能作为正式验收通过或激活记录。先在独立副本上完成以下预演，再由 operator
 选择正式切换的 session 边界。
 
-1. 暂停新增人工下单，记录在途订单；在旧版本正常对账后，保存完整账户、券商快照、使用的
+1. 暂停新增人工下单，记录在途订单；完成实际成交对账后，保存完整账户、券商快照、使用的
    数据摘要、源代码提交和配置摘要。将账户复制为独立目录中的
    `cutover_review/account.before.json`，保留只读原件；副本、报告、数据和快照不能互相别名。
 2. 用经核验的同一发布提交和 `uv sync --frozen` 建立环境。严格读取副本，核对 schema 8 和
@@ -410,7 +410,7 @@ uv run uquant account-code-migrate \
 
 命令只更新 `code_hash` 并追加 `code_identity_only` 审计事件；输出
 `economic_state_sha256`。迁移审计中执行前、落盘后和严格重载后的经济摘要必须一致。
-此命令不转换策略语义，也不证明新版本经济验收通过；已经绑定同一代码时不要重复迁移。
+此命令不转换策略语义，也不证明待运行源码的经济验收通过；已经绑定同一代码时不要重复迁移。
 
 4. 核对原 `account_identity`、订单/成交/event/grant/epoch 身份、订单序号和归因引用全部保留；
    现金、股数、成本、费用、可卖批次和在途订单全部保留，原始 grant 事件不得改写为新候选。
@@ -420,15 +420,14 @@ uv run uquant account-code-migrate \
    也不得为跳过确认把它手工升级为 ACTIVE。撤销待确认和独立风险 SELL 的身份一并保留。
    同时保留利润保护和 ATR 的原订单、完整成交、`sold_tranches` 与对应 BUY 来源，以及
    首笔实际 BUY 对应的原始订单目标、epoch 身份和历史持仓峰值。不得用后续变更的
-   grant/epoch 目标补写初始预算。新版本读取这些事实确认结算；不要为启用或跳过保护
+   grant/epoch 目标补写初始预算。账户校验读取这些事实确认结算；不要为启用或跳过保护
    清空档位、改写 grant/epoch、重置峰值或补造成交。沿用现有代码身份迁移和经济摘要
    核对，不需要另建账户或 schema 迁移。
 5. 账户高水位、资本损伤与修复 streak、风险事件、保护/恢复权重及授权证据全部保留。
-   schema 8 的 `strategic_cash_rearm` 新增可选嵌套 `consumed_order`，仅保存已消费普通
+   schema 8 的 `strategic_cash_rearm` 包含可选嵌套 `consumed_order`，仅保存已消费普通
    订单的 order/event 引用，与战略 grant 消费互斥。旧账户缺少此项时按 `None` 读取，
-   不从历史订单猜补消费事实。新版本写出的该嵌套项不能交给不认识它的旧版本：旧解码器
-   会拒绝未知键。不要删除该项来降级；继续保留完整新旧账户副本、账本和高水位，按已
-   验收版本运行。账户顶层 schema 仍为 8，代码身份迁移不补造普通消费或修复历史。
+   不从历史订单猜补消费事实。解码器严格拒绝未知键；不要删除该项绕过校验。保留完整账户副本、账本和高水位，
+   使用与账户 schema 相符且已验收的代码。账户顶层 schema 仍为 8，代码身份迁移不补造普通消费或修复历史。
    缺失的 `independent_core` 计数从零开始，由新观察逐日建立，不从旧路线计数或当前持仓猜补。
    单名战略授冠须同时取得原路线与严格观察各 4 日确认；按严格单名证据申请普通核心首次
    入场按原严格资格确认；普通成熟证书使用实际 `leader_tenure_days` 确认，共享证书保留原要求。
@@ -467,7 +466,7 @@ uv run uquant account-sync \
 7. 人工核对副本账本与真实券商事实、目标/订单原因、风险上限和部分成交剩余责任；未取得
    取消确认的 BUY 不得因切换清空或复制。只有 operator 明确接受该发布版本与逐笔执行责任
    后，才在选定 session 边界切换正式运行路径；保留原账户和完整切换前后副本，不自动覆盖。
-   正式 Future Holdout 的旧 source epoch、账户与 Journal 继续封存；新版本如需激活，按
+   正式 Future Holdout 的旧 source epoch、账户与 Journal 继续封存；待运行源码如需激活，按
    [Future Holdout](HOLDOUT.md)建立有明确生效日的新绑定，禁止回填或重写旧观察记录。
 
 Base Risk 继续负责账户风险状态、总仓压缩、资本损伤修复和硬风险退出；Sentinel 只有现有
@@ -540,17 +539,14 @@ holdout session。
 
 ### 仓库证据的保留与恢复
 
-清理清单只覆盖删除、移动、外置、权限变更候选和高风险证据。一轮引用搜索无法证明
-安全删除时标记 `UNRESOLVED_KEEP`，而不是继续猜测；冻结数据、身份注册表、锁文件和
-当前治理清单标记 `KEEP_AUTHORITATIVE`。可恢复清单位于
-`artifacts/architecture_refactor/cleanup_inventory.json`，并为每个条目记录内容摘要、
-引用证据、权限理由、删除或迁移处置和 Git 恢复边界。
+原始审计证据由不可变 Git 提交保存。仓库内的审计校验通过
+`uquant.validation.evidence_source.evidence_root()` 读取并核验 Git 对象，将数据解包到独立目录，
+不执行历史源码、不覆盖当前账户或冻结输入。完整克隆保留这些 Git 对象；生产运行不依赖审计数据。
+证据中的生产者、配置、数据、失败结论和 seal 保持原样，不能作为新运行结果重新贴签。
 
-三项高风险锚分别是 `artifacts/architecture_refactor/baseline_inventory.json`、
-`benchmarks/source_surface_registry.json` 与 `data/frozen/DATA_MANIFEST.json`。
-恢复时先在隔离副本中用记录的 Git 对象还原并重算摘要，不覆盖当前账户、冻结数据或
-source epoch。Future Holdout 遵守 no-backfill：新交易日只能追加到当前 epoch，不能把
-后见数据或新打包身份写回旧基线。
+冻结数据清单位于 `data/frozen/DATA_MANIFEST.json`，源码表面定义位于
+`benchmarks/source_surface_registry.json`。Future Holdout 遵守 no-backfill：新交易日只能
+追加到当前 epoch，不能把后见数据或新打包身份写回已封存基线。
 
 ## 发布前检查
 

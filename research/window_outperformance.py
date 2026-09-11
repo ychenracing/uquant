@@ -9,12 +9,10 @@ import json
 import math
 import shutil
 import subprocess  # nosec B404
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from threading import RLock
 from typing import Any
 
 from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
@@ -294,7 +292,6 @@ def build(
     }
 
 
-outperformance_build: Callable[..., dict[str, Any]] = build
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -319,7 +316,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             repository_root / "uquant",
         ),
     )
-    payload = outperformance_build(
+    payload = build(
         repository_root=repository_root,
         competitor_path=args.competitor_results,
         workers=args.workers,
@@ -332,28 +329,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(json.dumps(payload["evaluation"], ensure_ascii=False, indent=2))
     return 0 if payload["evaluation"]["passed"] else 1
 
-
-_CLI_SEAM_LOCK = RLock()
-
-
-@contextmanager
-def window_outperformance_cli_seams(
-    *, build_report: Callable[..., dict[str, Any]]
-) -> Iterator[None]:
-    """Install the frozen report-builder seam for one bounded CLI call."""
-
-    global outperformance_build
-    with _CLI_SEAM_LOCK:
-        original = outperformance_build
-        outperformance_build = build_report
-        try:
-            yield
-        finally:
-            outperformance_build = original
-
-
-acute_return = _acute_return
-git_executable = _git_executable
 
 
 if __name__ == "__main__":

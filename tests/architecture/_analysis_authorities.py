@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from uquant.validation.evidence_source import evidence_root
+
 ROOT = Path(__file__).resolve().parents[2]
 
 PUBLIC_API_PATH = ROOT / "benchmarks" / "public_api_contract.json"
 
 HISTORICAL_PUBLIC_API_PATH = ROOT / "benchmarks" / "architecture_refactor_public_api.json"
 
-INVENTORY_PATH = ROOT / "artifacts" / "architecture_refactor" / "baseline_inventory.json"
+INVENTORY_PATH = (evidence_root() / 'artifacts') / "architecture_refactor" / "baseline_inventory.json"
 
 FINAL_BUDGETS = {
     "max_module_lines": 1000,
@@ -24,6 +26,7 @@ FINAL_BUDGETS = {
 }
 
 MODULE_AUTHORITIES = {
+    "uquant.validation.evidence_source": "validation_runner",
     "uquant": "production_safe",
     "uquant.__main__": "cli_runner",
     "uquant.account": "production_safe",

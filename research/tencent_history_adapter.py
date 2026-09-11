@@ -15,14 +15,12 @@ import hashlib
 import json
 import math
 import time
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from threading import RLock
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
@@ -266,7 +264,6 @@ def _backfill_one(path: Path) -> tuple[BackfillResult, bytes]:
     return result, payload
 
 
-backfill_symbol: Callable[[Path], tuple[BackfillResult, bytes]] = _backfill_one
 
 
 def _prepend_tech_proxy(result: BackfillResult, payload: bytes) -> tuple[BackfillResult, bytes]:
@@ -331,9 +328,6 @@ def _prepend_tech_proxy(result: BackfillResult, payload: bytes) -> tuple[Backfil
     return updated, extended
 
 
-prepend_tech_history: Callable[
-    [BackfillResult, bytes], tuple[BackfillResult, bytes]
-] = _prepend_tech_proxy
 
 
 def _write_metadata(data_dir: Path, results: list[BackfillResult]) -> None:
@@ -399,7 +393,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if current.pre_inception_proxy is not None:
             parser.error("tech proxy has already been applied")
         path = args.data_dir / f"{TECH_INDEX}.csv"
-        updated, payload = prepend_tech_history(current, path.read_bytes())
+        updated, payload = _prepend_tech_proxy(current, path.read_bytes())
         atomic_write_bytes(path, payload)
         results = [updated if item.symbol == TECH_INDEX else item for item in results]
         _write_metadata(args.data_dir, sorted(results, key=lambda item: item.symbol))
@@ -407,9 +401,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     print(f"history backfill: downloading {len(paths)} symbols", flush=True)
     with ThreadPoolExecutor(max_workers=min(args.workers, len(paths))) as executor:
-        staged = list(executor.map(backfill_symbol, paths))
+        staged = list(executor.map(_backfill_one, paths))
     staged = [
-        prepend_tech_history(result, payload) if result.symbol == TECH_INDEX else (result, payload)
+        _prepend_tech_proxy(result, payload) if result.symbol == TECH_INDEX else (result, payload)
         for result, payload in staged
     ]
     results = sorted((item[0] for item in staged), key=lambda item: item.symbol)
@@ -422,33 +416,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     return 0
 
-
-_CLI_SEAM_LOCK = RLock()
-
-
-@contextmanager
-def tencent_history_cli_seams(
-    *,
-    backfill: Callable[[Path], tuple[BackfillResult, bytes]],
-    prepend: Callable[[BackfillResult, bytes], tuple[BackfillResult, bytes]],
-) -> Iterator[None]:
-    """Install the two frozen adapter seams for one bounded CLI call."""
-
-    global backfill_symbol, prepend_tech_history
-    with _CLI_SEAM_LOCK:
-        originals = (backfill_symbol, prepend_tech_history)
-        backfill_symbol = backfill
-        prepend_tech_history = prepend
-        try:
-            yield
-        finally:
-            backfill_symbol, prepend_tech_history = originals
-
-
-TencentRedirectHandler = _TencentRedirectHandler
-backfill_one = _backfill_one
-prepend_tech_proxy = _prepend_tech_proxy
-write_metadata = _write_metadata
 
 
 if __name__ == "__main__":

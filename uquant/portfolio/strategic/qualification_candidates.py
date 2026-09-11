@@ -498,27 +498,6 @@ class _QualificationConfig:
     cfg: SystemConfig
 
 
-def _strategic_candidate_meets_route(
-    self: StrategicQualificationPolicy,
-    *,
-    candidate_symbol: str,
-    qualification_route: str,
-    snapshots: dict[str, dict[str, float]],
-    leaders: dict[str, LeaderScore],
-    risk: RiskAssessment,
-) -> bool:
-    """Compatibility wrapper for the former policy-bound helper."""
-
-    return strategic_candidate_meets_route(
-        candidate_symbol=candidate_symbol,
-        qualification_route=qualification_route,
-        snapshots=snapshots,
-        leaders=leaders,
-        risk=risk,
-        cfg=self.cfg,
-    )
-
-
 reversal_candidates = _reversal_candidates
 
 __all__ = (

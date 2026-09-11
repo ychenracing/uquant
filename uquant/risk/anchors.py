@@ -100,12 +100,14 @@ def _update_dynamic_anchors(
             account.risk_anchor_candidate_signature = signature
             account.risk_anchor_candidate_streak = 1
         if account.risk_anchor_candidate_streak >= cfg.risk_anchor_confirm_days:
+            # A rank-only refresh must not disarm the same active sentinels.
+            if set(candidate) != set(account.risk_anchor_symbols):
+                account.risk_streaks["reference_anchor_armed"] = 0
+                account.risk_streaks["reference_anchor_break"] = 0
             account.risk_anchor_symbols = candidate
             account.risk_anchor_signature = signature
             account.risk_anchor_candidate_signature = ""
             account.risk_anchor_candidate_streak = 0
-            account.risk_streaks["reference_anchor_armed"] = 0
-            account.risk_streaks["reference_anchor_break"] = 0
     elif signature == current_signature:
         account.risk_anchor_candidate_signature = ""
         account.risk_anchor_candidate_streak = 0

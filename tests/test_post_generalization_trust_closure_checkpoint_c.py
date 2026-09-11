@@ -11,7 +11,7 @@ from research.post_generalization_trust_closure_checkpoint_c import (
     normalize_source_derived_identities,
 )
 from uquant.account import account_from_dict, save_account
-from uquant.cli import _parser
+from uquant.cli import _uquant_cli_parser
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.engine import ProductionEngine
 from uquant.provenance.surfaces import load_source_surface_registry
@@ -116,4 +116,4 @@ def test_account_api_exposes_only_code_identity_rebinding() -> None:
     assert not hasattr(account_api, "migrate_account")
     assert hasattr(account_api, "migrate_code_identity")
     with pytest.raises(SystemExit):
-        _parser().parse_args(["account-migrate", "--account", "account.json"])
+        _uquant_cli_parser().parse_args(["account-migrate", "--account", "account.json"])

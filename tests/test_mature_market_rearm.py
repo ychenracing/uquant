@@ -49,3 +49,13 @@ def test_unhealthy_market_resets_fresh_sector_recovery_confirmation():
 def test_no_sector_episode_does_not_add_a_market_wait():
     policy, account, dates, panel, base, risk = _inputs()
     assert _decide(policy, account, dates[0], panel, base, risk)
+
+
+def test_impulse_cannot_bypass_pending_maturity_market_rearm():
+    policy, account, dates, panel, base, risk = _inputs()
+    assert not _decide(policy, account, dates[0], panel, base, _guarded(risk))
+    risk.evidence.update(ai_fast_return=.2, tech_speed=.2)
+    for date in dates[1:5]:
+        assert not _decide(policy, account, date, panel, base, risk)
+        assert not account.pending_orders
+    assert _decide(policy, account, dates[5], panel, base, risk)

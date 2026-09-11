@@ -1,3 +1,7 @@
+# P maturity shortcut repair
+
+O native screen costFAIL40562/40000;bestPASS. P closes observed impulse bypass of pending market rearm, unchanged5confirmation;51targetedtestsPASS. Source03b0c0583c9bada53b247f08b102c014e4eaa0268f5ef35a1e8e04a3564fc612;native next. See benchmarks/mature_impulse_rearm_plan.md. No wholeacceptance/merge;engineering/CIsecondary. Priorstatuseshistorical.
+
 # O bounded sector-recovery maturity confirmation
 
 See benchmarks/mature_market_rearm_plan.md. N economic gains preserved but nominalcostFAIL; truebest688146PASS. O source9a281b5d0216825b6c673453860692540544cda83c51321e76d3abb717c80d2c: only ordinary mature-only permission rearm after sector guard, existing5healthy confirmations, no threshold changes. Targeted testsPASS, no O economic result yet. Engineering/CIsecondary. Priorstatuseshistorical.

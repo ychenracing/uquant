@@ -83,6 +83,7 @@ def ordinary_core_entry(
             )
         certificate = None  # The real repair order still needs its strict own proof.
     elif (certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days
+          and not account.candidate_tenure.get("ordinary_market_rearm_required", 0)
           and market is not None and market.get("as_of") == str(date.date())
           and (market.get("impulse") is True or local_open)
           and symbol in market.get("credible_symbols", ())):

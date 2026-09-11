@@ -1,3 +1,11 @@
+# S robustness failure retained; T running
+
+S all14nominal PASS. Actual largest688256 removal from remove3 FAIL: wealth0.9324045795743021<0.945,23orders. See benchmarks/repair_probe_robustness_failure.json. Complete raw archive saved. Old offset5/remove3 canonical event_id ERROR retained/deferred; not economic PASS. T branch codex/repair-maturity-confirmation-20260911 remote bfac2c53fa061b46794849478bee32281c525bf6; eight native cases running. Engineering/CI remain secondary. No complete acceptance/merge. Previous checkpoints below retained as history.
+
+# S all14 nominal PASS; frozen robustness running
+
+Full29.717004/22orders;champion25.109594/14;noopt2.567791/20;remove3 1.639241/22. All8halfyears+2laterwindows+4continuous and crosswindow checksPASS. Nooptcost+actualbestPASS. Same source295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418, immutableproducerd110d81. Raw14case evidence saved;see benchmarks/repair_probe_nominal_result.json. All64frozenrobustnessspecs retained:6deletedcontrol proofs,58nativecases including reuse;old12initialconditionpairs prepared under oldsource. Current robustness queue prioritizes remove3actualbest688256, remainingcosts, thenneighbors/pairs;own-codec readbacks. Engineering/CIsecondary;no fullgoal/merge.
+
 # S four native screens PASS; nominal matrix running
 
 Noopt2.567791/20orders/cost18781;highcost2.558618/20orders/cost37457<40000;actualbest688498removal1.511139/18orders;later1.911534/30orders:allPASS. Source295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418 frozen. Producerd110d81/remote fc29adba/tree7e250cc immutable. See benchmarks/repair_probe_custody_screen_result.json. Remainingnominalrunninginproducer;64fixedspecsnext. Engineering/CIsecondary;no completeacceptance/merge. Priorfailedexperimentsretained.

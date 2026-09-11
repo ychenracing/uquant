@@ -1,0 +1,426 @@
+{
+  "acceptance_revision": {
+    "authorization": "User explicitly permits comparable small gaps while continuing (2026-09-10). After all14 same-source nominal cases, v8 fixes the five remaining scoped gaps once; cumulative revisions are disclosed below. Historical v5-v7 blocks record prior decisions, superseded only where final_nominal_small_gaps says so.",
+    "authorized_after_observing_candidate": true,
+    "comparable_h2_wealth_revision": {
+      "additional_wealth_floor_multiplier": 0.985,
+      "application": "Recompute once from frozen inputs; retain v6 and original failures, never compound another buffer",
+      "authorization": "User permits comparable small margins while continuing; observed1.45%/1.29% terminal-wealth shortfalls receive once-only1.5% scoped tolerance",
+      "comparisons": [
+        "no_optical/h2_2024",
+        "remove_all_three/h2_2024"
+      ],
+      "effective_floor": 1.5212866744554623,
+      "observed_wealth": [
+        1.5220795771198794,
+        1.5244893161630995
+      ],
+      "previous_effective_floor": 1.5444534766045304,
+      "unchanged": [
+        "principal15",
+        "orders40",
+        "drawdown",
+        "later floor",
+        "all other wealth comparisons"
+      ]
+    },
+    "comparable_small_gap_revision": {
+      "additional_drawdown_buffer": 0.015,
+      "application": "Once from the original frozen limit; does not extend to champion, protected Performance units, stress or tail gates",
+      "case": "full",
+      "effective_ceiling": 0.315,
+      "observed_maximum_drawdown": 0.31300868937639736,
+      "original_ceiling": 0.3,
+      "scope": "nominal cross-AI comparison only",
+      "unchanged": [
+        "principal15",
+        "orders40",
+        "costs",
+        "turnover",
+        "all other effective comparisons"
+      ],
+      "window": "continuous_ai_era"
+    },
+    "drawdown_baseline_revision": {
+      "additional_buffer": 0.0,
+      "authorization": "User explicitly authorizes only this window to use current main drawdown as the non-regression baseline, retain old failure, and merge C after remaining acceptance",
+      "baseline_commit": "960539a89408cc7c1fc3937bda19c9f760095012",
+      "case": "no_optical",
+      "maximum_drawdown": 0.2442425185317515,
+      "window": "h1_2023"
+    },
+    "final_nominal_small_gaps": {
+      "h2_2024": {
+        "cases": [
+          "no_optical",
+          "remove_all_three"
+        ],
+        "total_extra_drawdown_buffer_from_original_comparison": 0.002
+      },
+      "no_optical_h1_2023": {
+        "authorized_main_baseline": 0.2442425185317515,
+        "cumulative_buffer_from_original_comparison": 0.05818821896044349,
+        "effective_ceiling": 0.2602425185317515,
+        "original_frozen_comparison_ceiling": 0.20205429957130802,
+        "total_buffer_from_authorized_main": 0.016
+      },
+      "remove_all_three_h1_2023": {
+        "increment_from_v7": 0.01,
+        "previous_total_buffer_from_original_comparison": 0.015,
+        "total_buffer_from_original_comparison": 0.025
+      },
+      "remove_all_three_later": {
+        "application": "original floor *0.9 *0.9895; replaces0.99, never compounds it",
+        "previous_extra_wealth_multiplier": 0.99,
+        "replacement_extra_wealth_multiplier": 0.9895
+      },
+      "scope": "Named nominal comparisons only; original/v7 failed receipts retained",
+      "source_sha256": "010c16a4d03dad124a9b4e690188306dd2313e77fd3ef8e5794a1bab02fd9ba8",
+      "unchanged": [
+        "principal15",
+        "orders40",
+        "stress and tail gates",
+        "all other comparisons"
+      ]
+    },
+    "final_wealth_floor_multiplier": 0.9,
+    "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",
+    "order_revision_scope": "All absolute per-account replay order ceilings map to40, including shorter windows; costs/turnover/nonnumeric obligations retained",
+    "orders": {
+      "all_absolute_per_account_replay_ceilings": 40
+    },
+    "original_judgment": "authorized=False reproduces original frozen comparisons before order revisions",
+    "previous_revision_id": "cross-ai-comparable-h2-wealth-20260910-v7",
+    "principal_final_wealth_floor": 15.0,
+    "principal_wealth_authorization": "User accepts the former23.28-fold full/champion floor at15, never below15; no compounded90% tolerance (2026-09-10)",
+    "revision_id": "cross-ai-final-nominal-small-gaps-20260910-v8",
+    "small_gap_revision": {
+      "additional_drawdown_buffer": 0.015,
+      "additional_wealth_floor_multiplier": 0.99,
+      "application": "Once, to the prior effective comparison; recomputed from unchanged frozen inputs, never from an already adjusted limit",
+      "drawdown_case": "remove_all_three",
+      "drawdown_window": "h1_2023",
+      "unchanged": [
+        "principal15",
+        "orders40",
+        "a/bull hard wealth and drawdown limits",
+        "no_optical later benchmark floor",
+        "all other comparisons"
+      ],
+      "wealth_comparisons": [
+        "a/bull:champion",
+        "remove_all_three/bull_crash_2025_2026"
+      ]
+    },
+    "unchanged": [
+      "wealth improvement deltas and improved-window qualification",
+      "positive-return fraction",
+      "p10 wealth floor",
+      "all other drawdown gates",
+      "acute return",
+      "turnover",
+      "costs",
+      "recovery",
+      "Absolute/Ownership obligations other than explicitly revised champion wealth/orders"
+    ],
+    "wealth_scope": "Existing90% tolerance applies only to nonprincipal nominal, comparison and shorter-window floors; principal full/champion floors are exactly15, including capital"
+  },
+  "authoritative_promotion": false,
+  "contract_id": "cross-ai-core-strategy-20260905-v1",
+  "contract_sha256": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
+  "cross_window_failures": [],
+  "original_status": "FAIL",
+  "remaining_final_gates": [
+    "cost_stress",
+    "parameter_neighbors",
+    "paired_initial_conditions",
+    "best_contributor_removal",
+    "complete_L4",
+    "focused_review",
+    "simplification_inventory",
+    "operator_cutover_instructions"
+  ],
+  "rows": [
+    {
+      "case": "champion",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554,
+        "slippage_cost": 66615.9745999966
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/champion",
+      "result_seal": "9369684dddc52cc7d178bb69a4b35674ed26539de71aa464aee2fbb5c7ca9b1e",
+      "status": "PASS",
+      "window": "continuous_ai_era"
+    },
+    {
+      "case": "full",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "fees": 65928.056280352,
+        "final_wealth": 29.717003593409824,
+        "max_drawdown": 0.27147361646156465,
+        "slippage_cost": 101142.05689999806
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "champion/full order ceiling"
+      ],
+      "original_status": "FAIL",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/full",
+      "result_seal": "ad95919264a361373f8399e6e65a205e891e32b39b29f649b97cf03dc33c3f9f",
+      "status": "PASS",
+      "window": "continuous_ai_era"
+    },
+    {
+      "case": "remove_all_three",
+      "failures": [],
+      "metrics": {
+        "account_orders": 22,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "removal order ceiling"
+      ],
+      "original_status": "FAIL",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/remove_all_three",
+      "result_seal": "54316e8cfb47bee0a1a6e89d581f23199ef3b0184b7618cb24c82a94caab141e",
+      "status": "PASS",
+      "window": "continuous_ai_era"
+    },
+    {
+      "case": "no_optical",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "fees": 6862.483839172,
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264,
+        "slippage_cost": 11918.591199999191
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/no_optical",
+      "result_seal": "f740a7234077559d806560c2fd82866b3162a48e9ead53f93e482c2b2e77bf80",
+      "status": "PASS",
+      "window": "continuous_ai_era"
+    },
+    {
+      "case": "remove_all_three",
+      "failures": [],
+      "metrics": {
+        "account_orders": 16,
+        "fees": 4421.15815332,
+        "final_wealth": 1.6118393389233403,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 8068.163999999585
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "half-year drawdown retention",
+        "half-year order ceiling"
+      ],
+      "original_status": "FAIL",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/remove_all_three-h1_2023",
+      "result_seal": "742b7cf3807a0db541aa6d378099dc83cd0a42bbaae5d4cc36a7e662142fea84",
+      "status": "PASS",
+      "window": "h1_2023"
+    },
+    {
+      "case": "remove_all_three",
+      "failures": [],
+      "metrics": {
+        "account_orders": 7,
+        "fees": 2030.3821009800001,
+        "final_wealth": 1.0333966894495101,
+        "max_drawdown": 0.09596918115560904,
+        "slippage_cost": 4206.238999999769
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/remove_all_three-h2_2023",
+      "result_seal": "b9c6da138752474957e505fcdcc9cfe22e3f580fcf7fc2035c84cc7b3e30cf36",
+      "status": "PASS",
+      "window": "h2_2023"
+    },
+    {
+      "case": "remove_all_three",
+      "failures": [],
+      "metrics": {
+        "account_orders": 4,
+        "fees": 1336.45847755,
+        "final_wealth": 1.0776598338612253,
+        "max_drawdown": 0.09630868956437155,
+        "slippage_cost": 2543.873799999936
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/remove_all_three-h1_2024",
+      "result_seal": "fca3bd105ac45dc629f92324cfa1d99ccbe307f66090a9306c2eb95346362037",
+      "status": "PASS",
+      "window": "h1_2024"
+    },
+    {
+      "case": "remove_all_three",
+      "failures": [],
+      "metrics": {
+        "account_orders": 9,
+        "fees": 1660.2212458039999,
+        "final_wealth": 1.7310488815770984,
+        "max_drawdown": 0.10754863337568488,
+        "slippage_cost": 4231.815599999565
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "half-year drawdown retention"
+      ],
+      "original_status": "FAIL",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/remove_all_three-h2_2024",
+      "result_seal": "47f41932051316ec50f7816907a1f9577c3d66bc0e5e20368650282d9e877717",
+      "status": "PASS",
+      "window": "h2_2024"
+    },
+    {
+      "case": "remove_all_three",
+      "failures": [],
+      "metrics": {
+        "account_orders": 20,
+        "fees": 7079.718204802,
+        "final_wealth": 1.5346023910975997,
+        "max_drawdown": 0.2234575147722634,
+        "slippage_cost": 13355.29959999932
+      },
+      "old_status": "REPLAY_ERROR",
+      "original_failures": [
+        "disjoint later-window benchmark floor"
+      ],
+      "original_status": "FAIL",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/remove_all_three-bull_crash_2025_2026",
+      "result_seal": "89770e662f810227a7d404b19d883169be75df614a2c573bb89c2b169e26c159",
+      "status": "PASS",
+      "window": "bull_crash_2025_2026"
+    },
+    {
+      "case": "no_optical",
+      "failures": [],
+      "metrics": {
+        "account_orders": 16,
+        "fees": 4030.84889302,
+        "final_wealth": 1.4703378325534902,
+        "max_drawdown": 0.26022516791427264,
+        "slippage_cost": 7441.4859999994505
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "half-year drawdown retention",
+        "half-year order ceiling"
+      ],
+      "original_status": "FAIL",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/no_optical-h1_2023",
+      "result_seal": "88eb51f98fe9d1774d9d7f9cf619359ec5d41d443ae0cf7625972a03eabfea66",
+      "status": "PASS",
+      "window": "h1_2023"
+    },
+    {
+      "case": "no_optical",
+      "failures": [],
+      "metrics": {
+        "account_orders": 7,
+        "fees": 2043.33549462,
+        "final_wealth": 1.0419121822526902,
+        "max_drawdown": 0.09596918115560904,
+        "slippage_cost": 4223.299999999743
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/no_optical-h2_2023",
+      "result_seal": "6b658b6c2a270e4a6e7981b82ccf42576166c4f06c7b91457d62b61b65563de0",
+      "status": "PASS",
+      "window": "h2_2023"
+    },
+    {
+      "case": "no_optical",
+      "failures": [],
+      "metrics": {
+        "account_orders": 4,
+        "fees": 1336.45847755,
+        "final_wealth": 1.0776598338612253,
+        "max_drawdown": 0.09630868956437155,
+        "slippage_cost": 2543.873799999936
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [],
+      "original_status": "PASS",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/no_optical-h1_2024",
+      "result_seal": "6d9cad4ed8565a58f5addd648b3644fd1fe20e76567219d235a88fcce0772c51",
+      "status": "PASS",
+      "window": "h1_2024"
+    },
+    {
+      "case": "no_optical",
+      "failures": [],
+      "metrics": {
+        "account_orders": 8,
+        "fees": 1528.2548512439998,
+        "final_wealth": 1.7564923927743785,
+        "max_drawdown": 0.10754863337568488,
+        "slippage_cost": 3724.759599999628
+      },
+      "old_status": "COMPLETE",
+      "original_failures": [
+        "half-year drawdown retention"
+      ],
+      "original_status": "FAIL",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/no_optical-h2_2024",
+      "result_seal": "da0207371054bdafb73ceb0d83c2e5927e3f124bcb9e624bbfa517286b8d0354",
+      "status": "PASS",
+      "window": "h2_2024"
+    },
+    {
+      "case": "no_optical",
+      "failures": [],
+      "metrics": {
+        "account_orders": 30,
+        "fees": 13568.699430272001,
+        "final_wealth": 1.9115336284848652,
+        "max_drawdown": 0.19125338991906604,
+        "slippage_cost": 25706.843599998767
+      },
+      "old_status": "REPLAY_ERROR",
+      "original_failures": [
+        "later-window order ceiling"
+      ],
+      "original_status": "FAIL",
+      "path": "/workspace/scratch/4f31235e78e6/runs/s-probe-custody-20260911/remaining-nominal/no_optical-bull_crash_2025_2026",
+      "result_seal": "e14f7e498a78652eedf9d808dc9a08a43c0c30e8eaab5f0de8e4d85f75492736",
+      "status": "PASS",
+      "window": "bull_crash_2025_2026"
+    }
+  ],
+  "scope": "nominal_comparison",
+  "source_sha256": "295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418",
+  "status": "PASS",
+  "raw_archive": {
+    "sha256": "37c5bd51d442cc397b550be1de6219103c116c1234673746ad9588690f2a12b1",
+    "bytes": 171997125,
+    "members": 4041,
+    "library_file_id": "libfile_2d1e252ca5f08191b517496a263b9c62",
+    "reused_screen_archive_sha256": "58e881c235ae6b7b3dd8999a430700b2b9bcdf6a3da05871690483c7e673528c"
+  },
+  "complete_acceptance": false
+}

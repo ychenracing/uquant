@@ -1,0 +1,68 @@
+{
+  "source": "295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418",
+  "scope": "partial frozen robustness; failed candidate",
+  "complete_acceptance": false,
+  "status": "FAIL",
+  "completed": [
+    {
+      "canonical_sha256": "210c9adc4d79cca11ec69569ad97d07dfa9c03063eaf6e821b451360cdfae25f",
+      "failures": [
+        "best contributor removal wealth floor"
+      ],
+      "metrics": {
+        "account_orders": 23,
+        "final_wealth": 0.9324045795743021,
+        "max_drawdown": 0.2802044375329582
+      },
+      "shard": "new-best_removed-remove_all_three",
+      "status": "FAIL"
+    },
+    {
+      "canonical_sha256": "4897695b40c360252e9fd51e0149526462792e489e3699a19a1ca9b8c0d5bd91",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554
+      },
+      "shard": "new-confirmation_lower-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "cf43f8cce1d10226e757e3b44f01971b07e9a70acc0b1496b1c4314f5717777b",
+      "failures": [],
+      "metrics": {
+        "account_orders": 14,
+        "final_wealth": 24.98731201562705,
+        "max_drawdown": 0.27244679688670104
+      },
+      "shard": "new-cost_stress-champion",
+      "status": "PASS"
+    },
+    {
+      "canonical_sha256": "5a9ae5bc6ef395448ca4ab615cf5ba2156bd898b318f5c43ef9abe142b6ec495",
+      "failures": [],
+      "metrics": {
+        "account_orders": 21,
+        "final_wealth": 1.6196724996354999,
+        "max_drawdown": 0.2524522122376305
+      },
+      "shard": "new-cost_stress-remove_all_three",
+      "status": "PASS"
+    }
+  ],
+  "archive": {
+    "sha256": "68c9f461e2d7cb9dba0c4a9c75579c754480d0149819820e0c4afc2cf5f8e0c2",
+    "bytes": 373810031,
+    "members": 8819,
+    "library_file_id": "libfile_c1fdcc433a4c819187b527f8a54edb65"
+  },
+  "old_baseline_error": {
+    "shard": "old-offset5-remove_all_three",
+    "source": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d",
+    "completed_sessions": 75,
+    "error": "pending order event_id differs from canonical derivation",
+    "policy": "preserved partial raw and REPLAY_ERROR; historical engineering correction deferred, not paired PASS"
+  },
+  "next": "T confirms existing credible maturity for existing5 observations; native tests in progress; no changed economic threshold"
+}

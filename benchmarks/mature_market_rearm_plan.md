@@ -1,0 +1,7 @@
+# O: fresh ordinary maturity market permission after sector risk
+
+N raw is now verified and durably saved: no-optical wealth4.138589/31orders/DD.260225, actualbest688146 removal1.402305/22orders. N nominal fails only cost:45887.17325 versus40000. Archive SHA256fcbf809d8e8ae840af045fbff50438af9c4a82848f3d777ab9f2028bfe073d6a, librarylibfile_915a36aad3608191b80062c84e7294cf.
+
+June17sector recovery was followed by June18 ordinary mature-only admissions and June23sector liquidation. O invalidates that market permission when real sector risk is active and requires the existing leader_tenure_days(5) actual healthy long-cycle market observations to rearm it. Duplicate calls do not advance and a weak observation resets. Uses three existing generic account tenure entries; no new configuration, threshold, cost budget guard, stock/date exception or universe.
+
+Original independent proof, current impulse proof, strategic ownership, held-capital restoration and N's real account-owned cash repair remain distinct. Focused native-order/codec/idempotence/reset and existing ordinary/repair tests pass. O economic source9a281b5d0216825b6c673453860692540544cda83c51321e76d3abb717c80d2c. Commit before running; never change producer HEAD during replay. First only noopt nominal and actualbest688146 screen; verify best algorithm before acceptance. Fullmatrix remains deferred until viable. Engineering/CI low priority; no Actions wait beyond10minutes.

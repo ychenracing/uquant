@@ -13,6 +13,35 @@ if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
 
 
+def rearm_ordinary_market(*, account: AccountState, date: pd.Timestamp,
+                         risk: RiskAssessment, market: dict[str, Any],
+                         confirmation_days: int) -> None:
+    """A sector exit invalidates mature-only market permission, not held capital."""
+    tenure = account.candidate_tenure
+    required_key = "ordinary_market_rearm_required"
+    count_key = "ordinary_market_rearm_confirmation"
+    session_key = "ordinary_market_rearm_session"
+    guarded = bool(account.sector_guard_active or risk.evidence.get("sector_guard_active")
+                   or risk.evidence.get("acute_sector_evacuation"))
+    if guarded:
+        tenure[required_key] = 1
+    if not tenure.get(required_key, 0):
+        return
+    session, previous = date.toordinal(), tenure.get(session_key, 0)
+    if session < previous:
+        raise ValueError("ordinary market repair observations must be causal")
+    healthy = market.get("mature_entry_open") is True and not guarded
+    if not healthy:
+        tenure[count_key] = 0
+    elif session != previous:
+        tenure[count_key] = min(confirmation_days, tenure.get(count_key, 0) + 1)
+    tenure[session_key] = session
+    count = tenure.get(count_key, 0)
+    tenure[required_key] = int(count < confirmation_days)
+    market["mature_entry_open"] = healthy and count >= confirmation_days
+    market["mature_rearm_confirmation"] = {"observed": count, "required": confirmation_days}
+
+
 def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
                                  market: dict[str, Any] | None) -> bool:
     qualification = account.strategic_qualification

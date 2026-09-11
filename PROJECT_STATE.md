@@ -1,3 +1,7 @@
+# O bounded sector-recovery maturity confirmation
+
+See benchmarks/mature_market_rearm_plan.md. N economic gains preserved but nominalcostFAIL; truebest688146PASS. O source9a281b5d0216825b6c673453860692540544cda83c51321e76d3abb717c80d2c: only ordinary mature-only permission rearm after sector guard, existing5healthy confirmations, no threshold changes. Targeted testsPASS, no O economic result yet. Engineering/CIsecondary. Priorstatuseshistorical.
+
 # Active N ordinary maturity repair experiment
 
 See benchmarks/repair_maturity_result.json and repair_maturity_plan.md. User explicitly lowers engineering quality/CI priority; Actions over 10 minutes are not awaited. Environment recovered. M both best-contributor cases native verified but economic FAIL. N source b6e3f3ccc0af6dc55c248693c149bcdd8359466f122e5c7be82756439db4d23f frozen for two native screens; 76 focused tests PASS. No full acceptance or merge. Historical status below is superseded.

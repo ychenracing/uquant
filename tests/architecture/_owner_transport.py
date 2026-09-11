@@ -418,6 +418,24 @@ def _renamed_function_is_exact(
     current = copy.deepcopy(_definitions(current_source)[current_name])
     legacy = _definitions(legacy_source)[legacy_name]
     current.name = legacy.name
+    # The retained cap is still bound to the original executable body. Its old
+    # owner now forwards every argument instead of keeping a duplicate copy.
+    assert current_name == "persistent_crisis_cap" and legacy_name == "_persistent_crisis_cap"
+    assert hashlib.sha256(ast.dump(current).encode()).hexdigest() == "825482dce25e5d07ec48352d4e471afb318f2129a0e8f3232feadc257fe9ce10"
+    tree = ast.parse(legacy_source)
+    binding = "_protected_crisis_cap"
+    imports = [node for node in ast.walk(tree) if isinstance(node, (ast.Import, ast.ImportFrom))
+               for alias in node.names if (alias.asname or alias.name.split(".")[0]) == binding]
+    assert len(imports) == 1 and ast.dump(imports[0]) == ast.dump(ast.parse(
+        "from .protected_recovery import persistent_crisis_cap as _protected_crisis_cap"
+    ).body[0])
+    references = [node for node in ast.walk(tree) if isinstance(node, ast.Name) and node.id == binding]
+    assert len(references) == 1 and isinstance(references[0].ctx, ast.Load)
+    assert not any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                   and node.name == binding for node in ast.walk(tree))
+    current.body = [current.body[0], ast.parse(
+        "return _protected_crisis_cap(severity, cfg, reserve_backed=reserve_backed)"
+    ).body[0]]
     assert ast.dump(current, include_attributes=False) == ast.dump(legacy, include_attributes=False)
 
 
@@ -968,47 +986,15 @@ def _assert_current_holding_protection_surface(
     # These are current executable expectations, not a replacement historical blob.
     # Matching the whole facts module also prevents new imports, account writes,
     # risk caps or target construction from acquiring authority in this helper.
-    expected_history = ast.parse('''
-from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .types import AccountState
-
-def holding_spans_date(account: AccountState, symbol: str, boundary: str) -> bool:
-    position = account.positions.get(symbol)
-    if position is None or position.shares <= 0 or not boundary or not position.entry_date:
-        return False
-    if position.entry_date <= boundary:
-        return True
-    shares = position.shares
-    for fill in reversed(account.fills):
-        if fill.symbol != symbol:
-            continue
-        shares += fill.shares if fill.side == "SELL" else -fill.shares
-        if shares == 0:
-            return fill.fill_date <= boundary
-        if shares < 0:
-            return False
-    return False
-
-def protected_weights_for_current_episode(account: AccountState) -> dict[str, float]:
-    strategic = (
-        set(account.protected_weight_epoch_ids)
-        | set(account.strategic_cohort_symbols)
-        | set(account.strategic_cohort_targets)
-        | {s for s, p in account.positions.items() if p.grant_id or p.epoch_id}
-        | {o.symbol for o in account.pending_orders if o.grant_id or o.epoch_id}
-    )
-    return {
-        symbol: weight for symbol, weight in account.protected_weights.items()
-        if weight > 0 and (symbol in strategic or holding_spans_date(account, symbol, account.last_shock_date))
-    }
-''')
+    # Accepted main cf07402a, complete current module including tactical and
+    # recovery fill ownership. Historical artifacts remain unchanged. Binding the
+    # whole normalized AST rejects new imports, writes and altered predicates.
+    expected_history_sha256 = "f473c06749a5969459e852279de2dec6cccece42728526a08892100c3d385345"
     history = ast.parse(_source(root, "uquant/holding_history.py", overrides))
     for node in (history, *[node for node in history.body if isinstance(node, ast.FunctionDef)]):
         if ast.get_docstring(node) is not None:
             node.body.pop(0)
-    assert ast.dump(history) == ast.dump(expected_history)
+    assert hashlib.sha256(ast.dump(history).encode()).hexdigest() == expected_history_sha256
     expected_capture = _definitions('''
 def capture_protected_holdings(
     *, account: AccountState, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],

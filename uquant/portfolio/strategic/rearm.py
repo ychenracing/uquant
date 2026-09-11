@@ -8,6 +8,7 @@ import math
 from copy import deepcopy
 from datetime import date as calendar_date
 from types import MappingProxyType
+from typing import cast
 
 from ...config import SystemConfig, config_fingerprint
 from ...models.strategic_grant import (
@@ -252,7 +253,6 @@ def _clear_flat_book_repair(
     else:
         account.flat_book_capital_repair = FlatBookCapitalRepairState()
     return account.flat_book_capital_repair
-
 
 
 def _repair_episode_transition(
@@ -878,7 +878,7 @@ def authorize_ordinary_cash_rearm(
                 or account.leader_tenure.get(symbol, 0) < cfg.leader_tenure_days):
             return False
     proof = {**certificate, "candidate": symbol, "code_hash": account.code_hash,
-             "prior_data_hash": account.data_hash, "decision_input_identity": dict(inputs),
+             "prior_data_hash": account.data_hash, "decision_input_identity": dict(cast(dict[str, object], inputs)),
              "max_target_weight": strategic_cash_rearm_weight(account=account, risk=risk, cfg=cfg)}
     evidence = hashlib.sha256(json.dumps(
         proof,

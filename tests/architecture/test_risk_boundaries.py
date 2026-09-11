@@ -995,6 +995,19 @@ def test_risk_moved_helper_bodies_are_exactly_bound_to_immutable_source() -> Non
         candidate = _top_level_definitions(
             ast.parse((ROOT / owner).read_text(encoding="utf-8"), filename=owner)
         )
+        if name == "_persistent_crisis_cap":
+            # Prove the complete forwarding interface before binding its retained
+            # implementation to the immutable body; no risk rule is waived.
+            forwarded = copy.deepcopy(immutable[name])
+            forwarded.body = [forwarded.body[0], ast.parse(
+                "return _protected_crisis_cap(severity, cfg, reserve_backed=reserve_backed)"
+            ).body[0]]
+            assert ast.dump(candidate[name]) == ast.dump(forwarded)
+            retained = _top_level_definitions(ast.parse(
+                (ROOT / "uquant/risk/protected_recovery.py").read_text(encoding="utf-8")
+            ))["persistent_crisis_cap"]
+            retained.name = name
+            candidate[name] = retained
         assert ast.dump(_normalized_definition(candidate[name]), include_attributes=False) == ast.dump(
             _normalized_definition(immutable[name]), include_attributes=False
         )
@@ -1169,3 +1182,23 @@ from ._risk_import_boundaries import (
     test_risk_package_has_no_reverse_owner_or_platform_imports,
     test_risk_imports_under_optimized_and_windows_style_smoke,
 )
+
+
+@pytest.mark.parametrize('mutation', ['absolute_import', 'rebind_alias'])
+def test_crisis_cap_forwarding_rejects_changed_binding(mutation: str) -> None:
+    from ._owner_transport import _renamed_function_is_exact
+
+    retained = (ROOT / 'uquant/risk/protected_recovery.py').read_text()
+    wrapper = (ROOT / 'uquant/risk/recovery_state.py').read_text()
+    if mutation == 'absolute_import':
+        wrapper = wrapper.replace(
+            'from .protected_recovery import persistent_crisis_cap',
+            'from protected_recovery import persistent_crisis_cap',
+        )
+    else:
+        wrapper += '\n_protected_crisis_cap = lambda severity, cfg, *, reserve_backed=False: 1.0\n'
+    with pytest.raises(AssertionError):
+        _renamed_function_is_exact(
+            retained, current_name='persistent_crisis_cap',
+            legacy_source=wrapper, legacy_name='_persistent_crisis_cap',
+        )

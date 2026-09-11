@@ -45,6 +45,10 @@ def persistent_crisis_cap(
     if severity == "INCOMPLETE_UNIVERSE_UNBACKED":
         return 0.0
     if severity == "COHORT_BREAK":
+        # An independently qualified reserve lets a mature recovery owner stay
+        # inside the existing risk-off budget while it repairs or substitutes;
+        # without that breadth, the same synchronized break remains a
+        # concentrated crisis. This never depends on configured pool size.
         return cfg.risk_off_gross if reserve_backed else cfg.concentrated_crisis_gross
     if severity in {"SEVERE", "ANCHOR_BREAK"}:
         return cfg.severe_crisis_gross

@@ -184,7 +184,7 @@ def ordinary_core_entry(
         }
         if persistent_only:
             certificate["confirmations"].update(credible_maturity=credible,
-                                                 market_persistence=market["persistent_maturity"])
+                                                 market_persistence=cast(dict[str, Any], market)["persistent_maturity"])
     return candidate_entry(
         self, symbol=symbol, score=score, date=date, user_panel=user_panel,
         account=account, confirmation_days=confirmation_days, certificate=certificate,

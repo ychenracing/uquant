@@ -1,0 +1,16 @@
+{
+  "baseline_remote": "cf07402a98997470621fa8ffdc519e5bec156028",
+  "baseline_tree": "e8d35dce096926f146236a69c956c24cc414a9c7",
+  "route_A": "Restore fixed23 research input on current main with explicit scoped membership; default34 must remain behavior-equivalent. First six-session readback, then one full869-session migration. Old policy results retain original identities; restored context version2 is explicit.",
+  "route_C": {
+    "registered_before_quarter_return_join": true,
+    "population": "Existing fixed34; original 506-report discovery, earliest original per symbol-period only; retain missing. No new outcome-selected companies.",
+    "field": "Standalone-quarter revenue YoY: Q1/Q3 explicit original quarter table first; otherwise difference original cumulative revenue and same-year previous-quarter cumulative, using explicit comparable prior-year amounts from those contemporaneously disclosed originals. No reconstructed prior amount from rounded percentage; no later version replacement.",
+    "timing": "Both cumulative inputs disclosed strictly before decision; known-by is latest component disclosure. No report after2026-08-05; no future holdout. Never backdate a field to reporting period end.",
+    "direction": "Higher quarter revenue growth adds positive forward-return discrimination beyond raw_ret120.",
+    "evaluation": "Existing every60-session grid,20/60-session labels; full and nonoptical;2023-24 and2025-26 fixed blocks. Partial Spearman after120-day momentum. Require positive direction in all8 cells and after removing maximum absolute contribution company; missing/censored rows explicit. This diagnostic screen cannot establish executable profit.",
+    "failure": "Close this field on directional failure; no alternative transform, weights, periods or cutoffs. Proceed to D/E/F."
+  },
+  "strategy_candidate": null,
+  "future_holdout_used": false
+}

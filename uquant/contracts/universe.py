@@ -446,3 +446,38 @@ def research_industry_input(path: Path, *, expected_sha256: str) -> Iterator[AIU
         yield universe
     finally:
         _RESEARCH_INPUT.reset(token)
+
+
+@contextmanager
+def research_historical_cohort(ledger_path: Path) -> Iterator[AIUniverse]:
+    """Bind only the previously reviewed 23-company historical research cohort.
+
+    This fixed source frame is not production eligibility or an exhaustive AI
+    universe. No caller-supplied reseal can admit a different company or date.
+    Execution and account readback must both remain inside this context.
+    """
+    raw = ledger_path.read_bytes()
+    source = hashlib.sha256(raw).hexdigest()
+    if source != "d2f39f1dbfa94965b5fa3b53d69ecc1d55ff4e2dffe185a557ecc9f3a1204e5e":
+        raise ValueError("historical source ledger differs from fixed reviewed frame")
+    payload = read_json_bytes(raw, label="historical source ledger")
+    members = tuple(sorted((
+        UniverseMember(
+            symbol=row["symbol"], ai_domain=row["reason"],
+            industry=row["candidate_industry"],
+            effective_from=parse_date(row["not_before"], label="historical admission"),
+            effective_to=None, tradable=True,
+            evidence=row["source_url"] + "#sha256=" + row["source_sha256"],
+            reviewed_at=parse_date(row["review_as_of"], label="historical review"),
+        ) for row in payload["rows"] if row["status"] == "supported"
+    ), key=lambda member: member.symbol))
+    universe = AIUniverse(members=members, sha256=canonical_sha256({
+        "schema": "fixed-historical-cohort-v2", "source_sha256": source,
+    }))
+    if _RESEARCH_INPUT.get() is not None:
+        raise RuntimeError("research input contexts cannot be nested")
+    token = _RESEARCH_INPUT.set(universe)
+    try:
+        yield universe
+    finally:
+        _RESEARCH_INPUT.reset(token)

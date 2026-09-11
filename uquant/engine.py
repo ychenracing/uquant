@@ -9,6 +9,7 @@ from typing import cast
 import pandas as pd
 
 import uquant.application as _application
+from uquant.contracts.universe import decision_ai_universe
 from uquant.application import (
     DEFAULT_CONFIG,
     DataStore,
@@ -68,7 +69,7 @@ class ProductionEngine:
     def __init__(self, data_dir: str | Path, cfg: SystemConfig = DEFAULT_CONFIG) -> None:
         self.cfg = cfg
         self.workspace = _MarketWorkspace.production(
-            data_dir, cfg, reference_symbols=REFERENCE_UNIVERSE, index_symbols=INDEX_SYMBOLS
+            data_dir, cfg, reference_symbols=decision_ai_universe().symbols, index_symbols=INDEX_SYMBOLS
         )
         self.data = self.workspace.data
         self.execution = ExecutionPlanner(cfg)

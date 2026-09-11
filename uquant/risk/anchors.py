@@ -11,7 +11,7 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..features import scalar
-from ..leader import REFERENCE_UNIVERSE
+from ..contracts.universe import decision_ai_universe
 from ..types import AccountState, LeaderScore, Risk
 
 
@@ -33,7 +33,7 @@ def _dynamic_anchor_candidate(leaders: dict[str, LeaderScore], cfg: SystemConfig
         (
             item
             for symbol, item in leaders.items()
-            if symbol in REFERENCE_UNIVERSE
+            if symbol in decision_ai_universe().symbols
             and item.industry != "unknown"
             and item.confidence >= cfg.leader_min_confidence
             and item.components.get("secular_score", 0.0) >= cfg.risk_anchor_min_secular_score

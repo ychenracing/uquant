@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from .contracts.universe import decision_ai_universe, default_ai_universe
+
 DEFAULT_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "benchmarks" / "reference_registry.json"
 
 
@@ -77,5 +79,8 @@ def resolve_reference_symbols(
 ) -> tuple[str, ...]:
     """Resolve only memberships already effective at the decision date."""
     date = pd.Timestamp(as_of).normalize()
+    universe = decision_ai_universe()
+    if registry is None and universe.members != default_ai_universe().members:
+        return universe.symbols_as_of(str(date.date()))
     entries = registry if registry is not None else load_reference_registry()
     return tuple(sorted(entry.symbol for entry in entries if entry.active(date)))

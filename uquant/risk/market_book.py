@@ -12,7 +12,7 @@ import pandas as pd
 from ..config import SystemConfig
 from ..features import cross_section_returns, scalar
 from ..industry import decision_industries
-from ..leader import REFERENCE_UNIVERSE
+from ..contracts.universe import decision_ai_universe
 from ..market_risk import (
     EVIDENCE_FAMILY_MEMBERS,
     build_base_market_family_snapshot,
@@ -66,12 +66,12 @@ def _present_reference_symbols(
 ) -> list[str]:
     present = [
         symbol
-        for symbol in REFERENCE_UNIVERSE
+        for symbol in decision_ai_universe().symbols
         if symbol in reference_panel and date in reference_panel[symbol].index
     ]
     expected = [
         symbol
-        for symbol in REFERENCE_UNIVERSE
+        for symbol in decision_ai_universe().symbols
         if symbol in reference_panel and reference_panel[symbol].index.min() <= date
     ]
     mapping = decision_industries(str(date.date()))

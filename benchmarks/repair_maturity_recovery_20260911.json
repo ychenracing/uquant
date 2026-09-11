@@ -1,6 +1,6 @@
 {
   "date": "2026-09-11",
-  "status": "RECOVERED_NATIVE_SCREEN_RUNNING",
+  "status": "N_NOMINAL_COST_FAIL_BEST_CONTRIBUTOR_PASS",
   "source": "b6e3f3ccc0af6dc55c248693c149bcdd8359466f122e5c7be82756439db4d23f",
   "producer_commit": "10531064b5d0672f7f7a94eee893be64bd7e1a98",
   "producer_tree": "862b129a078984d2b4744bb3e45deb95efbd1e3c",
@@ -30,5 +30,41 @@
   "engineering_ci": "Secondary/deferred per latest user correction; do not await GitHub Actions longer than10minutes. Economic/accounting/source/risk gates remain.",
   "complete_acceptance": false,
   "pr56_head": "008e14088276aff6d73448f03249eebbad3bbf8f",
-  "main": "960539a89408cc7c1fc3937bda19c9f760095012"
+  "main": "960539a89408cc7c1fc3937bda19c9f760095012",
+  "verified_scope": "no-optical nominal and actual largest contributor only",
+  "nominal_failures": [
+    "all-in cost ceiling"
+  ],
+  "best_failures": [],
+  "verified_result_seal": "aab44e7bfc940eb60a488634f31e86f47de164cc2665d4ac6b7be02f1de37445",
+  "screen": {
+    "nominal": {
+      "final_wealth": 4.138589213374978,
+      "max_drawdown": 0.26022516791427264,
+      "account_orders": 31,
+      "fees": 16538.187250044,
+      "slippage_cost": 29348.985999998495
+    },
+    "new_best": {
+      "final_wealth": 1.402304946690295,
+      "max_drawdown": 0.26594245386690296,
+      "account_orders": 22,
+      "fees": 5643.93321941,
+      "slippage_cost": 10670.17339999908
+    },
+    "old_best": {
+      "final_wealth": 1.01039464268425,
+      "max_drawdown": 0.18205429957130803,
+      "account_orders": 7,
+      "fees": 2042.3236315,
+      "slippage_cost": 3993.3909999997854
+    }
+  },
+  "archive": {
+    "library_file_id": "libfile_915a36aad3608191b80062c84e7294cf",
+    "sha256": "fcbf809d8e8ae840af045fbff50438af9c4a82848f3d777ab9f2028bfe073d6a",
+    "files": 2626,
+    "bytes": 95583902
+  },
+  "next": "Bounded O: require original5 healthy market confirmations after a sector guard before mature-only ordinary fresh entries; protect original repair and restore rights. No threshold/config changes."
 }

@@ -1,3 +1,7 @@
+# N native recovered screen verified and saved; bounded O next
+
+N sourceb6e3f3cc nooptwealth4.138589/31orders/DD.260225; costs45887.17325 exceed frozen40000. Actual best688146 removalwealth1.402305/22orders/DD.265942, pairedold1.010395/7orders; bestcheckPASS. All3nativeCOMPLETE/fullreadback verified,2626file archive savedSHAfcbf809d8e8ae840af045fbff50438af9c4a82848f3d777ab9f2028bfe073d6a. WholeNnotPASS; fullmatrixdeferred. See recoveryresult for exactfigures. June17sectorrecovery→June18twonewbuys→June23sectorliquidation accounts for avoidable-cost hypothesis. O tests fresh ordinary maturity market confirmation using existing5sessions aftersector guard, no acceptance/parameterchange. Engineering/CIsecondary. Olderstatusesbelowhistorical.
+
 # 2026-09-11 recovered N producer; economic work continues
 
 See benchmarks/repair_maturity_recovery_20260911.json. Workspace maintenance removed previous scratch. N code restored exactly from10531064; old paired code fromdb06a7dc. Frozen source/data/universe/runtime identities verified. Prior N noopt4.138589/31orders was readback verified before raw loss; it must be regenerated, not promoted from this note. Three native runs now execute immutable producer commits: current noopt nominal, current noopt excluding688146, old same exclusion. M failure archive restored/hash verified. Engineering/CI remains secondary; Actions over10minutes not awaited. No overall acceptance/merge claim. Older running/offline statements below superseded.

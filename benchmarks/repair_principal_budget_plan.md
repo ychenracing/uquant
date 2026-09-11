@@ -1,0 +1,9 @@
+# AA: one purchase allowance including actual repair principal
+
+Z native nominal3.346366 and offset20noopt2.116900 PASS; highcost3.328850 FAIL46002.72/40000. All three raw readbacks and Z original outcomes retained. No financial waiver is authorized.
+
+Z excluded the entire marked repair holding from the additional independent-entry allowance. AA instead charges its remaining true purchase outlay (native tranche shares times fee-inclusive average cost, divided by current account equity) to the same existing base allowance. Only appreciation is separated from new purchase spending; it does not become cash or weaken the normal market-value risk/concentration caps. Actual pending commitments remain charged; no funding is released merely because repair principal loses value. Ordinary maturity cannot use unrealized appreciation to expand its existing allowance. Normal nonrepair accounts retain the original trend policy.
+
+Native order/event/fill/tranche provenance and reset behavior remain as in Z; no new config, threshold, confirmation clock, stock/date exception or cost-profile detection. At threefold appreciation the regression exposes Z's extra20% allowance while the true remaining purchase room is5.721558%; AA uses that calculated room.43targeted tests PASS, covering prefill zero extra allowance, real repair and independent fills, current proof loss after partial fill, restart, historical-source mismatch, drift, losses, and normal-account qualification/budget controls. Synthetic market appreciation in the order-level fixture changes only dates after the original fill; economic replay data is unchanged.
+
+Freeze source and repeat only nominal/highcost/offset20 noopt. Preserve failed evidence and stop matrix expansion on financial screening failure. Future holdout and main remain untouched; engineering/CI secondary. This is a budget-accounting hypothesis, not complete acceptance.

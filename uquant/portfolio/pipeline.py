@@ -546,29 +546,29 @@ def _current_independent_entry(evidence: dict[str, Any], date: pd.Timestamp) -> 
             and evidence.get("qualification_quorum") in {"FULL_COHORT", "STRONG_PAIR", "ABSOLUTE_SINGLE"})
 
 
-def _repair_origin_commitment(book: AllocationBook) -> float:
-    """Recognize only capital linked to a natively consumed repair order."""
+def _repair_origin_surplus(book: AllocationBook) -> float:
+    """Separate unrealized repair gains from its actual remaining purchase outlay."""
     account = book.account
+    _, equity = current_weights(account, book.prices)
     origins = {order.event_id: order for order in account.order_ledger
                if order.side == "BUY" and not order.grant_id and not order.epoch_id
                and account.candidate_tenure.get(
                    f"ordinary_repair_origin:{order.order_id}:{order.event_id}") == 1}
     total = 0.0
-    for symbol, committed in book.committed.items():
+    for symbol in book.committed:
         if symbol in book.owned:
             continue
         position = account.positions.get(symbol)
-        shares = sum(t.shares for t in position.tranches
+        lots = [t for t in position.tranches
                      if t.event_id in origins and origins[t.event_id].symbol == symbol
                      and any(f.side == "BUY" and f.shares > 0 and f.symbol == symbol
                              and f.event_id == t.event_id and f.order_id == origins[t.event_id].order_id
-                             for f in account.fills)) if position is not None else 0
+                             for f in account.fills)] if position is not None else []
+        shares = sum(t.shares for t in lots)
         current = book.weights_now.get(symbol, 0.0)
         held = current * shares / position.shares if position is not None and position.shares else 0.0
-        reserved = max((max(0.0, o.target_weight - current) for o in account.pending_orders
-                        if o.symbol == symbol and o.side == "BUY" and o.event_id in origins
-                        and o.order_id == origins[o.event_id].order_id), default=0.0)
-        total += min(committed, held + reserved)
+        principal = sum(t.shares * t.avg_cost for t in lots) / equity
+        total += held - principal
     return total
 
 
@@ -584,13 +584,15 @@ def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified:
         for key in list(book.account.candidate_tenure):
             if key.startswith("ordinary_repair_origin:"):
                 book.account.candidate_tenure.pop(key)
+    active_repair = bool(book.account.candidate_tenure.get("ordinary_repair_capital_active", 0))
+    surplus = _repair_origin_surplus(book) if active_repair else 0.0
     if max(values) > 0.0:
-        if not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0):
+        if not active_repair:
             return book.policy.cfg.trend_entry_gross
         if independently_qualified:
             return max(0.0, book.policy.cfg.core_admission_weight
-                       - max(0.0, ordinary - _repair_origin_commitment(book)))
-    return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
+                       - max(0.0, ordinary - surplus))
+    return max(0.0, book.policy.cfg.core_admission_weight - ordinary + min(0.0, surplus))
 
 
 def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:

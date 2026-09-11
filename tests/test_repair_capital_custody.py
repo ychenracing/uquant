@@ -52,6 +52,8 @@ def test_current_full_certificate_can_use_free_capital_beside_repair_holding(los
     assert ExecutionPlanner(policy.cfg).execute_open(date=dates[1],account=account,panel=panel)
     account.candidate_tenure['ordinary_repair_capital_active']=1
     account.capital_budget_level=0
+    for column in ('open','high','low','close','ma20','ma60','ma120'):
+        panel[high].loc[dates[2]:,column] *= 6
     for symbol,score,industry in zip(WITNESSES,(.94,.93,.92),('foundry','equipment','optical')):
         panel[symbol]=_strategic_frame(pd.bdate_range(end=dates[-1],periods=260))
         panel[symbol]['open']=panel[symbol]['close']
@@ -110,18 +112,32 @@ def test_repair_origin_drift_and_restart_do_not_consume_independent_allowance():
     from uquant.types import StrategicCashRearmState
     policy,account,dates,panel,leaders,risk=_mature_repair()
     assert repair_decide(policy,account,dates[0],panel,leaders,risk)
+    pending_book=SimpleNamespace(account=account,policy=policy,risk=risk,owned=set(),
+        committed={o.symbol:o.target_weight for o in account.pending_orders},weights_now={},
+        prices={s:float(f.loc[dates[0],'close']) for s,f in panel.items()})
+    assert _ordinary_admission_budget(pending_book,independently_qualified=True)==0
     assert ExecutionPlanner(policy.cfg).execute_open(date=dates[1],account=account,panel=panel)
     account=account_from_dict(asdict(account))
     account.strategic_cash_rearm=StrategicCashRearmState()
     prices={s:float(panel[s].loc[dates[1],'close'])*3 for s in account.positions}
-    weights,_=current_weights(account,prices)
+    weights,equity=current_weights(account,prices)
     assert sum(weights.values())>policy.cfg.core_admission_weight
     book=SimpleNamespace(account=account,policy=policy,risk=risk,committed=weights,
-                         weights_now=weights,owned=set())
+                         weights_now=weights,owned=set(),prices=prices)
     assert _ordinary_admission_budget(book)==0
-    assert _ordinary_admission_budget(book,independently_qualified=True)==pytest.approx(policy.cfg.core_admission_weight)
+    principal=sum(t.shares*t.avg_cost for p in account.positions.values() for t in p.tranches)
+    assert _ordinary_admission_budget(book,independently_qualified=True)==pytest.approx(max(0.,policy.cfg.core_admission_weight-principal/equity))
     # A surviving marker without its actual order/event cannot exempt capital.
     for key in list(account.candidate_tenure):
         if key.startswith('ordinary_repair_origin:'):
             account.candidate_tenure[key+'-wrong-event']=account.candidate_tenure.pop(key)
+    assert _ordinary_admission_budget(book,independently_qualified=True)==0
+    # Losing repair principal does not create a new allowance for a weaker entry.
+    for key in list(account.candidate_tenure):
+        if key.startswith('ordinary_repair_origin:') and key.endswith('-wrong-event'):
+            account.candidate_tenure[key.removesuffix('-wrong-event')]=account.candidate_tenure.pop(key)
+    prices={s:float(panel[s].loc[dates[1],'close'])*.5 for s in account.positions}
+    weights,_=current_weights(account,prices)
+    book.prices,book.weights_now,book.committed=prices,weights,weights
+    assert _ordinary_admission_budget(book)==0
     assert _ordinary_admission_budget(book,independently_qualified=True)==0

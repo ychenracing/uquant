@@ -43,7 +43,7 @@ def test_original_caution_probe_uses_budget_and_keeps_risk_frozen():
 
 
 @pytest.mark.parametrize("block", ["overlay", "sentinel", "risk_off", "crisis", "capital",
-                                 "chronic", "sector", "anchor", "protected", "restore", "pending"])
+                                 "chronic", "sector", "anchor", "protected", "restore", "pending", "repair_custody"])
 def test_other_freezes_and_existing_rights_block_research_probe(block):
     frame, risk, account = _fixture()
     if block in {"overlay", "sentinel"}:
@@ -52,6 +52,8 @@ def test_other_freezes_and_existing_rights_block_research_probe(block):
         risk = replace(risk, state=Risk.RISK_OFF if block == "risk_off" else Risk.CRISIS)
     elif block in {"capital", "chronic"}:
         setattr(account, "capital_budget_level" if block == "capital" else "chronic_level", 1)
+    elif block == "repair_custody":
+        account.candidate_tenure["ordinary_repair_capital_active"] = 1
     elif block == "sector":
         account.sector_guard_active = True
     elif block in {"anchor", "protected", "restore"}:

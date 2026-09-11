@@ -1,3 +1,7 @@
+# S repair custody covers caution exception
+
+R nominal,best,laterPASS;highcostFAIL51599/40000 from60%CAUTIONprobe bypass. S adds existing-repair-custody guard to that exception;67testsPASS;source295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418. See benchmarks/repair_probe_custody_plan.md. Four nativescreens next;engineering/CIsecondary;no wholeacceptance/merge. Priorstatuseshistorical.
+
 # R ordinary repair capital custody
 
 Q rejected: laterwindowwealthFAIL/highcostFAIL, archived;global entry restriction excluded. R starts from P and limits expansion of actual repair-funded ordinary capital until its held/pending book settles. Native binding plus53testsPASS;sourceaa5cd64598ee9aae030849c63d4aa50422a09a7e5ae25f06dce322598b63bc07. See benchmarks/repair_capital_custody_plan.md. Four native screens next;not fullacceptance/merge;engineering/CIsecondary. Priorstatuseshistorical.

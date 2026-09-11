@@ -649,6 +649,7 @@ def _caution_probe_book_open(book: AllocationBook) -> bool:
             or risk.evidence.get("freeze_new_risk", False)
             or risk.evidence.get("sentinel_freeze_new_risk", False)
             or account.capital_budget_level != 0 or account.chronic_level != 0
+            or account.candidate_tenure.get("ordinary_repair_capital_active", 0)
             or account.sector_guard_active or account.positions
             or account.anchor_weights or account.protected_weights or account.strategic_restore_weights
             or book.owned or not pullback_book_settled(account))

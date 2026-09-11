@@ -1,0 +1,7 @@
+# S: the caution-probe exception respects unreleased repair custody
+
+R nominal2.488963/22orders,actualbest688498 removal1.511139/18orders,and frozenlater1.911534/30orders allPASS. Highcost2.476255/22orders retains wealth but costs51599.56287148824>40000FAIL. Native July27 exposes RESEARCH_CAUTION_TACTICAL_PROBE opening60% while Risk.CAUTION/freeze_new_risk=true and ordinary_repair_capital_active=1. Qualification was incomplete and this independent exception bypassed R's budget path. Preserve R failure; no changed economic gates.
+
+S adds one guard to the existing caution-probe exception: unreleased real ordinary repair capital custody blocks that exception. Normal settled accounts and the original probe tests remain unchanged; ordinary funding/strategic grants/held exits retain their rules. R releases the marker only when the ordinary book/intents have settled and normal ordinary admission is open, so mere flat cash in frozen CAUTION cannot recycle it into this exception. No new state/config/date/stock/tolerance.
+
+Native allocator regression fails on R and passes on S; all67 focused tests pass. Source295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418. Four native screens then remaining frozen matrix if viable. R later has no real ordinary repair orders, but S later still gets its own native identity. Old688498 pair reused only through own-codec validated evidence. Engineering/CIsecondary, nofullacceptance/merge.

@@ -242,31 +242,42 @@ def _candidate_identity() -> _CandidateIdentity:
     return _CandidateIdentity(source, "economic_decision_v1", _REGISTRY_SHA256)
 
 
+def _verify_ci_event(head: str, parents: list[str]) -> None:
+    if head != os.environ.get("GITHUB_SHA"):
+        raise ValueError("absolute generalization CI checkout differs from event SHA")
+    event = strict_json_loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_bytes())
+    name = os.environ.get("GITHUB_EVENT_NAME", "")
+    if not isinstance(event, dict):
+        raise ValueError("absolute generalization CI event is malformed")
+    if name == "pull_request":
+        # GITHUB_SHA identifies the test merge; bind its ordered parents to
+        # the event's actual base/head, not the cached merge_commit_sha field.
+        pr = event["pull_request"]
+        if (os.environ.get("GITHUB_REF") != f"refs/pull/{event['number']}/merge"
+                or parents != [pr["base"]["sha"], pr["head"]["sha"]]):
+            raise ValueError("absolute generalization CI event target differs")
+        return
+    expected: dict[str, Callable[[], object]] = {
+        "push": lambda: event["after"],
+        "merge_group": lambda: event["merge_group"]["head_sha"],
+        "workflow_dispatch": lambda: os.environ["GITHUB_SHA"],
+    }
+    if name not in expected or expected[name]() != head:
+        raise ValueError("absolute generalization CI event target differs")
+
+
 def verify_run_checkout() -> dict[str, object]:
     """Preflight trusted CI checkout, runner bytes and the frozen runtime."""
     git = shutil.which("git")
     if git is None:
         raise RuntimeError("cannot resolve current checkout identity")
     values = subprocess.run(
-        [git, "-C", str(_ROOT), "rev-parse", "HEAD", "HEAD^{tree}"],
+        [git, "-C", str(_ROOT), "rev-parse", "HEAD", "HEAD^{tree}", "HEAD^@"],
         check=True, capture_output=True, text=True,
     ).stdout.splitlines()  # nosec B603
-    head, tree = values
+    head, tree, *parents = values
     if os.environ.get("GITHUB_ACTIONS") == "true":
-        if head != os.environ.get("GITHUB_SHA"):
-            raise ValueError("absolute generalization CI checkout differs from event SHA")
-        event = strict_json_loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_bytes())
-        name = os.environ.get("GITHUB_EVENT_NAME", "")
-        if not isinstance(event, dict):
-            raise ValueError("absolute generalization CI event is malformed")
-        expected: dict[str, Callable[[], object]] = {
-            "push": lambda: event["after"],
-            "pull_request": lambda: event["pull_request"]["merge_commit_sha"],
-            "merge_group": lambda: event["merge_group"]["head_sha"],
-            "workflow_dispatch": lambda: os.environ["GITHUB_SHA"],
-        }
-        if name not in expected or expected[name]() != head:
-            raise ValueError("absolute generalization CI event target differs")
+        _verify_ci_event(head, parents)
     for surface in ("economic_decision_v1", "full_package_v1", "validation_runner_v1"):
         if source_surface_fingerprint(_ROOT, surface) != git_source_surface_fingerprint(_ROOT, head, surface):
             raise ValueError(f"absolute generalization checkout surface differs: {surface}")

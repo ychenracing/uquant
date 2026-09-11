@@ -717,9 +717,36 @@ def test_architecture_raw_scanner_rejects_unproved_star_exports(
     ]
 
 
-def test_architecture_governed_scripts_expose_only_frozen_public_start_surface() -> None:
+def test_architecture_governed_scripts_use_current_command_owners() -> None:
+    command_owners = {
+        "scripts/run_risk_differential.py": "research.risk_differential_cli",
+        "scripts/run_current_heads_competitor_matrix.py": "research.current_heads_competitor_matrix",
+        "scripts/run_window_competitor_adapter.py": "research.window_competitor_adapter",
+        "scripts/analyze_risk_differential.py": "research.risk_differential_analysis",
+        "scripts/future_holdout.py": "research.future_holdout_cli",
+        "scripts/run_five_window_outperformance.py": "research.five_window_outperformance",
+        "scripts/run_risk_counterfactual.py": "research.risk_counterfactual_cli",
+        "scripts/backfill_tencent_history.py": "research.tencent_history_adapter",
+        "scripts/run_performance_diagnostic.py": "research.performance_diagnostic",
+        "scripts/run_window_outperformance.py": "research.window_outperformance",
+    }
     for historical in GOVERNED_SCRIPTS:
         current = CURRENT_GOVERNED_SCRIPTS.get(historical, historical)
+        if current == "scripts/run_generalization_ablation.py":
+            assert not (ROOT / current).exists()
+            continue
+        if current in command_owners:
+            tree = ast.parse((ROOT / current).read_text(encoding="utf-8"))
+            tree.body = [node for node in tree.body if not (
+                isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            ) and not (isinstance(node, ast.ImportFrom) and node.module == "__future__")]
+            expected = ast.parse(
+                f"from {command_owners[current]} import main\n"
+                'if __name__ == "__main__":\n    raise SystemExit(main())\n'
+            )
+            assert ast.dump(tree) == ast.dump(expected), current
+            continue
         assert _literal_script_all(current) == _immutable_public_script_definitions(
             historical
         )

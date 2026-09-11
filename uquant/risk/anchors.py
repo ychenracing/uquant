@@ -77,8 +77,7 @@ def _update_dynamic_anchors(
         if symbol in leaders and leaders[symbol].industry != "unknown"
     }
     signature = ",".join(candidate)
-    candidate_members = set(candidate)
-    current_members = set(account.risk_anchor_symbols)
+    current_signature = account.risk_anchor_signature
     if len(candidate) != cfg.risk_anchor_count or len(candidate_groups) < cfg.risk_anchor_min_groups:
         # Confirmation must be consecutive.  Missing coverage/evidence cannot
         # bridge two otherwise unrelated candidate periods.  More importantly,
@@ -94,22 +93,22 @@ def _update_dynamic_anchors(
         account.risk_anchor_candidate_signature = ""
         account.risk_anchor_candidate_streak = 0
         return tuple(account.risk_anchor_symbols)
-    # Rank is not basket identity: permutations neither restart confirmation
-    # nor clear an unchanged sentinel basket's armed/break observations.
-    if signature and candidate_members != current_members:
-        if candidate_members == set(account.risk_anchor_candidate_signature.split(",")):
+    if signature and signature != current_signature:
+        if signature == account.risk_anchor_candidate_signature:
             account.risk_anchor_candidate_streak += 1
         else:
             account.risk_anchor_candidate_signature = signature
             account.risk_anchor_candidate_streak = 1
         if account.risk_anchor_candidate_streak >= cfg.risk_anchor_confirm_days:
+            # A rank-only refresh must not disarm the same active sentinels.
+            if set(candidate) != set(account.risk_anchor_symbols):
+                account.risk_streaks["reference_anchor_armed"] = 0
+                account.risk_streaks["reference_anchor_break"] = 0
             account.risk_anchor_symbols = candidate
             account.risk_anchor_signature = signature
             account.risk_anchor_candidate_signature = ""
             account.risk_anchor_candidate_streak = 0
-            account.risk_streaks["reference_anchor_armed"] = 0
-            account.risk_streaks["reference_anchor_break"] = 0
-    elif candidate_members == current_members:
+    elif signature == current_signature:
         account.risk_anchor_candidate_signature = ""
         account.risk_anchor_candidate_streak = 0
     return tuple(account.risk_anchor_symbols)

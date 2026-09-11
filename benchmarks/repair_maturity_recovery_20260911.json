@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-11",
+  "status": "RECOVERED_NATIVE_SCREEN_RUNNING",
+  "source": "b6e3f3ccc0af6dc55c248693c149bcdd8359466f122e5c7be82756439db4d23f",
+  "producer_commit": "10531064b5d0672f7f7a94eee893be64bd7e1a98",
+  "producer_tree": "862b129a078984d2b4744bb3e45deb95efbd1e3c",
+  "old_producer_commit": "db06a7dc19e34e4eb7e02ac579f10157efbb64bb",
+  "old_source": "1b1b9e2a60a9899e14bb910bb0a836136912aaa5c2bcfe3b2e142d2c40cf819d",
+  "runtime": {
+    "python": "3.12.13",
+    "numpy": "2.5.1",
+    "pandas": "3.0.5",
+    "uv": "0.11.33"
+  },
+  "prior_observation": {
+    "no_optical_wealth": 4.138589213374978,
+    "max_drawdown": 0.26022516791427264,
+    "orders": 31,
+    "largest_contributor": "sh688146",
+    "status": "previously native COMPLETE and readback verified; raw removed by workspace maintenance before persistence; MUST regenerate, not current acceptance"
+  },
+  "prior_invalid_runs": "First N pair rejected because HEAD changed during execution; later partial processes interrupted. No rejected/partial result relabelled. Their unpersisted local bytes were removed by platform maintenance.",
+  "preserved_M_archive": {
+    "library_file_id": "libfile_340895252fb8819199f486d8aced79dd",
+    "sha256": "5a850e35843a774f8b31fc1a71a1ac43565a83f525e42bccbbec1a305aa9e9db",
+    "restored_sha256_verified": true
+  },
+  "checks": "Both production fingerprints and current data/universe/runtime equal frozen plan. Existing76 targeted checks remain tied to unchanged N code; no full engineering rerun.",
+  "runs": "/workspace/scratch/4f31235e78e6/runs/n-recovered-20260911/{nominal,new-best,old-best}",
+  "engineering_ci": "Secondary/deferred per latest user correction; do not await GitHub Actions longer than10minutes. Economic/accounting/source/risk gates remain.",
+  "complete_acceptance": false,
+  "pr56_head": "008e14088276aff6d73448f03249eebbad3bbf8f",
+  "main": "960539a89408cc7c1fc3937bda19c9f760095012"
+}

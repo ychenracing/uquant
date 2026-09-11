@@ -1,3 +1,7 @@
+# 2026-09-11 recovered N producer; economic work continues
+
+See benchmarks/repair_maturity_recovery_20260911.json. Workspace maintenance removed previous scratch. N code restored exactly from10531064; old paired code fromdb06a7dc. Frozen source/data/universe/runtime identities verified. Prior N noopt4.138589/31orders was readback verified before raw loss; it must be regenerated, not promoted from this note. Three native runs now execute immutable producer commits: current noopt nominal, current noopt excluding688146, old same exclusion. M failure archive restored/hash verified. Engineering/CI remains secondary; Actions over10minutes not awaited. No overall acceptance/merge claim. Older running/offline statements below superseded.
+
 # Active N ordinary maturity repair experiment
 
 See benchmarks/repair_maturity_result.json and repair_maturity_plan.md. User explicitly lowers engineering quality/CI priority; Actions over 10 minutes are not awaited. Environment recovered. M both best-contributor cases native verified but economic FAIL. N source b6e3f3ccc0af6dc55c248693c149bcdd8359466f122e5c7be82756439db4d23f frozen for two native screens; 76 focused tests PASS. No full acceptance or merge. Historical status below is superseded.

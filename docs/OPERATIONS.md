@@ -432,9 +432,13 @@ uv run uquant account-code-migrate \
    缺失的 `independent_core` 计数从零开始，由新观察逐日建立，不从旧路线计数或当前持仓猜补。
    单名战略授冠须同时取得原路线与严格观察各 4 日确认；按严格单名证据申请普通核心首次
    入场按原严格资格确认；普通成熟证书使用实际 `leader_tenure_days` 确认，共享证书保留原要求。
-   `ordinary_market_session/streak` 已无执行读取；旧账户中的记录可保留，不回填或重新累计。
-   成熟快捷证书还需当天强冲量及自身可信证据，没有额外共同持续时钟；共享和严格独立
-   资格不额外套此冲量门。该职责调整不撤销真实持仓或修复身份。
+   `ordinary_market_session/streak` 已无执行读取；旧记录保留，不回填。普通成熟入口可凭
+   当天强冲量或健康长周期市场证据申请；经历板块风控后，两种快捷入口均须重新积累
+   `leader_tenure_days` 个健康确认日。真实持仓恢复和资金修复另按各自权限判断。
+   资金修复的成熟入口另要求连续可信成熟计数；旧账户缺少
+   `ordinary_repair_maturity_session` 或 `ordinary_repair_maturity:<symbol>` 时从零建立，
+   不能拿原 leader tenure 补齐。保留 `ordinary_repair_capital_active` 和对应真实持仓、
+   未成交责任，不能通过清空标记释放仍在使用的共享预算。
    保留真实账户账本和已有可信观察记录；新确认的
    冷启动不改变持续持有和合法风险恢复的管理条件。其他新增资格/交接确认
    同样不得补造，也不能通过换候选、清空旧字段、重设最高权益跳过修复。

@@ -1,6 +1,8 @@
 """Native FULL holdings share the already confirmed structural exit."""
 from dataclasses import asdict, replace
 
+import pytest
+
 from test_shared_core_qualification import _decide
 from test_strategic_cohort_deployment_settlement import SYMBOLS, _native_full
 from test_strategic_grant_observation import _risk
@@ -8,6 +10,37 @@ from test_strategic_grant_observation import _risk
 from uquant.account.codec import account_from_dict
 from uquant.config import DEFAULT_CONFIG
 from uquant.execution import ExecutionPlanner
+
+
+@pytest.mark.parametrize("current_lock", [True, False])
+def test_dominant_profit_lock_keeps_exit_authority_only_in_current_epoch(current_lock):
+    from uquant.portfolio.allocation_book import AllocationBook
+    from uquant.portfolio.pipeline import _ordinary_exits
+    from uquant.portfolio_core import current_weights
+
+    policy, account, dates, panel, leaders, roles = _native_full()
+    _decide(policy, account, dates[0], panel, leaders, roles, risk=_risk(frozen=False))
+    symbol = SYMBOLS[0]
+    # Real, fully filled native entry; isolate the already established dominant
+    # lifecycle state to test which exit policy owns this position.
+    account.strategic_cohort_targets = {symbol: .7}
+    account.candidate_tenure["strategic_dominant_epoch"] = account.strategic_epoch
+    account.candidate_tenure["strategic_dominant_profit_lock_epoch"] = (
+        account.strategic_epoch if current_lock else account.strategic_epoch - 1
+    )
+    leaders[symbol] = replace(leaders[symbol], mature=False)
+    start = DEFAULT_CONFIG.min_hold_days + 2
+    for day in dates[start:start + DEFAULT_CONFIG.replacement_confirm_days]:
+        for key in ("ma20", "ma60"):
+            panel[symbol].loc[day, key] = panel[symbol].loc[day, "close"] * 1.1
+        prices = {s: float(panel[s].loc[day, "close"]) for s in SYMBOLS}
+        weights, _ = current_weights(account, prices)
+        book = AllocationBook(
+            policy, day, _risk(frozen=False), panel, leaders, account,
+            prices, weights, {symbol}, {}, dict(weights), dict(weights), 0.,
+        )
+        _ordinary_exits(book)
+    assert book.proposed[symbol] == (weights[symbol] if current_lock else 0.)
 
 
 def test_native_full_member_uses_confirmed_exit_and_preserves_restart_identity():

@@ -17,7 +17,7 @@ from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, 
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..models.trading import late_strategic_fill_allowed
 from ..ordinary_pullback import STRUCTURAL_EXIT_REASON, current_pullback_proof
-from ..portfolio_core import current_weights, symbol_weight_cap
+from ..portfolio_core import current_weights, strategic_dominant_symbol, symbol_weight_cap
 from ..risk.pullback import pullback_book_settled, pullback_risk_open
 from ..types import (
     AccountState,
@@ -303,6 +303,12 @@ def _ordinary_exits(book: AllocationBook) -> None:
     """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
     account = book.account
     grant = account.strategic_grant
+    dominant = strategic_dominant_symbol(account)
+    profit_locked = (
+        account.strategic_epoch > 0
+        and account.candidate_tenure.get("strategic_dominant_profit_lock_epoch", -1)
+        == account.strategic_epoch
+    )
     full_members = set(account.strategic_cohort_targets)
     full_settled = bool(
         grant is not None and grant.qualification_quorum == "FULL_COHORT"
@@ -312,6 +318,10 @@ def _ordinary_exits(book: AllocationBook) -> None:
         if position.shares <= 0:
             continue
         if symbol in book.recovery_targets:
+            continue
+        # The dominant lifecycle already owns its retained profit-locked stake.
+        # Keep its disaster/risk reductions; do not overlay an ordinary exit.
+        if symbol in book.owned and symbol == dominant and profit_locked:
             continue
         if symbol in book.owned and not (
             (grant is not None and grant.candidate_symbol == symbol

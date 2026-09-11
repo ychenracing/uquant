@@ -10,7 +10,7 @@ from uquant.portfolio.ordinary import observe_ordinary_market, ordinary_core_ent
 from uquant.types import Opportunity, Risk
 
 
-def test_native_mature_entry_without_impulse_keeps_own_proof_and_original_budget():
+def test_native_mature_entry_without_impulse_keeps_own_proof_and_foundation_budget():
     policy, account, dates, panel, base, risk = _scenario()
     low = tuple(base)[-1]
     base[low] = replace(base[low], score=.81)
@@ -25,7 +25,7 @@ def test_native_mature_entry_without_impulse_keeps_own_proof_and_original_budget
     assert not risk.evidence['core_allocation']['ordinary_market']['impulse']
     high = next(s for s in base if s != low)
     assert {o.symbol for o in account.pending_orders} == {high}
-    assert account.pending_orders[0].target_weight == DEFAULT_CONFIG.single_core_entry_cap
+    assert account.pending_orders[0].target_weight == DEFAULT_CONFIG.core_admission_weight
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
     assert len(fills) == 1 and fills[0].symbol == high and fills[0].shares > 0
     assert not fills[0].grant_id and not fills[0].epoch_id
@@ -90,3 +90,23 @@ def test_local_admission_changes_only_the_long_cycle_upper_bound_case():
         result = observe_ordinary_market(policy, date=dates[0], opportunity=Opportunity.TREND,
             risk=changed, leaders=base, user_panel=panel)
         assert result['mature_entry_open'] is False, (field, value)
+
+
+def test_local_maturity_shares_one_foundation_budget_across_names_and_sessions():
+    policy, account, dates, panel, base, risk = _scenario()
+    account.leader_tenure.update({s: 20 for s in base})
+    risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02,
+                         breadth20=.8, broad_ret20=.02, tech_ret20=.1,
+                         broad_ret120=.1, tech_ret120=.4)
+    _decide(policy, account, dates[0], panel, base, risk)
+    assert len(account.pending_orders) == 1
+    order = account.pending_orders[0]
+    assert order.target_weight == DEFAULT_CONFIG.core_admission_weight
+    _decide(policy, account, dates[1], panel, base, risk)
+    assert len(account.pending_orders) == 1
+    assert account.pending_orders[0].order_id == order.order_id
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[2], account=account, panel=panel)
+    assert fills
+    _decide(policy, account, dates[2], panel, base, risk)
+    assert not any(o.side == 'BUY' for o in account.pending_orders)
+    assert len(account.positions) == 1

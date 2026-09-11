@@ -89,6 +89,7 @@ def ordinary_core_entry(
           and symbol in market.get("credible_symbols", ())):
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
+            "maturity_basis": "impulse" if market.get("impulse") is True else "long_cycle",
             "required_confirmation": self.cfg.leader_tenure_days,
             "confirmations": {"leader_tenure": tenure}, "as_of": str(date.date()),
         }

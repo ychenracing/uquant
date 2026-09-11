@@ -561,6 +561,9 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
         weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
+        if book.record(symbol).get("entry", {}).get("maturity_basis") == "long_cycle":
+            ordinary = sum(w for s, w in book.committed.items() if s not in book.owned)
+            weight = min(weight, max(0.0, book.policy.cfg.core_admission_weight - ordinary))
         if not book.leaders[symbol].mature:
             weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:

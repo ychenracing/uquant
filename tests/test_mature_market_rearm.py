@@ -31,7 +31,7 @@ def test_sector_recovery_does_not_reuse_old_tenure_or_duplicate_observations():
         account = account_from_dict(asdict(account))
     assert _decide(policy, account, dates[5], panel, base, risk)
     assert len(account.pending_orders) == 1
-    assert account.pending_orders[0].target_weight == policy.cfg.single_core_entry_cap
+    assert account.pending_orders[0].target_weight == policy.cfg.core_admission_weight
 
 
 def test_unhealthy_market_resets_fresh_sector_recovery_confirmation():

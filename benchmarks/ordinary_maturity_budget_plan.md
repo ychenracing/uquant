@@ -1,0 +1,7 @@
+# Q: foundation budget for long-cycle-only ordinary proof
+
+P passed nominal and actual-best no-optical screens (4.146318513732988/27orders and1.402304946690295/22orders). P frozen high-cost replay failed absolutecost:fees23324.735081344003+slippage40126.045200000066 >40000,wealth3.860590309859328/30orders. All failed evidence retained in archive406581de25ee823f684138348d518de76c1bdedd96cf2feb51077da5da748d50 (97960236bytes,2634files).
+
+Long-cycle-only maturity is an ordinary admission proof, not an independent current impulse or full trend capital qualification. Q labels the observed basis explicitly and shares existing core_admission_weight=.2 across ordinary held/committed capital for that weak entry basis. Current impulse and strict certificates retain their rules; held capital is not sold/rebalanced by this new entry limit. Existing pending commitments consume the budget, so another name/day cannot duplicate it. The real cash repair already has its bounded funding and remains unchanged. No new config, stock/date exception, threshold relaxation or parameter search.
+
+Three native budget expectations fail on P; all52 targeted tests pass on Q, including pending identity, next-open fill and no extra admission across names/sessions. Source873ad03ab03caac0f37a1a2455e0d71445ad292814952a382dcc1e8ded3b1a7b. Freeze producer before native nooptical nominal/cost and contributor screen. Largest contributor must be derived from new nominal, never inherited blindly. Engineering/CIsecondary; no complete acceptance or merge.

@@ -1,3 +1,7 @@
+# Q ordinary long-cycle foundation budget
+
+P nominal/bestPASS but nativecoststressFAIL63450/40000. Q bounds only long-cycle-only new ordinary admissions using existing shared20%foundation budget; impulse/strict/held/repair rights retained.52targetedtestsPASS. Source873ad03ab03caac0f37a1a2455e0d71445ad292814952a382dcc1e8ded3b1a7b. See benchmarks/ordinary_maturity_budget_plan.md. Native screens next;no wholeacceptance/merge;engineering/CIsecondary. Priorstatuseshistorical.
+
 # P maturity shortcut repair
 
 O native screen costFAIL40562/40000;bestPASS. P closes observed impulse bypass of pending market rearm, unchanged5confirmation;51targetedtestsPASS. Source03b0c0583c9bada53b247f08b102c014e4eaa0268f5ef35a1e8e04a3564fc612;native next. See benchmarks/mature_impulse_rearm_plan.md. No wholeacceptance/merge;engineering/CIsecondary. Priorstatuseshistorical.

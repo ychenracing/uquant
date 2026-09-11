@@ -38,23 +38,27 @@ def test_settled_repair_book_does_not_limit_a_new_account_admission():
 
 @pytest.mark.parametrize('lose_proof',[False,True])
 def test_current_full_certificate_can_use_free_capital_beside_repair_holding(lose_proof):
-    from test_lifecycle_and_risk import _leader
+    from test_lifecycle_and_risk import _leader, _strategic_frame
+    import pandas as pd
     from test_shared_core_qualification import WITNESSES, CHALLENGER
     from test_strategic_universe_quorum import _risk
     from uquant.models.strategic_universe import build_strategic_universe_roles
 
-    policy,account,dates,panel,base,risk=_scenario()
+    from test_mature_cash_rearm import _mature_repair
+    from test_ordinary_cash_rearm import _decide as repair_decide
+    policy,account,dates,panel,base,risk=_mature_repair()
     high=next(iter(base))
-    panel={high:panel[high]}
-    base={high:base[high]}
-    account.leader_tenure[high]=20
-    initial={s:replace(v,score=.81) if s!=high else v for s,v in base.items()}
-    assert _decide(policy,account,dates[0],panel,initial,
-                   replace(risk,target_gross_cap=policy.cfg.core_admission_weight))
+    assert repair_decide(policy,account,dates[0],panel,base,risk)
     assert ExecutionPlanner(policy.cfg).execute_open(date=dates[1],account=account,panel=panel)
     account.candidate_tenure['ordinary_repair_capital_active']=1
+    account.capital_budget_level=0
     for symbol,score,industry in zip(WITNESSES,(.94,.93,.92),('foundry','equipment','optical')):
-        panel[symbol]=panel[high].copy()
+        panel[symbol]=_strategic_frame(pd.bdate_range(end=dates[-1],periods=260))
+        panel[symbol]['open']=panel[symbol]['close']
+        panel[symbol]['high']=panel[symbol]['close']*1.01
+        panel[symbol]['low']=panel[symbol]['close']*.99
+        panel[symbol]['volume']=100_000_000.
+        panel[symbol]['amount']=panel[symbol]['close']*panel[symbol]['volume']
         leader=_leader(symbol,score,industry=industry)
         base[symbol]=replace(leader,components={**leader.components,'secular_score':.79})
     roles=build_strategic_universe_roles(as_of=str(dates[-1].date()),tradable_symbols=tuple(panel),
@@ -70,12 +74,16 @@ def test_current_full_certificate_can_use_free_capital_beside_repair_holding(los
     assert account.candidate_tenure['ordinary_repair_capital_active']==1
     assert account.positions[high].shares>0
     assert account.strategic_grant is None
+    assert sum(o.target_weight for o in account.pending_orders if o.side=='BUY') <= policy.cfg.core_admission_weight + 1e-12
     restored=account_from_dict(asdict(account))
     if lose_proof:
         panel[CHALLENGER].loc[dates[5],'volume']=10_000.
     fills=ExecutionPlanner(policy.cfg).execute_open(date=dates[5],account=restored,panel=panel)
     assert any(f.symbol==CHALLENGER and f.side=='BUY' for f in fills)
     assert not restored.positions[CHALLENGER].grant_id
+    if not lose_proof:
+        _decide(policy,restored,dates[6],panel,base,risk,roles=roles)
+        assert not any(o.side=='BUY' for o in restored.pending_orders)
     if lose_proof:
         assert any(o.symbol==CHALLENGER for o in restored.pending_orders)
         shares=restored.positions[CHALLENGER].shares
@@ -91,3 +99,29 @@ def test_current_full_certificate_can_use_free_capital_beside_repair_holding(los
         assert row['pending_entry_permission_open'] is False
         assert not any(o.symbol==CHALLENGER and o.side=='BUY' for o in restored.pending_orders)
         assert restored.positions[CHALLENGER].shares==shares
+
+
+def test_repair_origin_drift_and_restart_do_not_consume_independent_allowance():
+    from types import SimpleNamespace
+    from test_mature_cash_rearm import _mature_repair
+    from test_ordinary_cash_rearm import _decide as repair_decide
+    from uquant.portfolio.pipeline import _ordinary_admission_budget
+    from uquant.portfolio_core import current_weights
+    from uquant.types import StrategicCashRearmState
+    policy,account,dates,panel,leaders,risk=_mature_repair()
+    assert repair_decide(policy,account,dates[0],panel,leaders,risk)
+    assert ExecutionPlanner(policy.cfg).execute_open(date=dates[1],account=account,panel=panel)
+    account=account_from_dict(asdict(account))
+    account.strategic_cash_rearm=StrategicCashRearmState()
+    prices={s:float(panel[s].loc[dates[1],'close'])*3 for s in account.positions}
+    weights,_=current_weights(account,prices)
+    assert sum(weights.values())>policy.cfg.core_admission_weight
+    book=SimpleNamespace(account=account,policy=policy,risk=risk,committed=weights,
+                         weights_now=weights,owned=set())
+    assert _ordinary_admission_budget(book)==0
+    assert _ordinary_admission_budget(book,independently_qualified=True)==pytest.approx(policy.cfg.core_admission_weight)
+    # A surviving marker without its actual order/event cannot exempt capital.
+    for key in list(account.candidate_tenure):
+        if key.startswith('ordinary_repair_origin:'):
+            account.candidate_tenure[key+'-wrong-event']=account.candidate_tenure.pop(key)
+    assert _ordinary_admission_budget(book,independently_qualified=True)==0

@@ -945,6 +945,7 @@ def consume_ordinary_cash_rearm_authorization(
     state.authorized = False
     repair.status = FlatBookCapitalRepairStatus.CONSUMED.value
     account.candidate_tenure["ordinary_repair_capital_active"] = 1
+    account.candidate_tenure[f"ordinary_repair_origin:{order.order_id}:{order.event_id}"] = 1
 
 
 def _ordinary_rearm_order_identity(account: AccountState, order: PendingOrder) -> bool:

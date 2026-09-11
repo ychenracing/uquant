@@ -546,6 +546,32 @@ def _current_independent_entry(evidence: dict[str, Any], date: pd.Timestamp) -> 
             and evidence.get("qualification_quorum") in {"FULL_COHORT", "STRONG_PAIR", "ABSOLUTE_SINGLE"})
 
 
+def _repair_origin_commitment(book: AllocationBook) -> float:
+    """Recognize only capital linked to a natively consumed repair order."""
+    account = book.account
+    origins = {order.event_id: order for order in account.order_ledger
+               if order.side == "BUY" and not order.grant_id and not order.epoch_id
+               and account.candidate_tenure.get(
+                   f"ordinary_repair_origin:{order.order_id}:{order.event_id}") == 1}
+    total = 0.0
+    for symbol, committed in book.committed.items():
+        if symbol in book.owned:
+            continue
+        position = account.positions.get(symbol)
+        shares = sum(t.shares for t in position.tranches
+                     if t.event_id in origins and origins[t.event_id].symbol == symbol
+                     and any(f.side == "BUY" and f.shares > 0 and f.symbol == symbol
+                             and f.event_id == t.event_id and f.order_id == origins[t.event_id].order_id
+                             for f in account.fills)) if position is not None else 0
+        current = book.weights_now.get(symbol, 0.0)
+        held = current * shares / position.shares if position is not None and position.shares else 0.0
+        reserved = max((max(0.0, o.target_weight - current) for o in account.pending_orders
+                        if o.symbol == symbol and o.side == "BUY" and o.event_id in origins
+                        and o.order_id == origins[o.event_id].order_id), default=0.0)
+        total += min(committed, held + reserved)
+    return total
+
+
 def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified: bool = False) -> float | None:
     """Share bounded repair capital until the ordinary book and intents settle."""
     values: list[Any] = [book.risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120")]
@@ -555,9 +581,15 @@ def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified:
     ordinary = sum(weight for symbol, weight in book.committed.items() if symbol not in book.owned)
     if ordinary <= 0.0:
         book.account.candidate_tenure.pop("ordinary_repair_capital_active", None)
-    if max(values) > 0.0 and (independently_qualified
-                            or not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0)):
-        return book.policy.cfg.trend_entry_gross
+        for key in list(book.account.candidate_tenure):
+            if key.startswith("ordinary_repair_origin:"):
+                book.account.candidate_tenure.pop(key)
+    if max(values) > 0.0:
+        if not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0):
+            return book.policy.cfg.trend_entry_gross
+        if independently_qualified:
+            return max(0.0, book.policy.cfg.core_admission_weight
+                       - max(0.0, ordinary - _repair_origin_commitment(book)))
     return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
 
 
@@ -573,6 +605,7 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+    independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:
@@ -587,7 +620,7 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
         independent = _current_independent_entry(book.record(symbol).get("entry", {}), book.date)
-        allowance = _ordinary_admission_budget(book, independently_qualified=True) if independent else budget
+        allowance = independent_budget if independent else budget
         assert allowance is not None  # The shared market-input check above already passed.
         weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
         if not book.leaders[symbol].mature:

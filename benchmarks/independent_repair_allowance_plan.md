@@ -1,0 +1,11 @@
+# Z: shared independent admission allowance beside actual repair capital
+
+Y removed the synchronized-restoration health bypass: native nominal4.150252/25orders and offset20noopt2.656503/20orders PASS, cost4.117959/25orders FAIL60781.90 above unchanged40000. Original failures and raw evidence retained. Z is isolated from the PR's U production.
+
+X/Y let current independent certificates in a repair account use the full80% trend admission allowance. Z instead shares the existing20% base admission allowance among those new independently qualified entries. Normal accounts retain the original trend rule; maturity-only repair remains bounded as before. No numerical threshold or input changes.
+
+Only the natively consumed original repair order receives a persistent origin reference. Its remaining actual tranches and pending reservation are accounted separately so price appreciation in that position cannot consume all fresh independent admission capacity. The reference must match native order/event and actual BUY fills; no match means no exemption. New independent holdings and pending orders together consume the shared allowance across dates, candidates and codec restart. The origin metadata clears when the ordinary book and commitments settle. This is capital provenance, not strategic ownership or an extra entry qualification. Current proof-loss and base risk protections remain.
+
+The revised native repair+certificate fixture fails on Y because new targets total74.97% rather than at most20%; both READY certificate and actual repair fill are verified before the assertion. Z43 focused tests PASS, including real fills, later-day no repeated funding, partial-fill proof-loss cancellation, repaired-position appreciation after codec/state reset, incorrect event reference, normal ordinary capital and shared qualification controls. Earlier fixture attempts lacked sufficient qualification history and were corrected before claiming a discriminating failure.
+
+Freeze producer and run noopt nominal, doubled cost and offset20/noopt. Preserve all outcomes, compare exact input/runtime/runner identity and full ledger readbacks, use the original paired baseline evidence. Do not expand the acceptance matrix on screening failure. Financial ceiling remains40000; user has not authorized a change. No full acceptance or merge claim.

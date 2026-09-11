@@ -125,6 +125,11 @@ def candidate_behavior_from_subprocess(
             "uquant-task9-candidate-oracle-",
         )
         .replace("_validation_candidate_oracle.py", "_task9_candidate_oracle.py")
+        .replace("from uquant.validation.evidence_source import evidence_root\n", "")
+        .replace(
+            '(evidence_root() / "artifacts/phase2/champion-generalization-matrix.json")',
+            '(root / "artifacts/phase2/champion-generalization-matrix.json")',
+        )
     ).encode()
     assert projected == immutable_runner
     assert evidence_commit

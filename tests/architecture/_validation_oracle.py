@@ -22,6 +22,7 @@ from uquant.validation import generalization as generalization
 from uquant.validation import generalization_reference as policy_module
 from uquant.validation import holdout as holdout
 from uquant.validation import holdout_runtime as runtime
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.execution_journal import read_execution_journal
 from uquant.validation.holdout import HoldoutBinding
 from uquant.validation.holdout_lanes import (
@@ -133,7 +134,7 @@ def _source_identity(root: Path) -> dict[str, object]:
 def _generalization_success(root: Path) -> dict[str, object]:
     baseline = policy_module.load_generalization_baseline()
     policy = policy_module.load_generalization_policy()
-    champion_path = root / "artifacts/phase2/champion-generalization-matrix.json"
+    champion_path = evidence_root() / "artifacts/phase2/champion-generalization-matrix.json"
     champion = json.loads(champion_path.read_text(encoding="utf-8"))
     evaluation = policy_module.evaluate_generalization_policy_artifact(
         champion,
@@ -162,7 +163,8 @@ def _generalization_success(root: Path) -> dict[str, object]:
         "benchmarks/ai_era_generalization_policy.json",
         "artifacts/phase2/champion-generalization-matrix.json",
     ):
-        content = (root / relative).read_bytes()
+        path = champion_path if relative == "artifacts/phase2/champion-generalization-matrix.json" else root / relative
+        content = path.read_bytes()
         tracked[relative] = {
             "size_bytes": len(content),
             "sha256": hashlib.sha256(content).hexdigest(),

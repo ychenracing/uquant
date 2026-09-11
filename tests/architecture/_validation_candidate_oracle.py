@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from uquant.validation import generalization_reference as policy_module
 from uquant.validation import holdout, holdout_runtime
+from uquant.validation.evidence_source import evidence_root
 
 from . import _validation_oracle as frozen
 
@@ -21,7 +22,7 @@ _FROZEN_HOLDOUT_SOURCE_SHA256 = (
 
 def _frozen_generalization_binding(root: Path) -> tuple[str, str]:
     champion = json.loads(
-        (root / "artifacts/phase2/champion-generalization-matrix.json").read_text(
+        (evidence_root() / "artifacts/phase2/champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )

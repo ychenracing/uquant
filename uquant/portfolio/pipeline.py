@@ -34,7 +34,7 @@ from ..types import (
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
-from .ordinary import observe_ordinary_market, observe_repair_maturity, ordinary_core_entry, ordinary_repair_entry, rearm_ordinary_market
+from .ordinary import observe_ordinary_market, observe_persistent_maturity, observe_repair_maturity, ordinary_core_entry, ordinary_repair_entry, rearm_ordinary_market
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
@@ -384,10 +384,18 @@ def _pending_intents(book: AllocationBook, *, buy_open: bool, market: dict[str, 
                 market=market,
             ) if order.symbol in book.leaders else {"block": "CURRENT_LEADER_UNAVAILABLE"}
             book.record(order.symbol)["pending_entry"] = evidence
-            permission_open = not repair_order or repair_open
+            qualified_capital_closed = (
+                bool(book.account.candidate_tenure.get("ordinary_repair_capital_active", 0))
+                and not repair_order and not _current_independent_entry(evidence, book.date)
+                and sum(w for s, w in book.committed.items() if s not in book.owned)
+                > book.policy.cfg.core_admission_weight + 1e-12
+            )
+            permission_open = (not repair_order or repair_open) and not qualified_capital_closed
             book.record(order.symbol)["pending_entry_permission_open"] = permission_open and evidence["block"] == "READY"
             if not permission_open:
-                book.record(order.symbol)["entry_gate"] = "CASH_REPAIR_PERMISSION_CLOSED"
+                book.record(order.symbol)["entry_gate"] = (
+                    "INDEPENDENT_CAPITAL_PROOF_REQUIRED" if qualified_capital_closed
+                    else "CASH_REPAIR_PERMISSION_CLOSED")
             if (evidence["block"] != "READY" or not permission_open
                     or book.proposed.get(order.symbol, 0.0) < current):
                 book.record(order.symbol)["pending_buy_rejected"] = True
@@ -474,8 +482,8 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
             and risk.shock_state in {"RECOVERY", "ROTATION_RECOVERY", "FAST_V_RECOVERY"})
             or (account.capital_budget_level <= 1 and account.chronic_level >= 1
             and account.chronic_repair_streak >= 2)
+            or synchronized
         ))
-        or synchronized
     )
 
 
@@ -533,7 +541,38 @@ def _fresh_core_selection(
     return occupied, eligible, immature_occupied
 
 
-def _ordinary_admission_budget(book: AllocationBook) -> float | None:
+def _current_independent_entry(evidence: dict[str, Any], date: pd.Timestamp) -> bool:
+    return (evidence.get("block") == "READY" and evidence.get("as_of") == str(date.date())
+            and evidence.get("qualification_quorum") in {"FULL_COHORT", "STRONG_PAIR", "ABSOLUTE_SINGLE"})
+
+
+def _repair_origin_commitment(book: AllocationBook) -> float:
+    """Recognize only capital linked to a natively consumed repair order."""
+    account = book.account
+    origins = {order.event_id: order for order in account.order_ledger
+               if order.side == "BUY" and not order.grant_id and not order.epoch_id
+               and account.candidate_tenure.get(
+                   f"ordinary_repair_origin:{order.order_id}:{order.event_id}") == 1}
+    total = 0.0
+    for symbol, committed in book.committed.items():
+        if symbol in book.owned:
+            continue
+        position = account.positions.get(symbol)
+        shares = sum(t.shares for t in position.tranches
+                     if t.event_id in origins and origins[t.event_id].symbol == symbol
+                     and any(f.side == "BUY" and f.shares > 0 and f.symbol == symbol
+                             and f.event_id == t.event_id and f.order_id == origins[t.event_id].order_id
+                             for f in account.fills)) if position is not None else 0
+        current = book.weights_now.get(symbol, 0.0)
+        held = current * shares / position.shares if position is not None and position.shares else 0.0
+        reserved = max((max(0.0, o.target_weight - current) for o in account.pending_orders
+                        if o.symbol == symbol and o.side == "BUY" and o.event_id in origins
+                        and o.order_id == origins[o.event_id].order_id), default=0.0)
+        total += min(committed, held + reserved)
+    return total
+
+
+def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified: bool = False) -> float | None:
     """Share bounded repair capital until the ordinary book and intents settle."""
     values: list[Any] = [book.risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120")]
     if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -542,8 +581,15 @@ def _ordinary_admission_budget(book: AllocationBook) -> float | None:
     ordinary = sum(weight for symbol, weight in book.committed.items() if symbol not in book.owned)
     if ordinary <= 0.0:
         book.account.candidate_tenure.pop("ordinary_repair_capital_active", None)
-    if max(values) > 0.0 and not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0):
-        return book.policy.cfg.trend_entry_gross
+        for key in list(book.account.candidate_tenure):
+            if key.startswith("ordinary_repair_origin:"):
+                book.account.candidate_tenure.pop(key)
+    if max(values) > 0.0:
+        if not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0):
+            return book.policy.cfg.trend_entry_gross
+        if independently_qualified:
+            return max(0.0, book.policy.cfg.core_admission_weight
+                       - max(0.0, ordinary - _repair_origin_commitment(book)))
     return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
 
 
@@ -559,6 +605,7 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+    independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:
@@ -572,7 +619,10 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
         if symbol not in selected:
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
-        weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
+        independent = _current_independent_entry(book.record(symbol).get("entry", {}), book.date)
+        allowance = independent_budget if independent else budget
+        assert allowance is not None  # The shared market-input check above already passed.
+        weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
         if not book.leaders[symbol].mature:
             weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
@@ -750,6 +800,9 @@ def _allocate_strategy(
     rearm_ordinary_market(account=account, date=date, risk=risk, market=market,
                           confirmation_days=self.cfg.leader_tenure_days)
     observe_repair_maturity(self, account=account, date=date, market=market, user_panel=user_panel)
+    observe_persistent_maturity(self, account=account, date=date, market=market,
+        opportunity=opportunity, risk=risk, leaders=qualification_leaders or leaders,
+        user_panel=qualification_panel or user_panel)
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
                                   trace=book.trace, certificates=certificates, market=market)
     recovery_active = False if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)

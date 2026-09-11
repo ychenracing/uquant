@@ -57,9 +57,47 @@ def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
         and not qualification.qualification_ready
         and not qualification.deployment_blocked
     )
-    local_open = (market is not None and market.get("mature_entry_open") is True
+    local_open = (market is not None and (market.get("mature_entry_open") is True
+                  or market.get("persistent_mature_entry_open") is True)
                   and not strategic_claims and not forming_full)
     return local_open
+
+
+def observe_persistent_maturity(self: PortfolioAllocator, *, account: AccountState,
+                                date: pd.Timestamp, market: dict[str, Any],
+                                opportunity: Opportunity, risk: RiskAssessment,
+                                leaders: dict[str, LeaderScore],
+                                user_panel: dict[str, pd.DataFrame]) -> None:
+    """Reference leaders witness sustained market strength, never stock eligibility."""
+    key, count_key = "ordinary_persistence_session", "ordinary_persistence_count"
+    session, previous = date.toordinal(), account.candidate_tenure.get(key, 0)
+    if session < previous:
+        raise ValueError("ordinary persistence observations must be causal")
+    clock = self._session_clock(user_panel, date)
+    earlier = clock[clock < date]
+    prior = earlier[-1].toordinal() if len(earlier) else 0
+    witnesses = sorted(s for s, leader in leaders.items()
+                       if s in user_panel and date in user_panel[s].index
+                       and leader.mature and leader.score >= .82
+                       and leader.confidence >= self.cfg.leader_min_confidence)
+    legs = [risk.evidence.get(k) for k in ("broad_ret120", "tech_ret120")]
+    aligned = (all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                   and math.isfinite(v) for v in legs)
+               and min(legs) >= -.01 and max(legs) >= .01)
+    healthy = (market.get("as_of") == str(date.date())
+               and not market.get("missing_market_fields") and aligned
+               and opportunity is Opportunity.STRONG_TREND and risk.votes <= 1
+               and risk.state is Risk.NORMAL and not risk.freeze_new_risk
+               and not any(risk.evidence.get(k, False) for k in
+                           ("freeze_new_risk", "sentinel_freeze_new_risk", "sector_guard_active"))
+               and not account.sector_guard_active
+               and len(witnesses) >= self.cfg.strategic_cohort_min_size)
+    count = account.candidate_tenure.get(count_key, 0) if previous in {prior, session} else 0
+    count = min(self.cfg.leader_tenure_days, count + int(previous != session)) if healthy else 0
+    account.candidate_tenure.update({key: session, count_key: count})
+    market["persistent_mature_entry_open"] = healthy and count >= self.cfg.leader_tenure_days
+    market["persistent_maturity"] = {"witnesses": witnesses, "observed": count,
+                                      "required": self.cfg.leader_tenure_days}
 
 
 def observe_repair_maturity(self: PortfolioAllocator, *, account: AccountState,
@@ -95,6 +133,11 @@ def ordinary_core_entry(
     )
     tenure = account.leader_tenure.get(symbol, 0)
     local_open = _ordinary_maturity_available(account, date, market)
+    persistent_only = bool(market and market.get("persistent_mature_entry_open") is True
+                           and not market.get("mature_entry_open") and not market.get("impulse"))
+    credible = account.replacement_tenure.get("ordinary_repair_maturity:" + symbol, 0)
+    if persistent_only and credible < self.cfg.leader_tenure_days:
+        local_open = False
     if repair_pending:
         if account.strategic_cash_rearm.qualification_quorum == "MATURE_CORE":
             return ordinary_repair_entry(
@@ -112,6 +155,9 @@ def ordinary_core_entry(
             "required_confirmation": self.cfg.leader_tenure_days,
             "confirmations": {"leader_tenure": tenure}, "as_of": str(date.date()),
         }
+        if persistent_only:
+            certificate["confirmations"].update(credible_maturity=credible,
+                                                 market_persistence=market["persistent_maturity"])
     return candidate_entry(
         self, symbol=symbol, score=score, date=date, user_panel=user_panel,
         account=account, confirmation_days=confirmation_days, certificate=certificate,

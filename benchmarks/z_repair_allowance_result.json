@@ -1,0 +1,71 @@
+{
+  "source_mapping": {
+    "source": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+    "local": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+    "remote": "ce93b65a441db19ba672fac2abbfd5ec1cd012ae",
+    "tree": "237170fac420aff206231427353207f5b0779754"
+  },
+  "outcomes": [
+    {
+      "failures": [],
+      "metrics": {
+        "account_orders": 23,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "name": "nominal-noopt",
+      "status": "PASS"
+    },
+    {
+      "failures": [
+        "absolute cost ceiling"
+      ],
+      "metrics": {
+        "account_orders": 23,
+        "fees": 17078.92695088,
+        "final_wealth": 3.32885014152456,
+        "max_drawdown": 0.2595260581942178,
+        "slippage_cost": 28923.789999999946
+      },
+      "name": "cost-noopt",
+      "status": "FAIL"
+    },
+    {
+      "failures": [],
+      "metrics": {
+        "account_orders": 18,
+        "fees": 4956.978424044,
+        "final_wealth": 2.116899619087978,
+        "max_drawdown": 0.21919000408157907,
+        "slippage_cost": 8624.383399999559
+      },
+      "name": "offset20-noopt",
+      "status": "PASS"
+    }
+  ],
+  "actual_best": "sh688498",
+  "complete_acceptance": false,
+  "cost_status": "FAIL_UNCHANGED_40000_CEILING",
+  "archive": {
+    "sha256": "7e34b8cd94d8516a8ec116275559bd7c8bfd9aa90a5727f7b05e54a458e2d70e",
+    "bytes": 109306573,
+    "receipt": {
+      "results": [
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/z-independent-repair-20260911/z_independent_repair_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_0000000056d881f58f8c28300ebb299a",
+          "library_file_id": "libfile_10a4e007b2cc8191bc1a0a061dfb6d5e",
+          "file_name": "z_independent_repair_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/z_independent_repair_20260911.tar.gz",
+          "current_version_number": 0
+        }
+      ]
+    }
+  },
+  "decision": "No merge or economic waiver. AA tests charging true repair purchase principal to the same allowance, separating only appreciation."
+}

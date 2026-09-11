@@ -359,32 +359,37 @@ def test_current_promotion_uses_frozen_continuous_floor_and_absolute_activity_ca
         name="b/continuous_ai_era", metrics=candidate,
         gate=promotion_module.AI_ERA_POLICY["official"]["continuous_ai_era"],
     ) == []
-    candidate["account_orders"] = 21
+    candidate["account_orders"] = 41
     assert any("account_orders" in failure for failure in promotion_module._hard_violations(
         name="b/continuous_ai_era", metrics=candidate,
         gate=promotion_module.AI_ERA_POLICY["official"]["continuous_ai_era"],
     ))
-    candidate["final_wealth"] = 23.28417871275582 * 0.9 - 1e-8
+    candidate["final_wealth"] = 15.0 - 1e-8
     assert any("final_wealth" in failure for failure in promotion_module._champion_violations(
         name="b/continuous_ai_era", metrics=candidate, champion=champion,
     ))
 
 
-def test_authorized_e_order_revision_is_bounded_and_preserves_risk() -> None:
+def test_authorized_order_revision_is_bounded_and_preserves_risk() -> None:
     gate = promotion_module.AI_ERA_POLICY["official"]["continuous_ai_era"]
     metrics = {**_valid_spec()["champion"]["cells"]["e/continuous_ai_era"],
-               "account_orders": 20}
+               "account_orders": 40}
     assert gate["max_account_orders"] == 15
     assert promotion_module._hard_violations(name="e/continuous_ai_era", metrics=metrics, gate=gate) == []
     for name, changed in (
-        ("e/continuous_ai_era", {"account_orders": 21}),
-        ("b/continuous_ai_era", {"account_orders": 21}),
-        ("d/continuous_ai_era", {"account_orders": 21}),
+        ("e/continuous_ai_era", {"account_orders": 41}),
+        ("b/continuous_ai_era", {"account_orders": 41}),
+        ("d/continuous_ai_era", {"account_orders": 41}),
         ("e/continuous_ai_era", {"max_drawdown": .2726}),
     ):
         assert promotion_module._hard_violations(name=name, metrics={**metrics, **changed}, gate=gate)
     basis = promotion_module.current_promotion_acceptance_basis()["authorized_order_limit"]
-    assert basis["maximum"] == 20 and basis["previous_maximum"] == 15
+    assert basis["maximum"] == 40
+    assert basis["scenario"] == "all_account_replays"
+    assert basis["authorization_id"] == "cross-ai-principal15-orders40-20260910-v4"
+    assert promotion_module._hard_violations(
+        name="e/continuous_ai_era", metrics=metrics, gate=gate, authorized=False,
+    )
     assert basis["authorized_after_observing_candidate"] is True
 
 

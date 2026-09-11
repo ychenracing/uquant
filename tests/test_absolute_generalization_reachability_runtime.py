@@ -7,6 +7,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 import pytest
+from _absolute_contract_fixture import historical_contract_source as historical_contract_source
 from _absolute_generalization_reachability_fixture import (
     failed_recovery_trace,
     failed_successor_chain,

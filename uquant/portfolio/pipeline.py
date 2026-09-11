@@ -29,21 +29,27 @@ from ..types import (
     PendingOrder,
     Risk,
     RiskAssessment,
+    StrategicGrantIntent,
     Target,
 )
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
 from .leaders.lifecycle import ordinary_pullback_exit
-from .ordinary import observe_ordinary_market, observe_persistent_maturity, observe_repair_maturity, ordinary_core_entry, ordinary_repair_entry, rearm_ordinary_market
+from .ordinary import (
+    is_consumed_repair_order,
+    observe_ordinary_market,
+    observe_persistent_maturity,
+    observe_repair_maturity,
+    ordinary_core_entry,
+    ordinary_repair_entry,
+    rearm_ordinary_market,
+)
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
 from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_cohort_entry
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
-from .strategic.qualification_candidates import (
-    candidate_entry as _candidate_entry,
-)
 from .strategic.qualification_candidates import (
     reset_strategic_candidate_eligibility,
 )
@@ -299,6 +305,14 @@ def _fund_strategic_owners(book: AllocationBook, *, frozen: bool,
                   concentration_cap=founding_cap)
 
 
+def _completed_ordinary_exit_owner(account: AccountState, grant: StrategicGrantIntent | None, symbol: str,
+                                   full_settled: bool, full_members: set[str]) -> bool:
+    """Completed strategic entries may use the ordinary structural exit."""
+    return ((grant is not None and grant.candidate_symbol == symbol
+             and _completed_strategic_core_entry(account, grant))
+            or (full_settled and symbol in full_members))
+
+
 def _ordinary_exits(book: AllocationBook) -> None:
     """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
     account = book.account
@@ -323,10 +337,8 @@ def _ordinary_exits(book: AllocationBook) -> None:
         # Keep its disaster/risk reductions; do not overlay an ordinary exit.
         if symbol in book.owned and symbol == dominant and profit_locked:
             continue
-        if symbol in book.owned and not (
-            (grant is not None and grant.candidate_symbol == symbol
-             and _completed_strategic_core_entry(account, grant))
-            or (full_settled and symbol in full_members)
+        if symbol in book.owned and not _completed_ordinary_exit_owner(
+            account, grant, symbol, full_settled, full_members,
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
@@ -354,6 +366,17 @@ def _ordinary_exits(book: AllocationBook) -> None:
         book.record(symbol)["allocation_reason"] = "CONFIRMED_STRUCTURAL_EXIT"
 
 
+def _pending_independent_capital_required(book: AllocationBook, repair_order: bool,
+                                          evidence: dict[str, Any]) -> bool:
+    """Non-repair intents above admission capital require independent proof."""
+    return (
+        bool(book.account.candidate_tenure.get("ordinary_repair_capital_active", 0))
+        and not repair_order and not _current_independent_entry(evidence, book.date)
+        and sum(w for s, w in book.committed.items() if s not in book.owned)
+        > book.policy.cfg.core_admission_weight + 1e-12
+    )
+
+
 def _pending_intents(book: AllocationBook, *, buy_open: bool, market: dict[str, Any],
                      certificates: dict[str, dict[str, Any]] | None = None) -> None:
     for order in book.account.pending_orders:
@@ -373,9 +396,7 @@ def _pending_intents(book: AllocationBook, *, buy_open: bool, market: dict[str, 
             repair_open = ordinary_cash_rearm_order_open(
                 account=book.account, risk=book.risk, cfg=book.policy.cfg, order=order,
             )
-            reference = book.account.strategic_cash_rearm.consumed_order
-            repair_order = (reference is not None and order.order_id == reference.order_id
-                            and order.event_id == reference.event_id)
+            repair_order = is_consumed_repair_order(book.account, order)
             evidence = ordinary_core_entry(
                 book.policy, symbol=order.symbol, score=book.leaders[order.symbol],
                 date=book.date, user_panel=book.user_panel, account=book.account,
@@ -384,12 +405,7 @@ def _pending_intents(book: AllocationBook, *, buy_open: bool, market: dict[str, 
                 market=market,
             ) if order.symbol in book.leaders else {"block": "CURRENT_LEADER_UNAVAILABLE"}
             book.record(order.symbol)["pending_entry"] = evidence
-            qualified_capital_closed = (
-                bool(book.account.candidate_tenure.get("ordinary_repair_capital_active", 0))
-                and not repair_order and not _current_independent_entry(evidence, book.date)
-                and sum(w for s, w in book.committed.items() if s not in book.owned)
-                > book.policy.cfg.core_admission_weight + 1e-12
-            )
+            qualified_capital_closed = _pending_independent_capital_required(book, repair_order, evidence)
             permission_open = (not repair_order or repair_open) and not qualified_capital_closed
             book.record(order.symbol)["pending_entry_permission_open"] = permission_open and evidence["block"] == "READY"
             if not permission_open:
@@ -475,7 +491,7 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
                     and "two-day synchronized leader repair" in risk.reasons
                     and account.capital_budget_level <= 1 and account.chronic_level <= 1)
     return bool(
-        (repair and (
+        repair and (
             (level1 and account.capital_budget_repair_streak >= 2)
             or (level1 and account.capital_budget_repair_streak >= 1
             and risk.state is Risk.CAUTION
@@ -483,7 +499,7 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
             or (account.capital_budget_level <= 1 and account.chronic_level >= 1
             and account.chronic_repair_streak >= 2)
             or synchronized
-        ))
+        )
     )
 
 
@@ -546,6 +562,14 @@ def _current_independent_entry(evidence: dict[str, Any], date: pd.Timestamp) -> 
             and evidence.get("qualification_quorum") in {"FULL_COHORT", "STRONG_PAIR", "ABSOLUTE_SINGLE"})
 
 
+def _repair_tranche_filled(account: AccountState, symbol: str, event_id: str,
+                           order_id: str) -> bool:
+    """A repair tranche needs its matching positive native BUY fill."""
+    return any(f.side == "BUY" and f.shares > 0 and f.symbol == symbol
+               and f.event_id == event_id and f.order_id == order_id
+               for f in account.fills)
+
+
 def _repair_origin_commitment(book: AllocationBook) -> float:
     """Recognize only capital linked to a natively consumed repair order."""
     account = book.account
@@ -560,9 +584,8 @@ def _repair_origin_commitment(book: AllocationBook) -> float:
         position = account.positions.get(symbol)
         shares = sum(t.shares for t in position.tranches
                      if t.event_id in origins and origins[t.event_id].symbol == symbol
-                     and any(f.side == "BUY" and f.shares > 0 and f.symbol == symbol
-                             and f.event_id == t.event_id and f.order_id == origins[t.event_id].order_id
-                             for f in account.fills)) if position is not None else 0
+                     and _repair_tranche_filled(account, symbol, t.event_id, origins[t.event_id].order_id)
+                     ) if position is not None else 0
         current = book.weights_now.get(symbol, 0.0)
         held = current * shares / position.shares if position is not None and position.shares else 0.0
         reserved = max((max(0.0, o.target_weight - current) for o in account.pending_orders

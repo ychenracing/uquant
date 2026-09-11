@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import inspect
 import json
+import runpy
 import shutil
 import subprocess
 import sys
@@ -10,6 +11,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from _absolute_contract_fixture import native_champion_contract as native_champion_contract
 from _absolute_generalization_acceptance_fixture import (
     _cell_raw,
     reseal_manifest,
@@ -29,6 +31,7 @@ from scripts.run_absolute_generalization_acceptance import (
     write_cached_cell,
 )
 from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256
+from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.validation.absolute_generalization import (
     build_leave_one_out_scenarios,
     load_absolute_generalization_contract,
@@ -701,65 +704,72 @@ def test_non_success_upstream_result_is_downgrade_only_and_exits_nonzero(
     assert report["runner_failures"] == ["workflow upstream failure: matrix-result=failure"]
 
 
+def _fixture_cli_entry(arguments: list[str], monkeypatch: pytest.MonkeyPatch) -> int:
+    """Exercise the actual CLI entry under the explicitly imported unit context."""
+    script = ROOT / "scripts/run_absolute_generalization_acceptance.py"
+    monkeypatch.setattr(sys, "argv", [str(script), *arguments])
+    with pytest.raises(SystemExit) as exited:
+        runpy.run_path(str(script), run_name="__main__")
+    return exited.value.code
+
+
 @pytest.mark.parametrize(("upstream", "expected"), (("success", 0), ("failure", 1)))
-def test_final_real_cli_process_preserves_blocking_exit_and_sealed_report(
-    tmp_path: Path, upstream: str, expected: int
+def test_final_fixture_cli_entry_preserves_blocking_exit_and_sealed_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, upstream: str, expected: int
 ) -> None:
     root = tmp_path / "shards"
     root.mkdir()
     _write_final_manifests(root)
     output = tmp_path / "report.json"
 
-    completed = subprocess.run(
-        [
-            sys.executable,
-            str(ROOT / "scripts/run_absolute_generalization_acceptance.py"),
-            *_final_args(root, output, upstream=upstream),
-        ],
-        cwd=ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    code = _fixture_cli_entry(_final_args(root, output, upstream=upstream), monkeypatch)
 
-    assert completed.returncode == expected
+    assert code == expected
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["passed"] is (upstream == "success")
     assert report["canonical_sha256"]
 
 
-def test_execution_real_cli_process_seals_error_and_exits_nonzero(
-    tmp_path: Path,
-) -> None:
-    output = tmp_path / "manifest.json"
-    completed = subprocess.run(
-        [
-            sys.executable,
-            str(ROOT / "scripts/run_absolute_generalization_acceptance.py"),
-            "--shard",
-            "loo-a",
-            "--run-id",
-            "error-run",
-            "--run-attempt",
-            "1",
-            "--output",
-            str(output),
-            "--cache-dir",
-            str(tmp_path / "cache"),
-            "--data-dir",
-            str(tmp_path / "missing-frozen-data"),
-        ],
-        cwd=ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+def _missing_data_args(tmp_path: Path) -> list[str]:
+    return [
+        "--shard", "loo-a", "--run-id", "error-run", "--run-attempt", "1",
+        "--output", str(tmp_path / "manifest.json"),
+        "--cache-dir", str(tmp_path / "cache"),
+        "--data-dir", str(tmp_path / "missing-frozen-data"),
+    ]
 
-    assert completed.returncode == 1
-    raw = json.loads(output.read_text(encoding="utf-8"))
+
+def test_execution_fixture_cli_entry_seals_error_and_exits_nonzero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    code = _fixture_cli_entry(_missing_data_args(tmp_path), monkeypatch)
+
+    assert code == 1
+    raw = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert raw["status"] == "ERROR"
     assert raw["run_id"] == "error-run"
     assert raw["canonical_sha256"]
+
+
+def test_real_cli_process_enforces_actual_checkout_source_before_execution(
+    tmp_path: Path,
+) -> None:
+    """Parent unit mocks cannot certify the real child process's checkout."""
+    frozen = json.loads((ROOT / "benchmarks/absolute_generalization_acceptance_contract.json").read_bytes())
+    actual_source = source_surface_fingerprint(ROOT, "economic_decision_v1")
+    completed = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/run_absolute_generalization_acceptance.py"),
+         *_missing_data_args(tmp_path)],
+        cwd=ROOT, check=False, capture_output=True, text=True,
+    )
+    assert completed.returncode == 1
+    output = tmp_path / "manifest.json"
+    if actual_source != frozen["candidate"]["production_source_sha256"]:
+        assert "candidate source identity differs" in completed.stderr
+        assert not output.exists()
+    else:
+        # A legitimately matching producer reaches the missing-data failure path.
+        assert json.loads(output.read_text(encoding="utf-8"))["status"] == "ERROR"
 
 
 @pytest.mark.parametrize(

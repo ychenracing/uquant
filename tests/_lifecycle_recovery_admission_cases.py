@@ -146,6 +146,8 @@ def test_risk_anchor_breadth_does_not_create_tradable_qualification() -> None:
     for index, symbol in enumerate(symbols):
         frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
         frame["ret120"] = -0.40 + 0.02 * index
+        # Risk metadata cannot replace executable liquidity in each tradable.
+        frame["amount"] = 0.0
         panel[symbol] = frame
     risk = RiskAssessment(
         Risk.NORMAL,
@@ -263,6 +265,8 @@ def test_unconfirmed_recovery_candidates_cannot_create_a_hidden_target_book() ->
     for index, symbol in enumerate(symbols):
         frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
         frame["ret120"] = -0.40 + 0.02 * index
+        # Risk metadata cannot replace executable liquidity in each tradable.
+        frame["amount"] = 0.0
         panel[symbol] = frame
     risk = RiskAssessment(
         Risk.NORMAL,
@@ -309,6 +313,8 @@ def test_reported_universe_size_cannot_authorize_unqualified_recovery_entry(
     for index, symbol in enumerate(symbols):
         frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
         frame["ret120"] = -0.40 + 0.02 * index
+        # Risk metadata cannot replace executable liquidity in each tradable.
+        frame["amount"] = 0.0
         panel[symbol] = frame
     risk = RiskAssessment(
         Risk.NORMAL,
@@ -353,6 +359,8 @@ def test_ambiguous_recovery_metadata_cannot_authorize_unqualified_deployment() -
     for index, symbol in enumerate(symbols):
         frame = _trend_frame(dates, close=np.linspace(0.80, 1.00, len(dates)))
         frame["ret120"] = -0.40 + 0.02 * index
+        # Risk metadata cannot replace executable liquidity in each tradable.
+        frame["amount"] = 0.0
         panel[symbol] = frame
     risk = RiskAssessment(
         Risk.NORMAL,

@@ -313,3 +313,26 @@ def test_architecture_validation_closes_all_raw_private_edges() -> None:
     observed = scan_governed_private_edges(current_governed_sources())
     assert observed["direct"] == []
     assert observed["qualified"] == []
+
+
+@pytest.mark.parametrize(
+    ("private", "public"),
+    (
+        ("_champion_violations", "champion_violations"),
+        ("_compact", "compact_promotion_payload"),
+        ("_hard_violations", "hard_violations"),
+        ("_load_spec", "load_promotion_spec"),
+        ("_protected_gate", "protected_gate"),
+        ("_replay_promotion_unit", "replay_promotion_unit"),
+        ("_runtime_provenance", "runtime_provenance"),
+    ),
+)
+def test_fixed_promotion_screen_uses_canonical_public_capabilities(
+    private: str, public: str,
+) -> None:
+    from research import fixed_promotion_screen
+    from uquant.validation import promotion
+
+    capability = getattr(promotion, public)
+    assert capability is getattr(promotion, private)
+    assert getattr(fixed_promotion_screen, private) is capability

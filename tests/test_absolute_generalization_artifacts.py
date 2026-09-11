@@ -4,6 +4,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
+from _absolute_contract_fixture import historical_contract_source as historical_contract_source
 from _absolute_generalization_metrics_fixture import (
     complete_replay,
     payload,

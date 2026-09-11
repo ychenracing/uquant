@@ -973,6 +973,24 @@ def test_risk_moved_helper_bodies_are_exactly_bound_to_immutable_source() -> Non
         "for symbol, position in account.positions.items() if position.shares > 0)",
         mode="eval",
     ).body)
+    # Accepted active-anchor repair preserves armed/break memory on rank-only
+    # changes, while retaining ordered admission confirmation (PR58).
+    anchor = immutable["_update_dynamic_anchors"]
+    confirmation = next(
+        node for node in ast.walk(anchor)
+        if isinstance(node, ast.If)
+        and ast.unparse(node.test)
+        == "account.risk_anchor_candidate_streak >= cfg.risk_anchor_confirm_days"
+    )
+    resets = confirmation.body[-2:]
+    assert [ast.unparse(node) for node in resets] == [
+        "account.risk_streaks['reference_anchor_armed'] = 0",
+        "account.risk_streaks['reference_anchor_break'] = 0",
+    ]
+    confirmation.body = [ast.If(
+        test=ast.parse("set(candidate) != set(account.risk_anchor_symbols)", mode="eval").body,
+        body=resets, orelse=[],
+    ), *confirmation.body[:-2]]
     for name, owner in _MOVED_HELPER_OWNERS.items():
         candidate = _top_level_definitions(
             ast.parse((ROOT / owner).read_text(encoding="utf-8"), filename=owner)

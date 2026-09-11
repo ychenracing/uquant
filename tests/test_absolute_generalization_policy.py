@@ -4,6 +4,7 @@ import copy
 from dataclasses import FrozenInstanceError, replace
 
 import pytest
+from _absolute_contract_fixture import native_champion_contract as native_champion_contract
 from _absolute_generalization_acceptance_fixture import (
     manifest,
     reseal_manifest,

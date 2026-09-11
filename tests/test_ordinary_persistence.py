@@ -52,7 +52,7 @@ def test_persistent_reference_evidence_still_needs_own_five_current_observations
 
 @pytest.mark.parametrize('damage', ['freeze', 'witness', 'missing', 'gap', 'stale'])
 def test_market_persistence_resets_on_invalid_or_missing_sessions(damage):
-    p, a, dates, panel, leaders, risk, refs, frames, symbol = _setup()
+    p, a, dates, panel, leaders, risk, refs, frames, _symbol = _setup()
     for day in dates[:4]:
         _observe(p, a, day, panel, leaders, risk, refs, frames)
     if damage == 'freeze':

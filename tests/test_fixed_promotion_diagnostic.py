@@ -19,3 +19,23 @@ def test_existing_diagnostic_result_is_not_overwritten(tmp_path: Path):
     with pytest.raises(RuntimeError, match="preserve it"):
         diagnose_promotion_unit(case="bull", output=tmp_path)
     assert result.read_text() == "prior failed evidence\n"
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    (
+        ('{"key": 1, "key": 2}', "duplicate key"),
+        ('{"key": NaN}', "non-standard number"),
+        ('[]', "must be a JSON object"),
+    ),
+)
+def test_public_spec_loader_rejects_corrupt_baselines(
+    tmp_path: Path, payload: str, message: str,
+) -> None:
+    from uquant.validation.promotion import load_promotion_spec
+
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text(payload)
+    with pytest.raises(RuntimeError, match=message):
+        load_promotion_spec(baseline)
+    assert baseline.read_text() == payload

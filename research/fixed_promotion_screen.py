@@ -14,14 +14,28 @@ from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.validation.promotion import (
     AI_ERA_POLICY,
     PROTECTED_INTERVALS,
-    _champion_violations,
-    _compact,
-    _hard_violations,
-    _load_spec,
-    _protected_gate,
-    _replay_promotion_unit,
-    _runtime_provenance,
     current_promotion_acceptance_basis,
+)
+from uquant.validation.promotion import (
+    champion_violations as _champion_violations,
+)
+from uquant.validation.promotion import (
+    compact_promotion_payload as _compact,
+)
+from uquant.validation.promotion import (
+    hard_violations as _hard_violations,
+)
+from uquant.validation.promotion import (
+    load_promotion_spec as _load_spec,
+)
+from uquant.validation.promotion import (
+    protected_gate as _protected_gate,
+)
+from uquant.validation.promotion import (
+    replay_promotion_unit as _replay_promotion_unit,
+)
+from uquant.validation.promotion import (
+    runtime_provenance as _runtime_provenance,
 )
 
 

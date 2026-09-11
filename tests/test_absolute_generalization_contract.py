@@ -8,6 +8,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from _absolute_contract_fixture import (
+    HISTORICAL_CONTRACT_SOURCE,
+)
+from _absolute_contract_fixture import (
+    historical_contract_source as historical_contract_source,
+)
 
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.contracts.strict_json import canonical_json_bytes
@@ -252,9 +258,7 @@ def test_contract_binds_candidate_and_frozen_inputs_to_independent_authorities()
     assert raw["candidate"] == {
         "baseline_commit": BASELINE_COMMIT,
         "baseline_source_sha256": BASELINE_SOURCE_AT_COMMIT,
-        "production_source_sha256": source_surface_fingerprint(
-            ROOT, "economic_decision_v1"
-        ),
+        "production_source_sha256": HISTORICAL_CONTRACT_SOURCE,
         "source_surface_id": "economic_decision_v1",
         "source_surface_registry_sha256": CURRENT_SOURCE_REGISTRY_SHA256,
     }
@@ -301,9 +305,7 @@ def test_candidate_contract_binds_current_source_registry_identity() -> None:
     assert "uquant/validation/statistics.py" in registry.surface(
         "validation_runner_v1"
     ).source_paths
-    assert source_surface_fingerprint(ROOT, "economic_decision_v1") == (
-        candidate["production_source_sha256"]
-    )
+    assert candidate["production_source_sha256"] == HISTORICAL_CONTRACT_SOURCE
 
     contract = module.load_absolute_generalization_contract(CONTRACT_PATH)
 
@@ -625,3 +627,17 @@ def test_resealed_role_membership_is_not_a_candidate_binding(
         module.load_absolute_generalization_contract(
             _write_contract(tmp_path, canonical_json_bytes(raw) + b"\n")
         )
+
+
+def test_real_checkout_still_requires_its_own_candidate_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The unit fixture must not turn a different real checkout into acceptance."""
+    module = _contract_module()
+    monkeypatch.setattr(module, "source_surface_fingerprint", source_surface_fingerprint)
+    actual_source = source_surface_fingerprint(ROOT, "economic_decision_v1")
+    if actual_source != HISTORICAL_CONTRACT_SOURCE:
+        with pytest.raises(ValueError, match="candidate source identity differs"):
+            module.load_absolute_generalization_contract(CONTRACT_PATH)
+    else:
+        assert module.load_absolute_generalization_contract(CONTRACT_PATH).candidate.production_source_sha256 == actual_source

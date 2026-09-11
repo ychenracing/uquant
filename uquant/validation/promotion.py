@@ -911,6 +911,11 @@ def run_promotion(
 
 
 artifact_binding = _artifact_binding
+champion_violations = _champion_violations
+hard_violations = _hard_violations
+load_promotion_spec = _load_spec
+protected_gate = _protected_gate
+replay_promotion_unit = _replay_promotion_unit
 compact_promotion_payload = _compact
 runtime_provenance = _runtime_provenance
 

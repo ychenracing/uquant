@@ -2,6 +2,7 @@
 from dataclasses import asdict, replace
 
 from test_ordinary_trend_budget import _decide, _scenario
+
 from uquant.account.codec import account_from_dict
 from uquant.types import Risk
 

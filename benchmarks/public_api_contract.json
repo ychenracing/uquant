@@ -23284,7 +23284,8 @@
         "public_names": [
           "holding_spans_date",
           "protected_weights_for_current_episode",
-          "recovery_owner_open"
+          "recovery_owner_open",
+          "tactical_owner_entry"
         ],
         "functions": {
           "holding_spans_date": {
@@ -23358,6 +23359,27 @@
               }
             ],
             "return": "bool"
+          },
+          "tactical_owner_entry": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "Fill | None"
           }
         },
         "classes": {},
@@ -46682,10 +46704,36 @@
       "uquant.portfolio.ordinary": {
         "path": "uquant/portfolio/ordinary.py",
         "public_names": [
+          "is_consumed_repair_order",
           "observe_ordinary_market",
-          "ordinary_core_entry"
+          "observe_persistent_maturity",
+          "observe_repair_maturity",
+          "ordinary_core_entry",
+          "ordinary_repair_entry",
+          "rearm_ordinary_market"
         ],
         "functions": {
+          "is_consumed_repair_order": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "order",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PendingOrder",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "bool"
+          },
           "observe_ordinary_market": {
             "parameters": [
               {
@@ -46738,6 +46786,120 @@
               }
             ],
             "return": "dict[str, Any]"
+          },
+          "observe_persistent_maturity": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PortfolioAllocator",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "market",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "opportunity",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "Opportunity",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "leaders",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, LeaderScore]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
+          },
+          "observe_repair_maturity": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PortfolioAllocator",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "market",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
           },
           "ordinary_core_entry": {
             "parameters": [
@@ -46817,6 +46979,120 @@
               }
             ],
             "return": "dict[str, Any]"
+          },
+          "ordinary_repair_entry": {
+            "parameters": [
+              {
+                "name": "self",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "PortfolioAllocator",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "symbol",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "score",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "LeaderScore",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "user_panel",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, pd.DataFrame]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "confirmation_days",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "market",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any] | None",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "dict[str, Any]"
+          },
+          "rearm_ordinary_market": {
+            "parameters": [
+              {
+                "name": "account",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "date",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "pd.Timestamp",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "risk",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "RiskAssessment",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "market",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "dict[str, Any]",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "confirmation_days",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                }
+              }
+            ],
+            "return": "None"
           }
         },
         "classes": {},
@@ -50572,9 +50848,10 @@
               {
                 "name": "industries",
                 "kind": "KEYWORD_ONLY",
-                "annotation": "Mapping[str, str]",
+                "annotation": "Mapping[str, str] | None",
                 "default": {
-                  "kind": "required"
+                  "kind": "value",
+                  "value": null
                 }
               },
               {
@@ -79897,6 +80174,7 @@
           "acceptance_revision",
           "half_year_drawdown_ceiling",
           "order_ceiling",
+          "principal_drawdown_ceiling",
           "principal_wealth_floor",
           "wealth_floor"
         ],
@@ -79965,6 +80243,44 @@
             ],
             "return": "float"
           },
+          "principal_drawdown_ceiling": {
+            "parameters": [
+              {
+                "name": "original",
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "annotation": "float",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "case",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "window",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                }
+              },
+              {
+                "name": "authorized",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                }
+              }
+            ],
+            "return": "float"
+          },
           "principal_wealth_floor": {
             "parameters": [
               {
@@ -80004,6 +80320,15 @@
                 "default": {
                   "kind": "value",
                   "value": true
+                }
+              },
+              {
+                "name": "comparison",
+                "kind": "KEYWORD_ONLY",
+                "annotation": "str",
+                "default": {
+                  "kind": "value",
+                  "value": ""
                 }
               }
             ],
@@ -94697,34 +95022,12 @@
           "_SHA256",
           "_TOP_LEVEL_FIELDS",
           "current_promotion_acceptance_basis",
-          "diagnose_promotion_unit",
           "run_promotion",
           "validate_promotion_artifact"
         ],
         "functions": {
           "current_promotion_acceptance_basis": {
             "parameters": [],
-            "return": "dict[str, Any]"
-          },
-          "diagnose_promotion_unit": {
-            "parameters": [
-              {
-                "name": "case",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "str",
-                "default": {
-                  "kind": "required"
-                }
-              },
-              {
-                "name": "output",
-                "kind": "KEYWORD_ONLY",
-                "annotation": "Path",
-                "default": {
-                  "kind": "required"
-                }
-              }
-            ],
             "return": "dict[str, Any]"
           },
           "run_promotion": {
@@ -96867,7 +97170,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "861fa5d59b2cd9fb726b78f423b5f6f6145a48d4138c5f6add131110eee831db",
+  "contract_sha256": "50192e1c523b264580c862101d35fb8cd698d80ec6e8ec72dc9b8c7e7575abed",
   "recorded_on": "2026-09-05",
   "schema_version": 1
 }

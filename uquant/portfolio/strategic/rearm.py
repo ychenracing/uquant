@@ -45,6 +45,7 @@ from .quorum import route_consistent_owner_quality
 from .rearm_predicates import (
     candidate_rearm_predicates,
     flat_book_repair_predicates,
+    repair_reference_evidence_complete,
 )
 
 CASH_REARM_HEALTHY_SESSION_LIMITS = MappingProxyType(
@@ -636,20 +637,7 @@ def _reference_coverage_complete(
     if universe is not None and universe.unavailable_reference_symbols:
         return False
     evidence = risk.evidence
-    return bool(
-        _finite_at_least(evidence.get("reference_coverage"), 1.0)
-        and _finite_at_least(evidence.get("risk_anchor_group_count"), 0.0)
-        and all(
-            _finite_at_least(evidence.get(name), -math.inf)
-            for name in (
-                "breadth20",
-                "broad_ret20",
-                "tech_ret20",
-                "broad_ret120",
-                "tech_ret120",
-            )
-        )
-    )
+    return repair_reference_evidence_complete(evidence)
 
 
 def _risk_and_market_healthy(
@@ -835,18 +823,13 @@ def _ordinary_rearm_attempt_pending(account: AccountState) -> bool:
     )
 
 
-def authorize_ordinary_cash_rearm(
+def _ordinary_repair_context_invalid(
     *, account: AccountState, risk: RiskAssessment, universe: StrategicUniverseRoles,
-    symbol: str, certificate: dict[str, object], observed_session: str, cfg: SystemConfig,
+    symbol: str, observed_session: str, cfg: SystemConfig,
+    inputs: object, repair: FlatBookCapitalRepairState,
 ) -> bool:
-    """Reserve one ready account episode for a currently proven ordinary CORE."""
-    repair = account.flat_book_capital_repair
-    confirmations = certificate.get("confirmations")
-    mature = certificate.get("qualification_quorum") == "MATURE_CORE"
-    confirmation_key = "credible_maturity" if mature else "independent_core"
-    route = "mature_core" if mature else "independent_core"
-    inputs = risk.evidence.get("decision_input_identity")
-    if (not isinstance(inputs, dict) or inputs.get("as_of") != observed_session
+    """Keep current decision provenance and ready account repair guards together."""
+    return (not isinstance(inputs, dict) or inputs.get("as_of") != observed_session
             or inputs.get("code_hash") != account.code_hash or not inputs.get("data_hash")
             or repair.status != FlatBookCapitalRepairStatus.READY.value
             or repair.last_observed_session != observed_session
@@ -858,7 +841,24 @@ def authorize_ordinary_cash_rearm(
             or symbol not in universe.available_symbols
             or assess_strategic_capital_authority(account).has_live_authority
             or not _risk_and_market_healthy(account=account, risk=risk, cfg=cfg)
-            or not _reference_coverage_complete(risk=risk, universe=universe, cfg=cfg)
+            or not _reference_coverage_complete(risk=risk, universe=universe, cfg=cfg))
+
+
+def authorize_ordinary_cash_rearm(
+    *, account: AccountState, risk: RiskAssessment, universe: StrategicUniverseRoles,
+    symbol: str, certificate: dict[str, object], observed_session: str, cfg: SystemConfig,
+) -> bool:
+    """Reserve one ready account episode for a currently proven ordinary CORE."""
+    repair = account.flat_book_capital_repair
+    confirmations = certificate.get("confirmations")
+    mature = certificate.get("qualification_quorum") == "MATURE_CORE"
+    confirmation_key = "credible_maturity" if mature else "independent_core"
+    route = "mature_core" if mature else "independent_core"
+    inputs = risk.evidence.get("decision_input_identity")
+    if (_ordinary_repair_context_invalid(
+            account=account, risk=risk, universe=universe, symbol=symbol,
+            observed_session=observed_session, cfg=cfg, inputs=inputs, repair=repair,
+        )
             or certificate.get("block") != "READY"
             or certificate.get("as_of") != observed_session
             or certificate.get("required_confirmation") != cfg.leader_tenure_days

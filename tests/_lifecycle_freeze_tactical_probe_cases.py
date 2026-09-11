@@ -887,7 +887,10 @@ def test_low_quality_fast_reversal_does_not_open_an_empty_book(
 
     assert targets == ()
 
-def test_deep_and_shallow_crash_metadata_cannot_override_buy_freeze() -> None:
+@pytest.mark.parametrize("continuous_freeze", (False, True))
+def test_deep_probe_requires_no_continuous_freeze_and_shallow_remains_blocked(
+    continuous_freeze: bool,
+) -> None:
     dates = pd.bdate_range("2025-01-02", periods=150)
     close = np.ones(len(dates), dtype=float)
     close[-1] = 0.94
@@ -906,7 +909,7 @@ def test_deep_and_shallow_crash_metadata_cannot_override_buy_freeze() -> None:
             "broad_ret120": 0.20,
             "tech_ret120": 0.20,
             "transition_damage": 0.47,
-            "freeze_new_risk": False,
+            "freeze_new_risk": continuous_freeze,
         },
         ("MA20 structural damage",),
         "NONE",
@@ -936,7 +939,14 @@ def test_deep_and_shallow_crash_metadata_cannot_override_buy_freeze() -> None:
         prices={"shallow": 0.94},
     )
 
-    assert deep_targets == ()
+    if continuous_freeze:
+        assert deep_targets == ()
+    else:
+        assert len(deep_targets) == 1
+        assert deep_targets[0].weight == pytest.approx(DEFAULT_CONFIG.tactical_probe_weight)
+        assert deep_targets[0].mechanism == "TACTICAL_REBOUND"
+        assert deep_targets[0].origin_subsystem == "RECOVERY"
+    assert caution_probe.freeze_new_risk is True
     assert shallow_targets == ()
     assert deep_account.cash == shallow_account.cash == 100.0
     assert deep_account.positions == shallow_account.positions == {}

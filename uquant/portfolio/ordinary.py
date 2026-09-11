@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 
-from ..types import AccountState, LeaderScore, Opportunity, Risk, RiskAssessment
+from ..types import AccountState, LeaderScore, Opportunity, PendingOrder, Risk, RiskAssessment
 from .strategic.qualification_candidates import candidate_entry
 
 if TYPE_CHECKING:
@@ -63,6 +63,22 @@ def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
     return local_open
 
 
+def _credible_leaders(self: PortfolioAllocator, date: pd.Timestamp,
+                      leaders: dict[str, LeaderScore],
+                      user_panel: dict[str, pd.DataFrame]) -> list[str]:
+    """Use the same current, mature stock witnesses for ordinary market routes."""
+    return sorted(s for s, leader in leaders.items()
+                  if s in user_panel and date in user_panel[s].index
+                  and leader.mature and leader.score >= .82
+                  and leader.confidence >= self.cfg.leader_min_confidence)
+
+
+def _aligned_market_legs(legs: list[Any]) -> bool:
+    return cast(bool, all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                          and math.isfinite(v) for v in legs)
+                and min(legs) >= -.01 and max(legs) >= .01)
+
+
 def observe_persistent_maturity(self: PortfolioAllocator, *, account: AccountState,
                                 date: pd.Timestamp, market: dict[str, Any],
                                 opportunity: Opportunity, risk: RiskAssessment,
@@ -76,14 +92,9 @@ def observe_persistent_maturity(self: PortfolioAllocator, *, account: AccountSta
     clock = self._session_clock(user_panel, date)
     earlier = clock[clock < date]
     prior = earlier[-1].toordinal() if len(earlier) else 0
-    witnesses = sorted(s for s, leader in leaders.items()
-                       if s in user_panel and date in user_panel[s].index
-                       and leader.mature and leader.score >= .82
-                       and leader.confidence >= self.cfg.leader_min_confidence)
+    witnesses = _credible_leaders(self, date, leaders, user_panel)
     legs = [risk.evidence.get(k) for k in ("broad_ret120", "tech_ret120")]
-    aligned = (all(isinstance(v, (int, float)) and not isinstance(v, bool)
-                   and math.isfinite(v) for v in legs)
-               and min(legs) >= -.01 and max(legs) >= .01)
+    aligned = _aligned_market_legs(legs)
     healthy = (market.get("as_of") == str(date.date())
                and not market.get("missing_market_fields") and aligned
                and opportunity is Opportunity.STRONG_TREND and risk.votes <= 1
@@ -120,6 +131,23 @@ def observe_repair_maturity(self: PortfolioAllocator, *, account: AccountState,
     account.candidate_tenure[key] = session
 
 
+def _mature_core_eligible(self: PortfolioAllocator, *, score: LeaderScore, tenure: int,
+                          account: AccountState, market: dict[str, Any] | None,
+                          date: pd.Timestamp, local_open: bool, symbol: str) -> bool:
+    """Current own-stock maturity proof required for an ordinary certificate."""
+    return (score.mature and tenure >= self.cfg.leader_tenure_days
+            and not account.candidate_tenure.get("ordinary_market_rearm_required", 0)
+            and market is not None and market.get("as_of") == str(date.date())
+            and (market.get("impulse") is True or local_open)
+            and symbol in market.get("credible_symbols", ()))
+
+
+def is_consumed_repair_order(account: AccountState, order: PendingOrder) -> bool:
+    reference = account.strategic_cash_rearm.consumed_order
+    return (reference is not None and order.order_id == reference.order_id
+            and order.event_id == reference.event_id)
+
+
 def ordinary_core_entry(
     self: PortfolioAllocator, *, symbol: str, score: LeaderScore, date: pd.Timestamp,
     user_panel: dict[str, pd.DataFrame], account: AccountState, confirmation_days: int,
@@ -128,8 +156,8 @@ def ordinary_core_entry(
 ) -> dict[str, Any]:
     reference = account.strategic_cash_rearm.consumed_order
     repair_pending = reference is not None and any(
-        order.symbol == symbol and order.order_id == reference.order_id
-        and order.event_id == reference.event_id for order in account.pending_orders
+        order.symbol == symbol and is_consumed_repair_order(account, order)
+        for order in account.pending_orders
     )
     tenure = account.leader_tenure.get(symbol, 0)
     local_open = _ordinary_maturity_available(account, date, market)
@@ -145,11 +173,10 @@ def ordinary_core_entry(
                 account=account, confirmation_days=confirmation_days, market=market,
             )
         certificate = None  # The real repair order still needs its strict own proof.
-    elif (certificate is None and score.mature and tenure >= self.cfg.leader_tenure_days
-          and not account.candidate_tenure.get("ordinary_market_rearm_required", 0)
-          and market is not None and market.get("as_of") == str(date.date())
-          and (market.get("impulse") is True or local_open)
-          and symbol in market.get("credible_symbols", ())):
+    elif certificate is None and _mature_core_eligible(
+        self, score=score, tenure=tenure, account=account, market=market,
+        date=date, local_open=local_open, symbol=symbol,
+    ):
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
             "required_confirmation": self.cfg.leader_tenure_days,
@@ -217,10 +244,7 @@ def observe_ordinary_market(
     user_panel: dict[str, pd.DataFrame],
 ) -> dict[str, Any]:
     """Observe today's fast-entry proof without granting shared or strict-route capital."""
-    credible = sorted(symbol for symbol, leader in leaders.items()
-                      if symbol in user_panel and date in user_panel[symbol].index
-                      and leader.mature and leader.score >= .82
-                      and leader.confidence >= self.cfg.leader_min_confidence)
+    credible = _credible_leaders(self, date, leaders, user_panel)
     impulse, missing = _market_conditions(
         opportunity=opportunity, risk=risk, credible_count=len(credible))
     long_cycle_fields = ("breadth20", "broad_ret20", "tech_ret20")

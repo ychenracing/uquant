@@ -513,23 +513,28 @@ def validate_strategic_cash_rearm_state(state: StrategicCashRearmState) -> None:
                 or not 0 < proof.get("max_target_weight", 0) <= 1):
             raise ValueError("ordinary repair admission evidence binding is inconsistent")
         if state.qualification_quorum == "MATURE_CORE":
-            market = proof.get("ordinary_market", {})
-            confirmations = proof.get("confirmations", {})
-            if not isinstance(confirmations, dict):
-                raise ValueError("mature repair confirmations must be an object")
-            if "credible_maturity" in confirmations and (
-                    type(proof.get("required_confirmation")) is not int
-                    or proof["required_confirmation"] < 1
-                    or type(confirmations["credible_maturity"]) is not int
-                    or confirmations["credible_maturity"] < proof["required_confirmation"]):
-                raise ValueError("mature repair credibility confirmation is incomplete")
-            if (proof.get("qualification_quorum") != "MATURE_CORE"
-                    or proof.get("qualification_route") != route
-                    or not isinstance(market, dict)
-                    or market.get("as_of") != state.authorized_session
-                    or market.get("repair_mature_entry_open") is not True
-                    or state.candidate_symbol not in market.get("credible_symbols", ())):
-                raise ValueError("mature repair requires its current ordinary market proof")
+            _validate_mature_rearm_proof(state, proof, route)
+
+
+def _validate_mature_rearm_proof(state: StrategicCashRearmState, proof: dict[str, Any], route: str) -> None:
+    """Validate the mature route's own market and confirmation evidence."""
+    market = proof.get("ordinary_market", {})
+    confirmations = proof.get("confirmations", {})
+    if not isinstance(confirmations, dict):
+        raise ValueError("mature repair confirmations must be an object")
+    if "credible_maturity" in confirmations and (
+            type(proof.get("required_confirmation")) is not int
+            or proof["required_confirmation"] < 1
+            or type(confirmations["credible_maturity"]) is not int
+            or confirmations["credible_maturity"] < proof["required_confirmation"]):
+        raise ValueError("mature repair credibility confirmation is incomplete")
+    if (proof.get("qualification_quorum") != "MATURE_CORE"
+            or proof.get("qualification_route") != route
+            or not isinstance(market, dict)
+            or market.get("as_of") != state.authorized_session
+            or market.get("repair_mature_entry_open") is not True
+            or state.candidate_symbol not in market.get("credible_symbols", ())):
+        raise ValueError("mature repair requires its current ordinary market proof")
 
 
 def _validate_strategic_rearm_identity(state: StrategicCashRearmState) -> None:

@@ -1,8 +1,8 @@
 """A synchronized repair label cannot override current account damage."""
 import pandas as pd
 import pytest
-
 from _recovery_restore_completion_cases import _restore_panel
+
 from uquant.config import DEFAULT_CONFIG
 from uquant.portfolio import PortfolioAllocator
 from uquant.types import AccountState, LeaderScore, Opportunity, Position, Risk, RiskAssessment

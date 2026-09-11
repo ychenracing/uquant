@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
 from dataclasses import FrozenInstanceError, replace
+from pathlib import Path
 
 import pytest
+from _absolute_contract_fixture import native_champion_contract as native_champion_contract
 from _absolute_generalization_acceptance_fixture import (
     _cell_raw,
     cell,
@@ -405,4 +408,17 @@ def test_report_statistics_are_derived_cell_counts_not_complete_placeholders() -
     )
     assert statistics["actual_strategic_epoch_cells"] == float(
         robustness.evidence["actual_strategic_epoch_cells"]
+    )
+
+
+def test_native_unit_contract_preserves_frozen_file_and_real_replay_source() -> None:
+    """A positive unit conjunction is bound to its fixture, never this checkout."""
+    root = Path(__file__).resolve().parents[1]
+    frozen = json.loads((root / "benchmarks/absolute_generalization_acceptance_contract.json").read_bytes())
+    contract = load_absolute_generalization_contract()
+    champion = manifest(successful_manifests(), "champion")["champion"]
+    assert frozen["candidate"]["production_source_sha256"] != contract.candidate.production_source_sha256
+    assert frozen["canonical_sha256"] != contract.canonical_sha256
+    assert champion["strategic_ownership_acceptance"]["champion"]["final_account"]["code_hash"] == (
+        contract.candidate.production_source_sha256
     )

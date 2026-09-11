@@ -2,7 +2,6 @@
 from dataclasses import asdict, replace
 
 import pytest
-
 from test_shared_core_qualification import _decide
 from test_strategic_cohort_deployment_settlement import SYMBOLS, _native_full
 from test_strategic_grant_observation import _risk

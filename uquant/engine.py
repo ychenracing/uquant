@@ -9,7 +9,6 @@ from typing import cast
 import pandas as pd
 
 import uquant.application as _application
-from uquant.contracts.universe import decision_ai_universe
 from uquant.application import (
     DEFAULT_CONFIG,
     DataStore,
@@ -21,6 +20,7 @@ from uquant.application import (
 )
 from uquant.application import MarketWorkspace as _MarketWorkspace
 from uquant.application import ReplayCache as _ReplayCache
+from uquant.contracts.universe import decision_ai_universe
 
 INDEX_SYMBOLS = ("sh000300", "sh000682")
 REFERENCE_UNIVERSE = _application.REFERENCE_UNIVERSE

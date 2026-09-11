@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 
 from ..config import SystemConfig
-from ..features import scalar
 from ..contracts.universe import decision_ai_universe
+from ..features import scalar
 from ..types import AccountState, LeaderScore, Risk
 
 

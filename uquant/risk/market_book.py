@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 
 from ..config import SystemConfig
+from ..contracts.universe import decision_ai_universe
 from ..features import cross_section_returns, scalar
 from ..industry import decision_industries
-from ..contracts.universe import decision_ai_universe
 from ..market_risk import (
     EVIDENCE_FAMILY_MEMBERS,
     build_base_market_family_snapshot,

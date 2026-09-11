@@ -1,21 +1,19 @@
 """Standalone-quarter fields from fixed original reports, with no return inputs."""
 from __future__ import annotations
 
-from collections import defaultdict
 import math
+from collections import defaultdict
 from typing import Any
-
-from research.revenue_reports import number
 
 
 def original_prior(row: dict[str, Any]) -> float | None:
     """Use only explicit amounts independently checked in the same original."""
     if row.get('prior_revenue_reported') is not None:
-        return row['prior_revenue_reported']
+        return float(row['prior_revenue_reported'])
     values = {item['prior'] for item in row.get('independent_income_arithmetic', [])
               if math.isclose(item['current'], row['cumulative_revenue_reported'], abs_tol=.01)
               and item['prior'] > 0}
-    return values.pop() if len(values) == 1 else None
+    return float(values.pop()) if len(values) == 1 else None
 
 
 def quarter_panel(reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -27,17 +25,16 @@ def quarter_panel(reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
     output = []
     for (symbol, period), row in sorted(originals.items()):
         kind, year = period[-2:], period[:4]
-        cells = (row.get('revenue_rows') or [[]])[0]
         growth, method, sources = None, 'unavailable', [row]
         if kind == 'Q1':
             growth, method = row['cumulative_revenue_yoy_percent'], 'original_Q1'
-        elif kind == 'Q3' and len(cells) == 5:
-            growth, method = number(cells[2]), 'original_Q3'
-        elif kind == 'Q3' and len(cells) == 9:
-            growth, method = number(cells[4]), 'original_Q3_adjusted_comparison_as_disclosed'
+        elif kind == 'Q3' and row.get('standalone_quarter_verified') is True:
+            growth, method = row['standalone_quarter_yoy_percent'], 'verified_original_Q3'
         else:
             previous = originals.get((symbol, year + {'H1': 'Q1', 'FY': 'Q3'}.get(kind, 'missing')))
-            if previous is not None and row.get('revenue_unit') == previous.get('revenue_unit') == 'CNY':
+            if (previous is not None and row.get('revenue_unit') == previous.get('revenue_unit') == 'CNY'
+                    and row.get('comparable_prior_basis_verified') is True
+                    and previous.get('comparable_prior_basis_verified') is True):
                 current_prior = original_prior(row)
                 previous_prior = original_prior(previous)
                 if current_prior is not None and previous_prior is not None:
@@ -60,7 +57,7 @@ def quarter_panel(reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def available_quarters(panel: list[dict[str, Any]], date: str) -> dict[str, dict[str, Any]]:
     """Return latest disclosed period; missing latest values remain unavailable."""
-    grouped = defaultdict(list)
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in panel:
         if row['disclosed_date'] < date:
             grouped[row['symbol']].append(row)

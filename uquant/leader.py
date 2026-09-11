@@ -145,7 +145,7 @@ def _inferred_industries(
     industries = decision_industries(str(as_of.date()))
     tech_returns = tech.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
     group_returns: dict[str, list[pd.Series]] = {}
-    for symbol in STABLE_REFERENCE_UNIVERSE:
+    for symbol in decision_ai_universe().symbols:
         industry = industries.get(symbol)
         frame = panel.get(symbol)
         if industry is None or frame is None:
@@ -264,9 +264,9 @@ def _leader_reference_context(
     effective_industries: dict[str, tuple[str, float]],
     cfg: SystemConfig,
 ) -> tuple[list[str], dict[str, IndustrySignal], dict[str, list[float]], list[float]]:
-    references = [symbol for symbol in REFERENCE_UNIVERSE if symbol in raw]
+    references = [symbol for symbol in decision_ai_universe().symbols if symbol in raw]
     expected = [
-        symbol for symbol in REFERENCE_UNIVERSE if symbol in panel and panel[symbol].index.min() <= as_of
+        symbol for symbol in decision_ai_universe().symbols if symbol in panel and panel[symbol].index.min() <= as_of
     ]
     minimum_coverage = max(3, math.ceil(0.80 * len(expected)))
     if len(references) < minimum_coverage:

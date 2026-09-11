@@ -1,0 +1,53 @@
+{
+  "baseline_main": "7e2b0fd09305dcb55d51f1606f24ba99a8bb1721",
+  "candidates": {
+    "anchor_identity": {
+      "local": "361a495e1902d2845b4d5824f0ad90b2ecbed93d",
+      "remote": "4d7e6b0717961ab60aac8a328127e1b291514839",
+      "tree": "8c3488d782c0d9962c6968470fa43a0abca3f2b3",
+      "source": "7466a6461d648b7a780abb400d49606b40b3e105336ca577f6b913603d6858b7",
+      "economic_status": "REJECTED_FOR_NO_TARGET_IMPROVEMENT",
+      "screening_completion": "5/5 full interval accounts completed and read back"
+    },
+    "nomination": {
+      "local": "0017d9b76214899c25bd50aedec92acaf29cfa85",
+      "remote": "e26583d6c6134b7309dc190fd56d65057aa81747",
+      "tree": "4b67f95ad3c3bab92846c724d5d8aac914cda85a",
+      "source": "09af732f67bc193c857f9c98cde735830dcbf826b9fe81ec09ad7151dc19ccbd",
+      "economic_status": "REJECTED_PAIRED_DRAWDOWN_INCREMENT",
+      "screening_completion": "5/5 full interval accounts completed and read back"
+    }
+  },
+  "focused_review": {
+    "reviewer": "independent read-only agent",
+    "anchor_identity": "No Critical/Important findings; economic acceptance separate",
+    "nomination": "No Critical/Important findings; economic acceptance separate"
+  },
+  "tests": {
+    "anchor_identity_risk": 34,
+    "anchor_identity_safety": 204,
+    "nomination_risk": 36,
+    "scope_note": "204 safety tests executed on first candidate; second candidate changed only initial nomination and passed its 36 focused risk tests. This is not full CI acceptance."
+  },
+  "maximum_mechanisms": 2,
+  "third_mechanism_authorized": false,
+  "status": "NO_QUALIFYING_INCREMENTAL_STRATEGY",
+  "final_acceptance_run": false,
+  "merge_decision": "KEEP_Z_CLOSE_PR_UNMERGED",
+  "tolerance": "10% relative numerical tolerance frozen before candidate outcomes; paired drawdown increase limit 0.022",
+  "evidence": [
+    "benchmarks/anchor_identity_screen_result_20260911.json",
+    "benchmarks/anchor_nomination_screen_result_20260911.json"
+  ],
+  "test_log_sha256": {
+    "anchor-red.log": "dbd3069e2cf7bec68894f8e391e4aedd95790b6c4645974a53262692529be62d",
+    "anchor-green.log": "1e6b4fbe33d23cc880df779e2dd0330dd0359555faab7d7943e31674e2319fe8",
+    "candidate-safety.log": "4e82b8396de5b0ca6e34fd9c47e750d2ac2f8f8c7f90296a79767e85af96efce",
+    "nomination-red.log": "d2ffe2a8ae80a199296def52296e8615d84414e4cc0db054c5ef0c9adb865d03",
+    "nomination-green.log": "12a9a4a8915fb8d2bb5b4227220247cde267c1a0620203589fe47280d5be4a7f"
+  },
+  "main_reverified": "7e2b0fd09305dcb55d51f1606f24ba99a8bb1721",
+  "historical_only": true,
+  "future_holdout_used": false,
+  "automation_or_live_trading_started": false
+}

@@ -1,0 +1,161 @@
+{
+  "status": "SCREEN_REJECTED",
+  "rows": [
+    {
+      "id": "new-offset20-remove_all_three",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 1.1098269627503954,
+        "max_drawdown": 0.22001775687734437,
+        "account_orders": 14,
+        "fees": 3708.2522992100003,
+        "slippage_cost": 7161.822199999467,
+        "annual_turnover": 1.02067443203298
+      },
+      "baseline_metrics": {
+        "account_orders": 15,
+        "annual_turnover": 0.833744959368669,
+        "fees": 2920.1293312400003,
+        "final_wealth": 0.8718030613343799,
+        "gross_turnover": 2.924997812,
+        "max_drawdown": 0.2644605668082183,
+        "slippage_cost": 5849.747999999546
+      },
+      "wealth_ratio": 1.2730248515664726,
+      "producer": "0017d9b76214899c25bd50aedec92acaf29cfa85",
+      "source": "09af732f67bc193c857f9c98cde735830dcbf826b9fe81ec09ad7151dc19ccbd",
+      "raw_sha256": "8917823fa45327e1f4b1347cfad600855f4221774acb1e1788cad3ac4ac1238c",
+      "result_seal": "ee2a2d62c50e883e32cf0015f96de4ac88bcff360e9e43779176f8d28285735d",
+      "accounting_reconciled": true
+    },
+    {
+      "id": "new-offset5-remove_all_three",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 1.481618166136426,
+        "max_drawdown": 0.26184706402677516,
+        "account_orders": 25,
+        "fees": 6355.807927148,
+        "slippage_cost": 11988.059799999246,
+        "annual_turnover": 1.6787459080969906
+      },
+      "baseline_metrics": {
+        "account_orders": 25,
+        "annual_turnover": 1.6787459080969906,
+        "fees": 6355.807927148,
+        "final_wealth": 1.481618166136426,
+        "gross_turnover": 5.9935391098999995,
+        "max_drawdown": 0.26184706402677516,
+        "slippage_cost": 11988.059799999246
+      },
+      "wealth_ratio": 1.0,
+      "producer": "0017d9b76214899c25bd50aedec92acaf29cfa85",
+      "source": "09af732f67bc193c857f9c98cde735830dcbf826b9fe81ec09ad7151dc19ccbd",
+      "raw_sha256": "ab9edcda1aa858cddfc5493feace7216a2130e8fb04a5630d3b18a6d5c2f3bca",
+      "result_seal": "e706541765dca533583675ec925d558b1be49227ddc64dce50fab386534719b8",
+      "accounting_reconciled": true
+    },
+    {
+      "id": "new-offset20-no_optical",
+      "status": "FAIL",
+      "failures": [
+        "paired drawdown increment"
+      ],
+      "metrics": {
+        "final_wealth": 1.9248139957683885,
+        "max_drawdown": 0.24409701406130435,
+        "account_orders": 13,
+        "fees": 4480.7800632240005,
+        "slippage_cost": 7878.828399999394,
+        "annual_turnover": 1.1226300776212013
+      },
+      "baseline_metrics": {
+        "account_orders": 18,
+        "annual_turnover": 1.2288321064162544,
+        "fees": 4956.978424044,
+        "final_wealth": 2.116899619087978,
+        "gross_turnover": 4.3110680097000005,
+        "max_drawdown": 0.21919000408157907,
+        "slippage_cost": 8624.383399999559
+      },
+      "wealth_ratio": 0.9092608730298013,
+      "producer": "0017d9b76214899c25bd50aedec92acaf29cfa85",
+      "source": "09af732f67bc193c857f9c98cde735830dcbf826b9fe81ec09ad7151dc19ccbd",
+      "raw_sha256": "1763d295c67888e0558466acabfea440f5af8f4f584d02e61bc0f6f5770fcb2c",
+      "result_seal": "e7adbdeb7e73b1679eb4a4ce6b34f84d189bced906d0cfec4d0534e51bed7d9a",
+      "accounting_reconciled": true
+    },
+    {
+      "id": "new-nominal-champion",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 25.109594313238023,
+        "max_drawdown": 0.27146973146234554,
+        "account_orders": 14,
+        "fees": 46015.79892394601,
+        "slippage_cost": 66615.9745999966,
+        "annual_turnover": 9.26891228576709
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.26891228576709,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "gross_turnover": 33.2838213898,
+        "max_drawdown": 0.27146973146234554,
+        "slippage_cost": 66615.9745999966
+      },
+      "wealth_ratio": 1.0,
+      "producer": "0017d9b76214899c25bd50aedec92acaf29cfa85",
+      "source": "09af732f67bc193c857f9c98cde735830dcbf826b9fe81ec09ad7151dc19ccbd",
+      "raw_sha256": "e85b5f4490bc0ceeeac629a069b1c3a1e9eaad9b5d0aa9b86fe9e8e2d8126a39",
+      "result_seal": "68de21eb4e56b6c6d6a54fe1f8094557dee505e48a032f52be645b740d183481",
+      "accounting_reconciled": true
+    },
+    {
+      "id": "full",
+      "status": "SCREEN_METRICS_VALID",
+      "failures": [],
+      "metrics": {
+        "final_wealth": 29.717003593409824,
+        "max_drawdown": 0.27147361646156465,
+        "account_orders": 22,
+        "fees": 65928.056280352,
+        "slippage_cost": 101142.05689999806,
+        "annual_turnover": 14.075050810755696
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 14.075050810755696,
+        "fees": 65928.056280352,
+        "final_wealth": 29.717003593409824,
+        "gross_turnover": 50.54222791135,
+        "max_drawdown": 0.27147361646156465,
+        "slippage_cost": 101142.05689999806
+      },
+      "wealth_ratio": 1.0,
+      "producer": "0017d9b76214899c25bd50aedec92acaf29cfa85",
+      "source": "09af732f67bc193c857f9c98cde735830dcbf826b9fe81ec09ad7151dc19ccbd",
+      "raw_sha256": "dc8ec7f82f1f881d6a8fe61c6f255a313318a02b5afb9a46cba069321ac16b2f",
+      "result_seal": "ff3ad3b1c185b78e7ee849f98d4282e634c5e2f4f064515804e8e15e078ecfd4",
+      "accounting_reconciled": true
+    }
+  ],
+  "not_final_acceptance": true,
+  "reason": "No-optical offset20 drawdown increases by 0.02490700997972528, exceeding frozen 0.022 limit including 10% tolerance. This real trade-path regression rejects the candidate despite remove-all-three offset20 improvement.",
+  "final_acceptance_run": false,
+  "producer_remote_commit": "e26583d6c6134b7309dc190fd56d65057aa81747",
+  "producer_tree": "4b67f95ad3c3bab92846c724d5d8aac914cda85a",
+  "archive": {
+    "filename": "uquant_anchor_nomination_screen_20260911.tar.gz",
+    "bytes": 77601725,
+    "sha256": "d0e9155a715c9c9ed6962d6961ea80c35a4efbc763c08061ba567661a47b537f",
+    "verified_files": 30,
+    "library_file_id": "libfile_8acc042ee3a88191963de71a173c77cc",
+    "file_id": "file_00000000d19081f5bebd38d6a89d7179",
+    "upload_status": "succeeded"
+  }
+}

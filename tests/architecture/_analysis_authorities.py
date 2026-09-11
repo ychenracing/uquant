@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -26,6 +26,7 @@ FINAL_BUDGETS = {
 }
 
 MODULE_AUTHORITIES = {
+    "uquant.validation.evidence_source": "validation_runner",
     "uquant": "production_safe",
     "uquant.__main__": "cli_runner",
     "uquant.account": "production_safe",

@@ -40,7 +40,7 @@ def _string_tuple(value: object, *, field: str) -> tuple[str, ...]:
 
 
 def load_contract(path: str | Path) -> StrategicEvidenceContract:
-    """Load, seal-check, and structurally validate the immutable v1 contract."""
+    """Load, seal-check, and structurally validate the immutable contract."""
 
     contract_path = Path(path)
     try:
@@ -55,7 +55,7 @@ def load_contract(path: str | Path) -> StrategicEvidenceContract:
     base_commit = require_git_sha(payload.get("base_commit"), field="base_commit")
     window = payload.get("window")
     if window != {"start": "2023-01-03", "end": "2026-08-05"}:
-        raise ValueError("strategic evidence contract window differs from v1")
+        raise ValueError("strategic evidence contract window differs from the sealed contract")
     identities = payload.get("identities")
     if not isinstance(identities, dict):
         raise ValueError("strategic evidence identities are missing")

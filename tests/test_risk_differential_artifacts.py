@@ -6,8 +6,8 @@ import importlib.util
 import json
 from pathlib import Path
 
-from research.immutable_evidence import evidence_root
 from research.risk_differential_models import canonical_sha256, validate_capabilities
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
 

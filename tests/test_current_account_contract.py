@@ -72,3 +72,21 @@ def test_account_api_exposes_only_code_identity_rebinding() -> None:
     assert hasattr(account_api, "migrate_code_identity")
     with pytest.raises(SystemExit):
         _uquant_cli_parser().parse_args(["account-migrate", "--account", "account.json"])
+
+
+def test_portfolio_introspection_exposes_the_real_optional_inputs() -> None:
+    import inspect
+
+    from uquant.portfolio import PortfolioAllocator
+    from uquant.portfolio_strategic import StrategicPortfolioPolicy
+
+    for owner, name in (
+        (PortfolioAllocator, "allocate"),
+        (PortfolioAllocator, "_allocate_strategy"),
+        (StrategicPortfolioPolicy, "_initialize_strategic_cohort"),
+        (StrategicPortfolioPolicy, "_strategic_cohort_targets"),
+    ):
+        method = getattr(owner, name)
+        signature = inspect.signature(method)
+        assert signature == inspect.signature(method, follow_wrapped=False)
+        assert {"qualification_panel", "qualification_leaders", "strategic_universe"} <= set(signature.parameters)

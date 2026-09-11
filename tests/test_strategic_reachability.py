@@ -11,12 +11,12 @@ from research.strategic_evidence import reachability, reachability_runner
 from research.strategic_evidence.contract import load_contract
 from research.strategic_evidence.models import canonical_sha256
 from research.strategic_evidence.provenance import seal_payload, write_gzip_shard
-from research.strategic_evidence.witness_ablation_runner import recompute_task4_identities
+from research.strategic_evidence.witness_ablation_runner import recompute_witness_ablation_identities
 from uquant.account import economic_state_sha256
 from uquant.types import AccountState
 
 
-def test_reachability_module_is_available_for_frozen_task5_contract() -> None:
+def test_reachability_module_is_available_for_frozen_reachability_contract() -> None:
     assert importlib.util.find_spec("research.strategic_evidence.reachability") is not None
 
 
@@ -902,14 +902,14 @@ def test_runner_selects_and_executes_one_diagnostic_cell_with_source_manifest() 
         research_source_sha256=manifest["manifest_sha256"],
     )
     assert identities["research_source_sha256"] == manifest["manifest_sha256"]
-    task4_identities = recompute_task4_identities(root, contract=contract)
+    witness_ablation_identities = recompute_witness_ablation_identities(root, contract=contract)
     assert {
         field: value
         for field, value in identities.items()
         if field != "research_source_sha256"
     } == {
         field: value
-        for field, value in task4_identities.items()
+        for field, value in witness_ablation_identities.items()
         if field != "research_source_sha256"
     }
 

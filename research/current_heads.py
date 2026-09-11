@@ -13,6 +13,7 @@ from typing import Any, Final, cast
 
 from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.validation.competitor import CANONICAL_EXECUTION_CONTRACT
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.generalization_contract import (
     CORE_SYMBOLS,
     INDUSTRY_MIN_SAMPLE,
@@ -572,7 +573,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--matrix",
         type=Path,
-        default=root / "benchmarks/current_heads_competitor_matrix.json",
+        default=evidence_root() / "benchmarks/current_heads_competitor_matrix.json",
     )
     parser.add_argument(
         "--contract",

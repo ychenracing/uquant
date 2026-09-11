@@ -47,6 +47,7 @@ from research.risk_replay_runtime import (
     run_uquant_cell,
 )
 from uquant.atomic_io import atomic_write_bytes, atomic_write_text
+from uquant.validation.evidence_source import evidence_root
 
 STARTING_MAIN = "ba314003044a229969270bee6854240dfb7f211e"
 TRADE_COMMIT = "2066fbf0f99be94142c5d0cb0b6c99d276c2472d"
@@ -808,7 +809,7 @@ def seal_trade_trace(root: Path, trade_root: Path, *, workers: int) -> None:
 
 
 def _replay_cells(root: Path, scope: str) -> tuple[list[ReplayCell], list[dict[str, Any]]]:
-    matrix = json.loads((root / "benchmarks/current_heads_competitor_matrix.json").read_text())
+    matrix = json.loads((evidence_root() / "benchmarks/current_heads_competitor_matrix.json").read_text())
     grouped: dict[tuple[str, str, str], dict[str, dict[str, Any]]] = {}
     for item in matrix["cells"]:
         if item["system"] not in {"uquant", "trade"}:
@@ -1339,7 +1340,7 @@ def seal_initial_evidence(root: Path) -> None:
     registry = json.loads((root / "benchmarks/risk_differential_source_registry.json").read_text())
     contract = json.loads((root / "benchmarks/risk_differential_contract.json").read_text())
     capability = json.loads((root / "benchmarks/risk_capability_registry.json").read_text())
-    matrix = json.loads((root / "benchmarks/current_heads_competitor_matrix.json").read_text())
+    matrix = json.loads((evidence_root() / "benchmarks/current_heads_competitor_matrix.json").read_text())
     cells: dict[tuple[str, str, str], dict[str, Any]] = {}
     for item in matrix["cells"]:
         if item["system"] not in {"uquant", "trade"}:

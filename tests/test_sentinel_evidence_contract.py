@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from research.immutable_evidence import evidence_root
 from research.sentinel_evidence_closure import run_evidence_closure
 from uquant.config import DEFAULT_CONFIG
+from uquant.validation.evidence_source import evidence_root
 
 EVIDENCE_RECOVERY_CHANGED_PATHS = {
     "artifacts/sentinel/exclusive_freeze/README.md",

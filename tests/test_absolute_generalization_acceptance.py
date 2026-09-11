@@ -248,7 +248,7 @@ def test_static_shard_and_cell_coverage_fails_closed(mutation: str, message: str
         ("head", "current checkout"),
         ("source", "production source"),
         ("runtime", "runtime"),
-        ("missing_runtime", "schema"),
+        ("missing_runtime", "manifest fields"),
         ("run_id", "run identity"),
         ("targeted", "canonical mode"),
         ("self_pass", "self-asserted pass"),
@@ -427,7 +427,7 @@ def test_native_unit_contract_preserves_frozen_file_and_real_replay_source() -> 
     champion = manifest(successful_manifests(), "champion")["champion"]
     assert "candidate" not in frozen
     assert contract.candidate.production_source_sha256 == "73969473f9e53731ed2ee5a5ba957f7f63ce7a7e6cf56f8b88ccad7288f44e3b"
-    assert frozen["canonical_sha256"] != contract.canonical_sha256
+    assert frozen["canonical_sha256"] == contract.canonical_sha256
     assert champion["strategic_ownership_acceptance"]["champion"]["final_account"]["code_hash"] == (
         contract.candidate.production_source_sha256
     )

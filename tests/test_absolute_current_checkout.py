@@ -36,3 +36,26 @@ def test_preflight_failure_keeps_diagnostic_without_manifest(tmp_path, monkeypat
     diagnostic = json.loads(diagnostics[0].read_bytes())
     assert "CI checkout differs" in diagnostic["error"]
     assert "canonical_sha256" not in diagnostic
+
+
+def test_unavailable_relative_baseline_fails_during_preflight(tmp_path, monkeypatch) -> None:
+    import json
+
+    from scripts.run_absolute_generalization_acceptance import main
+    from uquant.validation import evidence_source
+
+    evidence_source.evidence_root.cache_clear()
+    monkeypatch.setattr(evidence_source, "_SOURCE_COMMIT", "0" * 40)
+    output = tmp_path / "manifest.json"
+    try:
+        result = main([
+            "--shard", "champion", "--run-id", "missing-baseline", "--run-attempt", "1",
+            "--output", str(output), "--cache-dir", str(tmp_path / "cache"),
+            "--data-dir", str(ROOT / "data/frozen"), "--preflight-only",
+        ])
+        assert result == 2
+        assert not output.exists()
+        diagnostic = json.loads(next(tmp_path.glob("*.diagnostic.json")).read_bytes())
+        assert "immutable evidence source unavailable" in diagnostic["error"]
+    finally:
+        evidence_source.evidence_root.cache_clear()

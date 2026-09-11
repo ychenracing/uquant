@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from research.immutable_evidence import evidence_root
 from research.strategic_evidence.contract import load_contract
 from research.strategic_evidence.forced_owner import (
     NO_NATIVE_ELIGIBILITY,
@@ -20,16 +19,17 @@ from research.strategic_evidence.forced_owner_runner import (
     build_forced_owner_scenario,
     economically_compatible_provenance,
     economically_compatible_selection_evidence,
+    verify_forced_owner_outputs,
     verify_frozen_inputs,
-    verify_task3_outputs,
 )
 from research.strategic_evidence.provenance import validate_provenance
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
 
 
 def test_frozen_input_verifier_rejects_manifest_identity_drift() -> None:
-    """Catches a matrix being attributed to a manifest other than sealed v1."""
+    """Catches a matrix being attributed to a manifest other than sealed contract."""
 
     contract = load_contract(ROOT / "benchmarks/strategic_evidence_closure_contract.json")
     raw = deepcopy(contract.raw)
@@ -177,7 +177,7 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
             route_metadata=route_metadata,
         )
         results.append(
-            verify_task3_outputs(
+            verify_forced_owner_outputs(
                 root,
                 summary_path=relative_summary,
                 manifest_path=relative_manifest,

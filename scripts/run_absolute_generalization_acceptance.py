@@ -44,6 +44,7 @@ from uquant.validation.absolute_generalization import (
     validate_cell_artifact,
     validate_shard_manifest,
 )
+from uquant.validation.absolute_generalization._acceptance_evidence import relative_policy_reference
 from uquant.validation.absolute_generalization.contract import runtime_identity, verify_run_checkout
 from uquant.validation.manifest import verify_data_manifest
 
@@ -457,7 +458,7 @@ def _run_execution(
         raise ValueError("absolute generalization selected frozen data identity differs")
     if options.shard in _LOO_SHARDS:
         artifacts: list[CellArtifact] = []
-        errors: list[str] = []
+        errors: list[Exception] = []
         for scenario in selected_scenarios(options, contract):
             try:
                 artifact = read_cached_cell(cache_dir, scenario, contract)
@@ -476,9 +477,10 @@ def _run_execution(
                 validate_atomic_output_boundary(path, protected_roots=(data_dir,))
                 if not path.exists():
                     atomic_write_bytes(path, canonical_json_bytes(failure))
-                errors.append(scenario.cell_id)
+                exc.add_note(f"Absolute cell: {scenario.cell_id}")
+                errors.append(exc)
         if errors:
-            raise RuntimeError(f"absolute cells failed; independent cells completed: {', '.join(errors)}")
+            raise ExceptionGroup("absolute cells failed; independent cells completed", errors)
         manifest = build_loo_shard_manifest(options, artifacts, contract)
     elif options.shard == "champion":
         champion_evidence = run_champion_runtime_evidence(
@@ -611,6 +613,7 @@ def _run_verified(options: RunnerOptions, contract: AbsoluteGeneralizationContra
             return _run_execution(options, contract)
         except Exception as exc:
             print("".join(traceback.format_exception(exc)), file=sys.stderr)
+            _write_diagnostic(options, exc)
             head, tree = _git_identity()
             error = build_error_shard_manifest(
                 shard=options.shard,
@@ -651,12 +654,41 @@ def _action_output(name: str, path: Path) -> None:
             stream.write(f"{name}={value}\n")
 
 
+def _invalid_evidence_error(exc: BaseException) -> bool:
+    if isinstance(exc, BaseExceptionGroup):
+        return all(_invalid_evidence_error(item) for item in exc.exceptions)
+    return isinstance(exc, ValueError)
+
+
+def _write_diagnostic(options: RunnerOptions, exc: Exception) -> None:
+    diagnostic = {
+        "status": "INVALID_EVIDENCE" if _invalid_evidence_error(exc) else "ENGINEERING_ERROR",
+        "error_type": type(exc).__name__, "error": str(exc),
+        "traceback": "".join(traceback.format_exception(exc)),
+        "run_id": options.run_id, "run_attempt": options.run_attempt,
+        "shard": options.shard, "event_name": os.environ.get("GITHUB_EVENT_NAME"),
+        "event_sha": os.environ.get("GITHUB_SHA"),
+    }
+    try:
+        head, tree = _git_identity()
+        diagnostic.update(head=head, tree=tree)
+    except Exception as identity_error:
+        diagnostic["identity_error"] = str(identity_error)
+    path = options.output.with_name(canonical_json_sha256(diagnostic) + ".diagnostic.json")
+    protected = tuple(path for path in (options.data_dir, options.cache_dir, options.shard_root) if path)
+    validate_atomic_output_boundary(path, protected_roots=protected)
+    if not path.exists():
+        atomic_write_bytes(path, canonical_json_bytes(diagnostic))
+    _action_output("diagnostic_path", path)
+
+
 def run(options: RunnerOptions) -> int:
     """Retain preflight failures without creating an economic evidence seal."""
     try:
         # Event identity is checked before policy loading or any costly execution.
         verify_run_checkout()
         contract = load_absolute_generalization_contract()
+        relative_policy_reference()
         if options.symbol is not None:
             selected_scenarios(options, contract)
         if options.data_dir is not None:
@@ -677,25 +709,7 @@ def run(options: RunnerOptions) -> int:
         return result
     except Exception as exc:
         print("".join(traceback.format_exception(exc)), file=sys.stderr)
-        diagnostic = {
-            "status": "INVALID_EVIDENCE" if isinstance(exc, ValueError) else "ENGINEERING_ERROR",
-            "error_type": type(exc).__name__, "error": str(exc),
-            "traceback": "".join(traceback.format_exception(exc)),
-            "run_id": options.run_id, "run_attempt": options.run_attempt,
-            "shard": options.shard, "event_name": os.environ.get("GITHUB_EVENT_NAME"),
-            "event_sha": os.environ.get("GITHUB_SHA"),
-        }
-        try:
-            head, tree = _git_identity()
-            diagnostic.update(head=head, tree=tree)
-        except Exception as identity_error:
-            diagnostic["identity_error"] = str(identity_error)
-        path = options.output.with_name(canonical_json_sha256(diagnostic) + ".diagnostic.json")
-        protected = tuple(path for path in (options.data_dir, options.cache_dir, options.shard_root) if path)
-        validate_atomic_output_boundary(path, protected_roots=protected)
-        if not path.exists():
-            atomic_write_bytes(path, canonical_json_bytes(diagnostic))
-        _action_output("diagnostic_path", path)
+        _write_diagnostic(options, exc)
         return 2
 
 

@@ -793,3 +793,25 @@ def test_final_cli_rejects_symlinked_artifact_roots(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="symlink"):
         run(parse_cli(_final_args(linked, tmp_path / "report.json")))
+
+
+def test_failed_cells_publish_original_tracebacks_outside_cache(tmp_path, monkeypatch) -> None:
+    options = replace(parse_cli(_execution_args("--symbol", "sh600487")),
+                      output=tmp_path / "manifest.json", cache_dir=tmp_path / "cache",
+                      data_dir=ROOT / "data/frozen")
+    actions_output = tmp_path / "actions-output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(actions_output))
+
+    def fail_cell(*args, **kwargs):
+        raise RuntimeError("native-reader-root-cause")
+
+    monkeypatch.setattr(runner_module, "run_runtime_cell_artifact", fail_cell)
+    assert run(options) == 1
+    values = dict(line.split("=", 1) for line in actions_output.read_text().splitlines())
+    diagnostic_path = Path(values["diagnostic_path"])
+    assert diagnostic_path.parent == options.output.parent
+    diagnostic = json.loads(diagnostic_path.read_bytes())
+    assert "native-reader-root-cause" in diagnostic["traceback"]
+    assert "sh600487" in diagnostic["traceback"]
+    assert "canonical_sha256" not in diagnostic
+    assert json.loads(options.output.read_bytes())["status"] == "ERROR"

@@ -12,13 +12,13 @@ from typing import Any
 
 import pytest
 
-from research.immutable_evidence import evidence_root
 from uquant.contracts.source_surfaces import SOURCE_SURFACE_IDS
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.provenance.fingerprints import (
     git_source_surface_fingerprint,
     source_surface_fingerprint,
 )
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = (evidence_root() / 'artifacts') / "architecture_refactor"

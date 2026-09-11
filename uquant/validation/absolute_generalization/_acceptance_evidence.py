@@ -410,8 +410,7 @@ def _validate_ownership_acceptance(
     _validate_ownership_report(evidence["report_13"], contract, champion)
 
 
-@lru_cache(maxsize=1)
-def _compile_anchored_relative_policy_reference() -> Mapping[str, object]:
+def relative_policy_reference() -> Mapping[str, object]:
     baseline = load_generalization_baseline()
     policy = load_generalization_policy()
     if policy.baseline_sha256 != baseline.sha256:
@@ -447,7 +446,7 @@ def _validate_relative_policy_reference(raw: object) -> None:
         label="relative policy reference size",
         minimum=1,
     )
-    if dict(reference) != _compile_anchored_relative_policy_reference():
+    if dict(reference) != relative_policy_reference():
         raise ValueError("absolute generalization relative policy reference differs")
 
 

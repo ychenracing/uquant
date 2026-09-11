@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.holdout import SCORE_FIELDS, load_future_holdout_contract
 from uquant.validation.holdout_lanes import (
     HoldoutLane,

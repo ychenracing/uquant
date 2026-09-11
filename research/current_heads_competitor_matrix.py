@@ -30,8 +30,8 @@ from research.current_heads import (
     load_comparison_contract,
     load_source_registry,
 )
-from research.immutable_evidence import evidence_root
 from uquant.atomic_io import atomic_write_text
+from uquant.validation.evidence_source import evidence_root
 
 _MARKET_COLUMNS = ("date", "open", "high", "low", "close", "volume", "amount")
 _SHA40 = 40
@@ -1212,7 +1212,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     assemble.add_argument(
         "--output",
         type=Path,
-        default=root / "benchmarks/current_heads_competitor_matrix.json",
+        default=root / "artifacts/competitor_matrix.json",
     )
     assemble.add_argument("--uquant-workers", type=int, default=6)
     args = parser.parse_args(argv)

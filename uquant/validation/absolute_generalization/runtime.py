@@ -11,12 +11,8 @@ from typing import cast
 from uquant.account import account_from_dict
 from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256, strict_json_loads
 from uquant.engine import ProductionEngine, code_fingerprint
-from uquant.validation.generalization_reference import (
-    load_generalization_baseline,
-    load_generalization_policy,
-)
 
-from ._acceptance_evidence import current_candidate_champion_evidence
+from ._acceptance_evidence import current_candidate_champion_evidence, relative_policy_reference
 from ._champion_runtime_reconciliation import (
     derive_champion_runtime_claims,
     derive_report_runtime_claims,
@@ -310,10 +306,6 @@ def _champion_runtime_payload(
         contract=contract,
         allowed_symbols=report_symbols,
     )
-    relative_baseline = load_generalization_baseline()
-    relative_policy = load_generalization_policy()
-    if relative_policy.baseline_sha256 != relative_baseline.sha256:
-        raise RuntimeError("absolute relative policy reference identity differs")
     payload: dict[str, object] = {
         **champion_claims,
         "report_13": report,
@@ -326,12 +318,7 @@ def _champion_runtime_payload(
             "champion": _ownership_champion(champion, scenario_id="champion-5"),
             "report_13": report_completion,
         },
-        "relative_policy_reference": {
-            "baseline_canonical_sha256": relative_baseline.sha256,
-            "policy_canonical_sha256": relative_policy.sha256,
-            "frozen_artifact_sha256": relative_baseline.artifact_sha256,
-            "frozen_artifact_size_bytes": relative_baseline.artifact_size_bytes,
-        },
+        "relative_policy_reference": relative_policy_reference(),
     }
     payload["evidence_sha256"] = canonical_json_sha256(payload)
     return payload

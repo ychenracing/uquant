@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 
 
 def _artifact(name: str) -> dict[str, object]:

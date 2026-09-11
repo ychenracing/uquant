@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG
+from uquant.validation.evidence_source import evidence_root
 
 
 def test_gross_cap_rejection_is_compact_exact_and_non_production() -> None:

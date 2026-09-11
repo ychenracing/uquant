@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from research.immutable_evidence import evidence_root
 from research.risk_differential import append_observation
 from research.risk_differential_models import canonical_sha256
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
 _SCRIPT_SPEC = importlib.util.spec_from_file_location(

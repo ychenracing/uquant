@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
 DIAGNOSTICS = (evidence_root() / 'artifacts') / "phase1" / "diagnostics"

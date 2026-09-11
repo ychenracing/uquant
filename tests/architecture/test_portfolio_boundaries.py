@@ -12,10 +12,10 @@ from typing import Any, cast
 import pandas as pd
 import pytest
 
-from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.portfolio import PortfolioAllocator
+from uquant.validation.evidence_source import evidence_root
 
 from . import _portfolio_trace as trace_module
 from ._analysis import (

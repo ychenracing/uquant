@@ -40,7 +40,7 @@ uv run python -m scripts.future_holdout report-lanes
 ```
 
 不要把本地 `future_holdout_lane_report.json` 写回
-`artifacts/holdout/lane_validation.json`。后者只证明仓库基线在没有未来数据时诚实地保持
+Lane 校验输出。后者只证明仓库基线在没有未来数据时诚实地保持
 零观察和 null 分数。
 
 ## 唯一生产观察入口

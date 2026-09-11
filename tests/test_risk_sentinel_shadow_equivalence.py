@@ -5,10 +5,10 @@ import json
 import subprocess
 from pathlib import Path
 
-from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import code_fingerprint
 from uquant.risk_sentinel.cli import sentinel_source_fingerprint
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = (evidence_root() / 'artifacts') / "sentinel" / "shadow_equivalence.json"

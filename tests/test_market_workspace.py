@@ -11,12 +11,12 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG
 from uquant.data import DataStore
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine
 from uquant.leader import REFERENCE_UNIVERSE, STABLE_REFERENCE_UNIVERSE
 from uquant.market import MarketWorkspace, ReplayHarness, ReplayUniverse
+from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
 BASELINE_PATH = ROOT / "tests" / "fixtures" / "market_contract_baseline.json"

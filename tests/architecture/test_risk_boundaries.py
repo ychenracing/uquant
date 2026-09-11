@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_sha256

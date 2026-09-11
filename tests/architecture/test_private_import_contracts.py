@@ -8,7 +8,7 @@ from collections.abc import Mapping
 
 import pytest
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 
 from ._analysis import ROOT, architecture_snapshot, measured_debt
 from ._analysis_debt import (

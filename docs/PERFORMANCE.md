@@ -271,20 +271,13 @@ scenario 和 causal evidence 身份，再调用冻结 policy/evidence validator�
 
 只报告最优股票池、最优区间或平均值会掩盖薄弱场景。参数选择与最终验证应使用不同区间或不同证券子集。
 
-### 四系统冻结横向基线
+### 横向比较的证据合同
 
-`benchmarks/current_heads_competitor_matrix.json` 冻结实施开始时 uquant、aquant、
-qwenquant 和 trade 的远程 HEAD，在完全相同的数据、信号时点、next-open、费用滑点、
-T+1 和股票池合同下形成 1,056 个逐 Cell 结果。矩阵固定包含 120 个官方池 Cell 和 936
-个泛化 Cell；`REPLAY_ERROR` 与 `INSUFFICIENT_SAMPLE` 都是必须保留的证据状态，不能
-删行、补值或用不匹配当前身份的数字替代。源码、依赖、适配器、数据、配置和运行时身份分别绑定到
-registry、矩阵顶层和每个 Cell，CI 会通过 `python -m research.current_heads` 独立重算
-行数、身份、状态、摘要与聚合。
-
-该矩阵用于 Risk Sentinel 融合前的版本基线和后续归因，不是自动推广门，也不替代
-历史已认证 champion。矩阵里某个系统领先或落后都不改变既有生产政策；历史横向
-结果同样不保证未来。完整审阅、隔离运行说明和已知限制见
-[`artifacts/current_heads/analysis.md`](https://github.com/ychenracing/uquant/blob/7fcf9562e6c7f96250811acd80c2dd4ee46485e3/artifacts/current_heads/analysis.md)。
+`python -m research.current_heads` 默认从不可变证据源读取独立、冻结的比较输入，不表示当前
+候选成绩。每个 Cell 绑定生产者、配置、数据、适配器和执行时点；`REPLAY_ERROR` 与
+`INSUFFICIENT_SAMPLE` 必须保留，不能删行、补值或改贴当前源码身份。
+`python -m research.current_heads` 核验行数、身份、状态、摘要与聚合。
+比较结果不自动授予生产权限，也不替代当前 Absolute 和 Ownership 验收。
 
 ## Future holdout 与人工执行证据
 
@@ -304,8 +297,7 @@ holdout。未来 session 未导入时观察与指标必须为 null，不允许�
 真实启用日、完整 Git commit、生产与 Sentinel 源码、有效配置、数据合同、Python、
 NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或删除，新 Lane 不得从已
 观察日期回填。新增 source epoch 或候选必须从真实启用日向前登记，不能凭空创建历史
-观察。`artifacts/holdout/lane_validation.json` 明确记录样本量、下一里程碑和七个正式
-评分；少于 20 日时这些评分全部为 `null`，诊断指标也不得伪装为正式评分。
+观察。Lane 校验产物记录真实样本量、观察里程碑和七个正式评分；少于 20 日时这些评分全部为 `null`，诊断指标也不得伪装为正式评分。
 
 ## 如何判断改动是否安全
 
@@ -339,11 +331,8 @@ NumPy、pandas、uv 和锁文件摘要；已开始观察的身份不得修改或
 - 极端停牌、连续涨跌停和流动性枯竭可能使实际仓位偏离目标；
 - 小样本急跌区间的统计不稳定，应与更多压力场景共同使用。
 
-Risk Sentinel 的冻结晋级、拒绝候选与 Evidence Closure 固定结果保存在
-`artifacts/sentinel/`。这些历史数值用于审计，不替代本页的长期绩效合同，也不自动授予
-新的生产权限。
 
-## 历史研究观察归档恢复
+## 研究观察产物与恢复
 
 `research.cross_ai_strategy.run_production_case` 将每个实际完成的 session 原子保存到
 场景目录的 `observations/YYYY-MM-DD.json`，绑定完整输入身份及观察内容摘要，再核验

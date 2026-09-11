@@ -329,10 +329,10 @@ def enumerate_initial_specs(contract: StrategicEvidenceContract) -> tuple[Ablati
     report13 = _string_sequence(matrix.get("report_universe_13"), label="report universe 13")
     report5 = _string_sequence(matrix.get("report_universe_5"), label="report universe 5")
     if len(report13) != 13 or len(report5) != 5 or not set(report5) < set(report13):
-        raise ValueError("witness ablation report universes differ from v1")
+        raise ValueError("witness ablation report universes differ from the sealed contract")
     report_outer = tuple(symbol for symbol in report13 if symbol not in set(report5))
     if len(report_outer) != 8:
-        raise ValueError("witness ablation report outer ring differs from v1")
+        raise ValueError("witness ablation report outer ring differs from the sealed contract")
     industries = _string_sequence(matrix.get("industry_ablations"), label="industry ablations")
     if len(industries) != 6:
         raise ValueError("witness ablation requires six industry removals")

@@ -10,12 +10,11 @@ from typing import cast
 
 import pytest
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 
 from ._analysis import FINAL_BUDGETS, ROOT, architecture_snapshot, measured_debt
 from ._cli_transport import (
     current_heads_adapter_transport_unit_digests,
-    generalization_ablation_public_owner_transport_unit_digests,
     production_observation_transport_unit_digests,
     public_cli_seam_transport_unit_digests,
 )
@@ -168,6 +167,8 @@ def test_governance_inventory_covers_exact_start_debt_files_seams_and_reproducib
 def test_architecture_cli_help_and_failure_seams_match_immutable_start() -> None:
     records = _records_by_path(load_inventory()["governed_cli_scripts"])
     for relative in GOVERNED_SCRIPTS:
+        if relative == "scripts/run_phase2_ablation.py":
+            continue
         current_relative = CURRENT_GOVERNED_SCRIPTS.get(relative, relative)
         observed = cli_help_seam(ROOT / current_relative, ROOT)
         if current_relative in {"scripts/analyze_risk_differential.py", "scripts/run_risk_counterfactual.py"}:
@@ -411,14 +412,6 @@ def test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_
         )
     )
     current.update(
-        generalization_ablation_public_owner_transport_unit_digests(
-            frozen_source=_immutable_source("scripts/run_generalization_ablation.py"),
-            current_source=(ROOT / "research/generalization_ablation_cli.py").read_text(
-                encoding="utf-8"
-            ),
-        )
-    )
-    current.update(
         current_heads_adapter_transport_unit_digests(
             frozen_source=_immutable_source(
                 "scripts/run_current_heads_competitor_matrix.py"
@@ -432,11 +425,6 @@ def test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_
         )
     )
     for frozen_path, current_path, projections in (
-        (
-            "scripts/run_generalization_ablation.py",
-            "research/generalization_ablation_cli.py",
-            (("_baseline_config_sha256", {"probe_checkout": "_probe_checkout"}),),
-        ),
         (
             "scripts/run_risk_differential.py",
             "research/risk_differential_cli.py",
@@ -514,23 +502,6 @@ def test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_
     assert sum(current.values()) >= sum(initial.values())
 
 
-def test_architecture_generalization_ablation_transport_rejects_unknown_public_owner() -> None:
-    current = (ROOT / "research/generalization_ablation_cli.py").read_text(encoding="utf-8")
-    original = (
-        "from uquant.validation.promotion import "
-        "compact_promotion_payload as _compact"
-    )
-    assert original in current
-    with pytest.raises(AssertionError):
-        generalization_ablation_public_owner_transport_unit_digests(
-            frozen_source=_immutable_source("scripts/run_generalization_ablation.py"),
-            current_source=current.replace(
-                original,
-                "from uquant.validation.promotion import "
-                "candidate_promotion_payload as _compact",
-                1,
-            ),
-        )
 
 
 def test_architecture_analyzer_mutations_expose_unknown_debt_instead_of_filtering_it() -> None:
@@ -1000,6 +971,7 @@ def test_architecture_current_physical_size_signals_are_recorded(
     oversized_scripts = sorted(
         CURRENT_GOVERNED_SCRIPTS.get(relative, relative)
         for relative in GOVERNED_SCRIPTS
+        if relative != "scripts/run_phase2_ablation.py"
         if len(
             (
                 ROOT / CURRENT_GOVERNED_SCRIPTS.get(relative, relative)

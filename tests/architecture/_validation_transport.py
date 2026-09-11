@@ -540,6 +540,9 @@ def assert_validation_importer_public_transports(
         ("research.first_divergence", "_CAUSAL_STAGES"): "TRACE_STAGES",
     }
     for relative, importer_rows in sorted(grouped.items()):
+        if relative == "research/phase2_ablation_cli.py":
+            assert not (root / "research/generalization_ablation_cli.py").exists()
+            continue
         current_relative = current_paths.get(relative, relative)
         module, is_package = _importer_module(current_relative)
         current_source = _source(root, current_relative, candidate_sources)
@@ -580,7 +583,8 @@ def assert_validation_importer_public_transports(
             ]
             assert len(assignments) == 1
             facade_count += 1
-    assert (direct_count, facade_count) == (148, 41)
+    retired = sum(1 for row in rows if row["path"] == "research/phase2_ablation_cli.py")
+    assert (direct_count, facade_count) == (148 - retired, 41)
 
 
 def validation_private_relocation_projection(

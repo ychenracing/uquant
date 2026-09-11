@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.generalization_matrix import _hash_json
 from uquant.validation.promotion import _artifact_binding, current_promotion_acceptance_basis
 

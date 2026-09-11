@@ -15,7 +15,7 @@ from typing import Any, get_type_hints
 
 import pytest
 
-from research.immutable_evidence import evidence_root
+from uquant.validation.evidence_source import evidence_root
 
 from ._analysis import (
     _CONFIG_RELOCATED_PRIVATE_IMPORTS,

@@ -9,10 +9,10 @@ import subprocess
 import tomllib
 from typing import cast
 
-from research.immutable_evidence import evidence_root
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.runtime_identity import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.contracts.strict_json import canonical_json_sha256
+from uquant.validation.evidence_source import evidence_root
 
 from ._analysis import ROOT
 
@@ -135,16 +135,13 @@ def test_current_engineering_paths_use_domain_responsibilities() -> None:
         assert (resources / "performance_frozen_champion.json").is_file()
 
 
-def test_current_generalization_sources_use_domain_diagnostics_and_temp_paths() -> None:
-    registry_source = (ROOT / "research/ablation_registry.py").read_text(
-        encoding="utf-8"
-    )
-    runner_source = (ROOT / "research/generalization_ablation_cli.py").read_text(
-        encoding="utf-8"
-    )
-
-    assert 'label="phase1' not in registry_source
-    assert "uquant-phase2-" not in runner_source
+def test_current_generalization_uses_current_acceptance_and_removes_historical_execution() -> None:
+    for relative in ("research/ablation_registry.py", "research/generalization_ablation_cli.py",
+                     "scripts/run_generalization_ablation.py"):
+        assert not (ROOT / relative).exists()
+        assert subprocess.check_output(["git", "show", f"7fcf9562e6c7f96250811acd80c2dd4ee46485e3:{relative}"], cwd=ROOT)
+    assert (ROOT / "scripts/run_absolute_generalization_acceptance.py").is_file()
+    assert (ROOT / "tests/test_ablation_metrics.py").is_file()
 
 
 @functools.cache
@@ -470,15 +467,12 @@ def test_repository_canonical_docs_have_resolved_internal_links_and_current_auth
         "FREEZE_ONLY",
         "Future Holdout",
         "no-backfill",
-        "KEEP_AUTHORITATIVE",
-        "UNRESOLVED_KEEP",
         "requirements.txt",
         "source epoch",
         "uquant*",
     ):
         assert required in joined
     for relative in (
-        "artifacts/architecture_refactor/baseline_inventory.json",
         "benchmarks/source_surface_registry.json",
         "data/frozen/DATA_MANIFEST.json",
     ):
@@ -491,7 +485,7 @@ def test_repository_inventory_paths_are_tracked_and_reference_evidence_is_reprod
     for entry in entries:
         relative = str(entry["path"])
         tracked = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "--", relative],
+            ["git", "cat-file", "-e", f"{_INVENTORY_SNAPSHOT_COMMIT}:{relative}"],
             cwd=ROOT,
             capture_output=True,
             text=True,

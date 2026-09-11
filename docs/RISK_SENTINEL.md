@@ -8,7 +8,7 @@ universe、点时行业、冻结行情、两个指数和已有账户快照，形
 生产映射只有一条窄边界：合格意见最多设置现有
 `RiskAssessment.freeze_new_risk`。完整市场时间线用于因果诊断，但
 `risk_sentinel_causal_confirmation_enabled=false`；可信确认本身没有新增生产权限。
-历史候选没有证明可推广的增量经济价值，因此不能据离线结果扩大权限。
+离线诊断结果不授予额外生产权限。
 
 “Shadow” 与 `FREEZE_ONLY` 指向不同运行边界：
 
@@ -47,11 +47,7 @@ uquant 正式风险负责生产状态机与经济行为。Sentinel 描述跨市�
 `covariance_stress` 可以进入完整历史时间线；`live_book_damage` 与 `capital_damage`
 只作当日诊断，当前账户不会回填历史。
 
-冻结 Evidence Closure 在同一市场序列上比较双方首次 Family 日期。结果是三个可信
-市场 Family 全部为 `DUPLICATE`，`EARLIER=0`、`INCREMENTAL=0`、
-`FALSE_POSITIVE=0`。这是历史证据结论，不是永久假设；详细机器证据位于
-`artifacts/sentinel/evidence_closure/evidence_closure.json`。这项分析不改变 confidence、
-确认日、修复日或任何基础风险阈值，也不取得新的 Freeze 权限。
+差异分析不能改变 confidence、确认日、修复日或基础风险阈值，也不能扩大 Freeze 权限。
 
 ## 离线 Calibration 边界
 
@@ -103,10 +99,10 @@ Sentinel 是独立风险观察器，并只保留既有的窄 `FREEZE_ONLY` 映�
 Risk Sentinel 包含 `trade` 的全部执行政策，也不允许 Sentinel 生成 SELL、订单或第二套
 资本/冷却/恢复状态机。
 
-机器清单、三方逐日 replay、counterfactual 和 terminal promotion decision 位于
-`artifacts/sentinel/risk_differential/`。它们均为 observation/research evidence，不是生产
-指令。人类分析见
-[`artifacts/sentinel/risk_differential/analysis.md`](https://github.com/ychenracing/uquant/blob/7fcf9562e6c7f96250811acd80c2dd4ee46485e3/artifacts/sentinel/risk_differential/analysis.md)。
+研究产物必须保留实际生产者、输入和逐日回放身份，不能作为生产指令。
+对已预注册的输入目录，`python -m scripts.run_risk_counterfactual --input-dir <目录>`
+生成反事实原始结果；`python -m scripts.analyze_risk_differential --input-dir <目录>`
+核验原始结果并封存分析。缺失、被填入后见结果或身份不一致的输入均被拒绝。
 
 `risk_differential_shadow` 只接受冻结交易日表中、且 holdout 数据目录确实已出现的 session；
 周末、未来日、无数据日和 activation 前日期都会失败关闭。CLI 不接受调用方编写的风险事实；

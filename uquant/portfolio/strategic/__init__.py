@@ -1,15 +1,10 @@
-"""Assemble the historical strategic policy from explicit owners."""
+"""Assemble the strategic policy from explicit owners."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from types import FunctionType
-from typing import TYPE_CHECKING, Any, cast
-
-if TYPE_CHECKING:
-    import pandas as pd
-
-    from ...types import AccountState, LeaderScore, RiskAssessment, Target
+from typing import Any, cast
 
 from .discovery import (
     StrategicPortfolioPolicy as StrategicPortfolioPolicy,
@@ -28,35 +23,7 @@ from .lifecycle import (
 )
 
 
-def _strategic_initialize_public_signature(
-    self: Any,
-    *,
-    date: pd.Timestamp,
-    user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    risk: RiskAssessment,
-    admission_open: bool = True,
-) -> None:
-    raise NotImplementedError
-
-
-def _strategic_targets_public_signature(
-    self: Any,
-    *,
-    date: pd.Timestamp,
-    risk: RiskAssessment,
-    user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    prices: dict[str, float],
-    weights_now: dict[str, float],
-    admission_open: bool = True,
-) -> tuple[Target, ...] | None:
-    raise NotImplementedError
-
-
-def _strategic_compatibility_method[Function: Callable[..., Any]](
+def _strategic_assembly_method[Function: Callable[..., Any]](
     function: Function, name: str
 ) -> Function:
     runtime_function = cast(FunctionType, function)
@@ -71,39 +38,29 @@ def _strategic_compatibility_method[Function: Callable[..., Any]](
     runtime_function.__annotations__ = annotations
     runtime_function.__module__ = "uquant.portfolio_strategic"
     runtime_function.__qualname__ = f"StrategicPortfolioPolicy.{name}"
-    if name == "_initialize_strategic_cohort":
-        public_annotations = dict(_strategic_initialize_public_signature.__annotations__)
-        public_annotations.pop("self", None)
-        _strategic_initialize_public_signature.__annotations__ = public_annotations
-        cast(Any, runtime_function).__wrapped__ = _strategic_initialize_public_signature
-    if name == "_strategic_cohort_targets":
-        public_annotations = dict(_strategic_targets_public_signature.__annotations__)
-        public_annotations.pop("self", None)
-        _strategic_targets_public_signature.__annotations__ = public_annotations
-        cast(Any, runtime_function).__wrapped__ = _strategic_targets_public_signature
     return function
 
 
-def _bind_strategic_compatibility_method[Function: Callable[..., Any]](
+def _bind_strategic_method[Function: Callable[..., Any]](
     name: str,
     function: Function,
     *,
     static: bool = False,
 ) -> None:
-    compatible = _strategic_compatibility_method(function, name)
+    compatible = _strategic_assembly_method(function, name)
     descriptor: object = staticmethod(compatible) if static else compatible
     setattr(StrategicPortfolioPolicy, name, descriptor)
 
 
-_bind_strategic_compatibility_method(
+_bind_strategic_method(
     "_bounded_strategic_restore_risk_open", _bounded_strategic_restore_risk_open
 )
-_bind_strategic_compatibility_method(
+_bind_strategic_method(
     "_retire_strategic_member", _retire_strategic_member, static=True
 )
-_bind_strategic_compatibility_method(
+_bind_strategic_method(
     "_initialize_strategic_cohort", _initialize_strategic_cohort
 )
-_bind_strategic_compatibility_method(
+_bind_strategic_method(
     "_strategic_cohort_targets", _strategic_cohort_targets
 )

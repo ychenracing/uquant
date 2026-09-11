@@ -11,8 +11,8 @@ from typing import Any, cast
 
 import pytest
 
-from research.immutable_evidence import evidence_root
 from uquant.contracts.strict_json import canonical_json_sha256
+from uquant.validation.evidence_source import evidence_root
 
 from ._analysis import (
     _VALIDATION_RELOCATED_FUNCTION_DEBT,

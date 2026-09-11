@@ -44,6 +44,7 @@ from .ordinary import (
     ordinary_repair_entry,
     rearm_ordinary_market,
 )
+from .quarter_priority import quarter_priority
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
@@ -82,7 +83,8 @@ def _core_candidates(
             trace.setdefault(symbol, {}).update(entry=entry, rank_score=score.score)
         if entry["block"] == "READY":
             candidates.append(symbol)
-    return sorted(candidates, key=lambda symbol: (-leaders[symbol].score, symbol))
+    return quarter_priority(sorted(candidates, key=lambda symbol: (-leaders[symbol].score, symbol)),
+                            str(date.date()))
 
 
 def _transfer_sell_filled(account: AccountState, key: str, date: pd.Timestamp) -> bool:

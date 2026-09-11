@@ -9,6 +9,7 @@
         "pyproject.toml",
         "requirements.txt",
         "uquant/contracts/resources/ai_universe_manifest.json",
+        "uquant/contracts/resources/quarter_revenue_v1.json",
         "uv.lock"
       ],
       "source_paths": [
@@ -100,6 +101,7 @@
         "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/ordinary.py",
         "uquant/portfolio/pipeline.py",
+        "uquant/portfolio/quarter_priority.py",
         "uquant/portfolio/recovery/__init__.py",
         "uquant/portfolio/recovery/admission.py",
         "uquant/portfolio/recovery/cohort_admission.py",
@@ -535,6 +537,7 @@
         "requirements.txt",
         "uquant/contracts/resources/ai_universe_manifest.json",
         "uquant/contracts/resources/performance_frozen_champion.json",
+        "uquant/contracts/resources/quarter_revenue_v1.json",
         "uquant/validation/resources/ai_universe_manifest.json",
         "uquant/validation/resources/performance_frozen_champion.json",
         "uv.lock"
@@ -715,6 +718,7 @@
         "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/ordinary.py",
         "uquant/portfolio/pipeline.py",
+        "uquant/portfolio/quarter_priority.py",
         "uquant/portfolio/recovery/__init__.py",
         "uquant/portfolio/recovery/admission.py",
         "uquant/portfolio/recovery/cohort_admission.py",
@@ -858,5 +862,5 @@
       ]
     }
   ],
-  "canonical_sha256": "7d2c4b8143f54e4f002a1450923bf1bf59eb678f125d446fbee10fbf7026d074"
+  "canonical_sha256": "04d3cd9b407357da7a5392ca5dc09033883ee59c64cb7ee1bbeda5712bb1f958"
 }

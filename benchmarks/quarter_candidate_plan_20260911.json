@@ -1,0 +1,3882 @@
+{
+  "baseline_main": "cf07402a98997470621fa8ffdc519e5bec156028",
+  "baseline_economic_source": "f270382d9a4eaa692dd9340eb8e035ecf021478eaafdfedf9e23e7e5560d6e36",
+  "research_input_restoration_baseline": "3f94f96",
+  "frozen_before_candidate": true,
+  "mechanism": "Rank existing READY core candidates by original standalone-quarter revenue growth in slots with available information. Leave missing slots and tied technical order unchanged. Preserve all existing eligibility, maturity selection, ownership, budget, risk, sizing, exits and execution.",
+  "new_causal_premise": "Standalone-quarter growth passes all8 preregistered partial-rank cells and all company omissions; old cumulative revenue failure is retained and not relabeled.",
+  "financial_panel_sha256": "dd69a16f6340a5e4ade4a684c5719922a33e055c96f13ef30c79eba5b2901d57",
+  "information_screen_sha256": "04297078d84fb4ca06d7a5f6cdde84255934eac20dfbf17fcef63dfa693841a6",
+  "targets": [
+    "new-offset5-remove_all_three",
+    "new-offset20-remove_all_three",
+    "new-offset5-no_optical",
+    "new-offset20-no_optical"
+  ],
+  "screen_ids": [
+    "new-offset5-remove_all_three",
+    "new-offset20-remove_all_three",
+    "new-offset5-no_optical",
+    "new-offset20-no_optical",
+    "new-nominal-champion"
+  ],
+  "success_controls": [
+    "new-nominal-champion",
+    "full"
+  ],
+  "neighbor_controls": [
+    "new-nominal-remove_all_three",
+    "new-nominal-no_optical",
+    "new-offset5-champion",
+    "new-offset20-champion"
+  ],
+  "screen_gate": "Strictly positive target paired geometric mean, at least2 improved predetermined conditions, minimum target wealth ratio>=0.9, paired DD increment<=.022, principal champion wealth>=13.5, all DD<=.33 and orders<=44. Failure closes this ordering, no variant.",
+  "effective_increment_limits": {
+    "lower_bound_multiplier": 0.9,
+    "upper_bound_multiplier": 1.1,
+    "applied_once": true,
+    "principal_wealth": 13.5,
+    "max_drawdown": 0.33,
+    "max_orders": 44,
+    "positive_fraction": 0.81,
+    "p10_wealth": 0.9,
+    "target_paired_geomean_numeric_floor": 0.945,
+    "target_real_improvement_geomean_exclusive_floor": 1.0,
+    "target_minimum_wealth_ratio": 0.9,
+    "all_comparison_geomean": 0.9,
+    "paired_drawdown_increment": 0.022,
+    "minimum_improved_conditions": 2,
+    "cost_overrun_exclusive_CNY": 11000
+  },
+  "population": {
+    "labels": 57,
+    "unique_accounts": 55,
+    "robustness_labels": 44,
+    "nominal_labels": 14,
+    "nominal_no_optical_shared_with_robustness": true
+  },
+  "specs": [
+    {
+      "id": "new-best_removed-no_optical",
+      "aliases": [
+        "new-best_removed-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [
+        "sh688498"
+      ],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [
+          "sh688498"
+        ],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 18,
+        "annual_turnover": 1.2677260314177214,
+        "fees": 4848.59285762,
+        "final_wealth": 1.4080919995711902,
+        "gross_turnover": 4.552288931,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 9105.40799999936
+      },
+      "baseline_report_sha256": "9a4e2f888273fbaa27190330e1fe0cb41c643325c2c783989b2ae0d316be852f",
+      "baseline_raw_sha256": "fca396a2d7aca854a7784f39735b7f713fcbfbb4efe9e733765aaec899e567e6"
+    },
+    {
+      "id": "new-best_removed-remove_all_three",
+      "aliases": [
+        "new-best_removed-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [
+        "sh688256"
+      ],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [
+          "sh688256"
+        ],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 30,
+        "annual_turnover": 1.4862213474886077,
+        "fees": 5637.880922956,
+        "final_wealth": 1.3856959799385224,
+        "gross_turnover": 5.3368857478,
+        "max_drawdown": 0.25511135460864653,
+        "slippage_cost": 10674.559199999136
+      },
+      "baseline_report_sha256": "cc952ab7cfc128bb0264e373969fdf9acaf85934217d031201c6e910f9efa08d",
+      "baseline_raw_sha256": "daedafde13cb335ffb1094a38c4df6516916ce598128792717b0bfc8b7a4d6d4"
+    },
+    {
+      "id": "new-cash0.5-champion",
+      "aliases": [
+        "new-cash0.5-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "initial_cash": 1000000.0
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "4811888d754480e1dc275746516d8a800e513af35fc3c533cc0e9760bbb986af",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 1000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.264932336111391,
+        "fees": 22999.298651124,
+        "final_wealth": 25.104354610948874,
+        "gross_turnover": 33.2695297524,
+        "max_drawdown": 0.27148625789153435,
+        "slippage_cost": 33293.6903999983
+      },
+      "baseline_report_sha256": "4ac78ba7b284c14722197c9c0f45931b08e6ab89301377e3a5ec627eea18c0c6",
+      "baseline_raw_sha256": "da8d2f3ed8c1f83b5befaf9eb1776a78c957acce41033425f0b9a67a8e69b7ee"
+    },
+    {
+      "id": "new-cash0.5-no_optical",
+      "aliases": [
+        "new-cash0.5-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "initial_cash": 1000000.0
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "4811888d754480e1dc275746516d8a800e513af35fc3c533cc0e9760bbb986af",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 1000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0363505568303797,
+        "fees": 4313.737986968,
+        "final_wealth": 3.333444767213032,
+        "gross_turnover": 7.312349726799999,
+        "max_drawdown": 0.2581532609129905,
+        "slippage_cost": 7314.694799999646
+      },
+      "baseline_report_sha256": "4c430b047c75481fdf3918cb5eceb80e33c9ec54dc78c3ae838ad6e8be25fb22",
+      "baseline_raw_sha256": "54a3265eaeea1d5aacf821659e5176ab77b4e428681d05aad1047b4eb553d422"
+    },
+    {
+      "id": "new-cash0.5-remove_all_three",
+      "aliases": [
+        "new-cash0.5-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "initial_cash": 1000000.0
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "4811888d754480e1dc275746516d8a800e513af35fc3c533cc0e9760bbb986af",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 1000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.655427682379747,
+        "fees": 3192.12527564,
+        "final_wealth": 1.6385487367243599,
+        "gross_turnover": 5.944490314,
+        "max_drawdown": 0.22673551021421134,
+        "slippage_cost": 5945.137999999703
+      },
+      "baseline_report_sha256": "1dc4d32af6550ceb5fd9c95f99109caefeb9569387e6a77523cde6f1b8bcfbb7",
+      "baseline_raw_sha256": "8e842c87db407764d36494728ef82370683fbcbe01f5c0a0c5dfab0e7aed08fe"
+    },
+    {
+      "id": "new-cash2-champion",
+      "aliases": [
+        "new-cash2-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "initial_cash": 4000000.0
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "9c9e0670aefb5e6c00edf67265e7a12a9ccdbb46960f447140797ac467c352f4",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 4000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.320649099132911,
+        "fees": 92574.61412612999,
+        "final_wealth": 25.273479162768464,
+        "gross_turnover": 33.46960358325,
+        "max_drawdown": 0.27143656214266465,
+        "slippage_cost": 133975.7347999932
+      },
+      "baseline_report_sha256": "37c650a80ff2ae66beb9447b7a5a2cd5cfb6a7a483c243242c6728722488b70e",
+      "baseline_raw_sha256": "a42aa70f8d3b0b43817c7d64cbcbd0493cc948d071da4cb43bdb7f6ba74c1826"
+    },
+    {
+      "id": "new-cash2-no_optical",
+      "aliases": [
+        "new-cash2-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "initial_cash": 4000000.0
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "9c9e0670aefb5e6c00edf67265e7a12a9ccdbb46960f447140797ac467c352f4",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 4000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 21,
+        "annual_turnover": 1.947715934721519,
+        "fees": 14680.253557060001,
+        "final_wealth": 1.8095269464107357,
+        "gross_turnover": 6.9940708565,
+        "max_drawdown": 0.253055453942728,
+        "slippage_cost": 27977.960799997843
+      },
+      "baseline_report_sha256": "89486c561ee273ee2a7fe0d09a8cb050475c518681ba576475b1b75c95a39e0b",
+      "baseline_raw_sha256": "128ac2b6316d996ce14e5dfac2905fe12b1a01e5842d892518711891684840a4"
+    },
+    {
+      "id": "new-cash2-remove_all_three",
+      "aliases": [
+        "new-cash2-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "initial_cash": 4000000.0
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "9c9e0670aefb5e6c00edf67265e7a12a9ccdbb46960f447140797ac467c352f4",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 4000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 19,
+        "annual_turnover": 1.3757351527658228,
+        "fees": 10801.34279982,
+        "final_wealth": 1.7188420479500455,
+        "gross_turnover": 4.94013986675,
+        "max_drawdown": 0.20671091883760895,
+        "slippage_cost": 19763.46539999895
+      },
+      "baseline_report_sha256": "1d1cf59834619ec879a19e2d5dd68b80ce22ae675e2ccb779fbdbec3fd13f340",
+      "baseline_raw_sha256": "d20407ee130e4249f42bdd7f8a4eb3ddc1220a6eda043746177f1f8e67b5e366"
+    },
+    {
+      "id": "new-confirmation_lower-champion",
+      "aliases": [
+        "new-confirmation_lower-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 4
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "7ebe62f7d6f38a89fdb22468689508219949be8a98681a160b7fea6444dcbe89",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.26891228576709,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "gross_turnover": 33.2838213898,
+        "max_drawdown": 0.27146973146234554,
+        "slippage_cost": 66615.9745999966
+      },
+      "baseline_report_sha256": "0e3ab1fe0051483ed339502e8860b3504ca1228c499320e3710423f20415b67e",
+      "baseline_raw_sha256": "4cb2dbadcc8b4f883a454c9b4e4033ffa4c182c790fc072e779eb57b0fba6a6c"
+    },
+    {
+      "id": "new-confirmation_lower-no_optical",
+      "aliases": [
+        "new-confirmation_lower-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 4
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "7ebe62f7d6f38a89fdb22468689508219949be8a98681a160b7fea6444dcbe89",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0186508248987343,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "gross_turnover": 7.2487915984999995,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "baseline_report_sha256": "198f0ca093aa2b0a29480dafca11a41b08959f094c273bab59655f31e3e2aaf9",
+      "baseline_raw_sha256": "2ee2265c19fe182da3461580c67d63c70296d5c2444a2a0fbb2170ce936397f7"
+    },
+    {
+      "id": "new-confirmation_lower-remove_all_three",
+      "aliases": [
+        "new-confirmation_lower-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 4
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "7ebe62f7d6f38a89fdb22468689508219949be8a98681a160b7fea6444dcbe89",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.6696600755443038,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "gross_turnover": 5.995597544,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "baseline_report_sha256": "15f982330977b44cbad1663cc5e09ab24de0b4761c3e9b611042c257d7076a90",
+      "baseline_raw_sha256": "65972a62f1b0b7140c822bbd82d20e42b9b3c65c491eff522f026af90785780a"
+    },
+    {
+      "id": "new-confirmation_upper-champion",
+      "aliases": [
+        "new-confirmation_upper-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 6
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "59d214e39db9be518fe00b01bbc59a6c646ab30c61aa61beea320e915d48439f",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.26891228576709,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "gross_turnover": 33.2838213898,
+        "max_drawdown": 0.27146973146234554,
+        "slippage_cost": 66615.9745999966
+      },
+      "baseline_report_sha256": "114fba6f56b77ae1f8fd6ab5ac6a86cdb0600445892c3c90a1e128c735ed9c2c",
+      "baseline_raw_sha256": "b545363202fdfa77ce72a612e432a5840db6e3a7e27765150e129434b2fbd3f4"
+    },
+    {
+      "id": "new-confirmation_upper-no_optical",
+      "aliases": [
+        "new-confirmation_upper-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 6
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "59d214e39db9be518fe00b01bbc59a6c646ab30c61aa61beea320e915d48439f",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.8070217834050633,
+        "fees": 7351.658056740001,
+        "final_wealth": 2.4623843474716303,
+        "gross_turnover": 6.4888509495,
+        "max_drawdown": 0.25974917640713335,
+        "slippage_cost": 12980.646999999177
+      },
+      "baseline_report_sha256": "a6662afd9dd581b964e44bb8a1b9ac8c0af7c0c2da906e3eab02627eadd0d4d3",
+      "baseline_raw_sha256": "db9ba54888f911f04615d1143fc9c728c054cf42bceda81eb671a96860f7a195"
+    },
+    {
+      "id": "new-confirmation_upper-remove_all_three",
+      "aliases": [
+        "new-confirmation_upper-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 6
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "59d214e39db9be518fe00b01bbc59a6c646ab30c61aa61beea320e915d48439f",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 25,
+        "annual_turnover": 1.6798774068303794,
+        "fees": 6407.490491736,
+        "final_wealth": 1.5059116525541325,
+        "gross_turnover": 6.032287051799999,
+        "max_drawdown": 0.2502286450168585,
+        "slippage_cost": 12065.604399999294
+      },
+      "baseline_report_sha256": "b3a18136d4017e927c4702044441f5bf0a2709a2634efbeea4dc4cbfc5c051e3",
+      "baseline_raw_sha256": "4da08289a4209bdf0cc0bcbb2cc3231fdbb3a9da024fc23bc96cec3c834b9c6f"
+    },
+    {
+      "id": "new-cost_stress-champion",
+      "aliases": [
+        "new-cost_stress-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "commission_rate": 0.0005,
+        "min_commission": 10,
+        "slippage": 0.002,
+        "stamp_duty": 0.001,
+        "transfer_fee": 2e-05
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "5025adb8985a2645974fffc626db80bf1b5f64a76b06d1d2466537a934608375",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.227226178959494,
+        "fees": 91626.751345896,
+        "final_wealth": 24.98731201562705,
+        "gross_turnover": 33.1341303699,
+        "max_drawdown": 0.27244679688670104,
+        "slippage_cost": 132729.31740000253
+      },
+      "baseline_report_sha256": "cdfdc27be62a3e3475cc7d28e607568b2a91b63731a019cf38a44408c9b7e9b9",
+      "baseline_raw_sha256": "652e82b04fd5c759931bca8e22770c5fd18dd26b57130cb0712b4dd28dee05db"
+    },
+    {
+      "id": "new-cost_stress-no_optical",
+      "aliases": [
+        "new-cost_stress-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "commission_rate": 0.0005,
+        "min_commission": 10,
+        "slippage": 0.002,
+        "stamp_duty": 0.001,
+        "transfer_fee": 2e-05
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "5025adb8985a2645974fffc626db80bf1b5f64a76b06d1d2466537a934608375",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0123716903037976,
+        "fees": 17078.92695088,
+        "final_wealth": 3.32885014152456,
+        "gross_turnover": 7.226243797,
+        "max_drawdown": 0.2595260581942178,
+        "slippage_cost": 28923.789999999946
+      },
+      "baseline_report_sha256": "894d795cb38aa5e9d107a6d7cd6d9f21a26f6d86e5a157bd5327c52c784fa6b9",
+      "baseline_raw_sha256": "b8afe798348dc3b745339be51592bad6877ae11240034a1e8cbfbb694c951a68"
+    },
+    {
+      "id": "new-cost_stress-remove_all_three",
+      "aliases": [
+        "new-cost_stress-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "commission_rate": 0.0005,
+        "min_commission": 10,
+        "slippage": 0.002,
+        "stamp_duty": 0.001,
+        "transfer_fee": 2e-05
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "5025adb8985a2645974fffc626db80bf1b5f64a76b06d1d2466537a934608375",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 21,
+        "annual_turnover": 1.5481976850582277,
+        "fees": 11815.010055472,
+        "final_wealth": 1.467850781172264,
+        "gross_turnover": 5.559437141799999,
+        "max_drawdown": 0.2635382276465762,
+        "slippage_cost": 22241.627599999905
+      },
+      "baseline_report_sha256": "b3e2d8022ea199fbec23b4967dcdcee92f94465104730055675abfae005d467c",
+      "baseline_raw_sha256": "9e43770beb0b99d6fdeb5da73508889647805d98fcd213f657d17df42eb8e4d3"
+    },
+    {
+      "id": "new-nominal-champion",
+      "aliases": [
+        "new-nominal-champion",
+        "champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.26891228576709,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "gross_turnover": 33.2838213898,
+        "max_drawdown": 0.27146973146234554,
+        "slippage_cost": 66615.9745999966
+      },
+      "baseline_report_sha256": "b1f96a3b400910b1648d64a4acdb58e18ef970dc02179a43273d1e072d840521",
+      "baseline_raw_sha256": "3ec29d0d20bed907285b2e1935bac69d59cb5f662bf81c38e68806292bbf1e09"
+    },
+    {
+      "id": "new-nominal-no_optical",
+      "aliases": [
+        "new-nominal-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0186508248987343,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "gross_turnover": 7.2487915984999995,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "baseline_report_sha256": "e027aaab0edd5be3dfbaddc60c7f4ab41cc894556c8611255c325f8f8a828a32",
+      "baseline_raw_sha256": "c337b59066a96c37dc5b8ae335da77c3480976592cda6dfe405d39bc8bfcc2e7"
+    },
+    {
+      "id": "new-nominal-remove_all_three",
+      "aliases": [
+        "new-nominal-remove_all_three",
+        "remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.6696600755443038,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "gross_turnover": 5.995597544,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "baseline_report_sha256": "8afdadc7685cfe612e1449c436d76d43db4b15dde118ff22e30f509cb5038113",
+      "baseline_raw_sha256": "3ee9b8b820617a5cc6133f615b13f322dc5d486b661fec9fef5f4ef94567399a"
+    },
+    {
+      "id": "new-offset20-champion",
+      "aliases": [
+        "new-offset20-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 20,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-02-07",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 20,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "0729818e7fddfe6a3817bfc7a7dae11f57ec51b1f3d792217fc0c73dc73a55e5"
+      },
+      "baseline_metrics": {
+        "account_orders": 17,
+        "annual_turnover": 1.852961663982803,
+        "fees": 7344.863740634,
+        "final_wealth": 2.424668753729683,
+        "gross_turnover": 6.5006795567,
+        "max_drawdown": 0.1687012918195071,
+        "slippage_cost": 13004.228799999555
+      },
+      "baseline_report_sha256": "bfb511fd0226b7cf16cef6c6b47764f2edfddc3cf8a88d27814120f330fcb79b",
+      "baseline_raw_sha256": "b4c5b9cec00a8e620d85a34b959f5a04fcb83baf8dca8c05bdc2e1a24148a4a4"
+    },
+    {
+      "id": "new-offset20-no_optical",
+      "aliases": [
+        "new-offset20-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 20,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-02-07",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 20,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "0729818e7fddfe6a3817bfc7a7dae11f57ec51b1f3d792217fc0c73dc73a55e5"
+      },
+      "baseline_metrics": {
+        "account_orders": 18,
+        "annual_turnover": 1.2288321064162544,
+        "fees": 4956.978424044,
+        "final_wealth": 2.116899619087978,
+        "gross_turnover": 4.3110680097000005,
+        "max_drawdown": 0.21919000408157907,
+        "slippage_cost": 8624.383399999559
+      },
+      "baseline_report_sha256": "1ac562f7896bea8fceea837f87fdfc4979d853ad64e40a893d0813758f424720",
+      "baseline_raw_sha256": "8f6e4862ab978e085dd5827193f1589f19924b345da4c4096d184739ffa28529"
+    },
+    {
+      "id": "new-offset20-remove_all_three",
+      "aliases": [
+        "new-offset20-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 20,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-02-07",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 20,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "0729818e7fddfe6a3817bfc7a7dae11f57ec51b1f3d792217fc0c73dc73a55e5"
+      },
+      "baseline_metrics": {
+        "account_orders": 15,
+        "annual_turnover": 0.833744959368669,
+        "fees": 2920.1293312400003,
+        "final_wealth": 0.8718030613343799,
+        "gross_turnover": 2.924997812,
+        "max_drawdown": 0.2644605668082183,
+        "slippage_cost": 5849.747999999546
+      },
+      "baseline_report_sha256": "caeee7c04a514039d927dcd9bd24625c1b4a258e705e504e95fddb12854f3369",
+      "baseline_raw_sha256": "81c55cf9f51f9464ae5fd73e394c1231634c1f8eaa8b7a60988f691472763a89"
+    },
+    {
+      "id": "new-offset5-champion",
+      "aliases": [
+        "new-offset5-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 5,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-10",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 5,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "42883c0678310cc2db0b1630424a4fd480e65696385d2fbff899aa81af7497c1"
+      },
+      "baseline_metrics": {
+        "account_orders": 17,
+        "annual_turnover": 1.8207921906497684,
+        "fees": 7344.863740634,
+        "final_wealth": 2.424668753729683,
+        "gross_turnover": 6.5006795567,
+        "max_drawdown": 0.1687012918195071,
+        "slippage_cost": 13004.228799999555
+      },
+      "baseline_report_sha256": "bf4fcde4ea5dfde08def9a49927d2212557dc5a2cc9279e0b31b78dba671702e",
+      "baseline_raw_sha256": "eafd407058ff1092cf9a44dc9cfa71b3afad98440efbfa74c3743a71e14f4aab"
+    },
+    {
+      "id": "new-offset5-no_optical",
+      "aliases": [
+        "new-offset5-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 5,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-10",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 5,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "42883c0678310cc2db0b1630424a4fd480e65696385d2fbff899aa81af7497c1"
+      },
+      "baseline_metrics": {
+        "account_orders": 29,
+        "annual_turnover": 2.2124713744756943,
+        "fees": 9233.17531482,
+        "final_wealth": 3.3476284808425896,
+        "gross_turnover": 7.899071353499999,
+        "max_drawdown": 0.25973526944246283,
+        "slippage_cost": 15802.862999999226
+      },
+      "baseline_report_sha256": "19b5ce918654d4065fa7003e847d3b20e320bb62a658236b119e3827c37e1e7d",
+      "baseline_raw_sha256": "0999abf29b74c7835449b5ebf06dbc90cee58420ce6d45f7f9f1bc40e02c2d43"
+    },
+    {
+      "id": "new-offset5-remove_all_three",
+      "aliases": [
+        "new-offset5-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 5,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-10",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 5,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "42883c0678310cc2db0b1630424a4fd480e65696385d2fbff899aa81af7497c1"
+      },
+      "baseline_metrics": {
+        "account_orders": 25,
+        "annual_turnover": 1.6787459080969906,
+        "fees": 6355.807927148,
+        "final_wealth": 1.481618166136426,
+        "gross_turnover": 5.9935391098999995,
+        "max_drawdown": 0.26184706402677516,
+        "slippage_cost": 11988.059799999246
+      },
+      "baseline_report_sha256": "4706106e9469c9f579fd0617a77e244b1c094d18bb27d236108f25e353befa4b",
+      "baseline_raw_sha256": "0d8b2bc6855bfb7e3e9525da4928dc88b98095cd0181deb090940c5c98f38819"
+    },
+    {
+      "id": "new-p2_lower-champion",
+      "aliases": [
+        "new-p2_lower-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0475
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "d13fd6bd3bc511baa0e41a15312543d65369df7ae1746ac3d46444e82b8457ff",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.26891228576709,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "gross_turnover": 33.2838213898,
+        "max_drawdown": 0.27146973146234554,
+        "slippage_cost": 66615.9745999966
+      },
+      "baseline_report_sha256": "9f9817d023480710bb7aae985df67da012cd4ba0dfda20a789f9938f550d2020",
+      "baseline_raw_sha256": "592ec13d58b0b88f759c58d25f3c583e7977f40c588d81af584cfd79b667f4d5"
+    },
+    {
+      "id": "new-p2_lower-no_optical",
+      "aliases": [
+        "new-p2_lower-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0475
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "d13fd6bd3bc511baa0e41a15312543d65369df7ae1746ac3d46444e82b8457ff",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0186508248987343,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "gross_turnover": 7.2487915984999995,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "baseline_report_sha256": "6d1629e7fc5e620d782a1d24c5b396c9d8cd52cf4dd64ce551dae2d619ee37d6",
+      "baseline_raw_sha256": "e8751ba8043773b958d583a1af19ffe1607c36f073b049cdbc00b6f2213f8a18"
+    },
+    {
+      "id": "new-p2_lower-remove_all_three",
+      "aliases": [
+        "new-p2_lower-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0475
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "d13fd6bd3bc511baa0e41a15312543d65369df7ae1746ac3d46444e82b8457ff",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.6696600755443038,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "gross_turnover": 5.995597544,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "baseline_report_sha256": "42b93ce7bb1e21357c2bfdf4674bc95bba5831959604db2b022949b84057710a",
+      "baseline_raw_sha256": "45dff015940d7a9e2bd5351585b31b27353d54b6986a3f5d158ed08d32f8d9ae"
+    },
+    {
+      "id": "new-p2_upper-champion",
+      "aliases": [
+        "new-p2_upper-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0525
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "168bd25c4bd32c7e8ba13ad1a597be85871af0c84aca360e788df202937fc4f6",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.26891228576709,
+        "fees": 46015.79892394601,
+        "final_wealth": 25.109594313238023,
+        "gross_turnover": 33.2838213898,
+        "max_drawdown": 0.27146973146234554,
+        "slippage_cost": 66615.9745999966
+      },
+      "baseline_report_sha256": "0c1ff0f23c467be930c444f7b0f93e3eb41caddb07d6f00f47e7aab9ee75c2c5",
+      "baseline_raw_sha256": "17dcf19e246f4568ef65ab1be2c5f88b6e9160e7a15508374ff55ac908296655"
+    },
+    {
+      "id": "new-p2_upper-no_optical",
+      "aliases": [
+        "new-p2_upper-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0525
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "168bd25c4bd32c7e8ba13ad1a597be85871af0c84aca360e788df202937fc4f6",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0186508248987343,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "gross_turnover": 7.2487915984999995,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "baseline_report_sha256": "675e61c4fc07240768b288398f22ecc98dad1e3244fab4266ce5b1cf6a17adf0",
+      "baseline_raw_sha256": "c8f4e8590d0eb3bad06c5ddaa663355345aa6386db53ae73645dcdb47cb14525"
+    },
+    {
+      "id": "new-p2_upper-remove_all_three",
+      "aliases": [
+        "new-p2_upper-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0525
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "168bd25c4bd32c7e8ba13ad1a597be85871af0c84aca360e788df202937fc4f6",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.6696600755443038,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "gross_turnover": 5.995597544,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "baseline_report_sha256": "c4cd16812152f69bad6321375c8ae9e0d15ea5fae543b11206874a09687d7e44",
+      "baseline_raw_sha256": "d58205833a78d01f38e4c5641d32571cbd628d9ba9a25e9c466fc3b164309fba"
+    },
+    {
+      "id": "new-p7_lower-champion",
+      "aliases": [
+        "new-p7_lower-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.09
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "763457a2a9abb2fe48156dd78c3e857ba3c68a3309acaad3fd6307a405375481",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 7,
+        "annual_turnover": 9.646895163734177,
+        "fees": 47042.5924756,
+        "final_wealth": 24.3937716282622,
+        "gross_turnover": 34.6411235425,
+        "max_drawdown": 0.2804557115007774,
+        "slippage_cost": 69329.15099999566
+      },
+      "baseline_report_sha256": "db111519fe15c8bfce3ec5629751e11dbbc0e9ca5377822a48dbb5f26ce43b52",
+      "baseline_raw_sha256": "e2b98d18fc4d7dcbc403d2369d88c789d1d21781d256cccd51528e02c8b3cf91"
+    },
+    {
+      "id": "new-p7_lower-no_optical",
+      "aliases": [
+        "new-p7_lower-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.09
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "763457a2a9abb2fe48156dd78c3e857ba3c68a3309acaad3fd6307a405375481",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0186508248987343,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "gross_turnover": 7.2487915984999995,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "baseline_report_sha256": "08e9702c5d4ed60c72bbb3e57ebc86cc27b79abcf775f3ae4da12551878ca8bf",
+      "baseline_raw_sha256": "fe0a5b890254d04146664a4e019514c738867f935f3a602fa0a7f6c77c1fea07"
+    },
+    {
+      "id": "new-p7_lower-remove_all_three",
+      "aliases": [
+        "new-p7_lower-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.09
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "763457a2a9abb2fe48156dd78c3e857ba3c68a3309acaad3fd6307a405375481",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.6696600755443038,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "gross_turnover": 5.995597544,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "baseline_report_sha256": "105f32b4b05dcfe6e67ae76c9ff89046caf3e8661d9a72a3b39db32db5f720c6",
+      "baseline_raw_sha256": "9b9a9b8f3b36af14ffb0c14fa5dc1047daaa498bf229e2d888a6c3613292c0a0"
+    },
+    {
+      "id": "new-p7_upper-champion",
+      "aliases": [
+        "new-p7_upper-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.31
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "55e6f64280ab792fdcd049c59c1af49ae3d1c4852cb76cd9f1c9e79ce911978b",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 9.349256505725318,
+        "fees": 46419.513600618,
+        "final_wealth": 25.328263877949688,
+        "gross_turnover": 33.57233017965,
+        "max_drawdown": 0.2701525146405157,
+        "slippage_cost": 67193.43049999664
+      },
+      "baseline_report_sha256": "953cce8bfe3b06e3f365568ebdfffebfb77cf8bb676ae88eb9aadad2d64ab6dd",
+      "baseline_raw_sha256": "264dbc65c8273a2ae059e56f8a4a64e244d49cbf9917df656314939d4fe3917e"
+    },
+    {
+      "id": "new-p7_upper-no_optical",
+      "aliases": [
+        "new-p7_upper-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.31
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "55e6f64280ab792fdcd049c59c1af49ae3d1c4852cb76cd9f1c9e79ce911978b",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0186508248987343,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "gross_turnover": 7.2487915984999995,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "baseline_report_sha256": "198ebb41e461bb0027b780e39c4c3a335bbad10ee05d7a65de1df69cec3ed745",
+      "baseline_raw_sha256": "fe47ccc0ab109e5bbef8a3537795e83547de2bab1d9576f6a8f1c55072bebf54"
+    },
+    {
+      "id": "new-p7_upper-remove_all_three",
+      "aliases": [
+        "new-p7_upper-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.31
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "55e6f64280ab792fdcd049c59c1af49ae3d1c4852cb76cd9f1c9e79ce911978b",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.6696600755443038,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "gross_turnover": 5.995597544,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "baseline_report_sha256": "a6e638208e7c6ef016a9401c3be4fbc0bdb0931fe7c2abe81ce9a1110bee36ed",
+      "baseline_raw_sha256": "2df704a09199014e21aa86d1fc862181c380f9c9823b3005f27e69677fabb292"
+    },
+    {
+      "id": "new-p8_lower-champion",
+      "aliases": [
+        "new-p8_lower-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.68
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "1a32a9ad8650640adbbceb884f218a95f45c2eb24239c8101cb97ca1801e4165",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 12,
+        "annual_turnover": 9.295337951203798,
+        "fees": 46383.78508711601,
+        "final_wealth": 25.651802635506442,
+        "gross_turnover": 33.37871355205,
+        "max_drawdown": 0.26839583708058834,
+        "slippage_cost": 66806.8438999964
+      },
+      "baseline_report_sha256": "38c743af5ab25d53c02e2e7279c09094de7dd527f07888eeb44689d6321736de",
+      "baseline_raw_sha256": "14f015c8c7d78ccea896285d7d2d419ad749c38a3d0a94ed4f750742605c0be3"
+    },
+    {
+      "id": "new-p8_lower-no_optical",
+      "aliases": [
+        "new-p8_lower-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.68
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "1a32a9ad8650640adbbceb884f218a95f45c2eb24239c8101cb97ca1801e4165",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0186508248987343,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "gross_turnover": 7.2487915984999995,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "baseline_report_sha256": "3efea9829dc714608f8c3b588a0e2e51178eb3c59fc8296f7b149c570bf70415",
+      "baseline_raw_sha256": "ae1d71b7927ee33619c00015b6ecafb45ad04509c67f2752a1924801d89f1a43"
+    },
+    {
+      "id": "new-p8_lower-remove_all_three",
+      "aliases": [
+        "new-p8_lower-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.68
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "1a32a9ad8650640adbbceb884f218a95f45c2eb24239c8101cb97ca1801e4165",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.6696600755443038,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "gross_turnover": 5.995597544,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "baseline_report_sha256": "018791e6cf10c35bd7222ce1bf8af5b934f23b5e0a86709c9cc6b9f482c1d0e9",
+      "baseline_raw_sha256": "1ddc547738330b37b8df58c5559afecdf7729ab17fb8be4b9e6f65430d5924fe"
+    },
+    {
+      "id": "new-p8_upper-champion",
+      "aliases": [
+        "new-p8_upper-champion"
+      ],
+      "case": "champion",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.72
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "champion",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "457f1f2f5ec127e8baf1880fcb53b94fa769b854fb179ab5b80e2714e23ec9d4",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 13,
+        "annual_turnover": 9.257242697888609,
+        "fees": 46195.541735912004,
+        "final_wealth": 25.554475101332045,
+        "gross_turnover": 33.2419169606,
+        "max_drawdown": 0.2669209403207722,
+        "slippage_cost": 66533.05559999641
+      },
+      "baseline_report_sha256": "5a1b220e6ecdf100f474d2445d66ecea273f76cd500d8d619df52bc0bb79880e",
+      "baseline_raw_sha256": "d6c31ed22aabbab5ffb859082baff3a50df1201226332c52dd568caeb7a696df"
+    },
+    {
+      "id": "new-p8_upper-no_optical",
+      "aliases": [
+        "new-p8_upper-no_optical"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.72
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "457f1f2f5ec127e8baf1880fcb53b94fa769b854fb179ab5b80e2714e23ec9d4",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 23,
+        "annual_turnover": 2.0186508248987343,
+        "fees": 8569.09260572,
+        "final_wealth": 3.34636580419714,
+        "gross_turnover": 7.2487915984999995,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 14502.298999999295
+      },
+      "baseline_report_sha256": "2f0d6470c4f5c90aa8087e26b9ed70b8edfd82b235b35627d3b1c934f27851cd",
+      "baseline_raw_sha256": "53cce5f2231e4ac09670c2ee8de6c05a76291de5544c54774faf65ded3e582f9"
+    },
+    {
+      "id": "new-p8_upper-remove_all_three",
+      "aliases": [
+        "new-p8_upper-remove_all_three"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.72
+      },
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "457f1f2f5ec127e8baf1880fcb53b94fa769b854fb179ab5b80e2714e23ec9d4",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 1.6696600755443038,
+        "fees": 6436.739371879999,
+        "final_wealth": 1.6392413843140603,
+        "gross_turnover": 5.995597544,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 11992.491999999387
+      },
+      "baseline_report_sha256": "220c1b07d7efb573769eb8376f5eed6a2249affbf64cf83b41bc4cce2564ffb5",
+      "baseline_raw_sha256": "90cee3a3f9b6a4096cefbbf27fba99fb1328d09008b62cf8e5c005259064ab5f"
+    },
+    {
+      "id": "full",
+      "aliases": [
+        "full"
+      ],
+      "case": "full",
+      "start": "2023-01-03",
+      "end": "2026-08-05",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "full",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2026-08-05",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "9daa396e0d504eeed22849f87f5ef7fc7a049d8c1d132f558085997f99f6fed5"
+      },
+      "baseline_metrics": {
+        "account_orders": 22,
+        "annual_turnover": 14.075050810755696,
+        "fees": 65928.056280352,
+        "final_wealth": 29.717003593409824,
+        "gross_turnover": 50.54222791135,
+        "max_drawdown": 0.27147361646156465,
+        "slippage_cost": 101142.05689999806
+      },
+      "baseline_report_sha256": "094bd9cd94bad18c03ee2438db705a287f95e7ec2e96a3e64f465d73cdd447a8",
+      "baseline_raw_sha256": "95391ee89a9605c281024394e2b11755671491dfc0458efa8ab8d2e3094b67f5"
+    },
+    {
+      "id": "remove_all_three-h1_2023",
+      "aliases": [
+        "remove_all_three-h1_2023"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-01-03",
+      "end": "2023-06-30",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2023-06-30",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "24b42a271634b222cd033581a89c07fb03529c5b1004c4bce3323492265131de"
+      },
+      "baseline_metrics": {
+        "account_orders": 16,
+        "annual_turnover": 8.272019217559322,
+        "fees": 4421.15815332,
+        "final_wealth": 1.6118393389233403,
+        "gross_turnover": 4.033463916,
+        "max_drawdown": 0.22700561436168354,
+        "slippage_cost": 8068.163999999585
+      },
+      "baseline_report_sha256": "78b76a82735f9aca6391ed9b16d627344e8af969e51bf7e8ee891be88eaa4a41",
+      "baseline_raw_sha256": "ebdd5ddeaf52ee43a78b340349bc63be964b22ba7de2d56f8f9eacac4b3d1a65"
+    },
+    {
+      "id": "remove_all_three-h2_2023",
+      "aliases": [
+        "remove_all_three-h2_2023"
+      ],
+      "case": "remove_all_three",
+      "start": "2023-07-03",
+      "end": "2023-12-29",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-07-03",
+        "end": "2023-12-29",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-07-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "49861d8ceeb840e4206dc62a6b821c56ac893cbafb02b015533343a275ab815b"
+      },
+      "baseline_metrics": {
+        "account_orders": 7,
+        "annual_turnover": 4.104920045830645,
+        "fees": 2030.3821009800001,
+        "final_wealth": 1.0333966894495101,
+        "gross_turnover": 2.1033474615,
+        "max_drawdown": 0.09596918115560904,
+        "slippage_cost": 4206.238999999769
+      },
+      "baseline_report_sha256": "beedd9f05be86e7f5115bb31fe520e340423082f96710dad3dc12298fb956a15",
+      "baseline_raw_sha256": "cf3914eb94b55a0deec31e54b3d95f9965bd5c996a2ad5de501b7acd57de9016"
+    },
+    {
+      "id": "remove_all_three-h1_2024",
+      "aliases": [
+        "remove_all_three-h1_2024"
+      ],
+      "case": "remove_all_three",
+      "start": "2024-01-02",
+      "end": "2024-07-01",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2024-01-02",
+        "end": "2024-07-01",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2024-01-02",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "a809b9eb08a4d28bb135e358097abb59e2b4dde7ebb2afcd83e9f647beb27427"
+      },
+      "baseline_metrics": {
+        "account_orders": 4,
+        "annual_turnover": 2.6083853101694916,
+        "fees": 1336.45847755,
+        "final_wealth": 1.0776598338612253,
+        "gross_turnover": 1.2718573,
+        "max_drawdown": 0.09630868956437155,
+        "slippage_cost": 2543.873799999936
+      },
+      "baseline_report_sha256": "e2a48a4523123016efab3065d39e9d2ef53b0931737d6dd86562c1abaab0cf73",
+      "baseline_raw_sha256": "bf7210ede566e0c885889c4b9003dac32977a538fb67e5ad72820a26d68d2540"
+    },
+    {
+      "id": "remove_all_three-h2_2024",
+      "aliases": [
+        "remove_all_three-h2_2024"
+      ],
+      "case": "remove_all_three",
+      "start": "2024-07-01",
+      "end": "2024-12-31",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2024-07-01",
+        "end": "2024-12-31",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2024-07-01",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "11480b642e7724986989f932bf951291760e26df9f4492dc594745a613fe96ef"
+      },
+      "baseline_metrics": {
+        "account_orders": 9,
+        "annual_turnover": 4.0983256119872005,
+        "fees": 1660.2212458039999,
+        "final_wealth": 1.7310488815770984,
+        "gross_turnover": 2.1169037252,
+        "max_drawdown": 0.10754863337568488,
+        "slippage_cost": 4231.815599999565
+      },
+      "baseline_report_sha256": "abdc91cfdcd3d28a4ffb42e34971f4fdde8a6c95bbb2ce3c09a6c0ee78b927d8",
+      "baseline_raw_sha256": "d61ee69a7cc68ac5be1eb5e2680598ce654264cecb35f665dc48cddab387bb01"
+    },
+    {
+      "id": "remove_all_three-bull_crash_2025_2026",
+      "aliases": [
+        "remove_all_three-bull_crash_2025_2026"
+      ],
+      "case": "remove_all_three",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "remove_all_three",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2025-01-02",
+        "end": "2026-07-31",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2025-01-02",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "b450ed88786a538db91d2ca00b0a3c635030e50e5935476ecf76b1c77db362fd"
+      },
+      "baseline_metrics": {
+        "account_orders": 20,
+        "annual_turnover": 4.229998442890576,
+        "fees": 7079.718204802,
+        "final_wealth": 1.5346023910975997,
+        "gross_turnover": 6.6771049801,
+        "max_drawdown": 0.2234575147722634,
+        "slippage_cost": 13355.29959999932
+      },
+      "baseline_report_sha256": "4894ac2a3ce5764bcb70d4f8feed7eb9328b0af030b3398c1ed8702c1308528a",
+      "baseline_raw_sha256": "45ad72e76014b00a314208371f811faa08262c175c9e74ab7dd158321ebfb665"
+    },
+    {
+      "id": "no_optical-h1_2023",
+      "aliases": [
+        "no_optical-h1_2023"
+      ],
+      "case": "no_optical",
+      "start": "2023-01-03",
+      "end": "2023-06-30",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-01-03",
+        "end": "2023-06-30",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-01-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "24b42a271634b222cd033581a89c07fb03529c5b1004c4bce3323492265131de"
+      },
+      "baseline_metrics": {
+        "account_orders": 14,
+        "annual_turnover": 7.128422266135593,
+        "fees": 3782.98994674,
+        "final_wealth": 1.4733701840266302,
+        "gross_turnover": 3.475842262,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 6952.641999999501
+      },
+      "baseline_report_sha256": "76db1e8c47b20eb2ae1a07de77a7fa13aa3aa0c32844addacc37acb9c26cb202",
+      "baseline_raw_sha256": "83b9a4f5c2a5d98128da78ff41d86ea1807de24b84b25f07919f797798cb8827"
+    },
+    {
+      "id": "no_optical-h2_2023",
+      "aliases": [
+        "no_optical-h2_2023"
+      ],
+      "case": "no_optical",
+      "start": "2023-07-03",
+      "end": "2023-12-29",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2023-07-03",
+        "end": "2023-12-29",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2023-07-03",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "49861d8ceeb840e4206dc62a6b821c56ac893cbafb02b015533343a275ab815b"
+      },
+      "baseline_metrics": {
+        "account_orders": 7,
+        "annual_turnover": 4.121551631467741,
+        "fees": 2043.33549462,
+        "final_wealth": 1.0419121822526902,
+        "gross_turnover": 2.1118694309999997,
+        "max_drawdown": 0.09596918115560904,
+        "slippage_cost": 4223.299999999743
+      },
+      "baseline_report_sha256": "19c50ec14e76f37f467591a71be41cb28fcb715208702c4eb6b54b2be24a94ed",
+      "baseline_raw_sha256": "f71fbf0d003255c5c03b7ae08225aca666615b5b075bdd6af4992d2b58c1a113"
+    },
+    {
+      "id": "no_optical-h1_2024",
+      "aliases": [
+        "no_optical-h1_2024"
+      ],
+      "case": "no_optical",
+      "start": "2024-01-02",
+      "end": "2024-07-01",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2024-01-02",
+        "end": "2024-07-01",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2024-01-02",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "a809b9eb08a4d28bb135e358097abb59e2b4dde7ebb2afcd83e9f647beb27427"
+      },
+      "baseline_metrics": {
+        "account_orders": 4,
+        "annual_turnover": 2.6083853101694916,
+        "fees": 1336.45847755,
+        "final_wealth": 1.0776598338612253,
+        "gross_turnover": 1.2718573,
+        "max_drawdown": 0.09630868956437155,
+        "slippage_cost": 2543.873799999936
+      },
+      "baseline_report_sha256": "aac837ec40d222b6f3a399db6129ea3ae362d29e0963af26465c50fc863952a4",
+      "baseline_raw_sha256": "fb7a488a2cf7360384f4ca6b35ee2a670705b03808c5c3edf85051e0e375a626"
+    },
+    {
+      "id": "no_optical-h2_2024",
+      "aliases": [
+        "no_optical-h2_2024"
+      ],
+      "case": "no_optical",
+      "start": "2024-07-01",
+      "end": "2024-12-31",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2024-07-01",
+        "end": "2024-12-31",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2024-07-01",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "11480b642e7724986989f932bf951291760e26df9f4492dc594745a613fe96ef"
+      },
+      "baseline_metrics": {
+        "account_orders": 8,
+        "annual_turnover": 3.6070045737792,
+        "fees": 1528.2548512439998,
+        "final_wealth": 1.7564923927743785,
+        "gross_turnover": 1.8631221971999998,
+        "max_drawdown": 0.10754863337568488,
+        "slippage_cost": 3724.759599999628
+      },
+      "baseline_report_sha256": "0062e00bc8d2c788acf4d4d197a4899cf47566ecee20ec8f72fc58d431bfb6a0",
+      "baseline_raw_sha256": "6e355945f5bf2466ca14b85887cecd1c8023a2019dd6bb25c7328918676fbc48"
+    },
+    {
+      "id": "no_optical-bull_crash_2025_2026",
+      "aliases": [
+        "no_optical-bull_crash_2025_2026"
+      ],
+      "case": "no_optical",
+      "start": "2025-01-02",
+      "end": "2026-07-31",
+      "offset": 0,
+      "overrides": {},
+      "exclude": [],
+      "baseline_identity": {
+        "case_id": "no_optical",
+        "commit": "8033a7a172fba4774cd68696b775ba6cfc8b0ba2",
+        "config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+        "data": {
+          "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29",
+          "files_verified": 36,
+          "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+          "snapshot_id": "20260809T094222Z-causal-tech-index-rebase"
+        },
+        "effective_start": "2025-01-02",
+        "end": "2026-07-31",
+        "extra_excluded_symbols": [],
+        "initial_cash": 2000000.0,
+        "runner_sha256": "f893682833bf806602f3140eb7bc973cbf2fbddcd2fb7c04ccbedf2bd9db994f",
+        "runtime": {
+          "numpy_version": "2.5.1",
+          "pandas_version": "3.0.5",
+          "python_full_version": "3.12.13",
+          "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+          "uv_version": "0.11.33"
+        },
+        "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+        "start": "2025-01-02",
+        "start_session_offset": 0,
+        "universe_sha256": "849d8ec600d207fed7fa700f3f9e3c40ba1251b30a175a8935655b7645213219",
+        "session_dates_sha256": "b450ed88786a538db91d2ca00b0a3c635030e50e5935476ecf76b1c77db362fd"
+      },
+      "baseline_metrics": {
+        "account_orders": 30,
+        "annual_turnover": 8.142153749008376,
+        "fees": 13568.699430272001,
+        "final_wealth": 1.9115336284848652,
+        "gross_turnover": 12.8524906286,
+        "max_drawdown": 0.19125338991906604,
+        "slippage_cost": 25706.843599998767
+      },
+      "baseline_report_sha256": "11622f5d0d52d0f73ad38ab515a027e94bab86e2981a1f05ab69edc11a198221",
+      "baseline_raw_sha256": "ccffa2a949243ed50ca77fa44de06d7686b70de2c599a4f7591eda61c78f9840"
+    }
+  ],
+  "retained_nominal_contract": {
+    "schema_version": 1,
+    "contract_id": "cross-ai-core-strategy-20260905-v1",
+    "production_candidate_evaluated_at_freeze": false,
+    "historical_only": true,
+    "future_holdout_boundary": "2026-08-06",
+    "windows": {
+      "h1_2023": [
+        "2023-01-03",
+        "2023-06-30"
+      ],
+      "h2_2023": [
+        "2023-07-03",
+        "2023-12-29"
+      ],
+      "h1_2024": [
+        "2024-01-02",
+        "2024-07-01"
+      ],
+      "h2_2024": [
+        "2024-07-01",
+        "2024-12-31"
+      ],
+      "bull_crash_2025_2026": [
+        "2025-01-02",
+        "2026-07-31"
+      ],
+      "continuous_ai_era": [
+        "2023-01-03",
+        "2026-08-05"
+      ]
+    },
+    "cases": [
+      "champion",
+      "full",
+      "remove_all_three",
+      "no_optical"
+    ],
+    "scenario_binding": "research.cross_ai_strategy.case_symbols: PIT canonical stock roles; removals apply to tradable, qualification and explicit stock risk; retain sh000300/sh000682. Registry optical is sh600487/sh601869/sz300308/sz300394/sz300502; no claim to remove indirect optical exposure.",
+    "thresholds": {
+      "champion_minimum_final_wealth": 23.28417871275582,
+      "champion_maximum_drawdown": 0.3,
+      "champion_maximum_orders": 15,
+      "full_minimum_final_wealth": 23.28417871275582,
+      "full_maximum_drawdown": 0.3,
+      "full_maximum_orders": 20,
+      "removal_minimum_final_wealth": 1.5,
+      "removal_minimum_wealth_delta": 0.25,
+      "removal_benchmark_wealth_ratio": 1,
+      "removal_maximum_drawdown": 0.3,
+      "removal_maximum_orders": 20,
+      "removal_maximum_annual_turnover": 6,
+      "removal_maximum_all_in_cost_initial_cash_fraction": 0.02,
+      "half_year_minimum_wealth_ratio_to_valid_baseline": 0.95,
+      "half_year_maximum_drawdown_buffer": 0.02,
+      "half_year_maximum_orders": 12,
+      "improved_pre2025_windows_minimum": 1,
+      "improved_pre2025_wealth_delta_minimum": 0.05,
+      "improved_window_final_wealth_minimum": 1.05,
+      "post2025_minimum_final_wealth": 1.5,
+      "post2025_benchmark_wealth_ratio": 0.95,
+      "post2025_maximum_orders": 25,
+      "cost_stress_minimum_wealth_ratio": 0.95,
+      "cost_stress_removal_minimum_wealth": 1.35,
+      "sensitivity_minimum_wealth_ratio": 0.8,
+      "sensitivity_median_wealth_ratio": 0.9,
+      "sensitivity_removal_minimum_wealth": 1.2,
+      "initial_conditions_minimum_wealth_ratio_to_paired_baseline": 0.95,
+      "new_best_contributor_removal_minimum_wealth": 1.05,
+      "maximum_p90_drawdown": 0.3,
+      "minimum_p10_wealth": 1,
+      "minimum_positive_return_fraction": 0.9,
+      "maximum_p90_orders": 20
+    },
+    "cross_window_rule": "Each removal case improves at least one valid pre-2025 half-year by >=0.05 net wealth, reaches >=1.05 there and beats its fixed same-window comparator. Every valid half-year retains >=95% baseline wealth and MDD <=min(0.30,baseline+0.02). Separately, 2025-2026 must have a valid account and wealth >=max(1.50,0.95*fixed comparator). The disjoint later interval cannot be replaced by the overlapping continuous run. Existing later-window schema failures must be repaired and cannot be used as zero-return baselines.",
+    "basis": {
+      "baseline_file": "benchmarks/cross_ai_stage1_baselines.json",
+      "continuous_removal_production_wealth": 1.01039464268425,
+      "continuous_removal_benchmark_wealth": 0.8843966427651402,
+      "post2025_benchmark_wealth": {
+        "remove_all_three": 1.8134611982703912,
+        "no_optical": 1.8542807603079314
+      },
+      "rationale": "The required 50% continuous net gain is materially above the 1.04% baseline and below the 80.64% gain already achieved by the old policy in 2024 H2. The fixed comparator achieves 81-85% in the disjoint 2025-2026 interval. These executable historical opportunities do not guarantee their gains compound in one account. The full-pool 95% floor conservatively protects its currently identical champion economics. No new production candidate performance was available when these limits were selected.",
+      "baseline_schema_failures": "Two 382-session production runs complete daily execution but fail final account codec: OBSERVING cash-rearm evidence contains capital_budget_level=0.",
+      "baseline_file_sha256": "6c6d3167d2f18a8477b63f75261fad2c65497df1778d6d2ad55674216a097218"
+    },
+    "profiles": {
+      "p2_lower": {
+        "strategic_reversal_min_ret5": 0.0475
+      },
+      "p2_upper": {
+        "strategic_reversal_min_ret5": 0.0525
+      },
+      "p4_lower": {
+        "strategic_reversal_max_tech_ret120": -0.015
+      },
+      "p4_upper": {
+        "strategic_reversal_max_tech_ret120": -0.005
+      },
+      "p7_lower": {
+        "strategic_dominant_profit_lock_mfe": 2.09
+      },
+      "p7_upper": {
+        "strategic_dominant_profit_lock_mfe": 2.31
+      },
+      "p8_lower": {
+        "strategic_dominant_retained_gross": 0.68
+      },
+      "p8_upper": {
+        "strategic_dominant_retained_gross": 0.72
+      },
+      "confirmation_lower": {
+        "leader_tenure_days": 4
+      },
+      "confirmation_upper": {
+        "leader_tenure_days": 6
+      },
+      "cost_stress": {
+        "commission_rate": 0.0005,
+        "min_commission": 10,
+        "stamp_duty": 0.001,
+        "transfer_fee": 2e-05,
+        "slippage": 0.002
+      }
+    },
+    "profile_rule": "Perturb one field at a time for champion and both removals. Deleted controls require proof that the config field and all executable reads were removed; an inactive override is not robustness evidence. Nominal champion floor is fixed; neighbor minimum80% and median90% of nominal detect unexplained collapse without requiring identical entry dates. Cost stress doubles actual execution costs and recomputes each account's risk.",
+    "initial_conditions": {
+      "start_session_offsets": [
+        5,
+        20
+      ],
+      "initial_cash_multipliers": [
+        0.5,
+        2
+      ],
+      "cases": [
+        "champion",
+        "remove_all_three",
+        "no_optical"
+      ],
+      "paired_old_source_required": true
+    },
+    "contributor_robustness": {
+      "cases": [
+        "remove_all_three",
+        "no_optical"
+      ],
+      "rule": "Precommitted algorithm removes the largest positive-PnL symbol from every explicit stock role after nominal replay; rerun old and new under that identical removal. New wealth must remain >=1.05. Report all symbol/industry PnL and concentration; do not enforce industry profit shares or count identical paths as independent evidence."
+    },
+    "participation": {
+      "required_behaviors": [
+        "Healthy incumbents retain capital absent structural damage or persistent cost-covering challenger advantage.",
+        "Independent qualified entrants can receive executable residual budget; historical owner/epoch identity alone cannot veto them.",
+        "Combined name/industry/correlation concentration includes outstanding execution reservations.",
+        "Account highwater/capital/chronic repair survive candidate changes.",
+        "One target per symbol, one allocator/account, immutable admission/fill attribution and idempotent partial/late/restarted execution."
+      ],
+      "proof": "Actual production observation -> target -> next-open real fill. No injected target or forced account state as economic proof."
+    },
+    "simplification_targets": [
+      "Remove strategic-only simulated partial-remainder CANCELLED/blank-ID replacement; retain one economic order and actual retry.",
+      "Align row-local authority and broker remaining economic-capacity checks while preserving genuine broker uncertainty.",
+      "Replace first-match strategic routes and cohort-signature streak resets with per-candidate evidence/confirmation.",
+      "Replace exclusive existing/recovery/protected/active_epoch_read_only capital vetoes with shared risk/cash/reservation/concentration budgets.",
+      "Replace global economic owner/cooldown with admission-scoped lifecycle and cause-aware symbol requalification; preserve immutable identities.",
+      "Delete duplicate successor confirmation and replaced coordination flags/branches; no permanent legacy strategy switch."
+    ],
+    "superseded_behavior_contracts": [
+      "Exact old Target/Order/Fill and exclusive economic-owner/epoch trajectories.",
+      "Relative order/turnover trajectory comparisons for changed participation; explicit absolute order/cost/tail caps replace them. Preserve and report old literal results."
+    ],
+    "retained_correctness_contracts": [
+      "Causality/PIT roles, frozen data, finite inputs, literal failures.",
+      "Daily decide/backtest equivalence, T+1/next-open/lot/limit/suspension/capacity and original nominal fees/slippage.",
+      "Cash/positions/tranches/fees/PnL reconciliation; unknown/conflicting identities fail closed; fills activate economic state.",
+      "Base Risk authority, no leverage/shorts; all applicable L4 absolute risk, acute-return, tail and cost gates.",
+      "Champion wealth95% floor cannot be weakened after candidate selection."
+    ],
+    "final_required_evidence": [
+      "nominal",
+      "cost_stress",
+      "parameter_neighbors",
+      "paired_initial_conditions",
+      "best_contributor_removal",
+      "complete_L4",
+      "focused_review",
+      "simplification_inventory",
+      "operator_cutover_instructions"
+    ],
+    "non_independence": "All diagnosis/design/selection history is historical comparison, never independent out-of-sample. Protected Future Holdout is never read or backfilled."
+  },
+  "retained_robustness_specs": [
+    {
+      "case": "champion",
+      "group": "nominal",
+      "id": "new-nominal-champion",
+      "offset": 0,
+      "overrides": {},
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "group": "nominal",
+      "id": "new-nominal-remove_all_three",
+      "offset": 0,
+      "overrides": {},
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "group": "nominal",
+      "id": "new-nominal-no_optical",
+      "offset": 0,
+      "overrides": {},
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p2_lower-champion",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0475
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p2_lower-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0475
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p2_lower-no_optical",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0475
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p2_upper-champion",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0525
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p2_upper-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0525
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p2_upper-no_optical",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_min_ret5": 0.0525
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [
+        "strategic_reversal_max_tech_ret120"
+      ],
+      "group": "parameter_neighbors",
+      "id": "new-p4_lower-champion",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_max_tech_ret120": -0.015
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [
+        "strategic_reversal_max_tech_ret120"
+      ],
+      "group": "parameter_neighbors",
+      "id": "new-p4_lower-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_max_tech_ret120": -0.015
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [
+        "strategic_reversal_max_tech_ret120"
+      ],
+      "group": "parameter_neighbors",
+      "id": "new-p4_lower-no_optical",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_max_tech_ret120": -0.015
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [
+        "strategic_reversal_max_tech_ret120"
+      ],
+      "group": "parameter_neighbors",
+      "id": "new-p4_upper-champion",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_max_tech_ret120": -0.005
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [
+        "strategic_reversal_max_tech_ret120"
+      ],
+      "group": "parameter_neighbors",
+      "id": "new-p4_upper-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_max_tech_ret120": -0.005
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [
+        "strategic_reversal_max_tech_ret120"
+      ],
+      "group": "parameter_neighbors",
+      "id": "new-p4_upper-no_optical",
+      "offset": 0,
+      "overrides": {
+        "strategic_reversal_max_tech_ret120": -0.005
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p7_lower-champion",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.09
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p7_lower-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.09
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p7_lower-no_optical",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.09
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p7_upper-champion",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.31
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p7_upper-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.31
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p7_upper-no_optical",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_profit_lock_mfe": 2.31
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p8_lower-champion",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.68
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p8_lower-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.68
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p8_lower-no_optical",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.68
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p8_upper-champion",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.72
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p8_upper-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.72
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-p8_upper-no_optical",
+      "offset": 0,
+      "overrides": {
+        "strategic_dominant_retained_gross": 0.72
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-confirmation_lower-champion",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 4
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-confirmation_lower-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 4
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-confirmation_lower-no_optical",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 4
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-confirmation_upper-champion",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 6
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-confirmation_upper-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 6
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "parameter_neighbors",
+      "id": "new-confirmation_upper-no_optical",
+      "offset": 0,
+      "overrides": {
+        "leader_tenure_days": 6
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "deleted_fields": [],
+      "group": "cost_stress",
+      "id": "new-cost_stress-champion",
+      "offset": 0,
+      "overrides": {
+        "commission_rate": 0.0005,
+        "min_commission": 10,
+        "slippage": 0.002,
+        "stamp_duty": 0.001,
+        "transfer_fee": 2e-05
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "deleted_fields": [],
+      "group": "cost_stress",
+      "id": "new-cost_stress-remove_all_three",
+      "offset": 0,
+      "overrides": {
+        "commission_rate": 0.0005,
+        "min_commission": 10,
+        "slippage": 0.002,
+        "stamp_duty": 0.001,
+        "transfer_fee": 2e-05
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "deleted_fields": [],
+      "group": "cost_stress",
+      "id": "new-cost_stress-no_optical",
+      "offset": 0,
+      "overrides": {
+        "commission_rate": 0.0005,
+        "min_commission": 10,
+        "slippage": 0.002,
+        "stamp_duty": 0.001,
+        "transfer_fee": 2e-05
+      },
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "group": "paired_initial_conditions",
+      "id": "old-offset5-champion",
+      "offset": 5,
+      "overrides": {},
+      "pair": "old-offset5-champion",
+      "source_role": "old"
+    },
+    {
+      "case": "champion",
+      "group": "paired_initial_conditions",
+      "id": "new-offset5-champion",
+      "offset": 5,
+      "overrides": {},
+      "pair": "old-offset5-champion",
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "group": "paired_initial_conditions",
+      "id": "old-offset20-champion",
+      "offset": 20,
+      "overrides": {},
+      "pair": "old-offset20-champion",
+      "source_role": "old"
+    },
+    {
+      "case": "champion",
+      "group": "paired_initial_conditions",
+      "id": "new-offset20-champion",
+      "offset": 20,
+      "overrides": {},
+      "pair": "old-offset20-champion",
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "cash_multiplier": 0.5,
+      "group": "paired_initial_conditions",
+      "id": "old-cash0.5-champion",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash0.5-champion",
+      "source_role": "old"
+    },
+    {
+      "case": "champion",
+      "cash_multiplier": 0.5,
+      "group": "paired_initial_conditions",
+      "id": "new-cash0.5-champion",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash0.5-champion",
+      "source_role": "new"
+    },
+    {
+      "case": "champion",
+      "cash_multiplier": 2,
+      "group": "paired_initial_conditions",
+      "id": "old-cash2-champion",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash2-champion",
+      "source_role": "old"
+    },
+    {
+      "case": "champion",
+      "cash_multiplier": 2,
+      "group": "paired_initial_conditions",
+      "id": "new-cash2-champion",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash2-champion",
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "group": "paired_initial_conditions",
+      "id": "old-offset5-remove_all_three",
+      "offset": 5,
+      "overrides": {},
+      "pair": "old-offset5-remove_all_three",
+      "source_role": "old"
+    },
+    {
+      "case": "remove_all_three",
+      "group": "paired_initial_conditions",
+      "id": "new-offset5-remove_all_three",
+      "offset": 5,
+      "overrides": {},
+      "pair": "old-offset5-remove_all_three",
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "group": "paired_initial_conditions",
+      "id": "old-offset20-remove_all_three",
+      "offset": 20,
+      "overrides": {},
+      "pair": "old-offset20-remove_all_three",
+      "source_role": "old"
+    },
+    {
+      "case": "remove_all_three",
+      "group": "paired_initial_conditions",
+      "id": "new-offset20-remove_all_three",
+      "offset": 20,
+      "overrides": {},
+      "pair": "old-offset20-remove_all_three",
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "cash_multiplier": 0.5,
+      "group": "paired_initial_conditions",
+      "id": "old-cash0.5-remove_all_three",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash0.5-remove_all_three",
+      "source_role": "old"
+    },
+    {
+      "case": "remove_all_three",
+      "cash_multiplier": 0.5,
+      "group": "paired_initial_conditions",
+      "id": "new-cash0.5-remove_all_three",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash0.5-remove_all_three",
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "cash_multiplier": 2,
+      "group": "paired_initial_conditions",
+      "id": "old-cash2-remove_all_three",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash2-remove_all_three",
+      "source_role": "old"
+    },
+    {
+      "case": "remove_all_three",
+      "cash_multiplier": 2,
+      "group": "paired_initial_conditions",
+      "id": "new-cash2-remove_all_three",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash2-remove_all_three",
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "group": "paired_initial_conditions",
+      "id": "old-offset5-no_optical",
+      "offset": 5,
+      "overrides": {},
+      "pair": "old-offset5-no_optical",
+      "source_role": "old"
+    },
+    {
+      "case": "no_optical",
+      "group": "paired_initial_conditions",
+      "id": "new-offset5-no_optical",
+      "offset": 5,
+      "overrides": {},
+      "pair": "old-offset5-no_optical",
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "group": "paired_initial_conditions",
+      "id": "old-offset20-no_optical",
+      "offset": 20,
+      "overrides": {},
+      "pair": "old-offset20-no_optical",
+      "source_role": "old"
+    },
+    {
+      "case": "no_optical",
+      "group": "paired_initial_conditions",
+      "id": "new-offset20-no_optical",
+      "offset": 20,
+      "overrides": {},
+      "pair": "old-offset20-no_optical",
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "cash_multiplier": 0.5,
+      "group": "paired_initial_conditions",
+      "id": "old-cash0.5-no_optical",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash0.5-no_optical",
+      "source_role": "old"
+    },
+    {
+      "case": "no_optical",
+      "cash_multiplier": 0.5,
+      "group": "paired_initial_conditions",
+      "id": "new-cash0.5-no_optical",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash0.5-no_optical",
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "cash_multiplier": 2,
+      "group": "paired_initial_conditions",
+      "id": "old-cash2-no_optical",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash2-no_optical",
+      "source_role": "old"
+    },
+    {
+      "case": "no_optical",
+      "cash_multiplier": 2,
+      "group": "paired_initial_conditions",
+      "id": "new-cash2-no_optical",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-cash2-no_optical",
+      "source_role": "new"
+    },
+    {
+      "case": "remove_all_three",
+      "contributor_from": "new-nominal-remove_all_three",
+      "group": "best_contributor_removal",
+      "id": "old-best_removed-remove_all_three",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-best_removed-remove_all_three",
+      "source_role": "old"
+    },
+    {
+      "case": "remove_all_three",
+      "contributor_from": "new-nominal-remove_all_three",
+      "group": "best_contributor_removal",
+      "id": "new-best_removed-remove_all_three",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-best_removed-remove_all_three",
+      "source_role": "new"
+    },
+    {
+      "case": "no_optical",
+      "contributor_from": "new-nominal-no_optical",
+      "group": "best_contributor_removal",
+      "id": "old-best_removed-no_optical",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-best_removed-no_optical",
+      "source_role": "old"
+    },
+    {
+      "case": "no_optical",
+      "contributor_from": "new-nominal-no_optical",
+      "group": "best_contributor_removal",
+      "id": "new-best_removed-no_optical",
+      "offset": 0,
+      "overrides": {},
+      "pair": "old-best_removed-no_optical",
+      "source_role": "new"
+    }
+  ],
+  "effective_scope_revision": {
+    "contract_id": "z-finite-delivery-20260911",
+    "candidate": "Z",
+    "source_sha256": "18912bdf6b98826b86fc49c4ad4ff5c7cc29382fa11b71b0fbb7cbb2d589fd3f",
+    "authorization": {
+      "date": "2026-09-11",
+      "user_quote": "按照你说的“先完成一个满足核心业务要求、弱点披露清楚的版本”直接做吧，不要再找我批准，直接实施",
+      "post_observation_scope_revision": true
+    },
+    "scope": "Historical code delivery, frozen through 2026-08-05; no live rollout or future holdout claim.",
+    "hard_requirements": {
+      "principal_cases": [
+        "champion",
+        "full"
+      ],
+      "principal_window": "continuous_ai_era",
+      "principal_minimum_wealth": 15,
+      "all_observed_account_maximum_drawdown": 0.3,
+      "all_observed_account_maximum_orders": 40,
+      "nominal_14_and_cross_window": "PASS under existing authorized nominal revision",
+      "actual_best_removal_both": "PASS under existing authorized comparator",
+      "cost_stress_and_parameter_neighbors": "Retain existing authorized economic requirements, with cost exception only",
+      "robustness_population": "All 44 actual new-source accounts in existing frozen plan, including five whose old pair failed; same historical horizon, not independent trials",
+      "minimum_positive_fraction": 0.9,
+      "minimum_p10_wealth": 1,
+      "maximum_p90_drawdown": 0.3,
+      "maximum_p90_orders": 40,
+      "cost_overrun_exception_exclusive_maximum_CNY": 10000,
+      "integrity": "Source/input identity, sealed evidence, account reconciliation, real order authority, causality and daily/replay equivalence"
+    },
+    "diagnostic_only": [
+      "Individual delayed-start or capital-size comparisons to historical strategy, including remove3 offset20 wealth0.8718030613343799",
+      "Fixed Performance pool/window prescribed wealth, acute-return and tighter window/relative drawdown gates, including d/continuous wealth14.98112734783729; principal champion/full15 and account DD30% remain hard",
+      "Five failed historical-source pairs remain UNAVAILABLE, never paired PASS",
+      "Full historical L4 Ownership/Absolute research acceptance remains NOT_RUN, never full L4 PASS; necessary execution/ownership correctness remains required"
+    ],
+    "disclosed_weaknesses": [
+      "Start date and pool sensitivity; some short windows lose money",
+      "Known settled strategic damage guard can delay future repair; AC experimental fix unselected after worse h1_2024 economics, not a cash/order identity bypass",
+      "No independent future generalization proof",
+      "Whole-repository simplification not completed; noncritical engineering/coverage/CI deferred"
+    ],
+    "stop_rule": "Freeze Z; finish scoped verification and delivery once. No further strategy candidates, parameter search or full matrix unless a concrete integrity failure requires an affected-scope correction.",
+    "original_contract_status": "NOT_MET; original files, thresholds and failures are preserved unchanged"
+  },
+  "original_failures": "Absolute binding, Ownership economics and historical unavailable comparisons retained. Frozen original contracts unchanged.",
+  "replay_rules": "Reuse only equivalent native identities. Stable passing screen then remaining55 unique accounts; no full matrix on a failed economic screen.",
+  "deployment_scope": "Historical research/code delivery only; no real account, broker or protected holdout use.",
+  "input_integrity_correction": {
+    "invalid_original_panel_sha256": "dd69a16f6340a5e4ade4a684c5719922a33e055c96f13ef30c79eba5b2901d57",
+    "valid_panel_sha256": "43e5d10597ac607fd93f71e1ad891932366f3f9dac3d6c42c4c29295220dbe37",
+    "valid_information_screen_sha256": "a3952d3e3d2b0311d8b811e62e85a3a88194afe28393150a3b5761097dfc7cff",
+    "reason": "OriginalQ3 column proof and cumulative comparison bases corrected; priorv1 results invalidated, local partial replays preserved. Same hypothesis, ordering and gates. All8 corrected cells and all company omissions remain positive.",
+    "default_context_correction": "Historical scoped reference fix leaves production34 membership identical.",
+    "source_review": "Independent reviewer confirmed125directQ3 and115/116Q4quartertable exact reconciliation; remaining3CNY source table microdifference disclosed."
+  }
+}

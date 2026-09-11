@@ -39,7 +39,7 @@ jobs:
           --cache-dir "$RUNNER_TEMP/absolute-preflight-cache" --data-dir data/frozen
       - name: Upload preflight diagnostic
         if: ${{ !cancelled() && steps.preflight.outputs.diagnostic_path != '' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: absolute-preflight-diagnostic-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: ${{ steps.preflight.outputs.diagnostic_path }}
@@ -96,14 +96,14 @@ jobs:
           --data-dir data/frozen
       - name: Upload sealed shard manifest
         if: ${{ !cancelled() && steps.execute.outputs.artifact_path != '' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: absolute-generalization-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.shard }}
           path: ${{ steps.execute.outputs.artifact_path }}
           if-no-files-found: error
       - name: Upload execution diagnostic
         if: ${{ !cancelled() && steps.execute.outputs.diagnostic_path != '' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: absolute-diagnostic-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.shard }}
           path: ${{ steps.execute.outputs.diagnostic_path }}
@@ -152,14 +152,14 @@ jobs:
           --upstream-result "$SHARD_JOB_RESULT"
       - name: Upload sealed final report
         if: ${{ !cancelled() && steps.aggregate.outputs.artifact_path != '' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: absolute-generalization-summary-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: ${{ steps.aggregate.outputs.artifact_path }}
           if-no-files-found: error
       - name: Upload aggregation diagnostic
         if: ${{ !cancelled() && steps.aggregate.outputs.diagnostic_path != '' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: absolute-aggregation-diagnostic-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: ${{ steps.aggregate.outputs.diagnostic_path }}

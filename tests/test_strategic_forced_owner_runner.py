@@ -156,8 +156,8 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
         "status_counts": {NO_NATIVE_ELIGIBILITY: 16},
         "route_shard": route_metadata,
     }
-    relative_summary = (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_full.json')
-    relative_manifest = (evidence_root() / 'artifacts/strategic_evidence_closure/checkpoint3_forced_owner_manifest.json')
+    relative_summary = Path("artifacts/forced_owner/summary.json")
+    relative_manifest = Path("artifacts/forced_owner/manifest.json")
     roots = (tmp_path / "checkout-a", tmp_path / "moved" / "checkout-b")
     results = []
     for root in roots:
@@ -167,7 +167,7 @@ def test_compact_evidence_seals_are_portable_across_repository_roots(
         contract_path = root / "benchmarks/strategic_evidence_closure_contract.json"
         contract_path.parent.mkdir(parents=True)
         contract_path.write_bytes(
-            (ROOT / "benchmarks/strategic_evidence_closure_contract.json").read_bytes()
+            (evidence_root() / "benchmarks/strategic_evidence_closure_contract.json").read_bytes()
         )
         _write_summary_and_manifest(
             repository=root,

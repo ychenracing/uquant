@@ -123,9 +123,6 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
     return parser
 
 
-_parser = _uquant_cli_parser
-
-
 def _run_account_init(args: argparse.Namespace) -> int:
     engine = ProductionEngine(args.data_dir)
     symbols = set(args.symbols) | set(REFERENCE_UNIVERSE) | {"sh000300", "sh000682"}
@@ -253,7 +250,7 @@ def _run_execution_journal(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     """Run one CLI command and return a process-compatible exit status."""
-    args = _parser().parse_args(argv)
+    args = _uquant_cli_parser().parse_args(argv)
     if args.command == "account-init":
         return _run_account_init(args)
     if args.command == "daily":

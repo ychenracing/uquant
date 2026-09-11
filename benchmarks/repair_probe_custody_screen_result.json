@@ -1,0 +1,68 @@
+{
+  "status": "PASS",
+  "scope": "no-optical four-screen only",
+  "complete_acceptance": false,
+  "source": "295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418",
+  "producer_local": "d110d81dd1b66af4deb2a0e299de2febd6a8c058",
+  "producer_remote": "fc29adba625e2fef1e7020b81a0179c2ae2bf788",
+  "tree": "7e250ccf8ef5bd913642748b552e206631299ead",
+  "actual_largest_contributor": "sh688498",
+  "rows": {
+    "nominal": {
+      "failures": [],
+      "native_seal": "f740a7234077559d806560c2fd82866b3162a48e9ead53f93e482c2b2e77bf80",
+      "metrics": {
+        "final_wealth": 2.567790862480414,
+        "max_drawdown": 0.26022516791427264,
+        "account_orders": 20,
+        "fees": 6862.483839172,
+        "slippage_cost": 11918.591199999191
+      }
+    },
+    "actual_best_removed": {
+      "failures": [],
+      "native_seal": "d2c71f8b645430b1dcb69efa63ae96c89a7d60882a0b6dcc606315653284e842",
+      "metrics": {
+        "final_wealth": 1.5111389771695902,
+        "max_drawdown": 0.25860400720537013,
+        "account_orders": 18,
+        "fees": 4996.1676608200005,
+        "slippage_cost": 9293.877999999326
+      }
+    },
+    "cost_stress": {
+      "failures": [],
+      "native_seal": "773e40e7d1cdf8ba2324fc44b2233be913cadc0f5fe33f2340923f63d96294ef",
+      "metrics": {
+        "final_wealth": 2.558617573636256,
+        "max_drawdown": 0.26124595425915076,
+        "account_orders": 20,
+        "fees": 13683.726327488,
+        "slippage_cost": 23773.926400000008
+      }
+    },
+    "later_window": {
+      "failures": [],
+      "native_seal": "e14f7e498a78652eedf9d808dc9a08a43c0c30e8eaab5f0de8e4d85f75492736",
+      "metrics": {
+        "final_wealth": 1.9115336284848652,
+        "max_drawdown": 0.19125338991906604,
+        "account_orders": 30,
+        "fees": 13568.699430272001,
+        "slippage_cost": 25706.843599998767
+      }
+    }
+  },
+  "screen_archive": {
+    "sha256": "58e881c235ae6b7b3dd8999a430700b2b9bcdf6a3da05871690483c7e673528c",
+    "bytes": 98979147,
+    "members": 3027,
+    "library_file_id": "libfile_91b6ae3b7f2c819197a126a09683afeb"
+  },
+  "prior_R_archive": {
+    "sha256": "f9b28701d34e2a51d2125f9a52e8cdb61980fb2b250c3b9b8f85a6d24ffba9ff",
+    "library_file_id": "libfile_fc00fec56dd88191959a59a0076a48de",
+    "status": "FAIL cost stress"
+  },
+  "next": "Remaining frozen nominal windows, then exact64robustnessspecs. Engineering/CIsecondary. No Actions wait beyond10minutes."
+}

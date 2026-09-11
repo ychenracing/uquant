@@ -1,3 +1,7 @@
+# S four native screens PASS; nominal matrix running
+
+Noopt2.567791/20orders/cost18781;highcost2.558618/20orders/cost37457<40000;actualbest688498removal1.511139/18orders;later1.911534/30orders:allPASS. Source295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418 frozen. Producerd110d81/remote fc29adba/tree7e250cc immutable. See benchmarks/repair_probe_custody_screen_result.json. Remainingnominalrunninginproducer;64fixedspecsnext. Engineering/CIsecondary;no completeacceptance/merge. Priorfailedexperimentsretained.
+
 # S repair custody covers caution exception
 
 R nominal,best,laterPASS;highcostFAIL51599/40000 from60%CAUTIONprobe bypass. S adds existing-repair-custody guard to that exception;67testsPASS;source295c18fc6a47e6c80e4b1d87f597cd7f98aabc9558ab2c3f85190f3488872418. See benchmarks/repair_probe_custody_plan.md. Four nativescreens next;engineering/CIsecondary;no wholeacceptance/merge. Priorstatuseshistorical.

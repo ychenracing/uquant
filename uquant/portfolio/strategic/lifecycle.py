@@ -143,6 +143,12 @@ def _complete_empty_strategic_cohort(
         close_reason="owner_exit",
     ):
         return ()
+    if epoch_id:
+        # A fully settled cohort no longer owns a handoff damage cap. Keep
+        # the guard above whenever real shares or execution liabilities remain.
+        account.candidate_tenure["strategic_damage_guard_active_epoch"] = 0
+        account.candidate_tenure["strategic_damage_trim_epoch"] = 0
+        account.candidate_tenure["strategic_damage_guard_complete_epoch"] = account.strategic_epoch
     if not epoch_id:
         for symbol in account.strategic_cohort_symbols:
             account.protected_weights.pop(symbol, None)

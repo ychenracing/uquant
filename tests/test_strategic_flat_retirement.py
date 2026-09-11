@@ -15,6 +15,7 @@ from uquant.config import DEFAULT_CONFIG
 from uquant.execution import ExecutionPlanner
 from uquant.models.strategic_universe import build_strategic_universe_roles
 from uquant.types import Risk
+from uquant.risk.strategic_guard import strategic_damage_guard_active
 
 
 def _deployed(*, mixed=False):
@@ -69,6 +70,22 @@ def test_native_risk_liquidation_retires_deployed_old_rights_across_restart():
         assert not account.strategic_restore_weights
         assert not any(symbol in account.protected_weights for symbol in SYMBOLS)
         assert not account.positions
+
+
+def test_settled_native_cohort_retires_its_damage_guard_across_restart():
+    from uquant.portfolio.strategic.lifecycle import _complete_empty_strategic_cohort
+
+    policy, account, dates, panel, leaders, roles = _compress(_deployed(), 0.)
+    old_epoch = account.active_strategic_epoch_id
+    # Persist an already claimed guard on a genuinely deployed/liquidated epoch.
+    account.candidate_tenure["strategic_damage_guard_active_epoch"] = account.strategic_epoch
+    assert strategic_damage_guard_active(account)
+    account = account_from_dict(asdict(account))
+    for symbol in tuple(account.strategic_cohort_targets):
+        policy._retire_strategic_member(account, symbol)
+    _complete_empty_strategic_cohort(policy, date=dates[0], leaders=leaders, account=account)
+    assert next(epoch for epoch in account.strategic_epochs if epoch.epoch_id == old_epoch).terminal
+    assert not strategic_damage_guard_active(account_from_dict(asdict(account)))
 
 
 def test_continuous_native_risk_compression_restores_without_fresh_entry_quality():
@@ -253,6 +270,14 @@ def test_retired_restoration_remainder_never_revives_but_real_liability_survives
         account.pending_orders = [pending]
     assert not settle_account_strategic_epoch(account, epoch_id=old_epoch,
                                              closed_session=str(dates[4].date()), close_reason="owner_exit")
+    from uquant.portfolio.strategic.lifecycle import _complete_empty_strategic_cohort
+
+    account.candidate_tenure["strategic_damage_guard_active_epoch"] = account.strategic_epoch
+    # Real pending/late-fill liability must retain its guard even when flat.
+    assert _complete_empty_strategic_cohort(
+        policy, date=dates[4], leaders=leaders, account=account,
+    ) == ()
+    assert strategic_damage_guard_active(account)
     if imported_liability == "legacy-late":
         leaders = {symbol: _leader(symbol, .99, industry=leader.industry)
                    for symbol, leader in leaders.items()}

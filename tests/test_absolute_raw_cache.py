@@ -5,7 +5,6 @@ from copy import deepcopy
 from dataclasses import replace
 
 import pytest
-from _absolute_contract_fixture import historical_contract_source as historical_contract_source
 from _absolute_generalization_metrics_fixture import complete_replay
 
 from uquant.contracts.strict_json import canonical_json_sha256

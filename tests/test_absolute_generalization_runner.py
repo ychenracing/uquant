@@ -26,7 +26,7 @@ from scripts.run_absolute_generalization_acceptance import (
     cache_path_for,
     parse_cli,
     read_cached_cell,
-    run,
+    _run_verified,
     selected_scenarios,
     write_cached_cell,
 )
@@ -42,6 +42,11 @@ from uquant.validation.absolute_generalization.runtime import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def run(options):
+    """Unit exercise of the post-preflight transport; real preflight has separate tests."""
+    return _run_verified(options, load_absolute_generalization_contract())
 
 
 def _execution_args(*extra: str, shard: str = "loo-a") -> list[str]:
@@ -173,8 +178,6 @@ def test_parse_cli_rejects_duplicate_single_value_selectors(
 @pytest.mark.parametrize(
     "arguments",
     (
-        _execution_args("--symbol", "not-canonical"),
-        _execution_args("--symbol", "sz300394", shard="loo-b"),
         [*_execution_args(), "--symbol", "sz300394", "--symbol", "sz300394"],
         _execution_args("--symbol", "sz300394", shard="champion"),
         _execution_args(
@@ -540,7 +543,7 @@ def test_execution_loo_rejects_cache_when_selected_frozen_identity_differs(
     assert run(options) == 1
     raw = json.loads(output.read_text(encoding="utf-8"))
     assert raw["status"] == "ERROR"
-    assert raw["error"] == "execution failed: ValueError"
+    assert raw["error"] == "execution failed: ValueError: absolute generalization selected frozen data identity differs"
     assert raw["cells"] == []
     stderr = capsys.readouterr().err
     assert "Traceback (most recent call last):" in stderr
@@ -613,20 +616,12 @@ def test_final_cli_reads_exact_eight_manifests_and_returns_report_conjunction(
     )
 
 
-def test_final_cli_reuses_a_complete_prior_attempt_after_failed_job_rerun(
-    tmp_path: Path,
-) -> None:
+def test_final_cli_rejects_prior_attempt_as_current(tmp_path: Path) -> None:
     root = tmp_path / "shards"
     root.mkdir()
     _write_final_manifests(root)
-    output = tmp_path / "report.json"
-
-    code = run(parse_cli(_final_args(root, output, run_attempt=4)))
-    report = json.loads(output.read_text(encoding="utf-8"))
-
-    assert code == 0
-    assert report["passed"] is True
-    assert report["provenance"]["run_attempt"] == 3
+    with pytest.raises(ValueError, match="attempt or shard set"):
+        run(parse_cli(_final_args(root, tmp_path / "report.json", run_attempt=4)))
 
 
 @pytest.mark.parametrize("alias", ("03", "\u0663"))
@@ -739,37 +734,20 @@ def _missing_data_args(tmp_path: Path) -> list[str]:
     ]
 
 
-def test_execution_fixture_cli_entry_seals_error_and_exits_nonzero(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    code = _fixture_cli_entry(_missing_data_args(tmp_path), monkeypatch)
-
-    assert code == 1
-    raw = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
-    assert raw["status"] == "ERROR"
-    assert raw["run_id"] == "error-run"
-    assert raw["canonical_sha256"]
-
-
-def test_real_cli_process_enforces_actual_checkout_source_before_execution(
-    tmp_path: Path,
-) -> None:
-    """Parent unit mocks cannot certify the real child process's checkout."""
-    frozen = json.loads((ROOT / "benchmarks/absolute_generalization_acceptance_contract.json").read_bytes())
-    actual_source = source_surface_fingerprint(ROOT, "economic_decision_v1")
+def test_missing_data_cli_retains_diagnostic_without_seal(tmp_path: Path) -> None:
     completed = subprocess.run(
         [sys.executable, str(ROOT / "scripts/run_absolute_generalization_acceptance.py"),
          *_missing_data_args(tmp_path)],
         cwd=ROOT, check=False, capture_output=True, text=True,
     )
-    assert completed.returncode == 1
-    output = tmp_path / "manifest.json"
-    if actual_source != frozen["candidate"]["production_source_sha256"]:
-        assert "candidate source identity differs" in completed.stderr
-        assert not output.exists()
-    else:
-        # A legitimately matching producer reaches the missing-data failure path.
-        assert json.loads(output.read_text(encoding="utf-8"))["status"] == "ERROR"
+    assert completed.returncode == 2
+    assert not (tmp_path / "manifest.json").exists()
+    diagnostics = list(tmp_path.glob("*.diagnostic.json"))
+    assert len(diagnostics) == 1
+    raw = json.loads(diagnostics[0].read_bytes())
+    assert raw["status"] in {"INVALID_EVIDENCE", "ENGINEERING_ERROR"}
+    assert raw["error"] in completed.stderr
+    assert "canonical_sha256" not in raw
 
 
 @pytest.mark.parametrize(

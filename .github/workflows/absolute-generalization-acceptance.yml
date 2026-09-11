@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  merge_group:
   workflow_dispatch: {}
 
 permissions:
@@ -13,7 +14,39 @@ env:
   UV_VERSION: "0.11.33"
 
 jobs:
+  absolute-preflight:
+    name: Absolute input preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12.13"
+      - name: Install uv
+        run: python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
+      - name: Sync locked development environment
+        run: uv sync --frozen --extra dev
+      - name: Verify current execution identity
+        id: preflight
+        run: >-
+          uv run python scripts/run_absolute_generalization_acceptance.py
+          --shard champion --preflight-only
+          --run-id "${{ github.run_id }}" --run-attempt "${{ github.run_attempt }}"
+          --output "$RUNNER_TEMP/absolute-preflight/manifest.json"
+          --cache-dir "$RUNNER_TEMP/absolute-preflight-cache" --data-dir data/frozen
+      - name: Upload preflight diagnostic
+        if: ${{ !cancelled() && steps.preflight.outputs.diagnostic_path != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: absolute-preflight-diagnostic-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ steps.preflight.outputs.diagnostic_path }}
+          if-no-files-found: error
+
   absolute-shard:
+    needs: absolute-preflight
     name: Absolute shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -52,6 +85,7 @@ jobs:
             'uquant/contracts/universe/**', 'uquant/validation/absolute_generalization/**',
             'scripts/run_absolute_generalization_acceptance.py') }}
       - name: Run absolute shard
+        id: execute
         run: >-
           uv run python scripts/run_absolute_generalization_acceptance.py
           --shard "${{ matrix.shard }}"
@@ -61,20 +95,32 @@ jobs:
           --cache-dir "$RUNNER_TEMP/absolute-generalization-cache"
           --data-dir data/frozen
       - name: Upload sealed shard manifest
-        if: ${{ always() }}
+        if: ${{ !cancelled() && steps.execute.outputs.artifact_path != '' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: absolute-generalization-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.shard }}
-          path: ${{ runner.temp }}/absolute-generalization/manifest.json
+          path: ${{ steps.execute.outputs.artifact_path }}
+          if-no-files-found: error
+      - name: Upload execution diagnostic
+        if: ${{ !cancelled() && steps.execute.outputs.diagnostic_path != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: absolute-diagnostic-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: ${{ steps.execute.outputs.diagnostic_path }}
           if-no-files-found: error
 
   generalization-acceptance:
     name: Generalization Acceptance
     if: ${{ always() }}
-    needs: absolute-shard
+    needs: [absolute-preflight, absolute-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Require successful preflight and complete shard execution
+        if: ${{ needs.absolute-preflight.result != 'success' || needs.absolute-shard.result != 'success' }}
+        run: |
+          echo "Preflight or shard execution failed; inspect its original diagnostic."
+          exit 1
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
@@ -86,14 +132,13 @@ jobs:
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
       - name: Download every sealed shard manifest
-        if: ${{ always() }}
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          pattern: absolute-generalization-${{ github.run_id }}-attempt-*
+          pattern: absolute-generalization-${{ github.run_id }}-attempt-${{ github.run_attempt }}-*
           path: ${{ runner.temp }}/absolute-generalization-shards
           merge-multiple: false
       - name: Aggregate exact eight shard manifests
-        if: ${{ always() }}
+        id: aggregate
         env:
           SHARD_JOB_RESULT: ${{ needs.absolute-shard.result }}
         run: >-
@@ -106,9 +151,16 @@ jobs:
           --artifact-prefix absolute-generalization
           --upstream-result "$SHARD_JOB_RESULT"
       - name: Upload sealed final report
-        if: ${{ always() }}
+        if: ${{ !cancelled() && steps.aggregate.outputs.artifact_path != '' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: absolute-generalization-summary-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/absolute-generalization-summary/report.json
+          path: ${{ steps.aggregate.outputs.artifact_path }}
+          if-no-files-found: error
+      - name: Upload aggregation diagnostic
+        if: ${{ !cancelled() && steps.aggregate.outputs.diagnostic_path != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: absolute-aggregation-diagnostic-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ steps.aggregate.outputs.diagnostic_path }}
           if-no-files-found: error

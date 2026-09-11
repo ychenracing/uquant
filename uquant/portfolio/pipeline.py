@@ -384,10 +384,18 @@ def _pending_intents(book: AllocationBook, *, buy_open: bool, market: dict[str, 
                 market=market,
             ) if order.symbol in book.leaders else {"block": "CURRENT_LEADER_UNAVAILABLE"}
             book.record(order.symbol)["pending_entry"] = evidence
-            permission_open = not repair_order or repair_open
+            qualified_capital_closed = (
+                bool(book.account.candidate_tenure.get("ordinary_repair_capital_active", 0))
+                and not repair_order and not _current_independent_entry(evidence, book.date)
+                and sum(w for s, w in book.committed.items() if s not in book.owned)
+                > book.policy.cfg.core_admission_weight + 1e-12
+            )
+            permission_open = (not repair_order or repair_open) and not qualified_capital_closed
             book.record(order.symbol)["pending_entry_permission_open"] = permission_open and evidence["block"] == "READY"
             if not permission_open:
-                book.record(order.symbol)["entry_gate"] = "CASH_REPAIR_PERMISSION_CLOSED"
+                book.record(order.symbol)["entry_gate"] = (
+                    "INDEPENDENT_CAPITAL_PROOF_REQUIRED" if qualified_capital_closed
+                    else "CASH_REPAIR_PERMISSION_CLOSED")
             if (evidence["block"] != "READY" or not permission_open
                     or book.proposed.get(order.symbol, 0.0) < current):
                 book.record(order.symbol)["pending_buy_rejected"] = True
@@ -533,7 +541,12 @@ def _fresh_core_selection(
     return occupied, eligible, immature_occupied
 
 
-def _ordinary_admission_budget(book: AllocationBook) -> float | None:
+def _current_independent_entry(evidence: dict[str, Any], date: pd.Timestamp) -> bool:
+    return (evidence.get("block") == "READY" and evidence.get("as_of") == str(date.date())
+            and evidence.get("qualification_quorum") in {"FULL_COHORT", "STRONG_PAIR", "ABSOLUTE_SINGLE"})
+
+
+def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified: bool = False) -> float | None:
     """Share bounded repair capital until the ordinary book and intents settle."""
     values: list[Any] = [book.risk.evidence.get(key) for key in ("broad_ret120", "tech_ret120")]
     if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -542,7 +555,8 @@ def _ordinary_admission_budget(book: AllocationBook) -> float | None:
     ordinary = sum(weight for symbol, weight in book.committed.items() if symbol not in book.owned)
     if ordinary <= 0.0:
         book.account.candidate_tenure.pop("ordinary_repair_capital_active", None)
-    if max(values) > 0.0 and not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0):
+    if max(values) > 0.0 and (independently_qualified
+                            or not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0)):
         return book.policy.cfg.trend_entry_gross
     return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
 
@@ -572,7 +586,10 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
         if symbol not in selected:
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
-        weight = min(book.policy.cfg.single_core_entry_cap, budget / len(selected))
+        independent = _current_independent_entry(book.record(symbol).get("entry", {}), book.date)
+        allowance = _ordinary_admission_budget(book, independently_qualified=True) if independent else budget
+        assert allowance is not None  # The shared market-input check above already passed.
+        weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
         if not book.leaders[symbol].mature:
             weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:

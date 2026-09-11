@@ -79,7 +79,10 @@ def observe_persistent_maturity(self: PortfolioAllocator, *, account: AccountSta
     witnesses = sorted(s for s, leader in leaders.items()
                        if s in user_panel and date in user_panel[s].index
                        and leader.mature and leader.score >= .82
-                       and leader.confidence >= self.cfg.leader_min_confidence)
+                       and leader.confidence >= self.cfg.leader_min_confidence
+                       and leader.industry not in {"", "unknown"}
+                       and leader.components.get("unknown_industry", 1.) < .5)
+    industries = sorted({leaders[s].industry for s in witnesses})
     legs = [risk.evidence.get(k) for k in ("broad_ret120", "tech_ret120")]
     aligned = (all(isinstance(v, (int, float)) and not isinstance(v, bool)
                    and math.isfinite(v) for v in legs)
@@ -91,12 +94,13 @@ def observe_persistent_maturity(self: PortfolioAllocator, *, account: AccountSta
                and not any(risk.evidence.get(k, False) for k in
                            ("freeze_new_risk", "sentinel_freeze_new_risk", "sector_guard_active"))
                and not account.sector_guard_active
-               and len(witnesses) >= self.cfg.strategic_cohort_min_size)
+               and len(industries) >= 2)
     count = account.candidate_tenure.get(count_key, 0) if previous in {prior, session} else 0
     count = min(self.cfg.leader_tenure_days, count + int(previous != session)) if healthy else 0
     account.candidate_tenure.update({key: session, count_key: count})
     market["persistent_mature_entry_open"] = healthy and count >= self.cfg.leader_tenure_days
-    market["persistent_maturity"] = {"witnesses": witnesses, "observed": count,
+    market["persistent_maturity"] = {"witnesses": witnesses, "industries": industries,
+                                      "observed": count,
                                       "required": self.cfg.leader_tenure_days}
 
 

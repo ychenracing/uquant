@@ -58,7 +58,7 @@ def test_market_persistence_resets_on_invalid_or_missing_sessions(damage):
     if damage == 'freeze':
         risk = replace(risk, state=Risk.CAUTION, freeze_new_risk=True)
     elif damage == 'witness':
-        refs = {k:v for k,v in refs.items() if k != 'reference_only'}
+        refs = {k:replace(v, industry=leaders[symbol].industry) for k,v in refs.items()}
     elif damage == 'missing':
         risk.evidence.pop('tech_ret120')
     elif damage == 'stale':
@@ -66,3 +66,17 @@ def test_market_persistence_resets_on_invalid_or_missing_sessions(damage):
     market = _observe(p, a, dates[5] if damage == 'gap' else dates[4],
                       panel, leaders, risk, refs, frames)
     assert not market['persistent_mature_entry_open']
+
+
+@pytest.mark.parametrize('diverse', [True, False])
+def test_market_breadth_requires_independent_industries_not_more_names(diverse):
+    p, a, dates, panel, leaders, risk, refs, frames, symbol = _setup()
+    if diverse:
+        refs.pop('reference_only')
+        assert len(refs) == 2 and len({v.industry for v in refs.values()}) == 2
+    else:
+        refs = {k:replace(v, industry=leaders[symbol].industry) for k,v in refs.items()}
+        assert len(refs) == 3
+    for day in dates[:5]:
+        market = _observe(p, a, day, panel, leaders, risk, refs, frames)
+    assert market['persistent_mature_entry_open'] is diverse

@@ -1,0 +1,70 @@
+{
+  "source_mapping": {
+    "source": "4aef574be9f85b7773743a4655888c40b0a5ddd25d18c5af43af1868623665b5",
+    "local": "2460727a17da7727a6e8be73407e12975f0b3f3e",
+    "remote": "8a5d9f25e4cb1c274d005e60bac1626c5c11fb19",
+    "tree": "d063cc92715b1d4cd065ccbafe96618f231f177c"
+  },
+  "outcomes": [
+    {
+      "failures": [],
+      "metrics": {
+        "account_orders": 18,
+        "fees": 6614.624892892,
+        "final_wealth": 2.570823213953554,
+        "max_drawdown": 0.25860400720537013,
+        "slippage_cost": 11429.747199999243
+      },
+      "name": "nominal-noopt",
+      "status": "PASS"
+    },
+    {
+      "failures": [],
+      "metrics": {
+        "account_orders": 18,
+        "fees": 13215.774028208001,
+        "final_wealth": 2.561829235785896,
+        "max_drawdown": 0.2595260581942178,
+        "slippage_cost": 22850.554400000008
+      },
+      "name": "cost-noopt",
+      "status": "PASS"
+    },
+    {
+      "failures": [
+        "paired initial wealth retention"
+      ],
+      "metrics": {
+        "account_orders": 13,
+        "fees": 3719.1537032600004,
+        "final_wealth": 1.6231494426483701,
+        "max_drawdown": 0.21919000408157907,
+        "slippage_cost": 6680.960999999527
+      },
+      "name": "offset20-noopt",
+      "status": "FAIL"
+    }
+  ],
+  "actual_best": "sh688498",
+  "complete_acceptance": false,
+  "archive": {
+    "sha256": "290ca25e18855402827023b2f3c4d083e6bd979b2224eb3ed997a84058632c14",
+    "bytes": 132789658,
+    "receipt": {
+      "results": [
+        {
+          "local_path": "/workspace/scratch/4f31235e78e6/runs/aa-repair-principal-20260911/aa_repair_principal_20260911.tar.gz",
+          "purpose": "create_library_file",
+          "status": "succeeded",
+          "file_id": "file_00000000d9ec81f5906c6d0ba31de10f",
+          "library_file_id": "libfile_9e33a2d235a08191bbee3a28aafb2667",
+          "file_name": "aa_repair_principal_20260911.tar.gz",
+          "local_metadata_applied": true,
+          "path": "/aa_repair_principal_20260911.tar.gz",
+          "current_version_number": 0
+        }
+      ]
+    }
+  },
+  "decision": "Cost now passes; offset20 still fails. AB corrects the independently reproduced affordable-candidate count defect. No threshold change or merge."
+}

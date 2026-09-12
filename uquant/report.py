@@ -247,6 +247,7 @@ _BLOCK_TEXT = MappingProxyType({
     "NONFINITE_CORRELATION": "共同波动检查结果无效",
     "RESTORATION_COMPLETED_RETAIN_DRIFT": "恢复已完成，保留价格变化产生的仓位漂移",
     "RESTORATION_EVIDENCE_UNAVAILABLE": "缺少恢复持仓所需的行情或龙头证据",
+    "NEW_ENTRY_REQUIRES_QUALIFICATION": "本次没有可恢复的持仓，新增买入必须重新通过建仓资格",
     "RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING": "该持仓与本次风险恢复记录未建立有效关联",
     "OWNER_EVIDENCE_UNAVAILABLE": "缺少主导持仓的行情证据",
     "OWNER_DEPLOYMENT_BLOCK": "主导持仓的新增部署被限制",
@@ -400,7 +401,7 @@ def _entry_lines(row: Mapping[str, Any]) -> list[str]:
                     text += f"；观测 {item.get('value', '未取得')} 个交易日，要求至少 {item.get('minimum', '未取得')} 个交易日"
                 lines.append(text)
             if isinstance(entry.get("confirmations"), Mapping):
-                lines.append(f"已记录连续确认次数：{entry['confirmations']}；要求：{entry.get('required_confirmation', '未取得')} 个交易日")
+                lines.append("各条已评估路径的连续确认次数：" + "、".join(str(count) for count in entry["confirmations"].values()) + f"；要求：{entry.get('required_confirmation', '未取得')} 个交易日（路径原码见详细依据）")
         elif key == "entry":
             lines.append("普通建仓条件：这条路径未评估或必要资料未取得")
     return lines

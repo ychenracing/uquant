@@ -21,6 +21,7 @@ from ._compatibility_baseline import (
     BASELINE_COMMIT,
     ISOLATED_VALIDATION_CASE_COUNT,
     METHOD_IDS,
+    PUBLIC_BUDGET_VALIDATION_CLAUSES,
     REACHABLE_WITNESS_CASE_COUNT,
     REACHABLE_WITNESS_START_INDEX,
     RETIRED_CONFIG_FIELDS,
@@ -284,7 +285,10 @@ def test_split_validators_preserve_retained_baseline_clauses_in_exact_ast_order(
         assert f"attr='{field}'" in baseline[index]
     assert len(candidate) == 150
     assert candidate == projected_baseline_validation_clause_dumps()
-    assert candidate == baseline[:57] + baseline[63:78] + baseline[81:]
+    retained_indices = [i for i in range(len(baseline)) if i not in RETIRED_VALIDATION_CLAUSES]
+    changed = {i for i, current in zip(retained_indices, candidate, strict=True) if current != baseline[i]}
+    assert changed == PUBLIC_BUDGET_VALIDATION_CLAUSES
+    assert len(changed) == 13
     assert all(left != right for left, right in pairwise(candidate))
 
 
@@ -690,6 +694,18 @@ def test_transition_relation_swaps_are_structural_only_for_numeric_config() -> N
         assert exception_observation(DEFAULT_CONFIG, changes) == expected
 
 
+def _current_budget_message(observation: dict[str, str]) -> dict[str, str]:
+    messages = {
+        "sector_guard_gross must be in [0, max_gross]": "sector_guard_gross must be in [0, 1]",
+        "tactical probe/rebound weights must be positive, ordered, and within max_symbol_weight":
+            "tactical probe/rebound weights must be positive, ordered, and within the fixed ordinary policy ceiling",
+        "strategic_cohort_size must be in [1, min(3, max_positions)]": "strategic_cohort_size must be in [1, 3]",
+    }
+    if observation.get("message") in messages:
+        return {**observation, "message": messages[observation["message"]]}
+    return observation
+
+
 def test_every_pair_of_isolated_invalid_stimuli_preserves_first_failure_order() -> None:
     fixture = _validation_fixture()
     cases = cast(Sequence[Mapping[str, object]], fixture["cases"])
@@ -707,6 +723,7 @@ def test_every_pair_of_isolated_invalid_stimuli_preserves_first_failure_order() 
             changes = {**left_changes, **right_changes}
             comparisons += 1
             expected = exception_observation(baseline_default, changes)
+            expected = _current_budget_message(expected)
             # Removed keywords fail at construction, before any retained validator.
             # Preserve insertion order when both retired fields occur in one pair.
             retired = next(
@@ -777,7 +794,7 @@ def test_pairwise_guard_detects_demonstrated_validator_block_swaps(
     changes: dict[str, object],
 ) -> None:
     baseline_default = baseline_config_module().DEFAULT_CONFIG
-    expected = exception_observation(baseline_default, changes)
+    expected = _current_budget_message(exception_observation(baseline_default, changes))
     assert exception_observation(DEFAULT_CONFIG, changes) == expected
     left_validator = getattr(config_model, left)
     right_validator = getattr(config_model, right)

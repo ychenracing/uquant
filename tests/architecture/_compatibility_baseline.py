@@ -421,11 +421,41 @@ def baseline_validation_clause_dumps() -> tuple[str, ...]:
         )
     return clauses
 
-def projected_baseline_validation_clause_dumps() -> tuple[str, ...]:
-    """Project only the eight reviewed clauses for retired epoch and leader-cycle controls."""
+# These exact historical clauses confused user deployment capacity with fixed
+# strategy invariants. Their fixed-policy ceilings retain the original defaults;
+# all other clauses, ordering, deletion and mutation checks remain byte-exact.
+PUBLIC_BUDGET_VALIDATION_CLAUSES = frozenset({20, 25, 33, 49, 63, 102, 105, 108, 109, 115, 125, 145, 147})
 
+
+def _project_public_budget_clause(index: int, clause: str) -> str:
+    if index not in PUBLIC_BUDGET_VALIDATION_CLAUSES:
+        return clause
+    replacements: list[tuple[str, str]] = []
+    if index in {20, 102, 115, 125, 145, 147}:
+        replacements.append(("self.max_gross", "1"))
+    if index in {25, 33, 49, 102, 105, 108, 109}:
+        replacements.append(("self.max_symbol_weight", "0.60"))
+    if index == 63:
+        replacements.append(("min(3, self.max_positions)", "3"))
+    for old, new in replacements:
+        old_dump = ast.dump(ast.parse(old, mode="eval").body, include_attributes=False)
+        new_dump = ast.dump(ast.parse(new, mode="eval").body, include_attributes=False)
+        assert clause.count(old_dump) == 1, (index, old)
+        clause = clause.replace(old_dump, new_dump)
+    if index == 20:
+        clause = clause.replace("sector_guard_gross must be in [0, max_gross]", "sector_guard_gross must be in [0, 1]")
+    if index == 49:
+        clause = clause.replace("tactical probe/rebound weights must be positive, ordered, and within max_symbol_weight",
+                                "tactical probe/rebound weights must be positive, ordered, and within the fixed ordinary policy ceiling")
+    if index == 63:
+        clause = clause.replace("strategic_cohort_size must be in [1, min(3, max_positions)]", "strategic_cohort_size must be in [1, 3]")
+    return clause
+
+
+def projected_baseline_validation_clause_dumps() -> tuple[str, ...]:
+    """Apply only reviewed retirements and exact public-budget decouplings."""
     return tuple(
-        clause
+        _project_public_budget_clause(index, clause)
         for index, clause in enumerate(baseline_validation_clause_dumps())
         if index not in RETIRED_VALIDATION_CLAUSES
     )

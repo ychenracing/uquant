@@ -171,7 +171,7 @@ def test_public_configuration_and_complete_effective_policy_are_separate() -> No
     payload = DEFAULT_CONFIG.to_dict()
     assert len(dataclasses.fields(SystemConfig)) == 13
     assert len(payload) == 266
-    assert payload == expected_flat["values"]
+    assert dataclasses.asdict(DEFAULT_CONFIG) == expected_flat["values"]
     assert config_fingerprint(DEFAULT_CONFIG) == expected_flat["sha256"]
     for name in set(payload) - {field.name for field in dataclasses.fields(SystemConfig)}:
         with pytest.raises(TypeError):
@@ -245,7 +245,13 @@ def test_all_frozen_config_validation_types_messages_and_order_are_exact(
         SystemConfig.__post_init__(SimpleNamespace(**(DEFAULT_CONFIG.to_dict() | changes)))
 
     assert type(captured.value).__name__ == case["exception_type"]
-    assert str(captured.value) == case["message"]
+    message_changes = {
+        "sector_guard_gross must be in [0, max_gross]": "sector_guard_gross must be in [0, 1]",
+        "tactical probe/rebound weights must be positive, ordered, and within max_symbol_weight":
+            "tactical probe/rebound weights must be positive, ordered, and within the fixed ordinary policy ceiling",
+        "strategic_cohort_size must be in [1, min(3, max_positions)]": "strategic_cohort_size must be in [1, 3]",
+    }
+    assert str(captured.value) == message_changes.get(str(case["message"]), case["message"])
 
 
 def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:

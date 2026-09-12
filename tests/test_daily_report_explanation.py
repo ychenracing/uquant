@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001
 from __future__ import annotations
 
 from copy import deepcopy
@@ -55,18 +56,19 @@ def test_daily_report_separates_account_balances_from_targets_and_capital_room()
     })
     before = deepcopy((decision, account))
 
-    report = render_daily_report(decision, account)
+    report = render_daily_report(decision, account).replace("\\", "")
 
-    holdings = report.split("## Holdings and capital", 1)[1].split("## Risk Sentinel", 1)[0]
-    assert "| held | 100 | 12.50 | CORE |" in holdings
-    assert "| new |" not in holdings
-    assert "| closed |" not in holdings
-    assert "Recorded cash: 40,000.00" in holdings
-    assert "Broker snapshot: 2025-01-06" in holdings
-    assert "Risk gross cap: 60.0%; system gross cap: 90.0%" in holdings
-    assert "not unreserved buying power" in holdings
-    assert "O000000001 (blocked)" in holdings
-    assert "recorded account risk reason" in holdings
+    holdings = report.split("## 逐只股票：held", 1)[1].split("## ", 1)[0]
+    assert "持有 100 股，平均成本 12.50 元" in holdings
+    assert "逐只股票：new" not in holdings
+    assert "逐只股票：closed" not in report
+    assert "现金余额：40,000.00 元" in report
+    assert "账户同步时点：2025-01-06" in report
+    assert "总仓上限：90.00%" in report
+    assert "风险允许的总仓上限：60.00%" in report
+    assert "不等于可用买入资金" in report
+    assert "O000000001" in report
+    assert "recorded account risk reason" in report
     assert "recorded admission reason" in report
     assert "O000000002" in report
     assert "recorded order reason" in report
@@ -92,18 +94,18 @@ def test_daily_report_scopes_recorded_block_to_its_candidate_and_admits_missing_
     })
     before = deepcopy((decision, account))
 
-    report = render_daily_report(decision, account)
+    report = render_daily_report(decision, account).replace("\\", "")
 
-    candidates = report.split("## Candidate explanation", 1)[1].split("## Risk\n", 1)[0]
-    assert "Candidate observation: blocked; route: established; ready: YES" in candidates
-    assert "Observed session: 2025-01-06; confirmation streak: 3" in candidates
-    assert "Deployment block for blocked: reference_coverage_or_confirmation" in candidates
-    assert "Unavailable references: reference" in candidates
-    assert "Ranked symbols without a BUY intent: unknown, blocked" in candidates
-    assert "Per-candidate admission reasons and remaining capital limits are not recorded" in candidates
-    assert "Ranking alone does not establish qualification" in candidates
-    assert "stale-account-candidate" not in report
-    assert "Only a new daily Decision can change targets" in candidates
+    candidates = report.split("## 逐只股票：blocked", 1)[1].split("## ", 1)[0]
+    assert "长期候选资格：条件通过" in candidates
+    assert "资格确认：3 个交易日；记录时点：2025-01-06" in candidates
+    assert "参考证据覆盖或连续确认条件不足" in candidates
+    assert "reference_coverage_or_confirmation" in report
+    unknown = report.split("## 逐只股票：unknown", 1)[1].split("## ", 1)[0]
+    assert "reference_coverage_or_confirmation" not in unknown
+    assert "未评估" in unknown
+    assert "stale-account-candidate" not in report.split("## 详细依据", 1)[0]
+    assert "单个限制解除不保证买入" in candidates
     assert (decision, account) == before
 
 
@@ -117,10 +119,10 @@ def test_daily_report_does_not_infer_no_trade_bands_or_zero_limits_from_missing_
 
     report = render_daily_report(decision, AccountState.empty(100_000.0))
 
-    assert "No held shares recorded" in report
-    assert "Risk gross cap: UNAVAILABLE; system gross cap: UNAVAILABLE" in report
-    assert "Candidate qualification evidence: NOT RECORDED" in report
-    assert "No executable account order was recorded" in report
+    assert "当前持有 0 只" in report
+    assert "总仓上限：未取得" in report
+    assert "本次有评分记录的股票：未取得" in report
+    assert "没有记录买卖意图" in report
     assert "remain inside no-trade bands" not in report
 
 
@@ -143,14 +145,14 @@ def test_report_uses_final_orders_and_recorded_limits_when_a_provisional_buy_is_
     }
     decision = _decision(summary={"core_allocation": trace})
     before = deepcopy((decision, account))
-    report = render_daily_report(decision, account)
-    assert "blocked | 0.0% → 0.0% | NO ORDER; NO_TARGET" in report
-    assert "NEW_RISK_FROZEN" in report
-    assert "confirmation established 5/5" in report
-    assert "industry 15.0%, correlation 15.0%" in report
-    assert "funded increment 15.0%; minimum 20.0%" in report
-    assert "The recorded risk freeze must clear" in report
-    assert "limits are not recorded for every ranked" not in report
+    report = render_daily_report(decision, account).replace("\\", "")
+    blocked = report.split("## 逐只股票：blocked", 1)[1].split("## ", 1)[0]
+    assert "没有买卖意图" in blocked
+    assert "系统暂不允许增加持仓" in blocked
+    assert "要求：5 个交易日" in blocked
+    assert "行业空间 15.00%" in blocked
+    assert "共同波动组空间 15.00%" in blocked
+    assert "获配增量：15.00%；最低参与增量：20.00%" in blocked
     assert (decision, account) == before
 
 
@@ -181,14 +183,13 @@ def test_report_explains_pending_current_quality_without_repeating_fresh_confirm
     account = AccountState.empty(100_000.0)
     before = deepcopy((decision, account))
 
-    report = render_daily_report(decision, account)
-    row = report.split("| partial |", 1)[1].split("\n", 1)[0]
+    report = render_daily_report(decision, account).replace("\\", "")
+    row = report.split("## 逐只股票：partial", 1)[1].split("## ", 1)[0]
 
-    assert "10.0% → 20.0% | BUY O000000003; pending core buy" in row
-    assert "pending current quality READY; confirmation established 1/1" in row
-    assert "CONFIRMATION_INCOMPLETE" not in row
-    assert "1/5" not in row
-    assert "PENDING_CORE_BUY_ALREADY_EVALUATED" not in row
+    assert "没有买卖意图" in row  # Trace-only orders are not final Decision orders.
+    assert "原买单延续评估：已满足本项候选条件" in row
+    assert "要求：1 个交易日" in row
+    assert "要求：5 个交易日" not in row
     assert (decision, account) == before
 
 
@@ -204,16 +205,12 @@ def test_report_does_not_hide_pending_quality_rejection_behind_restoration_routi
     account = AccountState.empty(100_000.0)
     before = deepcopy((decision, account))
 
-    report = render_daily_report(decision, account)
-    row = report.split("| partial |", 1)[1].split("\n", 1)[0]
+    report = render_daily_report(decision, account).replace("\\", "")
+    row = report.split("## 逐只股票：partial", 1)[1].split("## ", 1)[0]
 
-    assert f"NO ORDER; retained holding | {block}; pending current quality {block}" in row
-    assert "PENDING_CORE_BUY_ALREADY_EVALUATED" not in row
-    assert "1/5" not in row
-    if block == "CONFIRMATION_INCOMPLETE":
-        assert "confirmation established 0/1" in row
-    else:
-        assert "Leadership must become mature" in row
+    expected = "连续交易日确认尚未完成" if block == "CONFIRMATION_INCOMPLETE" else "龙头成熟条件未满足"
+    assert expected in row
+    assert "要求：5 个交易日" not in row
     assert (decision, account) == before
 
 
@@ -225,8 +222,10 @@ def test_report_exposes_recorded_pending_market_refusal(gate: str) -> None:
     })
     account = AccountState.empty(100_000.0)
     before = deepcopy((decision, account))
-    row = render_daily_report(decision, account).split("| partial |", 1)[1].split("\n", 1)[0]
-    assert f"NO ORDER; retained holding | {gate}; pending current quality READY" in row
+    row = render_daily_report(decision, account).replace("\\", "").split("## 逐只股票：partial", 1)[1].split("## ", 1)[0]
+    expected = "共同趋势证据尚未确认" if gate == "COMMON_TREND_NOT_CONFIRMED" else "本次账户恢复买入权限未开放"
+    assert expected in row
+    assert "原买单延续评估：已满足本项候选条件" in row
     assert (decision, account) == before
 
 
@@ -234,8 +233,8 @@ def test_report_explains_current_maturity_needed_for_new_ordinary_admission() ->
     decision = _core_allocation_decision({"entry_gate": "ORDINARY_CORE_NOT_MATURE"})
     account = AccountState.empty(100_000.0)
     before = deepcopy((decision, account))
-    report = render_daily_report(decision, account)
-    assert "New ordinary admission requires current mature leadership." in report
+    report = render_daily_report(decision, account).replace("\\", "")
+    assert "普通建仓所需的成熟条件不足" in report
     assert (decision, account) == before
 
 
@@ -253,17 +252,14 @@ def test_report_preserves_final_freeze_and_capital_limit_over_pending_quality(fr
     account = AccountState.empty(100_000.0)
     before = deepcopy((decision, account))
 
-    report = render_daily_report(decision, account)
-    row = report.split("| partial |", 1)[1].split("\n", 1)[0]
+    report = render_daily_report(decision, account).replace("\\", "")
+    row = report.split("## 逐只股票：partial", 1)[1].split("## ", 1)[0]
 
-    expected = "NEW_RISK_FROZEN" if frozen else "CAPITAL_LIMIT"
-    assert f"NO ORDER; retained holding | {expected}; pending current quality READY" in row
-    assert "confirmation established 1/1" in row
-    assert "cash 0.0%" in row
+    assert "可部署资金或仓位额度不足" in row
+    assert "要求：1 个交易日" in row
+    assert "现金支持空间 0.00%" in row
     if frozen:
-        assert "The recorded risk freeze must clear" in row
-    else:
-        assert "Available settled capital or a binding cap must change" in row
+        assert "系统暂不允许增加持仓" in row
     assert (decision, account) == before
 
 
@@ -274,12 +270,10 @@ def test_report_explains_missing_link_between_restoration_episode_and_current_ho
     account = AccountState.empty(100_000.0)
     before = deepcopy((decision, account))
 
-    report = render_daily_report(decision, account)
-    row = report.split("| partial |", 1)[1].split("\n", 1)[0]
+    report = render_daily_report(decision, account).replace("\\", "")
+    row = report.split("## 逐只股票：partial", 1)[1].split("## ", 1)[0]
 
-    assert "NO ORDER; retained holding | RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING" in row
-    assert "uninterrupted holding must span the recorded risk episode" in row
-    assert "verify actual fills" in row
+    assert "该持仓与本次风险恢复记录未建立有效关联" in row
     assert (decision, account) == before
 
 
@@ -312,20 +306,21 @@ def test_report_labels_recorded_transfer_projection_without_overriding_final_con
     account = AccountState.empty(100_000.0)
     before = deepcopy((decision, account))
 
-    report = render_daily_report(decision, account)
-    row = report.split("| partial |", 1)[1].split("\n", 1)[0]
+    report = render_daily_report(decision, account).replace("\\", "")
+    row = report.split("## 逐只股票：partial", 1)[1].split("## ", 1)[0]
 
-    block = "NEW_RISK_FROZEN" if frozen else "CAPITAL_LIMIT"
-    assert f"0.0% → 0.0% | NO ORDER; NO_TARGET | {block};" in row
-    assert "room: cash 10.0%; funded increment 10.0%; minimum 20.0%" in row
-    assert "transfer feasibility after settlement (estimate; not cash or a fill): " + expected in row
+    assert "可部署资金或仓位额度不足" in row
+    assert "现金支持空间 10.00%" in row
+    assert "结算后预算估算（不是现金或成交）" in row
+    assert f"拟释放仓位：{transfer['released_weight']:.2%}" in row
+    assert f"要求参与仓位：{transfer['required_weight']:.2%}" in row
     if "funded_increment" not in transfer:
-        assert "fundable increment" not in row
-        assert "correlation room" not in row
-    if frozen:
-        assert "The recorded risk freeze must clear" in row
+        assert "估算可部署增量" not in row
+        assert "估算共同波动组空间" not in row
     else:
-        assert "Available settled capital or a binding cap must change" in row
+        assert f"估算可部署增量：{transfer['funded_increment']:.2%}" in row
+    if frozen:
+        assert "系统暂不允许增加持仓" in row
     assert (decision, account) == before
 
 
@@ -334,10 +329,10 @@ def test_report_does_not_infer_transfer_feasibility_from_an_empty_record() -> No
     account = AccountState.empty(100_000.0)
     before = deepcopy((decision, account))
 
-    report = render_daily_report(decision, account)
-    row = report.split("| partial |", 1)[1].split("\n", 1)[0]
+    report = render_daily_report(decision, account).replace("\\", "")
+    row = report.split("## 逐只股票：partial", 1)[1].split("## ", 1)[0]
 
-    assert "CAPITAL_LIMIT" in row
-    assert "transfer feasibility" not in row
-    assert "released weight" not in row
+    assert "可部署资金或仓位额度不足" in row
+    assert "结算后预算估算" not in row
+    assert "拟释放仓位" not in row
     assert (decision, account) == before

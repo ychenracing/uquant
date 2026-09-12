@@ -196,7 +196,7 @@ def _await_recovery_confirmation(
     )
     if (
         candidate_members == previous_members
-        or len(candidate_members) >= min(3, self.cfg.max_positions)
+        or len(candidate_members) >= 3
         or independently_deep_empty_entry
     ):
         return None
@@ -411,7 +411,7 @@ def _commit_recovery_cohort(
         selection.crash_depth.get(symbol, 0.0) <= -0.15 for symbol in selection.selected
     ):
         account.candidate_tenure["confirmed_anchor_pair"] = 1
-    if len(selection.selected) == min(3, self.cfg.max_positions) and all(
+    if len(selection.selected) == 3 and all(
         selection.crash_depth.get(symbol, 0.0) <= -0.15 for symbol in selection.selected
     ):
         account.candidate_tenure["recovery_cohort_locked"] = 1

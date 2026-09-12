@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001
 from __future__ import annotations
 
 import pytest
@@ -80,25 +81,21 @@ def test_daily_report_distinguishes_every_sentinel_owner(
         )
     )
 
-    assert f"- Owner: **{owner}**" in report
+    labels = {"DATA_NOT_READY": "资料不足，不能判断完整限制来源", "NONE": "本次两项检查均未触发新增冻结",
+              "BASE_RISK": "基础风险限制", "SENTINEL": "独立风险观察限制", "BOTH": "基础风险与独立风险观察共同限制"}
+    assert labels[owner] in report
 
 
 def test_daily_report_contains_the_compact_sentinel_operating_fields() -> None:
     report = _report(_summary(coverage="READY"))
-    section = report.split("## Risk Sentinel", 1)[1].split("## Targets", 1)[0]
-
-    assert "- Mode: FREEZE_ONLY" in section
-    assert "- Level: CAUTION" in section
-    assert "- Coverage: READY" in section
-    assert "- Confidence: 91.0%" in section
-    assert "- Owner: **NONE**" in section
-    assert "- Risk Families: breadth_structure, market_velocity" in section
-    assert "- AI Industry Risk: design, optical" in section
-    assert "- Conclusion: normal execution; Sentinel remains observational." in section
-    assert not any(
-        forbidden in section
-        for forbidden in ("SELL", "sell", "reduce position", "single-stock")
-    )
+    section = report.split("## 风险及其实际影响", 1)[1].split("## 详细依据", 1)[0]
+    assert "独立观察资料覆盖：已就绪" in section
+    assert "本次两项检查均未触发新增冻结" in section
+    assert "多数股票与价格结构转弱" in section
+    assert "市场价格变化加速" in section
+    assert "芯片设计、光通信" in section
+    assert "不代表要求清仓" in section
+    assert '"sentinel_causal_confidence": 0.91' in report
 
 
 def test_daily_report_limits_sentinel_conclusions_to_safe_manual_actions() -> None:
@@ -107,15 +104,13 @@ def test_daily_report_limits_sentinel_conclusions_to_safe_manual_actions() -> No
         _summary(coverage="READY", sentinel_freeze=True)
     )
 
-    assert "- Conclusion: check market data; do not infer safety." in data_report
-    assert "- Conclusion: do not add new risk." in freeze_report
+    assert "必要资料不足或未取得，不能推断安全" in data_report
+    assert "系统暂不允许增加持仓" in freeze_report
 
 
 def test_daily_report_handles_absent_sentinel_summary_as_data_not_ready() -> None:
     report = _report({})
 
-    assert "- Level: NOT_READY" in report
-    assert "- Coverage: NOT_READY" in report
-    assert "- Owner: **DATA_NOT_READY**" in report
-    assert "- Risk Families: NONE" in report
-    assert "- AI Industry Risk: NONE" in report
+    assert "资料不足，不能判断完整限制来源" in report
+    assert "独立观察风险明细：未取得" in report
+    assert "不能推断安全" in report

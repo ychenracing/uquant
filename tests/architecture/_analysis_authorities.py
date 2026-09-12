@@ -58,6 +58,7 @@ MODULE_AUTHORITIES = {
     "uquant.broker_contract": "production_safe",
     "uquant.cli": "cli_runner",
     "uquant.config": "production_safe",
+    "uquant.config.input": "production_safe",
     "uquant.config.model": "production_safe",
     "uquant.config.policies": "production_safe",
     "uquant.validation.parameter_policy": "validation_runner",

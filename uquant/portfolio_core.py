@@ -93,8 +93,8 @@ def strategic_dominant_symbol(account: AccountState) -> str | None:
 
 
 def symbol_weight_cap(cfg: SystemConfig, account: AccountState, symbol: str) -> float:
-    """Keep the ordinary 60% cap except for one validated dominant owner."""
-    return (
+    """Apply the account ceiling while preserving the qualified owner exception."""
+    return min(cfg.max_gross,
         cfg.strategic_dominant_max_weight
         if strategic_dominant_symbol(account) == symbol
         else cfg.max_symbol_weight
@@ -253,7 +253,12 @@ class PortfolioCore:
             )
         positive = [item for item in targets if item.weight > 1e-12]
         gross = sum(item.weight for item in positive)
-        if len(positive) > self.cfg.max_positions or gross > 1.0 + 1e-8:
+        position_limit = self.cfg.max_positions
+        if position_limit < 6:
+            # Broker-confirmed inventory is a real obligation, not a new slot.
+            # Admission still counts every holding and outstanding BUY.
+            position_limit = max(position_limit, sum(p.shares > 0 for p in account.positions.values()))
+        if len(positive) > position_limit or gross > 1.0 + 1e-8:
             weights = {item.symbol: item.weight for item in positive}
             raise RuntimeError(
                 "allocator violated portfolio hard constraints: "

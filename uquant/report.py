@@ -1,9 +1,16 @@
-"""One-page daily report; no second decision path exists here."""
+"""Read-only Chinese daily reports and accounting attribution."""
+
+# Chinese punctuation is intentional in user-facing report text.
+# ruff: noqa: RUF001
 
 from __future__ import annotations
 
+import html
+import json
+import math
 from collections.abc import Mapping
-from types import MappingProxyType as _MappingProxyType
+from dataclasses import asdict
+from types import MappingProxyType
 from typing import Any
 
 from .attribution import validate_economic_attribution
@@ -14,267 +21,9 @@ from .observation.execution_journal.rendering import (
 from .types import AccountState, Decision
 
 
-def _sentinel_values(value: object, *, limit: int = 3) -> tuple[str, ...]:
-    if not isinstance(value, (list, tuple)):
-        return ()
-    return tuple(str(item) for item in value[:limit] if str(item))
-
-
-def _risk_sentinel_section(summary: Mapping[str, Any]) -> list[str]:
-    coverage = str(summary.get("sentinel_causal_coverage_status", "NOT_READY"))
-    base_freeze = bool(summary.get("base_freeze_new_risk", summary.get("freeze_new_risk", False)))
-    sentinel_freeze = bool(summary.get("sentinel_freeze_new_risk", False))
-    if coverage != "READY":
-        owner = "DATA_NOT_READY"
-    elif base_freeze and sentinel_freeze:
-        owner = "BOTH"
-    elif base_freeze:
-        owner = "BASE_RISK"
-    elif sentinel_freeze:
-        owner = "SENTINEL"
-    else:
-        owner = "NONE"
-    freeze = bool(summary.get("freeze_new_risk", base_freeze or sentinel_freeze))
-    assessment = summary.get("sentinel_assessment")
-    observed = summary.get("sentinel_causal_observed_level", "NOT_READY")
-    if isinstance(assessment, Mapping):
-        observed = assessment.get("level", observed)
-    families = _sentinel_values(summary.get("sentinel_causal_active_families"))
-    weakest = _sentinel_values(summary.get("sentinel_causal_weakest_subindustries"))
-    if owner == "DATA_NOT_READY":
-        conclusion = "check market data; do not infer safety."
-    elif freeze:
-        conclusion = "do not add new risk."
-    else:
-        conclusion = "normal execution; Sentinel remains observational."
-    return [
-        "## Risk Sentinel",
-        "",
-        f"- Mode: {summary.get('sentinel_mode', 'FREEZE_ONLY')}",
-        f"- Level: {observed}",
-        f"- Coverage: {coverage}",
-        f"- Confidence: {float(summary.get('sentinel_causal_confidence', 0.0)):.1%}",
-        f"- Owner: **{owner}**",
-        f"- Risk Families: {', '.join(families) or 'NONE'}",
-        f"- AI Industry Risk: {', '.join(weakest) or 'NONE'}",
-        f"- Conclusion: {conclusion}",
-        "",
-    ]
-
-
 def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
     """Render observational execution events without deriving strategy intent."""
-
     return render_compact_execution_journal(records)
-
-
-def _account_report_section(account: AccountState, summary: Mapping[str, Any]) -> list[str]:
-    """Display settled account facts without estimating executable capital."""
-    risk_cap = summary.get("target_gross_cap")
-    system_cap = summary.get("system_gross_cap")
-    risk_cap_text = "UNAVAILABLE" if risk_cap is None else f"{float(risk_cap):.1%}"
-    system_cap_text = "UNAVAILABLE" if system_cap is None else f"{float(system_cap):.1%}"
-    cancellations = [
-        f"{order.order_id} ({order.symbol})"
-        for order in account.order_ledger
-        if order.side == "BUY" and order.status == "CANCEL_REQUESTED"
-    ]
-    reasons = summary.get("reasons")
-    reasons_text = "; ".join(str(reason) for reason in reasons) if isinstance(reasons, (list, tuple)) else ""
-    lines = [
-        "## Holdings and capital",
-        "",
-        f"- Recorded cash: {account.cash:,.2f}; Broker snapshot: {account.broker_as_of or 'UNAVAILABLE'}.",
-        f"- Risk gross cap: {risk_cap_text}; system gross cap: {system_cap_text}.",
-        f"- Recorded risk reasons: {reasons_text or 'NONE RECORDED'}.",
-        "- Cash is not unreserved buying power; pending BUY commitments reserve budget, "
-        "and unfilled SELL proceeds are not cash.",
-        "- BUY cancellations awaiting broker confirmation: " + (", ".join(cancellations) or "NONE") + ".",
-        "",
-        "| Symbol | Held shares | Average cost | Lifecycle |",
-        "|---|---:|---:|---|",
-    ]
-    held = [position for _, position in sorted(account.positions.items()) if position.shares > 0]
-    lines.extend(
-        f"| {position.symbol} | {position.shares} | {position.avg_cost:.2f} | {position.lifecycle} |"
-        for position in held
-    )
-    if not held:
-        lines.extend(["", "No held shares recorded."])
-    lines.extend(["", "Holdings are account facts; target weights below are intentions.", ""])
-    return lines
-
-
-_CORE_REVIEW_CHANGES = _MappingProxyType({
-    "NOT_MATURE": "Leadership must become mature.",
-    "CONFIRMATION_INCOMPLETE": "Complete the recorded consecutive-session confirmation.",
-    "CONFIDENCE_BELOW_MINIMUM": "Leadership confidence must meet its threshold.",
-    "INDUSTRY_NOT_VERIFIED": "Verify industry evidence.",
-    "CURRENT_MARKET_DATA_UNAVAILABLE": "Restore current market data.",
-    "INSUFFICIENT_HISTORY": "Accumulate the required causal history.",
-    "STRUCTURE_NOT_REPAIRED": "Price structure must recover.",
-    "LIQUIDITY_NOT_CONFIRMED": "Liquidity must meet its existing threshold.",
-    "NEW_RISK_FROZEN": "The recorded risk freeze must clear.",
-    "UNRESOLVED_LIABILITY": "Reconcile outstanding physical orders and fills.",
-    "OPPORTUNITY_NOT_OPEN": "The opportunity state must permit core entry.",
-    "RISK_NOT_NORMAL": "Base Risk must return to NORMAL for new core entry.",
-    "COMMON_TREND_NOT_CONFIRMED": "Current shared market evidence must confirm ordinary entry.",
-    "CASH_REPAIR_PERMISSION_CLOSED": "The real consumed repair order must retain its original risk permission.",
-    "PULLBACK_PERMISSION_CLOSED": "Cancel the original remainder when its current proof or full original budget is unavailable.",
-    "PULLBACK_NOT_GRADUATED": "The long-structure holding must enter ordinary mature management before restoration can add capital.",
-    "BOUNDED_PULLBACK_AUTHORIZED": "Only this decision's bounded ordinary order consumes the recorded BaseRisk permission.",
-    "EXISTING_HOLDING_OR_COMMITMENT": "Manage the existing holding or order through its own lifecycle.",
-    "ORDINARY_CORE_NOT_MATURE": "New ordinary admission requires current mature leadership.",
-    "IMMATURE_CORE_SLOT_OCCUPIED": "The existing ordinary early holding or commitment must mature or actually settle out.",
-    "IMMATURE_CORE_LOWER_RANK": "Only the highest-ranked new immature ordinary core is selected in this decision.",
-    "AWAIT_REDUCTION_SETTLEMENT": "The prior reduction must actually settle.",
-    "CAPITAL_LIMIT": "Available settled capital or a binding cap must change; a sale intent supplies no cash.",
-    "RESTORATION_COMPLETED_RETAIN_DRIFT": "Retain price drift until independent deterioration or a risk reduction.",
-    "RESTORATION_EVIDENCE_UNAVAILABLE": "Restore the holding's market and leadership evidence.",
-    "RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING": "The current uninterrupted holding must span the recorded risk episode; verify actual fills.",
-    "OWNER_EVIDENCE_UNAVAILABLE": "Restore the current owner's market evidence.",
-    "OWNER_DEPLOYMENT_BLOCK": "The current owner's recorded deployment block must clear.",
-    "CANCELLATION_AWAITING_CONFIRMATION": "Obtain the pending cancellation's acknowledgement.",
-    "NO_TRADE_BAND": "The executable difference must cross the recorded trade threshold.",
-})
-
-
-def _recorded_budget_limits(row: Mapping[str, Any]) -> list[str]:
-    parts = []
-    budgets = row.get("budget_checks")
-    if isinstance(budgets, list) and budgets:
-        latest = budgets[-1]
-        limits = [(label, latest[key]) for label, key in (
-            ("cash", "cash_room"), ("gross", "gross_room"), ("name", "symbol_room"),
-            ("industry", "industry_room"), ("correlation", "correlation_room"),
-        ) if key in latest]
-        parts.append("room: " + ", ".join(f"{label} {float(value):.1%}" for label, value in limits))
-        parts.append(f"funded increment {float(latest.get('funded_increment', 0.0)):.1%}; "
-                     f"minimum {float(latest.get('minimum_increment', 0.0)):.1%}")
-        if latest.get("block") or latest.get("correlation_block"):
-            parts.append(str(latest.get("block") or latest["correlation_block"]))
-    else:
-        parts.append("capital room not evaluated on this branch")
-    transfer = row.get("transfer_budget")
-    if isinstance(transfer, Mapping) and transfer.get("block"):
-        estimate = [str(transfer["block"])]
-        estimate.extend(f"{label} {float(transfer[key]):.1%}" for label, key in (
-            ("released weight", "released_weight"), ("required admission", "required_weight"),
-            ("fundable increment", "funded_increment"), ("cash room", "cash_room"),
-            ("gross room", "gross_room"), ("name room", "symbol_room"),
-            ("industry room", "industry_room"), ("correlation room", "correlation_room"),
-        ) if key in transfer)
-        if transfer.get("correlation_block"):
-            estimate.append(str(transfer["correlation_block"]))
-        parts.append("transfer feasibility after settlement (estimate; not cash or a fill): "
-                     + ", ".join(estimate))
-    return parts
-
-
-def _recorded_core_constraint(row: Mapping[str, Any], trace: Mapping[str, Any]) -> str:
-    entry = row.get("pending_entry", row.get("pullback_entry", row.get("entry", {})))
-    entry_block = entry.get("block", "") if isinstance(entry, Mapping) else ""
-    restore_block = row.get("restore_block")
-    if restore_block == "PENDING_CORE_BUY_ALREADY_EVALUATED":
-        restore_block = None
-    block = row.get("increase_block") or restore_block or row.get("entry_gate")
-    if not block and entry_block != "READY":
-        block = entry_block
-    if row.get("allocation_reason") == "CAPITAL_LIMIT":
-        block = "CAPITAL_LIMIT"
-    if trace.get("planning_scope") == "SENTINEL_PLANNING_ONLY" and trace.get("final_freeze_new_risk"):
-        block = "NEW_RISK_FROZEN"
-    parts = [str(block)] if block else []
-    if isinstance(row.get("pending_entry"), Mapping):
-        parts.append("pending current quality " + str(entry_block))
-    confirmations = entry.get("confirmations") if isinstance(entry, Mapping) else None
-    if isinstance(confirmations, Mapping):
-        parts.append("confirmation " + ", ".join(f"{route} {streak}/{entry['required_confirmation']}"
-                                                 for route, streak in confirmations.items()))
-    parts.extend(_recorded_budget_limits(row))
-    planning = row.get("order_planning", {})
-    if isinstance(planning, Mapping) and planning.get("block") not in {None, "NONE", "NO_TARGET"}:
-        parts.append("order: " + str(planning["block"]))
-        if "difference_value" in planning:
-            parts.append(f"difference {float(planning['difference_value']):,.2f}; "
-                         f"standard threshold {float(planning['standard_trade_threshold']):,.2f}")
-        if not block:
-            block = str(planning["block"])
-    parts.append(_CORE_REVIEW_CHANGES.get(str(block),
-        "Reassess after independent deterioration, changed risk, qualification, or settled capital."))
-    return "; ".join(parts)
-
-
-def _core_allocation_report(trace: Mapping[str, Any]) -> list[str]:
-    rows = trace["symbols"]
-    lines = [
-        f"- Allocation observed: {trace['as_of']}; final risk freeze: {bool(trace['final_freeze_new_risk'])}.",
-        "- Each room value is recorded where that intent was evaluated; rows share one sequential budget.",
-        "", "| Symbol | Held → final target | Recorded orders / final reason | Constraint / next review |",
-        "|---|---:|---|---|",
-    ]
-    for symbol, row in sorted(rows.items(), key=lambda item: (-item[1].get("rank_score", -1.0), item[0])):
-        orders = ", ".join(f"{order['side']} {order['order_id']}" for order in row.get("orders", ())) or "NO ORDER"
-        reason = str(row.get("final_target_reason", "UNAVAILABLE")).replace("|", "/")
-        constraint = _recorded_core_constraint(row, trace).replace("|", "/")
-        lines.append(f"| {symbol} | {float(row['held_weight']):.1%} → {float(row['final_target_weight']):.1%} "
-                     f"| {orders}; {reason} | {constraint} |")
-    return [*lines, ""]
-
-
-def _recorded_qualification_report(observation: object) -> list[str]:
-    lines: list[str] = []
-    if isinstance(observation, Mapping) and observation:
-        symbol = observation.get("candidate_symbol") or "UNASSIGNED"
-        ready = observation.get("qualification_ready")
-        ready_text = "UNAVAILABLE" if ready is None else ("YES" if ready else "NO")
-        block = observation.get("deployment_block_reason") or "NONE RECORDED"
-        lines.extend([
-            f"- Candidate observation: {symbol}; route: {observation.get('qualification_route') or 'UNAVAILABLE'}; "
-            f"ready: {ready_text}.",
-            "- Observed session: "
-            f"{observation.get('qualification_last_observed_session') or 'UNAVAILABLE'}; "
-            f"confirmation streak: {observation.get('qualification_streak', 'UNAVAILABLE')}.",
-            f"- Deployment block for {symbol}: {block}.",
-        ])
-        if observation.get("candidate_invalidation_reason"):
-            lines.append(f"- Recorded invalidation: {observation['candidate_invalidation_reason']}.")
-        references = observation.get("unavailable_reference_symbols")
-        if isinstance(references, (list, tuple)) and references:
-            lines.append("- Unavailable references: " + ", ".join(str(item) for item in references) + ".")
-    else:
-        lines.append("- Candidate qualification evidence: NOT RECORDED.")
-    return lines
-
-
-def _candidate_report_section(decision: Decision) -> list[str]:
-    """Show recorded qualification evidence, never reconstruct admission rules."""
-    lines = ["## Candidate explanation", ""]
-    lines.extend(_recorded_qualification_report(decision.risk_summary.get("strategic_qualification")))
-    ranking = decision.risk_summary.get("leader_ranking")
-    if isinstance(ranking, (list, tuple)):
-        buying = {order.symbol for order in decision.pending_orders if order.side == "BUY"}
-        waiting = [
-            str(item["symbol"])
-            for item in ranking
-            if isinstance(item, Mapping) and item.get("symbol") and item["symbol"] not in buying
-        ]
-        lines.append("- Ranked symbols without a BUY intent: " + (", ".join(waiting) or "NONE") + ".")
-    else:
-        lines.append("- Candidate ranking: NOT RECORDED.")
-    trace = decision.risk_summary.get("core_allocation")
-    if isinstance(trace, Mapping) and trace.get("scope") == "FINAL_DECISION":
-        lines.extend(_core_allocation_report(trace))
-    else:
-        lines.append("- Per-candidate admission reasons and remaining capital limits are not recorded for every ranked "
-                     "symbol. Ranking alone does not establish qualification.")
-    lines.extend([
-        "- Next review: changes in recorded risk/freeze/caps, qualification/reference coverage, or reconciled "
-        "fills, cancellations and cash. Only a new daily Decision can change targets; "
-        "a cleared block alone does not authorize a BUY.",
-        "",
-    ])
-    return lines
 
 
 def _economic_attribution_report_lines(
@@ -453,89 +202,441 @@ def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def render_daily_report(decision: Decision, account: AccountState) -> str:
-    """Render the already-computed decision without changing portfolio intent."""
-    current = {symbol: position for symbol, position in account.positions.items() if position.shares > 0}
-    sector_return = decision.risk_summary.get("sector_guard_equal_return")
-    sector_return_text = "N/A" if sector_return is None else f"{float(sector_return):.1%}"
-    lines = [
-        f"# Daily Report — {decision.date}",
-        "",
-        f"Opportunity: **{decision.opportunity.value}**  ",
-        f"Risk: **{decision.risk.value}**  ",
-        f"Target Gross: **{decision.target_gross:.1%}**  ",
-        f"Target K: **{decision.target_k}**",
-        f"Factor Profile: **{decision.risk_summary.get('factor_profile', 'CHOPPY')}**  ",
-        f"Strategic Epoch: **{decision.risk_summary.get('strategic_epoch', 0)}**",
-        "",
-        *_account_report_section(account, decision.risk_summary),
-        *_risk_sentinel_section(decision.risk_summary),
-        "## Targets",
-        "",
-        "| Symbol | Action | Target | Lifecycle | Reason |",
-        "|---|---|---:|---|---|",
+_BLOCK_TEXT = MappingProxyType({
+    "READY": "已满足本项候选条件；仍需通过风险、资金和执行检查",
+    "NOT_MATURE": "龙头成熟条件未满足",
+    "CONFIRMATION_INCOMPLETE": "连续交易日确认尚未完成",
+    "CONFIDENCE_BELOW_MINIMUM": "证据可信程度未达到要求",
+    "INDUSTRY_NOT_VERIFIED": "行业归属尚未核实",
+    "CURRENT_MARKET_DATA_UNAVAILABLE": "缺少当日行情",
+    "INSUFFICIENT_HISTORY": "历史行情长度不足",
+    "STRUCTURE_NOT_REPAIRED": "价格结构尚未恢复",
+    "LIQUIDITY_NOT_CONFIRMED": "成交活跃程度尚未满足要求",
+    "NEW_RISK_FROZEN": "系统暂不允许增加持仓",
+    "freeze_new_risk": "系统暂不允许增加持仓",
+    "UNRESOLVED_LIABILITY": "尚有订单或成交责任需要核对",
+    "OPPORTUNITY_NOT_OPEN": "当前市场机会状态不允许这条建仓路径",
+    "RISK_NOT_NORMAL": "当前基础风险状态不允许普通建仓",
+    "COMMON_TREND_NOT_CONFIRMED": "共同趋势证据尚未确认",
+    "CASH_REPAIR_PERMISSION_CLOSED": "本次账户恢复买入权限未开放",
+    "PULLBACK_PERMISSION_CLOSED": "原回调买入的证据或完整预算不再满足要求",
+    "PULLBACK_NOT_GRADUATED": "该持仓尚未进入成熟管理，不能恢复加仓",
+    "BOUNDED_PULLBACK_AUTHORIZED": "本次仅允许已记录的有限回调买入",
+    "EXISTING_HOLDING_OR_COMMITMENT": "已有持仓或买入承诺，按原持仓路径处理",
+    "ORDINARY_CORE_NOT_MATURE": "普通建仓所需的成熟条件不足",
+    "IMMATURE_CORE_SLOT_OCCUPIED": "未成熟持仓名额已占用，需成熟或实际退出后重评",
+    "IMMATURE_CORE_LOWER_RANK": "本次未成熟候选顺序靠后，未选中",
+    "AWAIT_REDUCTION_SETTLEMENT": "等待先前减仓实际完成",
+    "CAPITAL_LIMIT": "可部署资金或仓位额度不足；未成交卖单不提供资金",
+    "opportunity_not_deployable": "当前机会状态不允许部署这条长期候选路径",
+    "qualification_not_ready": "长期候选资格尚未完成确认",
+    "qualification_invalid": "原候选资格已失效，不能继续部署",
+    "reference_coverage_or_confirmation": "参考证据覆盖或连续确认条件不足",
+    "candidate_not_tradable": "该候选不在当前允许交易范围",
+    "ordinary_trend_participation": "当前只开放原有普通趋势参与路径",
+    "strategic_market_opportunity_required": "长期主线建仓还需对应市场机会确认",
+    "risk_caution": "基础风险警戒限制本次长期建仓",
+    "target_gross_cap": "本次风险允许的仓位额度为零",
+    "risk_off": "基础风险要求降低持仓，不允许本次新增",
+    "crisis": "严重风险限制本次新增",
+    "capital_budget": "账户回撤预算限制本次新增",
+    "chronic_damage": "持续转弱限制本次新增",
+    "POSITION_COUNT_LIMIT": "剩余持仓名额不足，资格要求保持不变",
+    "MISSING_BOOK_EVIDENCE": "缺少已有持仓的行情或分类资料",
+    "INSUFFICIENT_CORRELATION_HISTORY": "共同波动检查所需历史不足",
+    "NONFINITE_CORRELATION": "共同波动检查结果无效",
+    "RESTORATION_COMPLETED_RETAIN_DRIFT": "恢复已完成，保留价格变化产生的仓位漂移",
+    "RESTORATION_EVIDENCE_UNAVAILABLE": "缺少恢复持仓所需的行情或龙头证据",
+    "NEW_ENTRY_REQUIRES_QUALIFICATION": "本次没有可恢复的持仓，新增买入必须重新通过建仓资格",
+    "RESTORATION_EPISODE_NOT_LINKED_TO_HOLDING": "该持仓与本次风险恢复记录未建立有效关联",
+    "OWNER_EVIDENCE_UNAVAILABLE": "缺少主导持仓的行情证据",
+    "OWNER_DEPLOYMENT_BLOCK": "主导持仓的新增部署被限制",
+    "CANCELLATION_AWAITING_CONFIRMATION": "买单撤销尚未收到确认，暂不能重复买入",
+    "NO_TRADE_BAND": "目标与持仓的差额未达到本次交易门槛",
+    "STICKY_HOLD": "保留原持仓，不因价格漂移单独调仓",
+    "NO_TARGET": "没有记录目标，不据此推断买卖许可",
+    "NONE": "本项检查未记录阻断",
+    "PENDING_CORE_BUY_ALREADY_EVALUATED": "原买单已在延续路径评估，不重复分配",
+    "FAILED_DEPLOYMENT_UNSETTLED": "先前部署仍未结清，暂缓新建仓",
+    "ACCOUNT_REPAIR_AUTHORIZED": "本次有限账户恢复买入已获得原规则授权",
+    "candidate_identity_already_bound": "候选已经绑定持仓或未完成订单",
+    "unresolved_execution_capacity": "尚有未核清的执行责任或持仓行情",
+    "insufficient_executable_capital": "实际可部署资金不足",
+    "TRANSFER_BELOW_TRADE_MINIMUM": "拟转出金额未达到原有最小交易要求",
+    "TRANSFER_CANNOT_FUND_ADMISSION": "即使拟减仓完成，记录的可部署预算仍不足",
+    "TRANSFER_SETTLED_AWAIT_ADMISSION": "先前减仓已完成，等待独立建仓检查",
+    "FEASIBLE_AFTER_SETTLEMENT": "结算后预算估算可行；目前不是可用现金或买入授权",
+})
+
+_EXECUTION_TEXT = MappingProxyType({
+    "MISSING_OR_SUSPENDED": "执行当日行情缺失或停牌，未能成交",
+    "INSUFFICIENT_HISTORY": "执行检查缺少所需历史行情",
+    "LIMIT_BLOCKED": "执行当日涨跌停限制阻止成交",
+    "POSITION_CAP_BLOCKED": "执行时持仓数量已达上限",
+    "CAPACITY_OR_CASH_BLOCKED": "执行时可成交股数为零，需核对总仓／单票额度、成交量、现金与可卖股份",
+    "AWAITING_HANDOFF_SELL": "等待前置卖出实际完成",
+    "WAITING_NEXT_OPEN": "等待原信号之后的可交易开盘",
+    "CANCEL_REQUESTED": "已请求撤销，尚未确认取消",
+    "FILL": "已记录成交，剩余部分仍需核对",
+    "ZERO_REQUEST": "执行检查确认目标已满足，未继续建单",
+    "PENDING": "订单意图待执行", "PARTIAL": "部分成交，余量未结清",
+    "PARTIALLY_FILLED": "部分成交，余量未结清",
+})
+
+_TARGET_REASON_TEXT = MappingProxyType({
+    "confirmed core admitted from available account capital": "候选确认已通过，使用本次实际可用资金建仓",
+    "confirmed core admitted through bounded account repair": "候选确认已通过，本次有限账户恢复权限允许建仓",
+    "leader lifecycle exit: confirmed structural deterioration": "持仓价格结构持续转弱并完成确认，触发退出",
+    "prequalified strategic leader cohort with staged profit protection": "长期龙头组合已完成资格确认，按分步保护规则管理",
+    "strategic one-shot profit lock": "长期主导持仓触发一次性盈利保护，减少部分仓位",
+    "retained core holding": "保留原有核心持仓；不表示本次重新获得买入许可",
+    "mature anchored leader": "保留已确认的恢复龙头，不因价格漂移调仓",
+    "causal crash-recovery leader": "已记录下跌后的恢复条件，按恢复持仓规则处理",
+    "core restoration after account risk repair": "账户风险恢复后，在原有资金限制内恢复核心仓位",
+    "leader rotation after the prior reduction filled": "先前减仓已实际完成，本次按原有顺序转入候选",
+    "leader rotation: bounded transfer after confirmed deterioration": "原持仓转弱已确认，先有限减仓；卖出未成交前不预支资金",
+    "controlled oversold rebound probe": "超跌反弹条件已触发，只参与原有的有限试探仓位",
+    "controlled rebound probe": "已记录有限反弹参与条件，按试探仓位处理",
+    "controlled rebound exit": "反弹持仓触发原有退出条件",
+    "overextended pullback cooldown": "回调前涨幅过大，进入观察等待期",
+    "awaiting recovery cohort member confirmation": "恢复组合成员尚未完成连续确认，继续等待",
+    "graduated recovery cohort; retain price drift": "恢复组合已转入成熟管理，保留价格漂移",
+    "confirmed recovery anchor substitution": "恢复持仓替换条件已确认，按原有顺序处理",
+    "strategic cohort completed staged exit": "长期组合已完成分步退出",
+    "completed post-shock restoration; retain price drift": "冲击后仓位恢复已完成，不因价格漂移调仓",
+    "post-shock restoration; retain winner drift": "恢复持仓保留趋势收益造成的仓位漂移",
+    "ordinary long-pullback confirmed MA120 deterioration": "长期回调持仓相对120个交易日平均价格持续转弱并完成确认",
+    "ordinary long-pullback disaster loss against actual average cost": "长期回调持仓相对真实平均成本触发严重亏损保护",
+})
+
+
+def _target_reason(reason: str, code: str) -> str:
+    if reason in _TARGET_REASON_TEXT:
+        return _TARGET_REASON_TEXT[reason]
+    if reason.endswith("; level-1 risk freeze; retain existing exposure"):
+        return "一级风险限制冻结新增仓位，按现有持有边界保留敞口；不等于强制减仓"
+    return _plain_code(code, reason=True)
+
+
+_REASON_TEXT = MappingProxyType({
+    "strategy_target": "按本次组合目标处理，具体条件见下方记录",
+    "rotation": "根据已确认的相对强弱变化调整持仓",
+    "strategic_cohort": "按已确认的长期龙头持仓规则处理",
+    "strategic_tail": "长期持仓触发退出保护",
+    "recovery_cohort": "按风险冲击后的恢复规则处理",
+    "recovery_exit": "恢复持仓触发退出规则",
+    "lifecycle_exit": "持仓结构转弱，触发退出规则",
+    "satellite_expiry": "短期观察持仓到期",
+    "challenger_scout": "按候选观察仓位规则处理",
+    "strategic_damage_guard": "主线受损保护要求控制仓位",
+    "sector_guard": "持仓行业风险保护要求控制仓位",
+    "risk_gross_cap": "风险规则限制组合总仓位",
+    "capital_budget": "账户回撤规则限制可用仓位",
+    "risk_off": "风险升高，降低持仓",
+    "crisis": "严重风险触发仓位保护",
+    "ordinary_pullback_entry": "已记录的有限回调建仓",
+    "risk_freeze_hold": "冻结新增风险，保留符合原有持有边界的敞口",
+})
+
+
+def _plain_code(value: object, *, reason: bool = False) -> str:
+    if value is None or value == "":
+        return "未取得"
+    code = str(value)
+    if code.startswith("current_core_entry:"):
+        return _plain_code(code.split(":", 1)[1])
+    return (_REASON_TEXT if reason else _BLOCK_TEXT).get(code, f"尚无直白释义（原码：{code}）")
+
+
+def _percent(value: object) -> str:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return "未取得"
+    return f"{value:.2%}"
+
+
+def _status(value: object) -> str:
+    return "条件通过" if value is True else "条件未通过" if value is False else "必要资料不足"
+
+
+def _symbol_limit_lines(row: Mapping[str, Any], trace: Mapping[str, Any], final: bool) -> list[str]:
+    lines: list[str] = []
+    if final and trace.get("planning_scope") == "SENTINEL_PLANNING_ONLY" and trace.get("final_freeze_new_risk") is True:
+        lines.append("最终生效限制：系统暂不允许增加持仓；下面的中间资金测算不代表最终买入许可")
+    if row.get("allocation_reason") == "CAPITAL_LIMIT":
+        lines.append("实际分配限制：" + _plain_code("CAPITAL_LIMIT"))
+    transfer = row.get("transfer_budget")
+    if isinstance(transfer, Mapping) and transfer:
+        lines.append("结算后预算估算（不是现金或成交）：" + _plain_code(transfer.get("block")))
+        for key, label in (("released_weight", "拟释放仓位"), ("required_weight", "要求参与仓位"),
+                           ("funded_increment", "估算可部署增量"), ("cash_room", "估算现金空间"),
+                           ("gross_room", "估算总仓空间"), ("symbol_room", "估算单票空间"),
+                           ("industry_room", "估算行业空间"), ("correlation_room", "估算共同波动组空间")):
+            if key in transfer:
+                lines.append(label + "：" + _percent(transfer[key]))
+        if transfer.get("correlation_block"):
+            lines.append("估算限制：" + _plain_code(transfer["correlation_block"]))
+    return lines
+
+
+def _entry_lines(row: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for key, label in (("entry", "普通建仓"), ("pending_entry", "原买单延续"),
+                       ("pullback_entry", "回调建仓"), ("repair_entry", "账户恢复建仓")):
+        if key == "entry" and isinstance(row.get("pending_entry"), Mapping):
+            continue
+        entry = row.get(key)
+        if isinstance(entry, Mapping):
+            lines.append(f"{label}评估：{_plain_code(entry.get('block'))}")
+            checks = entry.get("checks", {})
+            for check, label in (("confidence", "龙头证据可信程度"), ("industry", "行业归属核验"),
+                                  ("current_data", "当日行情"), ("history", "历史行情长度"),
+                                  ("structure", "价格结构与活跃成交条件"), ("liquidity", "成交活跃程度")):
+                item = checks.get(check) if isinstance(checks, Mapping) else None
+                if not isinstance(item, Mapping):
+                    continue
+                text = f"{label}：{_status(item.get('passed'))}"
+                if check == "confidence":
+                    text += f"；观测值 {_percent(item.get('value'))}，要求至少 {_percent(item.get('minimum'))}（不是上涨概率）"
+                elif check == "history":
+                    text += f"；观测 {item.get('value', '未取得')} 个交易日，要求至少 {item.get('minimum', '未取得')} 个交易日"
+                lines.append(text)
+            if isinstance(entry.get("confirmations"), Mapping):
+                lines.append("各条已评估路径的连续确认次数：" + "、".join(str(count) for count in entry["confirmations"].values()) + f"；要求：{entry.get('required_confirmation', '未取得')} 个交易日（路径原码见详细依据）")
+        elif key == "entry":
+            lines.append("普通建仓条件：这条路径未评估或必要资料未取得")
+    return lines
+
+
+def _budget_lines(row: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for budget in row.get("budget_checks", ()):
+        lines.append("本次资金检查：" + _status(budget.get("accepted")) + "；各股票共用同一账户资金，不可重复相加")
+        rooms = [f"{label} {_percent(budget[key])}" for key, label in (
+            ("cash_room", "现金支持空间"), ("gross_room", "总仓空间"), ("symbol_room", "单票空间"),
+            ("industry_room", "行业空间"), ("correlation_room", "共同波动组空间")) if key in budget]
+        if rooms:
+            lines.append("；".join(rooms))
+        lines.append(f"获配增量：{_percent(budget.get('funded_increment'))}；最低参与增量：{_percent(budget.get('minimum_increment'))}")
+        for key in ("block", "correlation_block"):
+            if budget.get(key):
+                lines.append("本次限制：" + _plain_code(budget[key]))  # noqa: PERF401
+    return lines
+
+
+def _ledger_lines(symbol: str, account: AccountState) -> list[str]:
+    lines: list[str] = []
+    for record in account.order_ledger:
+        if record.symbol == symbol and record.status not in {"FILLED", "CANCELLED", "REPLACED"}:
+            status = {"CANCEL_REQUESTED": "撤销待确认", "PARTIAL": "部分成交", "PARTIALLY_FILLED": "部分成交", "PENDING": "尚未完成"}.get(record.status, "尚未结清")
+            event = _EXECUTION_TEXT.get(record.last_event, f"尚无直白释义（原码：{record.last_event or '未取得'}）")
+            lines.append(f"账户订单：{status}；原信号 {record.signal_date}；记录余量 {record.remaining_shares} 股")
+            lines.append(f"最近执行记录（{record.last_update_date or '时点未取得'}）：{event}；此为已发生的检查，不预测下一开盘可否成交")
+            if record.cancel_reason:
+                cancel = "新增风险冻结，申请撤销原买单" if record.cancel_reason == "sentinel_freeze_new_risk" else "撤销原因尚无直白释义：" + record.cancel_reason
+                lines.append("撤销核对：" + cancel + "；以实际确认回报为准")
+    return lines
+
+
+def _candidate_lines(symbol: str, decision: Decision, row: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    ranking = decision.risk_summary.get("leader_ranking", ())
+    for item in ranking if isinstance(ranking, (list, tuple)) else ():
+        if isinstance(item, Mapping) and item.get("symbol") == symbol:
+            lines.append("支持关注的龙头成熟条件：" + _status(item.get("mature")) + "；仅支持候选评估，不等于交易许可")  # noqa: PERF401
+    lines.extend(_entry_lines(row))
+    for key, label in (("increase_block", "新增限制"), ("restore_block", "恢复限制"), ("entry_gate", "建仓权限")):
+        if row.get(key):
+            lines.append(f"{label}：{_plain_code(row[key])}")
+    observation = decision.risk_summary.get("strategic_qualification")
+    if isinstance(observation, Mapping) and observation.get("candidate_symbol") == symbol:
+        lines.append("长期候选资格：" + _status(observation.get("qualification_ready")) + "；资格不等于可以买入")
+        if observation.get("deployment_block_reason"):
+            lines.append("长期部署限制：" + _plain_code(observation["deployment_block_reason"]))
+        lines.append(f"资格确认：{observation.get('qualification_streak', '未取得')} 个交易日；记录时点：{observation.get('qualification_last_observed_session') or '未取得'}")
+    lines.extend(_budget_lines(row))
+    planning = row.get("order_planning")
+    if isinstance(planning, Mapping):
+        lines.append("订单规划：" + _plain_code(planning.get("block")))
+        if "difference_value" in planning:
+            lines.append(f"目标差额：{planning['difference_value']:,.2f} 元；通常交易门槛：{planning['standard_trade_threshold']:,.2f} 元")
+    return lines
+
+
+def _recorded_symbol_lines(symbol: str, decision: Decision, account: AccountState) -> list[str]:
+    target = next((t for t in decision.targets if t.symbol == symbol), None)
+    orders = [o for o in decision.pending_orders if o.symbol == symbol]
+    position = account.positions.get(symbol)
+    held = position is not None and position.shares > 0
+    trace = decision.risk_summary.get("core_allocation", {})
+    final = isinstance(trace, Mapping) and trace.get("scope") == "FINAL_DECISION"
+    row = trace.get("symbols", {}).get(symbol, {}) if final else {}
+    lines = [f"当前情况：持有 {position.shares} 股，平均成本 {position.avg_cost:,.2f} 元" if held and position else "当前情况：未持有"]
+    if orders:
+        actions = ["准备买入／增加" if o.side == "BUY" else "准备清仓" if o.target_weight == 0 else "准备减少" for o in orders]
+        lines.append("最终处理：" + "、".join(actions) + "；仅为意图，尚未确认成交")
+    elif target is not None and target.weight > 0:
+        lines.append("最终处理：保留目标／观察，未生成买入意图；也未生成卖出意图")
+    elif held:
+        lines.append("最终处理：没有卖出意图记录；不能据此断言主动看多或已完成退出")
+    else:
+        lines.append("最终处理：没有买卖意图；仅观察，是否满足全部条件须看本次证据")
+    lines.append("目标仓位：" + (_percent(target.weight) if target else "未取得"))
+    if target:
+        lines.append("目标依据：" + _target_reason(target.reason, target.reason_code))
+    lines.extend(_symbol_limit_lines(row, trace, final))
+    lines.extend(_candidate_lines(symbol, decision, row))
+    lines.extend(_ledger_lines(symbol, account))
+    if not final:
+        lines.append("本次最终分配过程未取得；中间规划不能作为最终授权")
+    lines.append("重新评估：仅核对上述未满足条件是否变化；单个限制解除不保证买入，仍需下一次完整决策")
+    return lines
+
+
+def _freeze_owner(summary: Mapping[str, Any]) -> str:
+    base_freeze = summary.get("base_freeze_new_risk")
+    sentinel_freeze = summary.get("sentinel_freeze_new_risk")
+    if summary.get("sentinel_causal_coverage_status") != "READY":
+        return "资料不足，不能判断完整限制来源"
+    elif base_freeze is True and sentinel_freeze is True:
+        return "基础风险与独立风险观察共同限制"
+    elif base_freeze is True:
+        return "基础风险限制"
+    elif sentinel_freeze is True:
+        return "独立风险观察限制"
+    elif base_freeze is False and sentinel_freeze is False:
+        return "本次两项检查均未触发新增冻结"
+    else:
+        return "限制来源未取得"
+
+
+def _daily_risk_lines(decision: Decision) -> list[str]:
+    summary = decision.risk_summary
+    freeze = summary.get("freeze_new_risk")
+    owner = _freeze_owner(summary)
+    risk_lines = [
+        "新增冻结来源：" + owner,
+        "市场基础风险：" + {"NORMAL": "本次基础评估处于正常档；不代表市场安全", "CAUTION": "处于警戒档", "RISK_OFF": "处于降低风险档", "CRISIS": "处于严重风险档"}.get(decision.risk.value, "未取得"),
+        "新增持仓权限：" + ("系统暂不允许增加持仓" if freeze is True else "本项未触发新增冻结，仍需其他检查" if freeze is False else "未取得，不能推断无风险"),
+        "独立风险观察：" + ("已冻结新增风险；不代表要求清仓" if summary.get("sentinel_freeze_new_risk") is True else "未记录新增冻结；不代表要求清仓" if summary.get("sentinel_freeze_new_risk") is False else "资料未取得；不代表要求清仓"),
+        "独立观察资料覆盖：" + ("已就绪" if summary.get("sentinel_causal_coverage_status") == "READY" else "必要资料不足或未取得，不能推断安全"),
+        "行业风险保护：" + ("已触发" if summary.get("sector_guard_active") is True else "本次未触发" if summary.get("sector_guard_active") is False else "未取得"),
+        "持仓行业当日收益：" + _percent(summary.get("sector_guard_equal_return")),
+        "从账户资金高点回落的比例：" + _percent(summary.get("capital_drawdown")),
+        "风险允许的总仓上限：" + _percent(summary.get("target_gross_cap")),
+        "个股与账户执行限制见逐票说明；买入冻结不自动取消必要减仓，卖出意图也不保证成交",
     ]
-    for target in decision.targets:
-        held = target.symbol in current
-        if target.weight <= 0:
-            action = "SELL" if held else "BLOCKED"
-        elif held:
-            action = "HOLD/ADJUST"
-        else:
-            action = "BUY"
-        lines.append(
-            f"| {target.symbol} | {action} | {target.weight:.1%} | {target.lifecycle} | {target.reason} |"
-        )
-    lines.extend(
-        [
-            "",
-            *_candidate_report_section(decision),
-            "## Risk",
-            "",
-            f"- Shock: {decision.risk_summary.get('shock_state', 'NONE')}",
-            "- Deployed-sector guard: "
-            + (
-                "ACTIVE"
-                if decision.risk_summary.get(
-                    "sector_guard_active",
-                    account.sector_guard_active,
-                )
-                else "INACTIVE"
-            ),
-            f"- Deployed-sector daily return: {sector_return_text}",
-            f"- Sector-shock confirmations: {decision.risk_summary.get('sector_guard_shock_count', len(account.sector_shock_dates))}",
-            f"- Sector breadth declining: {decision.risk_summary.get('declining_ratio', 0.0):.1%}",
-            f"- Below MA20: {decision.risk_summary.get('below_ma20_ratio', 0.0):.1%}",
-            f"- Correlation: {decision.risk_summary.get('median_correlation', 0.0):.2f}",
-            f"- Operating DD: {decision.risk_summary.get('operating_drawdown', 0.0):.1%}",
-            f"- Capital DD: {decision.risk_summary.get('capital_drawdown', 0.0):.1%}",
-            f"- Trend health: {decision.risk_summary.get('trend_health', 0.0):.1%}",
-            f"- Transition damage: {decision.risk_summary.get('transition_damage', 0.0):.1%}",
-            "- Freeze new risk: " + ("YES" if decision.risk_summary.get("freeze_new_risk") else "NO"),
-            f"- Reduction level: {decision.risk_summary.get('reduction_level', 0)}",
-            f"- Severity: {decision.risk_summary.get('severity', 'NORMAL')}",
-            f"- Capital budget rung: {decision.risk_summary.get('capital_budget_level', 0)}",
-            f"- Chronic deterioration: {decision.risk_summary.get('chronic_level', 0)}",
-            "- Dynamic anchors: " + ", ".join(decision.risk_summary.get("risk_anchor_symbols", [])),
-            "",
-            "## Tomorrow",
-            "",
-        ]
-    )
+    if summary.get("sentinel_mode") == "SHADOW":
+        risk_lines.insert(0, "此样本为离线观察，不能作为生产交易权限")
+    family_text = {"breadth_structure": "多数股票与价格结构转弱", "market_velocity": "市场价格变化加速", "covariance_stress": "股票共同波动压力增大",
+                   "correlation": "股票共同波动增强", "volatility": "价格波动扩大", "liquidity": "成交流动性转弱"}
+    families = summary.get("sentinel_causal_active_families")
+    if isinstance(families, (list, tuple)):
+        risk_lines.append("已记录的独立观察风险：" + ("、".join(family_text.get(str(f), f"尚无直白释义（{f}）") for f in families) or "本次未记录触发项"))
+    else:
+        risk_lines.append("独立观察风险明细：未取得")
+    weakest = summary.get("sentinel_causal_weakest_subindustries")
+    if isinstance(weakest, (list, tuple)) and weakest:
+        names = {"design": "芯片设计", "optical": "光通信"}
+        risk_lines.append("观察中较弱的行业：" + "、".join(names.get(str(v), str(v)) for v in weakest) + "；行业观察不等于整个市场风险")
+    return risk_lines
+
+
+def _action_lines(decision: Decision) -> list[str]:
+    actions = []
+    for index, order in enumerate(decision.pending_orders, 1):
+        action = "准备买入／增加" if order.side == "BUY" else "准备清仓" if order.target_weight == 0 else "准备减少"
+        carried = "本日新意图" if order.signal_date == decision.date else "延续的未完成意图"
+        actions.append(f"{index}. {order.symbol}：{action}，目标 {_percent(order.target_weight)}；{carried}，原信号日期 {order.signal_date}；{_target_reason(order.reason, order.reason_code)}")
+    actions.append("逐单核对券商回报、可用资金、可卖股份、停牌／涨跌停、成交量和价格；意图不是券商已接受、可立即成交或已经成交")
     if not decision.pending_orders:
-        lines.append("1. No executable account order was recorded; no execution cause is inferred.")
-    for index, order in enumerate(decision.pending_orders, start=1):
-        lines.append(
-            f"{index}. {order.side} {order.symbol} toward {order.target_weight:.1%} "
-            f"at the next tradable open; {order.reason} "
-            f"[{order.reason_code}/{order.exit_kind}/{order.reduction_policy}]; order_id={order.order_id or 'UNAVAILABLE'}."
-        )
-    lines.extend(
-        [
-            "",
-            f"Decision digest: `{decision.decision_digest}`",
-            f"Effective config: `{decision.risk_summary.get('effective_config_sha256', 'UNAVAILABLE')}`",
-            "",
-        ]
-    )
-    return "\n".join(lines)
+        actions.insert(0, "没有记录买卖意图；不把目标仓位当作订单，具体受阻或未评估原因见逐票说明")
+    return actions
+
+
+def _recorded_held_weight(held: list[str], rows: Mapping[str, Any]) -> float | None:
+    if not all(s in rows and isinstance(rows[s].get("held_weight"), (int, float)) for s in held):
+        return None
+    return float(sum(rows[s]["held_weight"] for s in held))
+
+
+def _daily_conclusion(buys: int, sells: int, freeze: object) -> str:
+    conclusion = ("有买入意图，等待下一可交易日核对" if buys else "需要处理减仓，等待下一可交易日核对" if sells else "本次没有生成买卖意图")
+    if freeze is True:
+        conclusion += "；系统暂不允许增加持仓，已记录的有限例外须逐单核对" if buys else "；系统暂不允许增加持仓"
+    return conclusion
+
+
+def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str, list[str]]]:
+    summary = decision.risk_summary
+    buys = sum(o.side == "BUY" for o in decision.pending_orders)
+    sells = sum(o.side == "SELL" for o in decision.pending_orders)
+    conclusion = _daily_conclusion(buys, sells, summary.get("freeze_new_risk"))
+    ranking = summary.get("leader_ranking")
+    analyzed = [str(r['symbol']) for r in ranking if isinstance(r, Mapping) and r.get('symbol')] if isinstance(ranking, (list, tuple)) else []
+    held = [s for s, p in account.positions.items() if p.shares > 0]
+    trace = summary.get("core_allocation", {})
+    rows = trace.get("symbols", {}) if isinstance(trace, Mapping) and trace.get("scope") == "FINAL_DECISION" else {}
+    actual = _recorded_held_weight(held, rows)
+    sections = [("今天的结论", [
+        conclusion,
+        f"决策日期：{decision.date}；行情截止：{summary.get('decision_input_identity', {}).get('as_of', '未取得')}",
+        "本次有评分记录的股票：" + ("、".join(analyzed) or "未取得") + "；未宣称扫描全市场",
+        f"账户同步时点：{account.broker_as_of or '未取得，需与券商核对'}；下一次执行：决策日之后的下一可交易日，具体日期与可成交条件须核对",
+        f"实际持仓比例：{_percent(actual)}；目标比例：{_percent(decision.target_gross)}；总仓上限：{_percent(summary.get('system_gross_cap'))}（上限不是建议满仓）",
+        f"当前持有 {len(held)} 只；目标持有 {decision.target_k} 只；买入意图 {buys} 项；卖出意图 {sells} 项",
+        f"现金余额：{account.cash:,.2f} 元；不等于可用买入资金，未成交卖单不释放现金或名额",
+    ])]
+    actions = _action_lines(decision)
+    sections.append(("下一可交易日需要核对的事项", actions))
+    unsettled = [o.symbol for o in account.order_ledger if o.status not in {"FILLED", "CANCELLED", "REPLACED"}]
+    symbols = list(dict.fromkeys([*held, *(o.symbol for o in decision.pending_orders), *unsettled, *analyzed, *(t.symbol for t in decision.targets), *rows]))
+    for symbol in symbols:
+        sections.append((f"逐只股票：{symbol}", _recorded_symbol_lines(symbol, decision, account)))  # noqa: PERF401
+    sections.append(("风险及其实际影响", _daily_risk_lines(decision)))
+    return sections
+
+
+def _audit_text(decision: Decision, account: AccountState) -> str:
+    return json.dumps({"decision": asdict(decision), "account": account.to_dict()},
+                      ensure_ascii=False, indent=2, allow_nan=False, sort_keys=True)
+
+
+def _markdown_text(value: str) -> str:
+    # Raw input cannot introduce Markdown links, HTML, tables or code blocks.
+    value = html.escape(value, quote=False).replace("\n", " ").replace("\r", " ")
+    for char in ('\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '!', '|'):
+        value = value.replace(char, '\\' + char)
+    return value
+
+
+def render_daily_report(decision: Decision, account: AccountState) -> str:
+    """Render recorded facts, retaining the complete source evidence for review."""
+    lines = [f"# 盘后决策报告 — {_markdown_text(decision.date)}", ""]
+    for title, paragraphs in _daily_sections(decision, account):
+        lines.extend([f"## {_markdown_text(title)}", ""])
+        lines.extend("- " + _markdown_text(line) for line in paragraphs)
+        lines.append("")
+    # Indented, HTML-escaped code cannot close a fence or activate raw HTML.
+    lines.extend(["## 详细依据与核对信息", "", "原始原因、原因码、订单身份、配置指纹和账户事实如下。", ""])
+    lines.extend("    " + html.escape(line, quote=False) for line in _audit_text(decision, account).splitlines())
+    return "\n".join(lines) + "\n"
+
+
+def render_daily_html(decision: Decision, account: AccountState) -> str:
+    """Render a standalone offline document from the same read-only facts."""
+    sections = []
+    for title, paragraphs in _daily_sections(decision, account):
+        body = ''.join(f'<li>{html.escape(line)}</li>' for line in paragraphs)
+        sections.append(f'<section><h2>{html.escape(title)}</h2><ul>{body}</ul></section>')
+    return ('<!doctype html><html lang="zh-CN"><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'">'
+            '<title>盘后决策报告</title><style>'
+            'body{font:16px/1.7 system-ui,sans-serif;margin:0;background:#eef2f5;color:#172c3c}'
+            'main{max-width:1000px;margin:auto;padding:20px}section,details{background:white;padding:20px;margin:16px 0;border-radius:12px}'
+            'section:first-of-type{border-top:5px solid #27657a}h1{font-size:26px}h2{font-size:20px;margin:0 0 12px}'
+            'ul{padding-left:22px}li{margin:8px 0;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}'
+            'summary{cursor:pointer;font-weight:bold}@media(max-width:600px){main{padding:10px}section,details{padding:14px}}'
+            '</style><main><h1>盘后决策报告 · ' + html.escape(decision.date) + '</h1>' + ''.join(sections)
+            + '<details><summary>详细依据与核对信息</summary><pre>' + html.escape(_audit_text(decision, account))
+            + '</pre></details></main></html>\n')

@@ -171,6 +171,31 @@ def _fund_owner_targets(self: StrategicOwnershipPolicy, *, qualified: QualifiedS
     return targets
 
 
+def _confirmed_formation_weights(
+    self: StrategicOwnershipPolicy, desired: dict[str, float], leaders: dict[str, LeaderScore],
+    entry_eligibility: dict[str, dict[str, Any]],
+) -> dict[str, float]:
+    return {
+        symbol: weight if (leaders[symbol].mature or entry_eligibility.get(symbol, {}).get(
+            "formation_quality") == "CONFIRMED_PERSISTENT") else min(weight, self.cfg.core_admission_weight)
+        for symbol, weight in desired.items()
+    }
+
+
+def _lower_capacity_blocks(
+    self: StrategicOwnershipPolicy, desired: dict[str, float], committed: dict[str, float],
+    account: AccountState,
+) -> bool:
+    # Capacity limits deployment, never the evidence quorum or its confirmation.
+    required = {symbol for symbol, weight in desired.items() if weight > 0}
+    occupied = {symbol for symbol, weight in committed.items() if weight > 0}
+    if self.cfg.max_positions < 6 and len(occupied | required) > self.cfg.max_positions:
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "POSITION_COUNT_LIMIT"
+        return True
+    return False
+
+
 def _prepare_strategic_owner_targets(
     self: StrategicOwnershipPolicy,
     *,
@@ -213,11 +238,7 @@ def _prepare_strategic_owner_targets(
         restricted_initial_weight=qualified.restricted_initial_weight,
     )
     if qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value and dominant_symbol is None:
-        desired = {
-            symbol: weight if (leaders[symbol].mature or entry_eligibility.get(symbol, {}).get(
-                "formation_quality") == "CONFIRMED_PERSISTENT") else min(weight, self.cfg.core_admission_weight)
-            for symbol, weight in desired.items()
-        }
+        desired = _confirmed_formation_weights(self, desired, leaders, entry_eligibility)
     if qualified.cash_rearm_authorized:
         desired = {
             account.strategic_qualification.candidate_symbol: strategic_cash_rearm_weight(
@@ -233,6 +254,8 @@ def _prepare_strategic_owner_targets(
         return False, None
     weights, _ = current_weights(account, prices)
     committed, cash = committed_capital(account=account, prices=prices, proposed=weights)
+    if _lower_capacity_blocks(self, desired, committed, account):
+        return False, None
     targets = _fund_owner_targets(
         self, qualified=qualified, owner=owner, held=held, reserved=reserved,
         dominant_symbol=dominant_symbol, desired=desired, committed=committed, cash=cash,

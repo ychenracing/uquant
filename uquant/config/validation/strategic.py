@@ -8,8 +8,8 @@ from typing import Any
 def _validate_strategic_admission(config: Any) -> None:
     """Validate cohort sizes and admission scores."""
 
-    if not 1 <= config.strategic_cohort_size <= min(3, config.max_positions):
-        raise ValueError("strategic_cohort_size must be in [1, min(3, max_positions)]")
+    if not 1 <= config.strategic_cohort_size <= 3:
+        raise ValueError("strategic_cohort_size must be in [1, 3]")
     if not 1 <= config.strategic_cohort_min_size <= config.strategic_cohort_size:
         raise ValueError("strategic_cohort_min_size must be in [1, strategic_cohort_size]")
     if not 0.80 <= config.strategic_two_name_gross <= 0.90:
@@ -118,14 +118,14 @@ def validate_strategic_transition(config: Any) -> None:
 def validate_strategic_lifecycle(config: Any) -> None:
     """Validate strategic dominance, exits, and damage guards."""
 
-    if not config.max_symbol_weight < config.strategic_dominant_max_weight <= config.max_gross:
+    if not 0.60 < config.strategic_dominant_max_weight <= 1:
         raise ValueError("invalid strategic dominant max weight")
     if not 0 < config.strategic_dominant_min_leader_gap <= 1:
         raise ValueError("invalid strategic dominant leader gap")
     if config.strategic_dominant_profit_lock_mfe <= config.strategic_cohort_profit_arm:
         raise ValueError("invalid strategic dominant profit lock")
     if not (
-        config.max_symbol_weight
+        0.60
         < config.strategic_dominant_retained_gross
         < config.strategic_dominant_max_weight
     ):
@@ -134,13 +134,13 @@ def validate_strategic_lifecycle(config: Any) -> None:
         raise ValueError("invalid strategic cohort trailing distances")
     if config.strategic_cohort_trail_bands < 3 or config.strategic_cohort_trail_bands % 2 == 0:
         raise ValueError("strategic_cohort_trail_bands must be an odd integer >=3")
-    if not 0 < config.strategic_cohort_exit_step <= config.max_symbol_weight:
+    if not 0 < config.strategic_cohort_exit_step <= 0.60:
         raise ValueError("invalid strategic cohort exit step")
     if not (
         config.strategic_cohort_exit_step
         <= config.strategic_gradual_post_guard_exit_step
         <= config.strategic_post_guard_exit_step
-        <= config.max_symbol_weight
+        <= 0.60
     ):
         raise ValueError("invalid strategic post-guard exit step")
     if not -1 < config.strategic_cohort_disaster_stop < 0:
@@ -157,7 +157,7 @@ def validate_strategic_lifecycle(config: Any) -> None:
         <= config.transition_damage_freeze
     ):
         raise ValueError("invalid strategic damage guard transition")
-    if not config.capital_budget_level3_cap <= config.strategic_damage_guard_gross < config.max_gross:
+    if not config.capital_budget_level3_cap <= config.strategic_damage_guard_gross < 1:
         raise ValueError("invalid strategic damage guard gross")
     if not (
         config.capital_budget_level3_cap

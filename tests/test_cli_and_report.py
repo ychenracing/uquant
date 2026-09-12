@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001
 from __future__ import annotations
 
 import json
@@ -11,6 +12,7 @@ import pytest
 from uquant.account import economic_state_sha256, load_account, save_account
 from uquant.attribution import build_economic_attribution
 from uquant.cli import main
+from uquant.config import DEFAULT_CONFIG
 from uquant.report import render_daily_report, render_economic_attribution_report
 from uquant.types import (
     AccountState,
@@ -38,7 +40,8 @@ class _FakeData:
 
 
 class _FakeEngine:
-    def __init__(self, data_dir: str | Path) -> None:
+    def __init__(self, data_dir: str | Path, cfg=DEFAULT_CONFIG) -> None:
+        self.cfg = cfg
         assert str(data_dir)
         self.data = _FakeData()
 
@@ -420,11 +423,11 @@ def test_daily_report_renders_every_action_and_pending_order() -> None:
     )
 
     report = render_daily_report(decision, account)
-    for action in ("HOLD/ADJUST", "SELL", "BUY", "BLOCKED"):
-        assert f"| {action} |" in report
-    assert "1. BUY new_buy" in report
-    assert "Deployed-sector guard: INACTIVE" in report
-    assert "Deployed-sector daily return: N/A" in report
+    assert "准备买入／增加" in report
+    assert "未生成买入意图" in report
+    assert "没有卖出意图记录" in report
+    assert "行业风险保护：未取得" in report
+    assert "持仓行业当日收益：未取得" in report
 
 
 def test_economic_attribution_report_labels_accounting_and_diagnostics() -> None:
@@ -532,3 +535,112 @@ def test_economic_attribution_report_labels_accounting_and_diagnostics() -> None
     attribution["accounting"]["total_pnl"] = 999.0
     with pytest.raises(ValueError, match="reconcile"):
         render_economic_attribution_report(attribution)
+
+
+def _daily_args(tmp_path):
+    return ['daily', '--data-dir', str(tmp_path / 'data'), '--symbols', 'sz300308',
+            '--date', '2026-06-30', '--account', str(tmp_path / 'account.json'),
+            '--output', str(tmp_path / 'daily.md'), '--html-output', str(tmp_path / 'daily.html')]
+
+
+def test_daily_formats_use_one_decision_and_identical_terminal_markdown(monkeypatch, tmp_path, capsys):
+    calls = []
+    class CountingEngine(_FakeEngine):
+        def decide(self, **kwargs):
+            calls.append(self.cfg)
+            return super().decide(**kwargs)
+    monkeypatch.setattr('uquant.cli.ProductionEngine', CountingEngine)
+    _state(tmp_path / 'account.json')
+    assert main(_daily_args(tmp_path)) == 0
+    assert len(calls) == 1
+    assert capsys.readouterr().out == (tmp_path / 'daily.md').read_text()
+    assert 'fake-decision' in (tmp_path / 'daily.html').read_text()
+
+
+@pytest.mark.parametrize('failure', ['render', 'account_after_replace', 'html_publish'])
+def test_daily_failure_preserves_account_and_recoverable_rendering(monkeypatch, tmp_path, capsys, failure):
+    import uquant.cli as cli
+    monkeypatch.setattr(cli, 'ProductionEngine', _FakeEngine)
+    path = tmp_path / 'account.json'
+    _state(path)
+    before = path.read_bytes()
+    if failure == 'render':
+        def fail_render(*args):
+            raise ValueError('render failed')
+        monkeypatch.setattr(cli, 'render_daily_html', fail_render)
+        with pytest.raises(ValueError, match='render failed'):
+            main(_daily_args(tmp_path))
+        assert path.read_bytes() == before
+        assert not (tmp_path / 'daily.md').exists()
+        return
+    if failure == 'account_after_replace':
+        original_save = cli.save_account
+        def uncertain_save(account, destination):
+            original_save(account, destination)
+            raise OSError('directory sync failed after replace')
+        monkeypatch.setattr(cli, 'save_account', uncertain_save)
+    else:
+        original_write = cli.atomic_write_text
+        def fail_publish(destination, content, **kwargs):
+            if Path(destination).name == 'daily.html':
+                raise OSError('publish failed')
+            return original_write(destination, content, **kwargs)
+        monkeypatch.setattr(cli, 'atomic_write_text', fail_publish)
+    assert main(_daily_args(tmp_path)) == 1
+    assert load_account(path).last_successful_run == '2026-06-30'
+    ready = list(tmp_path.glob('daily.*.ready-*'))
+    assert len(ready) == (2 if failure == 'account_after_replace' else 1)
+    assert all('fake-decision' in p.read_text() for p in ready)
+    assert 'daily' in capsys.readouterr().err
+
+
+@pytest.mark.parametrize('alias', ['account', 'markdown', 'config', 'data', 'hardlink'])
+def test_html_output_alias_is_rejected_before_decision(monkeypatch, tmp_path, alias):
+    monkeypatch.setattr('uquant.cli.ProductionEngine', _FakeEngine)
+    account = tmp_path / 'account.json'
+    _state(account)
+    before = account.read_bytes()
+    args = _daily_args(tmp_path)
+    targets = {'account': account, 'markdown': tmp_path / 'daily.md',
+               'config': tmp_path / 'config.json', 'data': tmp_path / 'data' / 'file.html',
+               'hardlink': tmp_path / 'hardlink'}
+    (tmp_path / 'config.json').write_text('{}')
+    args[-1] = str(targets[alias])
+    args += ['--config', str(tmp_path / 'config.json')]
+    if alias == 'hardlink':
+        os.link(account, targets[alias])
+    with pytest.raises(ValueError):
+        main(args)
+    assert account.read_bytes() == before
+
+
+def test_daily_rejects_changed_configuration_without_touching_account(monkeypatch, tmp_path):
+    monkeypatch.setattr('uquant.cli.ProductionEngine', _FakeEngine)
+    path = tmp_path / 'account.json'
+    _state(path)
+    before = path.read_bytes()
+    cfg = tmp_path / 'config.json'
+    cfg.write_text('{"max_gross": 0.5}')
+    with pytest.raises(ValueError, match='configuration identity'):
+        main([*_daily_args(tmp_path), '--config', str(cfg)])
+    assert path.read_bytes() == before
+
+
+def test_one_configuration_reaches_init_daily_and_backtest(monkeypatch, tmp_path):
+    configs = []
+    class ConfiguredEngine(_FakeEngine):
+        def __init__(self, data_dir, cfg=DEFAULT_CONFIG):
+            configs.append(cfg)
+            super().__init__(data_dir, cfg)
+    monkeypatch.setattr('uquant.cli.ProductionEngine', ConfiguredEngine)
+    cfg = tmp_path / 'config.json'
+    cfg.write_text('{"initial_cash": 1000000, "max_gross": 0.5, "max_symbol_weight": 0.3, "max_positions": 1}')
+    account = tmp_path / 'account.json'
+    assert main(['account-init', '--data-dir', 'fixture', '--symbols', 'sz300308',
+                 '--config', str(cfg), '--output', str(account)]) == 0
+    assert load_account(account).initial_cash == 1000000
+    assert main([*_daily_args(tmp_path), '--config', str(cfg)]) == 0
+    assert main(['backtest', '--data-dir', 'fixture', '--symbols', 'sz300308', '--start', '2026-01-01',
+                 '--end', '2026-01-06', '--config', str(cfg)]) == 0
+    assert len(configs) == 3 and configs[0] == configs[1] == configs[2]
+    assert configs[0].max_gross == .5 and configs[0].max_positions == 1

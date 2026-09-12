@@ -1,9 +1,15 @@
 """Single command-line interface for daily production and causal replay."""
 
+# Chinese punctuation is intentional in user-facing report text.
+# ruff: noqa: RUF001
+
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import sys
+import tempfile
 from pathlib import Path
 
 from .account import (
@@ -13,11 +19,12 @@ from .account import (
     save_account,
 )
 from .broker import sync_broker_snapshot
-from .config import DEFAULT_CONFIG
+from .config import DEFAULT_CONFIG, config_fingerprint
+from .config.input import load_public_config
 from .engine import ProductionEngine, code_fingerprint
 from .infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from .leader import REFERENCE_UNIVERSE
-from .report import render_daily_report
+from .report import render_daily_html, render_daily_report
 from .types import AccountState
 
 
@@ -31,7 +38,7 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("account-init")
     init.add_argument("--output", default="account_state.json")
-    init.add_argument("--cash", type=float, default=DEFAULT_CONFIG.initial_cash)
+    init.add_argument("--cash", type=float, default=None)
     init.add_argument("--data-dir", required=True)
     init.add_argument("--symbols", nargs="+", required=True)
     init.add_argument(
@@ -45,6 +52,7 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
     daily.add_argument("--account", required=True)
     daily.add_argument("--data-dir", required=True)
     daily.add_argument("--output", default=None)
+    daily.add_argument("--html-output", default=None)
     daily.add_argument(
         "--broker-snapshot",
         default=None,
@@ -120,16 +128,24 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
     journal_report = journal_sub.add_parser("report")
     journal_report.add_argument("--journal", default="execution_journal.jsonl")
     journal_report.add_argument("--output", default=None)
+    for command in (init, daily, backtest):
+        command.add_argument("--config", default=None, help="strict JSON public settings")
     return parser
 
 
 def _run_account_init(args: argparse.Namespace) -> int:
-    engine = ProductionEngine(args.data_dir)
+    cfg = load_public_config(args.config, initial_cash=args.cash)
+    cash = cfg.initial_cash
+    validate_atomic_output_boundary(args.output, protected_paths=([args.config] if args.config else []),
+                                    protected_roots=(args.data_dir,))
+    engine = ProductionEngine(args.data_dir, cfg)
     symbols = set(args.symbols) | set(REFERENCE_UNIVERSE) | {"sh000300", "sh000682"}
     latest = engine.data.manifest(symbols)
     snapshot_date = args.date or latest.end
     manifest = engine.data.manifest(symbols, as_of=snapshot_date)
-    state = AccountState.empty(args.cash)
+    state = AccountState.empty(cash)
+    state.account_migrations.append({"migration_type": "configuration_binding",
+                                     "effective_config_sha256": config_fingerprint(cfg)})
     state.data_hash = manifest.digest
     state.data_hash_as_of = snapshot_date
     state.data_hash_symbols = list(manifest.symbols)
@@ -139,29 +155,80 @@ def _run_account_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def _daily_output_boundary(args: argparse.Namespace) -> tuple[list[str], dict[str, tuple[Path, ...]]]:
+    exact_inputs = [args.account, *([args.broker_snapshot] if args.broker_snapshot else []),
+                    *([args.config] if args.config else [])]
+    outputs = [path for path in (args.output, args.html_output) if path is not None]
+    protected = {}
+    for index, path in enumerate(outputs):
+        protected[path] = validate_atomic_output_boundary(
+            path, protected_paths=[*exact_inputs, *outputs[:index], *outputs[index+1:]],
+            protected_roots=(args.data_dir,))
+        target = Path(path)
+        if target.exists() and not target.is_file():
+            raise ValueError(f"report destination is not a regular file: {target}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        # Check actual directory writability before the decision mutates state.
+        with tempfile.TemporaryFile(dir=target.parent):
+            pass
+    return exact_inputs, protected
+
+
 def _run_daily(args: argparse.Namespace) -> int:
-    exact_inputs: list[str] = [args.account]
-    if args.broker_snapshot:
-        exact_inputs.append(args.broker_snapshot)
-    daily_protected = tuple(Path(path) for path in exact_inputs)
-    if args.output:
-        daily_protected = validate_atomic_output_boundary(
-            args.output,
-            protected_paths=exact_inputs,
-            protected_roots=(args.data_dir,),
-        )
-    engine = ProductionEngine(args.data_dir)
+    cfg = load_public_config(args.config)
+    exact_inputs, protected = _daily_output_boundary(args)
     account = load_account(args.account)
+    bindings = [event["effective_config_sha256"] for event in account.account_migrations
+                if event.get("migration_type") == "configuration_binding"]
+    expected = bindings[-1] if bindings else config_fingerprint(DEFAULT_CONFIG)
+    if expected != config_fingerprint(cfg):
+        raise ValueError("account configuration identity differs; no automatic configuration migration is available")
+    if any(epoch.config_identity != "config:" + expected for epoch in account.strategic_epochs):
+        raise ValueError("account strategic configuration identity differs")
+    engine = ProductionEngine(args.data_dir, cfg)
     if args.broker_snapshot:
         snapshot = json.loads(Path(args.broker_snapshot).read_text(encoding="utf-8"))
         sync_broker_snapshot(account, snapshot)
     decision = engine.decide(symbols=args.symbols, as_of=args.date, account=account)
     account.pending_orders = list(decision.pending_orders)
-    save_account(account, args.account)
     report = render_daily_report(decision, account)
+    documents = []
     if args.output:
-        atomic_write_text(args.output, report, protected_paths=daily_protected)
-    print(report)
+        documents.append((args.output, report))
+    if args.html_output:
+        documents.append((args.html_output, render_daily_html(decision, account)))
+    staged = []
+    try:
+        for path, content in documents:
+            fd, temporary = tempfile.mkstemp(prefix=Path(path).name + ".ready-", dir=Path(path).parent)
+            os.close(fd)
+            staged.append((path, temporary))
+            atomic_write_text(temporary, content, protected_paths=exact_inputs)
+    except Exception:
+        for _, temporary in staged:
+            Path(temporary).unlink(missing_ok=True)
+        raise
+    try:
+        save_account(account, args.account)
+    except Exception as exc:
+        print(f"账户保存未能确认完成：{args.account}：{exc}。账户文件可能已替换，请先只读核对。"
+              f"已渲染报告保留：{staged}。不得直接重跑 daily；核对账户与报告审计中的账户状态后恢复文件。",
+              file=sys.stderr)
+        return 1
+    published = []
+    for path, temporary in staged:
+        try:
+            validate_atomic_output_boundary(path, protected_paths=protected[path])
+            atomic_write_text(path, Path(temporary).read_text(encoding="utf-8"),
+                              protected_paths=protected[path])
+            Path(temporary).unlink()
+            published.append(path)
+        except (OSError, ValueError) as exc:
+            print(f"账户已保存：{args.account}；报告已发布：{published}；发布失败：{path}：{exc}。"
+                  f"未发布的已渲染文件：{[(p, t) for p, t in staged if p not in published]}。"
+                  "恢复时将对应 ready 文件移至报告目标路径；不要重新运行 daily 补报告。", file=sys.stderr)
+            return 1
+    print(report, end="")
     return 0
 
 
@@ -184,13 +251,15 @@ def _run_account_code_migration(args: argparse.Namespace) -> int:
 
 
 def _run_backtest(args: argparse.Namespace) -> int:
+    cfg = load_public_config(args.config)
     backtest_protected: tuple[Path, ...] = ()
     if args.output:
         backtest_protected = validate_atomic_output_boundary(
             args.output,
+            protected_paths=([args.config] if args.config else []),
             protected_roots=(args.data_dir,),
         )
-    engine = ProductionEngine(args.data_dir)
+    engine = ProductionEngine(args.data_dir, cfg)
     result = engine.backtest(symbols=args.symbols, start=args.start, end=args.end)
     payload = json.dumps(result, ensure_ascii=False, indent=2)
     if args.output:

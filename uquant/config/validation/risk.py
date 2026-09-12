@@ -33,8 +33,8 @@ def validate_crisis_and_sector(config: Any) -> None:
         raise ValueError("invalid sector shock confirmation window")
     if not 0 <= config.sector_guard_divergence <= 1:
         raise ValueError("sector_guard_divergence must be in [0, 1]")
-    if not 0 <= config.sector_guard_gross <= config.max_gross:
-        raise ValueError("sector_guard_gross must be in [0, max_gross]")
+    if not 0 <= config.sector_guard_gross <= 1:
+        raise ValueError("sector_guard_gross must be in [0, 1]")
     if config.sector_guard_min_sessions < 1 or config.sector_recovery_ma < 2:
         raise ValueError("sector guard recovery windows must be positive")
     if not 0 <= config.sector_recovery_breadth <= 1:
@@ -62,7 +62,7 @@ def _validate_recovery_and_drawdown_risk(config: Any) -> None:
         raise ValueError("fast V-recovery breadth thresholds must be in [0, 1]")
     if not 0 <= config.fast_v_recovery_gross <= config.recovery_target_gross:
         raise ValueError("invalid fast V-recovery gross")
-    if not config.risk_off_gross <= config.narrow_anchor_guard_gross <= config.max_gross:
+    if not config.risk_off_gross <= config.narrow_anchor_guard_gross <= 1:
         raise ValueError("invalid narrow anchor guard gross")
     if not 0 <= config.narrow_anchor_divergence <= 1:
         raise ValueError("narrow_anchor_divergence must be in [0, 1]")
@@ -144,7 +144,7 @@ def _validate_risk_anchors_and_capital(config: Any) -> None:
         <= config.market_crisis_gross
         <= config.capital_budget_level3_cap
         <= config.capital_budget_level2_cap
-        <= config.max_gross
+        <= 1
     ):
         raise ValueError("invalid severity and capital-budget caps")
     if config.capital_budget_repair_days < 1:
@@ -158,7 +158,7 @@ def _validate_confidence_and_scout(config: Any) -> None:
         config.trend_entry_gross
         <= config.high_confidence_entry_gross
         <= config.exceptional_entry_gross
-        <= config.max_gross
+        <= 1
     ):
         raise ValueError("invalid confidence-conditioned entry gross")
     if not 0 < config.high_confidence_entry_vol20 < 1:

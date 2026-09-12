@@ -196,6 +196,14 @@ if account.strategic_qualification.candidate_symbol:
         ("risk", "account", "weights_now", "target_gross", "current_gross"),
     )
     for observed, expected in zip(current.body[9:], frozen.body[15:], strict=True):
+        if isinstance(expected, ast.If) and isinstance(expected.test, ast.Name) and expected.test.id == "dominant_level1_retention":
+            expected = copy.deepcopy(expected)
+            assignment = expected.body[0]
+            assert isinstance(assignment, ast.Assign) and isinstance(assignment.value, ast.Call)
+            cap = assignment.value.args[1]
+            _same(cap, ast.parse("min(self.cfg.strategic_dominant_max_weight, current_gross)", mode="eval").body)
+            assert isinstance(cap, ast.Call)
+            cap.args.insert(0, ast.parse("self.cfg.max_gross", mode="eval").body)
         _same(observed, expected)
 
 

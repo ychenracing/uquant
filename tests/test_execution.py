@@ -844,7 +844,10 @@ def test_large_opening_gap_reprices_target_and_preserves_weight_cap():
     assert account.cash >= 0
 
 
-def test_decisive_strategic_owner_can_fill_above_ordinary_symbol_cap() -> None:
+@pytest.mark.parametrize("ordinary_cap", [.60, .30, .001])
+def test_decisive_strategic_owner_can_fill_above_ordinary_symbol_cap(ordinary_cap) -> None:
+    from uquant.config import SystemConfig
+    cfg = SystemConfig(max_symbol_weight=ordinary_cap)
     symbol = "sh603986"
     panel = {
         symbol: _frame(
@@ -886,7 +889,7 @@ def test_decisive_strategic_owner_can_fill_above_ordinary_symbol_cap() -> None:
         )
     ]
 
-    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+    fills = ExecutionPlanner(cfg).execute_open(
         date=pd.Timestamp("2026-01-06"),
         account=account,
         panel=panel,

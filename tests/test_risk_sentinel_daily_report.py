@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001
 from __future__ import annotations
 
 import pytest
@@ -58,19 +59,19 @@ def test_daily_report_distinguishes_every_freeze_owner(
 
     report = render_daily_report(_decision(summary), AccountState.empty(100.0))
 
-    assert "## Risk Sentinel" in report
-    assert f"- Owner: **{owner}**" in report
-    assert f"- Coverage: {coverage}" in report
-    assert "- Risk Families: NONE" in report
+    assert "## 风险及其实际影响" in report
+    labels = {"DATA_NOT_READY": "资料不足，不能判断完整限制来源", "NONE": "本次两项检查均未触发新增冻结",
+              "BASE_RISK": "基础风险限制", "SENTINEL": "独立风险观察限制", "BOTH": "基础风险与独立风险观察共同限制"}
+    assert labels[owner] in report
     if coverage != "READY":
-        assert "- Conclusion: check market data; do not infer safety." in report
+        assert "必要资料不足或未取得，不能推断安全" in report
     elif base or sentinel:
-        assert "- Conclusion: do not add new risk." in report
+        assert "系统暂不允许增加持仓" in report
     else:
-        assert "- Conclusion: normal execution; Sentinel remains observational." in report
-    assert "New Risk Allowed:" not in report
-    assert "Weakest subindustries:" not in report
-    assert "r1" not in report
+        assert "本项未触发新增冻结，仍需其他检查" in report
+    assert "不代表要求清仓" in report
+    assert "r1" not in report.split("## 详细依据", 1)[0]
+    assert "r1" in report  # Untranslated source evidence is retained in the audit section.
 
 
 def test_daily_report_is_byte_deterministic_for_unordered_family_maps() -> None:

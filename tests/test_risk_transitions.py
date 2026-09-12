@@ -2,6 +2,8 @@
 # Late re-exports preserve the immutable pytest collection identity and order.
 from __future__ import annotations
 
+from policy_inputs import policy_inputs
+
 from collections.abc import Mapping
 
 import numpy as np
@@ -133,7 +135,7 @@ def _assess(
 
 
 def _isolated_risk_config(**overrides: object) -> SystemConfig:
-    return DEFAULT_CONFIG.override(
+    return policy_inputs(
         dynamic_risk_anchors_enabled=False,
         chronic_overlay_enabled=False,
         capital_budget_ladder_enabled=False,
@@ -577,7 +579,7 @@ def test_assess_risk_only_reanchors_during_a_confirmed_healthy_period(
 ) -> None:
     dates = pd.bdate_range("2026-01-02", periods=80)
     date = dates[-1]
-    cfg = DEFAULT_CONFIG.override(
+    cfg = policy_inputs(
         chronic_overlay_enabled=False,
         capital_budget_ladder_enabled=False,
         sector_guard_enabled=False,
@@ -700,7 +702,7 @@ def test_chronic_overlay_cap_is_a_hard_minimum_on_normal_path() -> None:
     date = dates[-1]
     account = AccountState.empty(100.0)
     account.chronic_level = 3
-    cfg = DEFAULT_CONFIG.override(
+    cfg = policy_inputs(
         dynamic_risk_anchors_enabled=False,
         capital_budget_ladder_enabled=False,
         sector_guard_enabled=False,

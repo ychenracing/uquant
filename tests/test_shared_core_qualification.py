@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, replace
 
 import pytest
+from policy_inputs import policy_inputs
 from test_lifecycle_and_risk import _leader
 from test_strategic_probe_holding import OWNER, _filled_probe
 from test_strategic_universe_quorum import _risk
@@ -254,7 +255,7 @@ def test_disabled_strategic_dynamic_does_not_enable_ready_shared_certificate():
         _decide(allocator, account, date, panel, leaders, roles, risk=frozen)
     assert _shared_evidence(allocator, account, date, panel, leaders, roles)[CHALLENGER]["block"] == "READY"
     assert account.replacement_tenure.get(f"strategic_eligibility:independent_core:{CHALLENGER}", 0) == 0
-    disabled = PortfolioAllocator(DEFAULT_CONFIG.override(strategic_dynamic_enabled=False))
+    disabled = PortfolioAllocator(policy_inputs(strategic_dynamic_enabled=False))
     assert _shared_evidence(disabled, account, date, panel, leaders, roles) == {}
     _decide(disabled, account, dates[DEFAULT_CONFIG.strategic_cohort_confirm_days], panel, leaders, roles)
     assert not any(order.symbol == CHALLENGER and order.side == "BUY" for order in account.pending_orders)

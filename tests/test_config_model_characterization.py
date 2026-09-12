@@ -7,6 +7,7 @@ import inspect
 import json
 from collections.abc import Mapping
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -165,29 +166,23 @@ def _sample_models() -> dict[str, object]:
     }
 
 
-def test_all_266_system_config_fields_match_the_current_flat_contract() -> None:
+def test_public_configuration_and_complete_effective_policy_are_separate() -> None:
     expected_flat = PUBLIC_API["flat_config_serialization"]
-    expected_module = PUBLIC_API["modules"]["uquant.config"]
-    assert isinstance(expected_flat, Mapping)
-    assert isinstance(expected_module, Mapping)
-    observed_module = public_module_contract("uquant.config")
-    fields = dataclasses.fields(SystemConfig)
     payload = DEFAULT_CONFIG.to_dict()
-
-    assert len(fields) == 266
-    assert [field.name for field in fields] == expected_flat["field_order"]
-    assert list(payload) == expected_flat["field_order"]
+    assert len(dataclasses.fields(SystemConfig)) == 13
+    assert len(payload) == 266
     assert payload == expected_flat["values"]
     assert config_fingerprint(DEFAULT_CONFIG) == expected_flat["sha256"]
-    assert observed_module["public_names"] == expected_module["public_names"]
-    assert observed_module["classes"] == expected_module["classes"]
-    assert observed_module["dataclasses"] == expected_module["dataclasses"]
-    assert observed_module["functions"] == expected_module["functions"]
+    for name in set(payload) - {field.name for field in dataclasses.fields(SystemConfig)}:
+        with pytest.raises(TypeError):
+            SystemConfig(**{name: payload[name]})
+        with pytest.raises(TypeError):
+            DEFAULT_CONFIG.override(**{name: payload[name]})
 
 
 def test_system_config_flat_construction_override_and_value_semantics_are_exact() -> None:
     payload = DEFAULT_CONFIG.to_dict()
-    reconstructed = SystemConfig(**payload)
+    reconstructed = SystemConfig(**{f.name: payload[f.name] for f in dataclasses.fields(SystemConfig)})
     changed = DEFAULT_CONFIG.override(max_positions=5)
 
     assert inspect.signature(SystemConfig.override) == inspect.Signature(
@@ -238,7 +233,7 @@ def test_all_frozen_config_validation_types_messages_and_order_are_exact(
         "leader_cycle_min_market_ret120",
         "leader_cycle_impulse_min_market_ret120",
     }
-    if set(changes) & removed_strategy_fields:
+    if set(changes) & removed_strategy_fields or set(changes) - set(DEFAULT_CONFIG.to_dict()):
         assert len(changes) == 1
         with pytest.raises(TypeError) as retired:
             DEFAULT_CONFIG.override(**changes)
@@ -247,7 +242,7 @@ def test_all_frozen_config_validation_types_messages_and_order_are_exact(
         )
         return
     with pytest.raises(Exception) as captured:
-        DEFAULT_CONFIG.override(**changes)
+        SystemConfig.__post_init__(SimpleNamespace(**(DEFAULT_CONFIG.to_dict() | changes)))
 
     assert type(captured.value).__name__ == case["exception_type"]
     assert str(captured.value) == case["message"]

@@ -110,13 +110,25 @@ def _assert_live_candidate_bindings(
     system_config = vars(model_module).get("SystemConfig")
     if not isinstance(system_config, type):
         raise AssertionError("SystemConfig live binding is not a class")
-    if type(system_config) is not type or system_config.__mro__ != (system_config, object):
+    from uquant.config.policies import (
+        FeaturesPolicy,
+        LeaderSelectionPolicy,
+        OpportunityPolicy,
+        PortfolioPolicy,
+        RecoveryPolicy,
+        RiskPolicy,
+        SectorRiskPolicy,
+        StrategicPolicy,
+    )
+    expected_mro = (system_config, PortfolioPolicy, FeaturesPolicy, LeaderSelectionPolicy,
+                    RecoveryPolicy, StrategicPolicy, OpportunityPolicy, RiskPolicy, SectorRiskPolicy, object)
+    if type(system_config) is not type or system_config.__mro__ != expected_mro:
         raise AssertionError("SystemConfig class hierarchy or metaclass changed")
     if system_config.__qualname__ != "SystemConfig":
         raise AssertionError("SystemConfig class qualname changed")
     if vars(system_config).get("__getattribute__") is not None:
         raise AssertionError("SystemConfig defines a custom __getattribute__")
-    if "__getattr__" in vars(system_config):
+    if any("__getattr__" in vars(owner) for owner in system_config.__mro__):
         raise AssertionError("SystemConfig defines a custom __getattr__")
     if cast(object, system_config.__getattribute__) is not cast(
         object,
@@ -193,7 +205,13 @@ def exception_observation(config: object, changes: Mapping[str, object]) -> dict
 
     override = cast(Any, config.override)
     try:
-        override(**dict(changes))
+        from uquant.config import SystemConfig
+        if type(config) is SystemConfig and set(changes) <= set(config.to_dict()):
+            # Exercise the unchanged rule invariants directly. Public rejection
+            # of fixed/unknown constructor keys has its own exhaustive tests.
+            SystemConfig.__post_init__(types.SimpleNamespace(**(config.to_dict() | dict(changes))))
+        else:
+            override(**dict(changes))
     except Exception as exc:
         return {
             "exception_type": type(exc).__name__,

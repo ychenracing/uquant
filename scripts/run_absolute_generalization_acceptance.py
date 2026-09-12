@@ -15,16 +15,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from uquant.atomic_io import (
-    atomic_write_bytes,
-    validate_atomic_output_boundary,
-    validate_atomic_output_path,
-)
 from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.strict_json import (
     canonical_json_bytes,
     canonical_json_sha256,
     strict_json_loads,
+)
+from uquant.infrastructure.atomic_files import (
+    atomic_write_bytes,
+    validate_atomic_output_boundary,
+    validate_atomic_output_path,
 )
 from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.validation.absolute_generalization import (

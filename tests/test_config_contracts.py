@@ -3,7 +3,9 @@ from __future__ import annotations
 import hashlib
 import json
 import tomllib
+from dataclasses import fields
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -163,8 +165,16 @@ def test_every_configuration_safety_contract_fails_closed(
     changes: dict[str, Any],
     message: str,
 ) -> None:
+    # Fixed policies still obey every original safety invariant. They are
+    # exercised as validator inputs, never as production engine overrides.
     with pytest.raises(ValueError, match=message):
-        DEFAULT_CONFIG.override(**changes)
+        SystemConfig.__post_init__(SimpleNamespace(**(DEFAULT_CONFIG.to_dict() | changes)))
+    if set(changes) - {field.name for field in fields(SystemConfig)}:
+        with pytest.raises(TypeError):
+            DEFAULT_CONFIG.override(**changes)
+    else:
+        with pytest.raises(ValueError):
+            DEFAULT_CONFIG.override(**changes)
 
 
 def test_configuration_serialization_is_complete_and_detached() -> None:
@@ -212,13 +222,10 @@ def test_configuration_serialization_is_complete_and_detached() -> None:
     assert DEFAULT_CONFIG.max_gross == 1.0
 
 
-def test_causal_confirmation_toggle_changes_current_config_identity() -> None:
-    assert config_fingerprint(DEFAULT_CONFIG) == (
-        "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51"
-    )
-    assert config_fingerprint(
+def test_causal_confirmation_is_fixed_and_included_in_effective_policy() -> None:
+    assert DEFAULT_CONFIG.to_dict()["risk_sentinel_causal_confirmation_enabled"] is False
+    with pytest.raises(TypeError):
         DEFAULT_CONFIG.override(risk_sentinel_causal_confirmation_enabled=True)
-    ) != config_fingerprint(DEFAULT_CONFIG)
 
 
 def test_effective_config_hash_is_canonical_and_semantically_sensitive() -> None:

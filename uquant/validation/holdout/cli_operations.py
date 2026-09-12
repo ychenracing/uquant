@@ -10,7 +10,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
 
-from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
+from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from uquant.validation.evidence_source import evidence_root
 from uquant.validation.execution_journal import (
     JournalCheckpoint,

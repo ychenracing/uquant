@@ -290,3 +290,8 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 转为当前证据。源码身份切换必须核对真实账户，不回填既有 Holdout Lane 或历史观察。
 
 构建使用[开发指南](DEVELOPMENT.md)中的唯一确定性入口；验收使用[当前验收链](ACCEPTANCE.md)。
+
+配置构造只接收 13 个账户/执行/组合设置，领域固定规则不占实例字段。
+`SystemConfig` 聚合具名领域规则，只实例化公开设置。原子发布直接使用 `infrastructure.atomic_files`，
+由同一所有者完成路径验证、文件同步与原子替换。生产引擎拒绝任意配置替代对象；
+具名离线验证与生产共享同一初始化和决策实现。

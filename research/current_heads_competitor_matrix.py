@@ -30,7 +30,7 @@ from research.current_heads import (
     load_comparison_contract,
     load_source_registry,
 )
-from uquant.atomic_io import atomic_write_text
+from uquant.infrastructure.atomic_files import atomic_write_text
 from uquant.validation.evidence_source import evidence_root
 
 _MARKET_COLUMNS = ("date", "open", "high", "low", "close", "volume", "amount")

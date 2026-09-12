@@ -779,7 +779,16 @@ def test_execution_moved_definitions_are_mechanically_bound_to_immutable_source(
 
     candidate_methods = _engine_methods(ast.parse((ROOT / "uquant/engine.py").read_bytes()))
     for name in _ENGINE_COMPATIBILITY_METHODS:
-        candidate = _normalized_docstring_indentation(candidate_methods[name])
+        if name == "__init__":
+            candidate = copy.deepcopy(candidate_methods["_initialize"])
+            candidate.name = "__init__"
+            # Preserve the exact workspace/cache/executor initialization order.
+            for node in ast.walk(candidate):
+                if isinstance(node, ast.Attribute) and node.attr == "_cfg":
+                    node.attr = "cfg"
+            candidate = _normalized_docstring_indentation(candidate)
+        else:
+            candidate = _normalized_docstring_indentation(candidate_methods[name])
         immutable = _normalized_docstring_indentation(immutable_methods[name])
         current_docstring = ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS.get(name)
         if current_docstring is not None:

@@ -15,7 +15,8 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from statistics import median, pvariance
-from typing import Final, cast, get_type_hints
+from types import SimpleNamespace
+from typing import Final, cast
 
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 from uquant.config_governance import ParameterCategory, load_config_governance
@@ -27,7 +28,7 @@ type SystemConfigFieldType = type[bool] | type[int] | type[float]
 
 _SYSTEM_CONFIG_FIELD_TYPES: Final[Mapping[str, SystemConfigFieldType]] = cast(
     dict[str, SystemConfigFieldType],
-    get_type_hints(SystemConfig),
+    {name: type(value) for name, value in DEFAULT_CONFIG.to_dict().items()},
 )
 
 _PER_POOL_KEYS = {
@@ -137,7 +138,7 @@ def validate_shared_config(
         clean[name] = _validated_system_config_value(name, value)
     ordered = dict(sorted(clean.items()))
     try:
-        DEFAULT_CONFIG.override(**ordered)
+        SystemConfig.__post_init__(cast(SystemConfig, SimpleNamespace(**(DEFAULT_CONFIG.to_dict() | ordered))))
     except (TypeError, ValueError) as exc:
         raise ValueError(f"invalid ECONOMIC SystemConfig override: {exc}") from exc
     return ordered

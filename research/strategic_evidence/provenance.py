@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from uquant.atomic_io import atomic_write_bytes
+from uquant.infrastructure.atomic_files import atomic_write_bytes
 
 from .contract import StrategicEvidenceContract
 from .models import canonical_sha256, require_sha256

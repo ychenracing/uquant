@@ -66,7 +66,31 @@ class ProductionEngine:
             workspace.replace_data_store(cast(DataStore, value))
 
     def __init__(self, data_dir: str | Path, cfg: SystemConfig = DEFAULT_CONFIG) -> None:
-        self.cfg = cfg
+        if type(cfg) is not SystemConfig:
+            raise TypeError("production configuration must be an exact SystemConfig")
+        self._initialize(data_dir, cfg)
+
+    @classmethod
+    def for_validation(
+        cls, data_dir: str | Path, profile: str, cfg: SystemConfig = DEFAULT_CONFIG,
+    ) -> ProductionEngine:
+        """Construct the same engine for one closed offline policy scenario."""
+        from .validation.parameter_policy import frozen_policy_config
+
+        if type(cfg) is not SystemConfig:
+            raise TypeError("validation base must be an exact SystemConfig")
+        effective = frozen_policy_config(profile, cfg)
+        engine = cls.__new__(cls)
+        engine._initialize(data_dir, effective)
+        return engine
+
+    @property
+    def cfg(self) -> SystemConfig:
+        """Read the effective configuration bound at engine construction."""
+        return self._cfg
+
+    def _initialize(self, data_dir: str | Path, cfg: SystemConfig = DEFAULT_CONFIG) -> None:
+        self._cfg = cfg
         self.workspace = _MarketWorkspace.production(
             data_dir, cfg, reference_symbols=REFERENCE_UNIVERSE, index_symbols=INDEX_SYMBOLS
         )

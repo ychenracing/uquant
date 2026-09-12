@@ -17,9 +17,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.contracts.universe import default_ai_universe
+from uquant.infrastructure.atomic_files import atomic_write_text
 
 from .contract import StrategicEvidenceContract, load_contract
 from .forced_owner_runner import verify_frozen_inputs

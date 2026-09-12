@@ -10,7 +10,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any
 
-from uquant.atomic_io import atomic_write_text
+from uquant.infrastructure.atomic_files import atomic_write_text
 
 from .absolute_policy import AbsolutePolicyResult, evaluate_absolute_policy
 from .contract import load_contract

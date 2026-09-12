@@ -5,21 +5,14 @@ from pathlib import Path
 
 import pytest
 
-import uquant.atomic_io as legacy_atomic_io
 import uquant.infrastructure.atomic_files as platform_atomic_io
-import uquant.infrastructure.atomic_io as compatibility_atomic_io
 
 
-def test_legacy_atomic_io_exports_the_platform_contract() -> None:
-    for name in (
-        "atomic_write_bytes",
-        "atomic_write_text",
-        "validate_atomic_output_boundary",
-        "validate_atomic_output_path",
-    ):
-        canonical = getattr(platform_atomic_io, name)
-        assert getattr(legacy_atomic_io, name) is canonical
-        assert getattr(compatibility_atomic_io, name) is canonical
+def test_atomic_files_has_one_supported_import_owner() -> None:
+    import importlib.util
+
+    assert importlib.util.find_spec("uquant.atomic_io") is None
+    assert importlib.util.find_spec("uquant.infrastructure.atomic_io") is None
 
 
 def test_atomic_write_fsyncs_payload_before_replace_and_parent_after(

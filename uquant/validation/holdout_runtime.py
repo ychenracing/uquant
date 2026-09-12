@@ -7,7 +7,7 @@ import os
 import shutil
 from pathlib import Path
 
-from ..atomic_io import atomic_write_text
+from ..infrastructure.atomic_files import atomic_write_text
 from .ai_era import AI_ERA_WINDOWS
 from .holdout.artifact_transaction import (
     AUTHORITATIVE_REPOSITORY_RELATIVES as _AUTHORITATIVE_REPOSITORY_RELATIVES,

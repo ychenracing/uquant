@@ -97,7 +97,7 @@ def observe_persistent_maturity(self: PortfolioAllocator, *, account: AccountSta
     aligned = _aligned_market_legs(legs)
     healthy = (market.get("as_of") == str(date.date())
                and not market.get("missing_market_fields") and aligned
-               and opportunity is Opportunity.STRONG_TREND and risk.votes <= 1
+               and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND} and risk.votes <= 1
                and risk.state is Risk.NORMAL and not risk.freeze_new_risk
                and not any(risk.evidence.get(k, False) for k in
                            ("freeze_new_risk", "sentinel_freeze_new_risk", "sector_guard_active"))

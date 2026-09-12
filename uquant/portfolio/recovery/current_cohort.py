@@ -111,10 +111,10 @@ def _book_available(book: AllocationBook, members: set[str], restorable: set[str
 
 
 def _prune_anchors(book: AllocationBook, known: set[str]) -> None:
-    account, policy = book.account, book.policy
+    account = book.account
     if account.anchor_weights:
         account.anchor_weights = {symbol: weight for symbol, weight in account.anchor_weights.items() if symbol in known}
-        account.candidate_tenure["recovery_cohort_locked"] = int(len(known) >= min(3, policy.cfg.max_positions))
+        account.candidate_tenure["recovery_cohort_locked"] = int(len(known) >= 3)
 
 
 def _weak_market(book: AllocationBook) -> bool | None:

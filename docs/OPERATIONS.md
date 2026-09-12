@@ -162,11 +162,16 @@ uv run uquant daily \
 
 建议按以下顺序阅读：
 
-1. 决策日期、`Holdings and capital` 中的实有股数、成本、现金和券商快照日期；
-2. Risk 总仓上限、系统总仓上限与 `Target Gross`；目标仓位不是实际持仓；
-3. `Targets` 的既有原因，以及 `Tomorrow` 的真实订单意图、`order_id` 和原因码；
-4. `Candidate explanation` 中每个候选的确认、最终目标、真实订单、分支阻塞和资金限制；
-5. Risk/Sentinel 的证据、冻结权限和账户资本修复状态。
+1. “今天的结论”：日期、账户同步时点、实际持仓、目标和上限；上限不等于建议满仓。
+2. “下一可交易日需要核对的事项”：只有真实订单意图，保留新建／延续区别和原信号日期。
+3. “逐只股票”：已记录的支持条件、未满足条件、实际预算限制与最终处理。资格通过不等于可以买入。
+4. “风险及其实际影响”：基础风险与独立观察各自限制了什么；冻结新增不代表要求清仓。
+5. “详细依据与核对信息”：原始原因码、完整决策和账户事实；HTML中可展开，不删除机器证据。
+
+终端与 `--output` 使用同一份中文 Markdown。加 `--html-output daily_report.html` 同时生成
+单文件离线 HTML，两种格式来自同一次决策。报告路径不能覆盖账户、配置、行情、券商快照，
+两种输出也不能相互覆盖。已有执行受阻记录显示原检查日期和余量，不预测下一开盘能否成交。
+
 
 `ORDINARY_MARKET_EVIDENCE_UNAVAILABLE` 表示两个指数的 120 日收益证据不完整或非有限。
 证据完整但两项均不为正时，普通新候选只共享默认 20% 初始额度减去普通持仓及 BUY 承诺
@@ -176,7 +181,7 @@ uv run uquant daily \
 修复或独立回撤许可；没有额外等待天数或持久标记需要手工重置。
 
 日报只展示本次 `Decision` 与传入 `AccountState`，不重新排序、授予资格或分配资金。
-候选资格为 YES 或阻塞清除都不是下单授权，必须存在本次 Decision 的 BUY 意图。
+候选资格为“条件通过” 或阻塞清除都不是下单授权，必须存在本次 Decision 的 BUY 意图。
 已记录的 `reference_coverage_or_confirmation` 表示参考覆盖或确认尚未满足；
 `insufficient_executable_capital` 表示部署记录的可执行资本不足；`unresolved_execution_capacity`
 表示执行责任尚未结清。每个原因只适用于记录中点名的候选，不扩展到其他股票。
@@ -188,7 +193,7 @@ uv run uquant daily \
 完整共同确认与预算规则见[策略说明](STRATEGY.md#普通领涨)。当前机会标签本身不足以买入，
 也不代替真实现金修复授权；已有普通持仓不会被重新贴为战略 grant/epoch。
 
-`pending current quality` 展示普通待成交 BUY 本次逐股资格。普通趋势待单还会检查当前
+“原买单延续评估”展示普通待成交 BUY 本次逐股资格。普通趋势待单还会检查当前
 共同确认；证据失效则取消未成交余量并撤销其陈旧普通恢复权，重启后不能借旧权补买。
 已成交份额按持有规则管理，当前发现资格下降本身不触发清仓。真正的现金修复订单另行
 核验其原始严格资格、order/event 和实际授权，解除冻结也不改用普通成熟证书续资。
@@ -212,7 +217,7 @@ MA120 与成本灾难退出继续保护实际持仓。
 身份不重写历史凭证；新源码不自动继承旧源码未成交订单的新增权限，实际余单须按待运行源码
 核验并取消不再有效部分。历史已成交持仓的原始依据与单向成熟状态仍保留。
 
-换仓的 `transfer feasibility after settlement` 只展示记录的卖出完成后预算估计：
+换仓的“结算后预算估算” 只展示记录的卖出完成后预算估计：
 `TRANSFER_BELOW_TRADE_MINIMUM` 表示拟转出量不足最小交易权重；
 `TRANSFER_CANNOT_FUND_ADMISSION` 表示全部拟卖出完成后仍不足以支持新入场；
 `FEASIBLE_AFTER_SETTLEMENT` 只表示这项必要检查通过。投影不是现有现金或真实成交，
@@ -355,10 +360,10 @@ uv run python -m scripts.production_observation run --help
 
 ## Risk Sentinel 日报融合
 
-生产默认是 `FREEZE_ONLY`。`uquant daily` 在唯一日报中显示 Mode、Level、Coverage、
-Confidence、Owner、Risk Families、AI Industry Risk 和受限结论；日常不再运行独立
-Sentinel CLI。Sentinel 最多设置现有 `RiskAssessment.freeze_new_risk`，不能直接 SELL、
-降低 `target_gross_cap`、创建第二账户或增加账户字段。
+生产默认是 `FREEZE_ONLY`。唯一日扫报告用中文显示资料是否齐全、基础风险与独立观察
+是否冻结新增，以及观察到的市场／行业风险。内部模式、级别、可信程度、来源码与原因放在
+审计明细；可信程度不表示上涨概率。日常不需要另跑独立 Sentinel CLI。
+独立观察最多冻结新增风险，不直接要求卖出，不自行更改总仓预算。
 
 Risk Differential 与 counterfactual 只作观察，不得转换成人工卖单、gross-cap override 或
 配置变更；命令与里程碑规则见 [Future Holdout](HOLDOUT.md)。工程合同验证和离线故障
@@ -515,8 +520,11 @@ Risk 和 `PortfolioAllocator`；不要手工复制订单、修改候选证券或
 
 重启前先检查持久账户的 `last_successful_run`、已接受成交和在途订单。若该 session 的
 `daily` 已成功保存账户，即使报告输出失败，也不能在已推进账户上再次运行同一日；引擎会
-拒绝重复或倒退 session。需要重建报告时，在独立副本中从原运行前账户、同一代码/配置、
-同一行情前缀和同一券商快照重现，再与已保存账户及订单身份比较，不重复下单。
+拒绝重复或倒退 session。报告发布失败会返回失败状态，并列出账户是否已保存、已发布的报告
+和未发布的 `ready-` 文件。后者是本次已经渲染的报告，核对后移动至原报告目标位置即可，
+不重新执行决策。若账户写入在替换后中断，程序明确报告保存状态未能确认，并保留已渲染文件；
+先只读比较账户文件与报告审计中的账户状态，再决定恢复，不能直接重跑或回滚真实成交。
+报告多文件发布不承诺整体事务。没有指定文件输出时，应保留终端输出并备份运行前账户。
 下一次正常运行沿用成功保存的账户，先对账真实后续成交，再进入下一允许 session。
 部分成交和迟到成交始终沿用原 `order_id`/`fill_id`/grant/event/epoch 引用；不得重置序号或
 重新初始化账户来消除挂单。如果失败边界不明确，先保留所有载体，不能选择较空的副本当作

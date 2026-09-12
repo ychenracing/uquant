@@ -10,6 +10,7 @@ import json
 import math
 from collections.abc import Mapping
 from dataclasses import asdict
+from types import MappingProxyType
 from typing import Any
 
 from .attribution import validate_economic_attribution
@@ -201,7 +202,7 @@ def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-_BLOCK_TEXT = {
+_BLOCK_TEXT = MappingProxyType({
     "READY": "已满足本项候选条件；仍需通过风险、资金和执行检查",
     "NOT_MATURE": "龙头成熟条件未满足",
     "CONFIRMATION_INCOMPLETE": "连续交易日确认尚未完成",
@@ -227,6 +228,19 @@ _BLOCK_TEXT = {
     "IMMATURE_CORE_LOWER_RANK": "本次未成熟候选顺序靠后，未选中",
     "AWAIT_REDUCTION_SETTLEMENT": "等待先前减仓实际完成",
     "CAPITAL_LIMIT": "可部署资金或仓位额度不足；未成交卖单不提供资金",
+    "opportunity_not_deployable": "当前机会状态不允许部署这条长期候选路径",
+    "qualification_not_ready": "长期候选资格尚未完成确认",
+    "qualification_invalid": "原候选资格已失效，不能继续部署",
+    "reference_coverage_or_confirmation": "参考证据覆盖或连续确认条件不足",
+    "candidate_not_tradable": "该候选不在当前允许交易范围",
+    "ordinary_trend_participation": "当前只开放原有普通趋势参与路径",
+    "strategic_market_opportunity_required": "长期主线建仓还需对应市场机会确认",
+    "risk_caution": "基础风险警戒限制本次长期建仓",
+    "target_gross_cap": "本次风险允许的仓位额度为零",
+    "risk_off": "基础风险要求降低持仓，不允许本次新增",
+    "crisis": "严重风险限制本次新增",
+    "capital_budget": "账户回撤预算限制本次新增",
+    "chronic_damage": "持续转弱限制本次新增",
     "POSITION_COUNT_LIMIT": "剩余持仓名额不足，资格要求保持不变",
     "MISSING_BOOK_EVIDENCE": "缺少已有持仓的行情或分类资料",
     "INSUFFICIENT_CORRELATION_HISTORY": "共同波动检查所需历史不足",
@@ -251,9 +265,59 @@ _BLOCK_TEXT = {
     "TRANSFER_CANNOT_FUND_ADMISSION": "即使拟减仓完成，记录的可部署预算仍不足",
     "TRANSFER_SETTLED_AWAIT_ADMISSION": "先前减仓已完成，等待独立建仓检查",
     "FEASIBLE_AFTER_SETTLEMENT": "结算后预算估算可行；目前不是可用现金或买入授权",
-}
+})
 
-_REASON_TEXT = {
+_EXECUTION_TEXT = MappingProxyType({
+    "MISSING_OR_SUSPENDED": "执行当日行情缺失或停牌，未能成交",
+    "INSUFFICIENT_HISTORY": "执行检查缺少所需历史行情",
+    "LIMIT_BLOCKED": "执行当日涨跌停限制阻止成交",
+    "POSITION_CAP_BLOCKED": "执行时持仓数量已达上限",
+    "CAPACITY_OR_CASH_BLOCKED": "执行时可成交股数为零，需核对成交量、现金与可卖股份",
+    "AWAITING_HANDOFF_SELL": "等待前置卖出实际完成",
+    "WAITING_NEXT_OPEN": "等待原信号之后的可交易开盘",
+    "CANCEL_REQUESTED": "已请求撤销，尚未确认取消",
+    "FILL": "已记录成交，剩余部分仍需核对",
+    "ZERO_REQUEST": "执行检查确认目标已满足，未继续建单",
+    "PENDING": "订单意图待执行", "PARTIAL": "部分成交，余量未结清",
+    "PARTIALLY_FILLED": "部分成交，余量未结清",
+})
+
+_TARGET_REASON_TEXT = MappingProxyType({
+    "confirmed core admitted from available account capital": "候选确认已通过，使用本次实际可用资金建仓",
+    "confirmed core admitted through bounded account repair": "候选确认已通过，本次有限账户恢复权限允许建仓",
+    "leader lifecycle exit: confirmed structural deterioration": "持仓价格结构持续转弱并完成确认，触发退出",
+    "prequalified strategic leader cohort with staged profit protection": "长期龙头组合已完成资格确认，按分步保护规则管理",
+    "strategic one-shot profit lock": "长期主导持仓触发一次性盈利保护，减少部分仓位",
+    "retained core holding": "保留原有核心持仓；不表示本次重新获得买入许可",
+    "mature anchored leader": "保留已确认的恢复龙头，不因价格漂移调仓",
+    "causal crash-recovery leader": "已记录下跌后的恢复条件，按恢复持仓规则处理",
+    "core restoration after account risk repair": "账户风险恢复后，在原有资金限制内恢复核心仓位",
+    "leader rotation after the prior reduction filled": "先前减仓已实际完成，本次按原有顺序转入候选",
+    "leader rotation: bounded transfer after confirmed deterioration": "原持仓转弱已确认，先有限减仓；卖出未成交前不预支资金",
+    "controlled oversold rebound probe": "超跌反弹条件已触发，只参与原有的有限试探仓位",
+    "controlled rebound probe": "已记录有限反弹参与条件，按试探仓位处理",
+    "controlled rebound exit": "反弹持仓触发原有退出条件",
+    "overextended pullback cooldown": "回调前涨幅过大，进入观察等待期",
+    "awaiting recovery cohort member confirmation": "恢复组合成员尚未完成连续确认，继续等待",
+    "graduated recovery cohort; retain price drift": "恢复组合已转入成熟管理，保留价格漂移",
+    "confirmed recovery anchor substitution": "恢复持仓替换条件已确认，按原有顺序处理",
+    "strategic cohort completed staged exit": "长期组合已完成分步退出",
+    "completed post-shock restoration; retain price drift": "冲击后仓位恢复已完成，不因价格漂移调仓",
+    "post-shock restoration; retain winner drift": "恢复持仓保留趋势收益造成的仓位漂移",
+    "ordinary long-pullback confirmed MA120 deterioration": "长期回调持仓相对120个交易日平均价格持续转弱并完成确认",
+    "ordinary long-pullback disaster loss against actual average cost": "长期回调持仓相对真实平均成本触发严重亏损保护",
+})
+
+
+def _target_reason(reason: str, code: str) -> str:
+    if reason in _TARGET_REASON_TEXT:
+        return _TARGET_REASON_TEXT[reason]
+    if reason.endswith("; level-1 risk freeze; retain existing exposure"):
+        return "一级风险限制冻结新增仓位，按现有持有边界保留敞口；不等于强制减仓"
+    return _plain_code(code, reason=True)
+
+
+_REASON_TEXT = MappingProxyType({
     "strategy_target": "按本次组合目标处理，具体条件见下方记录",
     "rotation": "根据已确认的相对强弱变化调整持仓",
     "strategic_cohort": "按已确认的长期龙头持仓规则处理",
@@ -269,8 +333,9 @@ _REASON_TEXT = {
     "capital_budget": "账户回撤规则限制可用仓位",
     "risk_off": "风险升高，降低持仓",
     "crisis": "严重风险触发仓位保护",
-    "ordinary_pullback": "已记录的有限回调建仓",
-}
+    "ordinary_pullback_entry": "已记录的有限回调建仓",
+    "risk_freeze_hold": "冻结新增风险，保留符合原有持有边界的敞口",
+})
 
 
 def _plain_code(value: object, *, reason: bool = False) -> str:
@@ -289,7 +354,111 @@ def _percent(value: object) -> str:
 
 
 def _status(value: object) -> str:
-    return "条件通过" if value is True else "条件未通过" if value is False else "未评估／必要资料未取得"
+    return "条件通过" if value is True else "条件未通过" if value is False else "必要资料不足"
+
+
+def _symbol_limit_lines(row: Mapping[str, Any], trace: Mapping[str, Any], final: bool) -> list[str]:
+    lines: list[str] = []
+    if final and trace.get("planning_scope") == "SENTINEL_PLANNING_ONLY" and trace.get("final_freeze_new_risk") is True:
+        lines.append("最终生效限制：系统暂不允许增加持仓；下面的中间资金测算不代表最终买入许可")
+    if row.get("allocation_reason") == "CAPITAL_LIMIT":
+        lines.append("实际分配限制：" + _plain_code("CAPITAL_LIMIT"))
+    transfer = row.get("transfer_budget")
+    if isinstance(transfer, Mapping) and transfer:
+        lines.append("结算后预算估算（不是现金或成交）：" + _plain_code(transfer.get("block")))
+        for key, label in (("released_weight", "拟释放仓位"), ("required_weight", "要求参与仓位"),
+                           ("funded_increment", "估算可部署增量"), ("cash_room", "估算现金空间"),
+                           ("gross_room", "估算总仓空间"), ("symbol_room", "估算单票空间"),
+                           ("industry_room", "估算行业空间"), ("correlation_room", "估算共同波动组空间")):
+            if key in transfer:
+                lines.append(label + "：" + _percent(transfer[key]))
+        if transfer.get("correlation_block"):
+            lines.append("估算限制：" + _plain_code(transfer["correlation_block"]))
+    return lines
+
+
+def _entry_lines(row: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for key, label in (("entry", "普通建仓"), ("pending_entry", "原买单延续"),
+                       ("pullback_entry", "回调建仓"), ("repair_entry", "账户恢复建仓")):
+        if key == "entry" and isinstance(row.get("pending_entry"), Mapping):
+            continue
+        entry = row.get(key)
+        if isinstance(entry, Mapping):
+            lines.append(f"{label}评估：{_plain_code(entry.get('block'))}")
+            checks = entry.get("checks", {})
+            for check, label in (("confidence", "龙头证据可信程度"), ("industry", "行业归属核验"),
+                                  ("current_data", "当日行情"), ("history", "历史行情长度"),
+                                  ("structure", "价格结构与活跃成交条件"), ("liquidity", "成交活跃程度")):
+                item = checks.get(check) if isinstance(checks, Mapping) else None
+                if not isinstance(item, Mapping):
+                    continue
+                text = f"{label}：{_status(item.get('passed'))}"
+                if check == "confidence":
+                    text += f"；观测值 {_percent(item.get('value'))}，要求至少 {_percent(item.get('minimum'))}（不是上涨概率）"
+                elif check == "history":
+                    text += f"；观测 {item.get('value', '未取得')} 个交易日，要求至少 {item.get('minimum', '未取得')} 个交易日"
+                lines.append(text)
+            if isinstance(entry.get("confirmations"), Mapping):
+                lines.append(f"已记录连续确认次数：{entry['confirmations']}；要求：{entry.get('required_confirmation', '未取得')} 个交易日")
+        elif key == "entry":
+            lines.append("普通建仓条件：这条路径未评估或必要资料未取得")
+    return lines
+
+
+def _budget_lines(row: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for budget in row.get("budget_checks", ()):
+        lines.append("本次资金检查：" + _status(budget.get("accepted")) + "；各股票共用同一账户资金，不可重复相加")
+        rooms = [f"{label} {_percent(budget[key])}" for key, label in (
+            ("cash_room", "现金支持空间"), ("gross_room", "总仓空间"), ("symbol_room", "单票空间"),
+            ("industry_room", "行业空间"), ("correlation_room", "共同波动组空间")) if key in budget]
+        if rooms:
+            lines.append("；".join(rooms))
+        lines.append(f"获配增量：{_percent(budget.get('funded_increment'))}；最低参与增量：{_percent(budget.get('minimum_increment'))}")
+        for key in ("block", "correlation_block"):
+            if budget.get(key):
+                lines.append("本次限制：" + _plain_code(budget[key]))  # noqa: PERF401
+    return lines
+
+
+def _ledger_lines(symbol: str, account: AccountState) -> list[str]:
+    lines: list[str] = []
+    for record in account.order_ledger:
+        if record.symbol == symbol and record.status not in {"FILLED", "CANCELLED", "REPLACED"}:
+            status = {"CANCEL_REQUESTED": "撤销待确认", "PARTIAL": "部分成交", "PARTIALLY_FILLED": "部分成交", "PENDING": "尚未完成"}.get(record.status, "尚未结清")
+            event = _EXECUTION_TEXT.get(record.last_event, f"尚无直白释义（原码：{record.last_event or '未取得'}）")
+            lines.append(f"账户订单：{status}；原信号 {record.signal_date}；记录余量 {record.remaining_shares} 股")
+            lines.append(f"最近执行记录（{record.last_update_date or '时点未取得'}）：{event}；此为已发生的检查，不预测下一开盘可否成交")
+            if record.cancel_reason:
+                cancel = "新增风险冻结，申请撤销原买单" if record.cancel_reason == "sentinel_freeze_new_risk" else "撤销原因尚无直白释义：" + record.cancel_reason
+                lines.append("撤销核对：" + cancel + "；以实际确认回报为准")
+    return lines
+
+
+def _candidate_lines(symbol: str, decision: Decision, row: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    ranking = decision.risk_summary.get("leader_ranking", ())
+    for item in ranking if isinstance(ranking, (list, tuple)) else ():
+        if isinstance(item, Mapping) and item.get("symbol") == symbol:
+            lines.append("支持关注的龙头成熟条件：" + _status(item.get("mature")) + "；仅支持候选评估，不等于交易许可")  # noqa: PERF401
+    lines.extend(_entry_lines(row))
+    for key, label in (("increase_block", "新增限制"), ("restore_block", "恢复限制"), ("entry_gate", "建仓权限")):
+        if row.get(key):
+            lines.append(f"{label}：{_plain_code(row[key])}")
+    observation = decision.risk_summary.get("strategic_qualification")
+    if isinstance(observation, Mapping) and observation.get("candidate_symbol") == symbol:
+        lines.append("长期候选资格：" + _status(observation.get("qualification_ready")) + "；资格不等于可以买入")
+        if observation.get("deployment_block_reason"):
+            lines.append("长期部署限制：" + _plain_code(observation["deployment_block_reason"]))
+        lines.append(f"资格确认：{observation.get('qualification_streak', '未取得')} 个交易日；记录时点：{observation.get('qualification_last_observed_session') or '未取得'}")
+    lines.extend(_budget_lines(row))
+    planning = row.get("order_planning")
+    if isinstance(planning, Mapping):
+        lines.append("订单规划：" + _plain_code(planning.get("block")))
+        if "difference_value" in planning:
+            lines.append(f"目标差额：{planning['difference_value']:,.2f} 元；通常交易门槛：{planning['standard_trade_threshold']:,.2f} 元")
+    return lines
 
 
 def _recorded_symbol_lines(symbol: str, decision: Decision, account: AccountState) -> list[str]:
@@ -312,70 +481,81 @@ def _recorded_symbol_lines(symbol: str, decision: Decision, account: AccountStat
         lines.append("最终处理：没有买卖意图；仅观察，是否满足全部条件须看本次证据")
     lines.append("目标仓位：" + (_percent(target.weight) if target else "未取得"))
     if target:
-        lines.append("目标依据：" + _plain_code(target.reason_code, reason=True))
-    if final and trace.get("planning_scope") == "SENTINEL_PLANNING_ONLY" and trace.get("final_freeze_new_risk") is True:
-        lines.append("最终生效限制：系统暂不允许增加持仓；下面的中间资金测算不代表最终买入许可")
-    if row.get("allocation_reason") == "CAPITAL_LIMIT":
-        lines.append("实际分配限制：" + _plain_code("CAPITAL_LIMIT"))
-    transfer = row.get("transfer_budget")
-    if isinstance(transfer, Mapping) and transfer:
-        lines.append("结算后预算估算（不是现金或成交）：" + _plain_code(transfer.get("block")))
-        for key, label in (("released_weight", "拟释放仓位"), ("required_weight", "要求参与仓位"),
-                           ("funded_increment", "估算可部署增量"), ("cash_room", "估算现金空间"),
-                           ("gross_room", "估算总仓空间"), ("symbol_room", "估算单票空间"),
-                           ("industry_room", "估算行业空间"), ("correlation_room", "估算共同波动组空间")):
-            if key in transfer:
-                lines.append(label + "：" + _percent(transfer[key]))
-        if transfer.get("correlation_block"):
-            lines.append("估算限制：" + _plain_code(transfer["correlation_block"]))
-    ranking = decision.risk_summary.get("leader_ranking", ())
-    for item in ranking if isinstance(ranking, (list, tuple)) else ():
-        if isinstance(item, Mapping) and item.get("symbol") == symbol:
-            lines.append("支持关注的龙头成熟条件：" + _status(item.get("mature")) + "；仅支持候选评估，不等于交易许可")
-    for key, label in (("entry", "普通建仓"), ("pending_entry", "原买单延续"),
-                       ("pullback_entry", "回调建仓"), ("repair_entry", "账户恢复建仓")):
-        if key == "entry" and isinstance(row.get("pending_entry"), Mapping):
-            continue
-        entry = row.get(key)
-        if isinstance(entry, Mapping):
-            lines.append(f"{label}评估：{_plain_code(entry.get('block'))}")
-            if isinstance(entry.get("confirmations"), Mapping):
-                lines.append(f"已记录连续确认次数：{entry['confirmations']}；要求：{entry.get('required_confirmation', '未取得')} 个交易日")
-        elif key == "entry":
-            lines.append("普通建仓条件：这条路径未评估或必要资料未取得")
-    for key, label in (("increase_block", "新增限制"), ("restore_block", "恢复限制"), ("entry_gate", "建仓权限")):
-        if row.get(key):
-            lines.append(f"{label}：{_plain_code(row[key])}")
-    observation = decision.risk_summary.get("strategic_qualification")
-    if isinstance(observation, Mapping) and observation.get("candidate_symbol") == symbol:
-        lines.append("长期候选资格：" + _status(observation.get("qualification_ready")) + "；资格不等于可以买入")
-        if observation.get("deployment_block_reason"):
-            lines.append("长期部署限制：" + _plain_code(observation["deployment_block_reason"]))
-        lines.append(f"资格确认：{observation.get('qualification_streak', '未取得')} 个交易日；记录时点：{observation.get('qualification_last_observed_session') or '未取得'}")
-    for budget in row.get("budget_checks", ()):
-        lines.append("本次资金检查：" + _status(budget.get("accepted")) + "；各股票共用同一账户资金，不可重复相加")
-        rooms = [f"{label} {_percent(budget[key])}" for key, label in (
-            ("cash_room", "现金支持空间"), ("gross_room", "总仓空间"), ("symbol_room", "单票空间"),
-            ("industry_room", "行业空间"), ("correlation_room", "共同波动组空间")) if key in budget]
-        if rooms:
-            lines.append("；".join(rooms))
-        lines.append(f"获配增量：{_percent(budget.get('funded_increment'))}；最低参与增量：{_percent(budget.get('minimum_increment'))}")
-        for key in ("block", "correlation_block"):
-            if budget.get(key):
-                lines.append("本次限制：" + _plain_code(budget[key]))  # noqa: PERF401
-    planning = row.get("order_planning")
-    if isinstance(planning, Mapping):
-        lines.append("订单规划：" + _plain_code(planning.get("block")))
-        if "difference_value" in planning:
-            lines.append(f"目标差额：{planning['difference_value']:,.2f} 元；通常交易门槛：{planning['standard_trade_threshold']:,.2f} 元")
-    for record in account.order_ledger:
-        if record.symbol == symbol and record.status not in {"FILLED", "CANCELLED", "REPLACED"}:
-            status = {"CANCEL_REQUESTED": "撤销待确认", "PARTIALLY_FILLED": "部分成交", "PENDING": "尚未完成"}.get(record.status, "尚未结清")
-            lines.append(f"账户订单：{status}；原信号 {record.signal_date}；仍需核对余量与券商回报")
+        lines.append("目标依据：" + _target_reason(target.reason, target.reason_code))
+    lines.extend(_symbol_limit_lines(row, trace, final))
+    lines.extend(_candidate_lines(symbol, decision, row))
+    lines.extend(_ledger_lines(symbol, account))
     if not final:
         lines.append("本次最终分配过程未取得；中间规划不能作为最终授权")
     lines.append("重新评估：仅核对上述未满足条件是否变化；单个限制解除不保证买入，仍需下一次完整决策")
     return lines
+
+
+def _freeze_owner(summary: Mapping[str, Any]) -> str:
+    base_freeze = summary.get("base_freeze_new_risk")
+    sentinel_freeze = summary.get("sentinel_freeze_new_risk")
+    if summary.get("sentinel_causal_coverage_status") != "READY":
+        return "资料不足，不能判断完整限制来源"
+    elif base_freeze is True and sentinel_freeze is True:
+        return "基础风险与独立风险观察共同限制"
+    elif base_freeze is True:
+        return "基础风险限制"
+    elif sentinel_freeze is True:
+        return "独立风险观察限制"
+    elif base_freeze is False and sentinel_freeze is False:
+        return "本次两项检查均未触发新增冻结"
+    else:
+        return "限制来源未取得"
+
+
+def _daily_risk_lines(decision: Decision) -> list[str]:
+    summary = decision.risk_summary
+    freeze = summary.get("freeze_new_risk")
+    owner = _freeze_owner(summary)
+    risk_lines = [
+        "新增冻结来源：" + owner,
+        "市场基础风险：" + {"NORMAL": "本次基础评估处于正常档；不代表市场安全", "CAUTION": "处于警戒档", "RISK_OFF": "处于降低风险档", "CRISIS": "处于严重风险档"}.get(decision.risk.value, "未取得"),
+        "新增持仓权限：" + ("系统暂不允许增加持仓" if freeze is True else "本项未触发新增冻结，仍需其他检查" if freeze is False else "未取得，不能推断无风险"),
+        "独立风险观察：" + ("已冻结新增风险；不代表要求清仓" if summary.get("sentinel_freeze_new_risk") is True else "未记录新增冻结；不代表要求清仓" if summary.get("sentinel_freeze_new_risk") is False else "资料未取得；不代表要求清仓"),
+        "独立观察资料覆盖：" + ("已就绪" if summary.get("sentinel_causal_coverage_status") == "READY" else "必要资料不足或未取得，不能推断安全"),
+        "行业风险保护：" + ("已触发" if summary.get("sector_guard_active") is True else "本次未触发" if summary.get("sector_guard_active") is False else "未取得"),
+        "持仓行业当日收益：" + _percent(summary.get("sector_guard_equal_return")),
+        "从账户资金高点回落的比例：" + _percent(summary.get("capital_drawdown")),
+        "风险允许的总仓上限：" + _percent(summary.get("target_gross_cap")),
+        "个股与账户执行限制见逐票说明；买入冻结不自动取消必要减仓，卖出意图也不保证成交",
+    ]
+    if summary.get("sentinel_mode") == "SHADOW":
+        risk_lines.insert(0, "此样本为离线观察，不能作为生产交易权限")
+    family_text = {"breadth_structure": "多数股票与价格结构转弱", "market_velocity": "市场价格变化加速", "covariance_stress": "股票共同波动压力增大",
+                   "correlation": "股票共同波动增强", "volatility": "价格波动扩大", "liquidity": "成交流动性转弱"}
+    families = summary.get("sentinel_causal_active_families")
+    if isinstance(families, (list, tuple)):
+        risk_lines.append("已记录的独立观察风险：" + ("、".join(family_text.get(str(f), f"尚无直白释义（{f}）") for f in families) or "本次未记录触发项"))
+    else:
+        risk_lines.append("独立观察风险明细：未取得")
+    weakest = summary.get("sentinel_causal_weakest_subindustries")
+    if isinstance(weakest, (list, tuple)) and weakest:
+        names = {"design": "芯片设计", "optical": "光通信"}
+        risk_lines.append("观察中较弱的行业：" + "、".join(names.get(str(v), str(v)) for v in weakest) + "；行业观察不等于整个市场风险")
+    return risk_lines
+
+
+def _action_lines(decision: Decision) -> list[str]:
+    actions = []
+    for index, order in enumerate(decision.pending_orders, 1):
+        action = "准备买入／增加" if order.side == "BUY" else "准备清仓" if order.target_weight == 0 else "准备减少"
+        carried = "本日新意图" if order.signal_date == decision.date else "延续的未完成意图"
+        actions.append(f"{index}. {order.symbol}：{action}，目标 {_percent(order.target_weight)}；{carried}，原信号日期 {order.signal_date}；{_target_reason(order.reason, order.reason_code)}")
+    actions.append("逐单核对券商回报、可用资金、可卖股份、停牌／涨跌停、成交量和价格；意图不是券商已接受、可立即成交或已经成交")
+    if not decision.pending_orders:
+        actions.insert(0, "没有记录买卖意图；不把目标仓位当作订单，具体受阻或未评估原因见逐票说明")
+    return actions
+
+
+def _recorded_held_weight(held: list[str], rows: Mapping[str, Any]) -> float | None:
+    if not all(s in rows and isinstance(rows[s].get("held_weight"), (int, float)) for s in held):
+        return None
+    return sum(rows[s]["held_weight"] for s in held)
 
 
 def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str, list[str]]]:
@@ -391,7 +571,7 @@ def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str
     held = [s for s, p in account.positions.items() if p.shares > 0]
     trace = summary.get("core_allocation", {})
     rows = trace.get("symbols", {}) if isinstance(trace, Mapping) and trace.get("scope") == "FINAL_DECISION" else {}
-    actual = sum(rows[s]["held_weight"] for s in held) if all(s in rows and isinstance(rows[s].get("held_weight"), (int, float)) for s in held) else None
+    actual = _recorded_held_weight(held, rows)
     sections = [("今天的结论", [
         conclusion,
         f"决策日期：{decision.date}；行情截止：{summary.get('decision_input_identity', {}).get('as_of', '未取得')}",
@@ -401,58 +581,12 @@ def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str
         f"当前持有 {len(held)} 只；目标持有 {decision.target_k} 只；买入意图 {buys} 项；卖出意图 {sells} 项",
         f"现金余额：{account.cash:,.2f} 元；不等于可用买入资金，未成交卖单不释放现金或名额",
     ])]
-    actions = []
-    for index, order in enumerate(decision.pending_orders, 1):
-        action = "准备买入／增加" if order.side == "BUY" else "准备清仓" if order.target_weight == 0 else "准备减少"
-        carried = "本日新意图" if order.signal_date == decision.date else "延续的未完成意图"
-        actions.append(f"{index}. {order.symbol}：{action}，目标 {_percent(order.target_weight)}；{carried}，原信号日期 {order.signal_date}；{_plain_code(order.reason_code, reason=True)}")
-    actions.append("逐单核对券商回报、可用资金、可卖股份、停牌／涨跌停、成交量和价格；意图不是券商已接受、可立即成交或已经成交")
-    if not decision.pending_orders:
-        actions.insert(0, "没有记录买卖意图；不把目标仓位当作订单，具体受阻或未评估原因见逐票说明")
+    actions = _action_lines(decision)
     sections.append(("下一可交易日需要核对的事项", actions))
     symbols = list(dict.fromkeys([*held, *(o.symbol for o in decision.pending_orders), *analyzed, *(t.symbol for t in decision.targets), *rows]))
     for symbol in symbols:
         sections.append((f"逐只股票：{symbol}", _recorded_symbol_lines(symbol, decision, account)))  # noqa: PERF401
-    base_freeze = summary.get("base_freeze_new_risk")
-    sentinel_freeze = summary.get("sentinel_freeze_new_risk")
-    if summary.get("sentinel_causal_coverage_status") != "READY":
-        owner = "资料不足，不能判断完整限制来源"
-    elif base_freeze is True and sentinel_freeze is True:
-        owner = "基础风险与独立风险观察共同限制"
-    elif base_freeze is True:
-        owner = "基础风险限制"
-    elif sentinel_freeze is True:
-        owner = "独立风险观察限制"
-    elif base_freeze is False and sentinel_freeze is False:
-        owner = "本次两项检查均未触发新增冻结"
-    else:
-        owner = "限制来源未取得"
-    risk_lines = [
-        "新增冻结来源：" + owner,
-        "市场基础风险：" + {"NORMAL": "本次基础评估处于正常档；不代表市场安全", "CAUTION": "处于警戒档", "RISK_OFF": "处于降低风险档", "CRISIS": "处于严重风险档"}.get(decision.risk.value, "未取得"),
-        "新增持仓权限：" + ("系统暂不允许增加持仓" if freeze is True else "本项未触发新增冻结，仍需其他检查" if freeze is False else "未取得，不能推断无风险"),
-        "独立风险观察：" + ("已冻结新增风险；不代表要求清仓" if summary.get("sentinel_freeze_new_risk") is True else "未记录新增冻结；不代表要求清仓" if summary.get("sentinel_freeze_new_risk") is False else "资料未取得；不代表要求清仓"),
-        "独立观察资料覆盖：" + ("已就绪" if summary.get("sentinel_causal_coverage_status") == "READY" else "必要资料不足或未取得，不能推断安全"),
-        "行业风险保护：" + ("已触发" if summary.get("sector_guard_active") is True else "本次未触发" if summary.get("sector_guard_active") is False else "未取得"),
-        "持仓行业当日收益：" + _percent(summary.get("sector_guard_equal_return")),
-        "从账户资金高点回落的比例：" + _percent(summary.get("capital_drawdown")),
-        "风险允许的总仓上限：" + _percent(summary.get("target_gross_cap")),
-        "个股与账户执行限制见逐票说明；买入冻结不自动取消必要减仓，卖出意图也不保证成交",
-    ]
-    if summary.get("sentinel_mode") == "SHADOW":
-        risk_lines.insert(0, "此样本为离线观察，不能作为生产交易权限")
-    family_text = {"breadth_structure": "多数股票与价格结构转弱", "market_velocity": "市场价格变化加速",
-                   "correlation": "股票共同波动增强", "volatility": "价格波动扩大", "liquidity": "成交流动性转弱"}
-    families = summary.get("sentinel_causal_active_families")
-    if isinstance(families, (list, tuple)):
-        risk_lines.append("已记录的独立观察风险：" + ("、".join(family_text.get(str(f), f"尚无直白释义（{f}）") for f in families) or "本次未记录触发项"))
-    else:
-        risk_lines.append("独立观察风险明细：未取得")
-    weakest = summary.get("sentinel_causal_weakest_subindustries")
-    if isinstance(weakest, (list, tuple)) and weakest:
-        names = {"design": "芯片设计", "optical": "光通信"}
-        risk_lines.append("观察中较弱的行业：" + "、".join(names.get(str(v), str(v)) for v in weakest) + "；行业观察不等于整个市场风险")
-    sections.append(("风险及其实际影响", risk_lines))
+    sections.append(("风险及其实际影响", _daily_risk_lines(decision)))
     return sections
 
 

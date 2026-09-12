@@ -21,18 +21,26 @@ class StrategicQualificationPolicy(Protocol):
 
 
 def candidate_market_block(self: PortfolioCore, *, symbol: str, score: LeaderScore,
-                            date: pd.Timestamp, user_panel: dict[str, pd.DataFrame]) -> str:
-    if not score.confidence >= self.cfg.leader_min_confidence:
+                            date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+                            checks: dict[str, Any] | None = None) -> str:
+    def observed(name: str, passed: bool, **values: Any) -> bool:
+        if checks is not None:
+            checks[name] = {"passed": passed, "as_of": str(date.date()), **values}
+        return passed
+
+    if not observed("confidence", score.confidence >= self.cfg.leader_min_confidence,
+                    value=score.confidence, minimum=self.cfg.leader_min_confidence):
         return "CONFIDENCE_BELOW_MINIMUM"
-    if score.industry == "unknown" or not score.components.get("unknown_industry", 1.0) < .5:
+    if not observed("industry", score.industry != "unknown" and score.components.get("unknown_industry", 1.0) < .5):
         return "INDUSTRY_NOT_VERIFIED"
-    if symbol not in user_panel or date not in user_panel[symbol].index:
+    if not observed("current_data", symbol in user_panel and date in user_panel[symbol].index):
         return "CURRENT_MARKET_DATA_UNAVAILABLE"
-    if len(user_panel[symbol].loc[:date]) < 121:
+    history = len(user_panel[symbol].loc[:date])
+    if not observed("history", history >= 121, value=history, minimum=121):
         return "INSUFFICIENT_HISTORY"
-    if not self._structure_ok(user_panel[symbol], date):
+    if not observed("structure", self._structure_ok(user_panel[symbol], date)):
         return "STRUCTURE_NOT_REPAIRED"
-    if not self._liquidity_confirmed(user_panel[symbol], date):
+    if not observed("liquidity", self._liquidity_confirmed(user_panel[symbol], date)):
         return "LIQUIDITY_NOT_CONFIRMED"
     return "READY"
 
@@ -41,10 +49,11 @@ def candidate_entry(self: PortfolioCore, *, symbol: str, score: LeaderScore,
                      date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
                      account: AccountState, confirmation_days: int,
                      certificate: dict[str, Any] | None = None) -> dict[str, Any]:
+    checks: dict[str, Any] = {}
     evidence: dict[str, Any] = {"required_confirmation": confirmation_days}
     if certificate is not None:
         return {**certificate, "block": candidate_market_block(
-            self, symbol=symbol, score=score, date=date, user_panel=user_panel)}
+            self, symbol=symbol, score=score, date=date, user_panel=user_panel, checks=checks), "checks": checks}
     if not score.mature:
         return {**evidence, "block": "NOT_MATURE"}
     streak = strategic_candidate_confirmation(account=account, symbol=symbol, route="independent_core")
@@ -52,7 +61,7 @@ def candidate_entry(self: PortfolioCore, *, symbol: str, score: LeaderScore,
     if streak < confirmation_days:
         return {**evidence, "confirmations": observed, "block": "CONFIRMATION_INCOMPLETE"}
     evidence.update(confirmations=observed, block=candidate_market_block(
-        self, symbol=symbol, score=score, date=date, user_panel=user_panel))
+        self, symbol=symbol, score=score, date=date, user_panel=user_panel, checks=checks), checks=checks)
     return evidence
 
 

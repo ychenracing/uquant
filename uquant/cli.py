@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import sys
 import tempfile
@@ -135,15 +134,8 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
 
 
 def _run_account_init(args: argparse.Namespace) -> int:
-    cfg = load_public_config(args.config)
-    cash = cfg.initial_cash if args.cash is None else args.cash
-    if args.config and args.cash is not None:
-        from .contracts.strict_json import strict_json_loads
-        payload = strict_json_loads(Path(args.config).read_text(encoding="utf-8"))
-        if isinstance(payload, dict) and "initial_cash" in payload and cash != cfg.initial_cash:
-            raise ValueError("--cash conflicts with initial_cash in --config")
-    if not isinstance(cash, (int, float)) or not math.isfinite(cash) or cash <= 0:
-        raise ValueError("initial cash must be finite and positive")
+    cfg = load_public_config(args.config, initial_cash=args.cash)
+    cash = cfg.initial_cash
     validate_atomic_output_boundary(args.output, protected_paths=([args.config] if args.config else []),
                                     protected_roots=(args.data_dir,))
     engine = ProductionEngine(args.data_dir, cfg)
@@ -163,8 +155,7 @@ def _run_account_init(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_daily(args: argparse.Namespace) -> int:
-    cfg = load_public_config(args.config)
+def _daily_output_boundary(args: argparse.Namespace) -> tuple[list[str], dict[str, tuple[Path, ...]]]:
     exact_inputs = [args.account, *([args.broker_snapshot] if args.broker_snapshot else []),
                     *([args.config] if args.config else [])]
     outputs = [path for path in (args.output, args.html_output) if path is not None]
@@ -180,6 +171,12 @@ def _run_daily(args: argparse.Namespace) -> int:
         # Check actual directory writability before the decision mutates state.
         with tempfile.TemporaryFile(dir=target.parent):
             pass
+    return exact_inputs, protected
+
+
+def _run_daily(args: argparse.Namespace) -> int:
+    cfg = load_public_config(args.config)
+    exact_inputs, protected = _daily_output_boundary(args)
     account = load_account(args.account)
     bindings = [event["effective_config_sha256"] for event in account.account_migrations
                 if event.get("migration_type") == "configuration_binding"]
@@ -207,11 +204,17 @@ def _run_daily(args: argparse.Namespace) -> int:
             os.close(fd)
             atomic_write_text(temporary, content, protected_paths=exact_inputs)
             staged.append((path, temporary))
-        save_account(account, args.account)
     except Exception:
         for _, temporary in staged:
             Path(temporary).unlink(missing_ok=True)
         raise
+    try:
+        save_account(account, args.account)
+    except Exception as exc:
+        print(f"账户保存未能确认完成：{args.account}：{exc}。账户文件可能已替换，请先只读核对。"
+              f"已渲染报告保留：{staged}。不得直接重跑 daily；核对账户与报告审计中的账户状态后恢复文件。",
+              file=sys.stderr)
+        return 1
     published = []
     for path, temporary in staged:
         try:

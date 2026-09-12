@@ -9,9 +9,9 @@
 | 设置 | 默认值 | 用途 |
 |---|---:|---|
 | `initial_cash` | 2,000,000 | 新账户或回放初始现金 |
-| `max_gross` | 1.0 | 总仓硬上限，受固定政策关系约束 |
-| `max_symbol_weight` | 0.60 | 普通单票上限；既有战略窄例外另受固定政策约束 |
-| `max_positions` | 6 | 持仓数量上限，整数 |
+| `max_gross` | 1.0 | 账户总仓限制，有限数值 `(0, 1]`；1 表示100% |
+| `max_symbol_weight` | 0.60 | 普通单票上限，有限数值 `(0, 0.60]`；已确认战略主导者窄例外仍受总仓限制 |
+| `max_positions` | 6 | 可部署持仓数量上限，严格整数 `1..6`（不接受布尔或小数） |
 | `commission_rate` | 0.00025 | 佣金率 |
 | `min_commission` | 5 | 最低佣金 |
 | `stamp_duty` | 0.0005 | 卖出印花税 |
@@ -21,6 +21,45 @@
 | `minimum_median_amount` | 20,000,000 | 中位成交额门槛 |
 | `min_trade_value` | 20,000 | 最小交易金额 |
 | `risk_sentinel_mode` | `FREEZE_ONLY` | 生产冻结；`SHADOW` 用于离线只读诊断 |
+
+### 日常加载
+
+`account-init`、`daily`、`backtest` 共用可选 `--config settings.json`。
+省略时使用默认设置。JSON 只接受上表公开键，省略键使用默认值；拒绝重复键、
+固定规则覆盖、非有限数值、未知键、布尔冒充数值及生产 `SHADOW` 模式。
+
+```json
+{"max_gross": 0.5, "max_symbol_weight": 0.3, "max_positions": 1}
+```
+
+这表示总仓最多50%、普通单票最多30%、最多部署1只，不要求用满额度。
+较低设置可能得到有候选但预算不足的有效结果；最小参与金额、整手与资格确认不会降低。
+少持仓不一定更安全，也不保证相同收益或更高收益。观察所需的三成员战略资格与实际
+持仓名额分开；容量不足的完整部署被拒绝，原有单／双成员路线仍按各自证据要求评估。
+
+```bash
+uv run uquant account-init --data-dir data/frozen \
+  --symbols sz300308 sz300502 sz300394 sh603688 sh688012 \
+  --date 2026-08-05 --config settings.json --output account_state.json
+uv run uquant daily --data-dir data/frozen \
+  --symbols sz300308 sz300502 sz300394 sh603688 sh688012 \
+  --date 2026-08-05 --config settings.json --account account_state.json \
+  --output daily_report.md --html-output daily_report.html
+uv run uquant backtest --data-dir data/frozen \
+  --symbols sz300308 sz300502 sz300394 sh603688 sh688012 \
+  --start 2026-08-04 --end 2026-08-05 --config settings.json --output backtest.json
+```
+
+上述固定历史日期用于运行入口示例，不是当天交易建议。真实日扫使用已取得完整数据的
+盘后日期和最新券商快照，同一账户不能重复决策同一日。省略 `--cash` 时，新账户采用
+选定配置的初始资金；显式 `--cash` 与配置中显式 `initial_cash` 不同时报错。
+已有账户的实际现金只来自账户／券商同步，不从配置重置。
+
+初始化将选定配置指纹记录在账户的现有身份记录中。日扫必须使用同一配置；
+没有配置绑定记录的现存账户只允许默认配置，并继续核验代码、数据和战略身份。
+本入口不提供更换已有账户配置的自动迁移，不通过重新初始化绕过持仓和在途责任。
+`account-code-migrate` 仅处理代码身份，不授权改变配置。价格漂移和未完成订单可能令
+实际持仓暂时不同于目标和上限；报告不会将目标当作已经成交。
 
 查看公开设置和完整有效规则：
 

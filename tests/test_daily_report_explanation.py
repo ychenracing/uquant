@@ -99,7 +99,8 @@ def test_daily_report_scopes_recorded_block_to_its_candidate_and_admits_missing_
     candidates = report.split("## 逐只股票：blocked", 1)[1].split("## ", 1)[0]
     assert "长期候选资格：条件通过" in candidates
     assert "资格确认：3 个交易日；记录时点：2025-01-06" in candidates
-    assert "reference_coverage_or_confirmation" in candidates
+    assert "参考证据覆盖或连续确认条件不足" in candidates
+    assert "reference_coverage_or_confirmation" in report
     unknown = report.split("## 逐只股票：unknown", 1)[1].split("## ", 1)[0]
     assert "reference_coverage_or_confirmation" not in unknown
     assert "未评估" in unknown

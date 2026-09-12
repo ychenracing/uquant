@@ -61,7 +61,7 @@ def test_capacity_blocks_full_deployment_without_changing_observed_qualification
 
     from uquant.portfolio import PortfolioAllocator
     from uquant.portfolio.strategic.ownership import activate_strategic_cohort
-    _, account, date, panel, leaders, certificates, _ = _confirmed_entry()
+    _, account, date, panel, leaders, _certificates, _ = _confirmed_entry()
     before = deepcopy(account.strategic_qualification)
     qualified = _qualified(account, panel)
     activate_strategic_cohort(PortfolioAllocator(SystemConfig(max_positions=1)), qualified=qualified,
@@ -91,3 +91,54 @@ def test_public_json_uses_defaults_for_omitted_fields(tmp_path):
     path.write_text('{"max_gross": 0.5, "max_symbol_weight": 0.3, "max_positions": 1}')
     assert load_public_config(path) == SystemConfig(max_gross=.5, max_symbol_weight=.3, max_positions=1)
     assert load_public_config(None) is DEFAULT_CONFIG
+
+
+@pytest.mark.parametrize('capacity', [1, 2])
+def test_recovery_capacity_does_not_replace_member_confirmation(capacity):
+    from test_unified_core_book import _inputs
+
+    from uquant.portfolio import PortfolioAllocator
+    from uquant.portfolio.recovery.cohort_admission import _await_recovery_confirmation
+    from uquant.types import AccountState
+    _, _, leaders, risk = _inputs()
+    cfg = SystemConfig(max_positions=capacity)
+    account = AccountState.empty(cfg.initial_cash)
+    members = set(list(leaders)[:capacity])
+    for day in range(1, cfg.recovery_member_confirm_days + 1):
+        result = _await_recovery_confirmation(PortfolioAllocator(cfg), risk=risk, leaders=leaders,
+            account=account, anchored_held={}, previous_members=set(), candidate_members=members,
+            crash_depth={}, deep_count=0, admission_depth=-.35, freeze_active=False)
+        assert (result is None) == (day == cfg.recovery_member_confirm_days)
+    assert account.replacement_tenure['recovery_admission:' + ','.join(sorted(members))] == cfg.recovery_member_confirm_days
+
+
+def test_explicit_cash_cannot_hide_invalid_json_cash(tmp_path):
+    from uquant.config.input import load_public_config
+    path = tmp_path / 'config.json'
+    path.write_text('{"initial_cash": true}')
+    with pytest.raises((ValueError, TypeError)):
+        load_public_config(path, initial_cash=1)
+    path.write_text('{"initial_cash": 100000}')
+    with pytest.raises(ValueError, match='conflicts'):
+        load_public_config(path, initial_cash=200000)
+
+
+@pytest.mark.parametrize('cap', [.8, .5, .001])
+def test_open_gap_and_fees_cannot_exceed_lower_gross(cap):
+    import pandas as pd
+    from test_execution import _canonical_pending, _frame
+
+    from uquant.execution import ExecutionPlanner
+    from uquant.types import AccountState
+    symbol = 'sh603986'
+    panel = {symbol: _frame([
+        {'date': '2026-01-05', 'open': 10, 'high': 10.5, 'low': 9.5, 'close': 10, 'volume': 1e8, 'amount': 1e9},
+        {'date': '2026-01-06', 'open': 15, 'high': 15.5, 'low': 10.5, 'close': 14.5, 'volume': 1e8, 'amount': 1.45e9},
+    ])}
+    account = AccountState.empty(2e6)
+    account.pending_orders = [_canonical_pending('2026-01-05', symbol, 'BUY', .6, 'entry')]
+    fills = ExecutionPlanner(SystemConfig(max_gross=cap)).execute_open(
+        date=pd.Timestamp('2026-01-06'), account=account, panel=panel)
+    value = sum(p.shares * fills[0].price for p in account.positions.values()) if fills else 0
+    assert value / (account.cash + value) <= cap + 1e-12
+    assert account.cash >= 0

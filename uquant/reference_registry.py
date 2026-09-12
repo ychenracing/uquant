@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from uquant.provenance.surfaces import read_source_surface_bytes
+
 DEFAULT_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "benchmarks" / "reference_registry.json"
 
 
@@ -32,7 +34,15 @@ class ReferenceMembership:
 
 def load_reference_registry(path: str | Path = DEFAULT_REGISTRY_PATH) -> tuple[ReferenceMembership, ...]:
     """Load and fail closed on malformed, overlapping, or unreviewed membership."""
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    source = Path(path)
+    document = (
+        read_source_surface_bytes(
+            DEFAULT_REGISTRY_PATH.parents[1], "benchmarks/reference_registry.json",
+            label="reference registry",
+        )
+        if source == DEFAULT_REGISTRY_PATH else source.read_bytes()
+    )
+    payload = json.loads(document.decode("utf-8"))
     if payload.get("schema_version") != 1 or not isinstance(payload.get("memberships"), list):
         raise ValueError("reference registry schema_version 1 and memberships are required")
     entries: list[ReferenceMembership] = []

@@ -74,6 +74,6 @@ def validation_engine(
     if type(cfg) is not SystemConfig:
         raise TypeError("validation base must be an exact SystemConfig")
     effective = frozen_policy_config(profile, cfg)
-    engine = ProductionEngine.__new__(ProductionEngine)
+    engine = object.__new__(ProductionEngine)
     engine._initialize(data_dir, effective)
     return engine

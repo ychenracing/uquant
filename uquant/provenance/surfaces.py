@@ -27,6 +27,24 @@ def _registry_relative_path(path: str | Path) -> str:
     return explicit_relative_path(path, label="source surface registry path")
 
 
+def read_source_surface_bytes(
+    repository_root: str | Path, relative_path: str | Path, *, label: str,
+) -> bytes:
+    """Read physical source bytes from a checkout or an installed wheel."""
+    root = Path(repository_root).resolve()
+    relative = explicit_relative_path(relative_path, label=f"{label} path")
+    packaged = root / "uquant" / "_source"
+    if packaged.exists() or packaged.is_symlink():
+        if (
+            (root / "uquant").is_symlink() or packaged.is_symlink()
+            or (root / ".git").exists() or (root / "pyproject.toml").exists()
+        ):
+            raise ValueError("packaged identity resources must not shadow a source checkout")
+        if not relative.startswith("uquant/"):
+            root = packaged
+    return read_worktree_file_bytes(root, relative, label=label)
+
+
 def load_source_surface_registry(
     repository_root: str | Path,
     *,
@@ -35,7 +53,7 @@ def load_source_surface_registry(
     """Load the strict current-facing registry from a physical worktree file."""
 
     relative = _registry_relative_path(registry_path)
-    document = read_worktree_file_bytes(
+    document = read_source_surface_bytes(
         repository_root,
         relative,
         label="source surface registry",
@@ -74,4 +92,5 @@ __all__ = (
     "load_git_source_surface_registry",
     "load_source_surface_registry",
     "parse_source_surface_registry",
+    "read_source_surface_bytes",
 )

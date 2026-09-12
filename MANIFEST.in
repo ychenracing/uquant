@@ -1,0 +1,5 @@
+include requirements.txt uv.lock
+include benchmarks/source_surface_registry.json
+include benchmarks/config_parameter_governance.json
+include benchmarks/reference_registry.json
+include benchmarks/risk_sentinel_calibration_contract.json

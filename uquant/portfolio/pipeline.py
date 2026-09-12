@@ -439,7 +439,13 @@ def _restoration_episode_block(book: AllocationBook, symbol: str) -> str | None:
 def _restore_ordinary_holdings(book: AllocationBook) -> None:
     account, cfg = book.account, book.policy.cfg
     episode = pd.Timestamp(account.last_shock_date).toordinal() if account.last_shock_date else 0
-    for symbol, desired in sorted(account.protected_weights.items()):
+    # Scarce new restoration cash follows current strength; existing holdings
+    # and reserved orders retain their capital regardless of rank changes.
+    priority = sorted(account.protected_weights, key=lambda symbol: (
+        -book.leaders[symbol].score if symbol in book.leaders else math.inf, symbol,
+    ))
+    for symbol in priority:
+        desired = account.protected_weights[symbol]
         if symbol in book.owned:
             continue
         row = book.record(symbol)

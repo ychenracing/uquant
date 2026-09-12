@@ -555,7 +555,7 @@ def _action_lines(decision: Decision) -> list[str]:
 def _recorded_held_weight(held: list[str], rows: Mapping[str, Any]) -> float | None:
     if not all(s in rows and isinstance(rows[s].get("held_weight"), (int, float)) for s in held):
         return None
-    return sum(rows[s]["held_weight"] for s in held)
+    return float(sum(rows[s]["held_weight"] for s in held))
 
 
 def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str, list[str]]]:

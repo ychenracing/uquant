@@ -31,7 +31,7 @@ def test_ordinary_only_rank_cannot_hide_formation_or_actual_repair_fallback(
         account.flat_book_capital_repair.status = 'READY'
     selected = discovery._select_qualified_strategic_route(
         PortfolioAllocator(DEFAULT_CONFIG), snapshots={}, leaders={}, risk=_normal_risk(),
-        account=account, reference_snapshots={}, strategic_universe=None, admission_open=True,
+        account=account, reference_snapshots={}, strategic_universe=None, admission_open=True, entry_blocks={"a": "READY", "b": "READY"},
     )
     assert selected is (ordinary if repair_ready else formation)
 

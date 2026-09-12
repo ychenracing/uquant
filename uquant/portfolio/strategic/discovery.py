@@ -36,6 +36,7 @@ from .qualification_candidates import (
     QualifiedStrategicRoute,
     StrategicRoute,
     candidate_entry,
+    candidate_market_block,
     independent_market_confirmation,
     observe_strategic_candidate_eligibility,
     strategic_candidate_confirmation,
@@ -656,7 +657,7 @@ def _select_qualified_strategic_route(
     self: StrategicPortfolioPolicy, *, snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
     reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
-    admission_open: bool,
+    admission_open: bool, entry_blocks: dict[str, str],
 ) -> StrategicRoute:
     evaluated = strategic_candidate_certificates(
         self, snapshots=snapshots, leaders=leaders, risk=risk, account=account,
@@ -664,6 +665,9 @@ def _select_qualified_strategic_route(
     )
     if account.flat_book_capital_repair.status != "READY":
         for route, quorum, streak in evaluated:
+            owner = strategic_candidate_symbol(route=route, symbols=route.symbols, leaders=leaders)
+            if entry_blocks.get(owner) != "READY":
+                continue
             if (streak >= quorum.required_confirm_days and _new_strategic_formation_open(
                 self, route=route, snapshots=snapshots, quorum_route=quorum.route.value,
                 admission_open=admission_open,
@@ -943,7 +947,7 @@ def _confirm_persistent_formation_entries(
         return
     for symbol in qualified.symbols:
         entry = entries.get(symbol, {})
-        if (entry.get("block") not in {"READY", "STRUCTURE_NOT_REPAIRED"}
+        if (entry.get("block") != "READY"
                 or entry.get("as_of") != str(date.date())
                 or entry.get("qualification_route") != "persistent_industry"
                 or entry.get("qualification_quorum") != "FULL_COHORT"
@@ -1015,6 +1019,9 @@ def _initialize_strategic_cohort(
         self, snapshots=snapshots, leaders=resolved_leaders, risk=risk, account=account,
         reference_snapshots=reference_snapshots, strategic_universe=resolved_universe,
         admission_open=admission_open,
+        entry_blocks={symbol: candidate_market_block(
+            self, symbol=symbol, score=resolved_leaders[symbol], date=date, user_panel=user_panel,
+        ) for symbol in snapshots},
     )
     qualified = _qualify_strategic_route(
         self,

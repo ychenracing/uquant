@@ -89,6 +89,6 @@ def test_new_grant_selector_does_not_let_impulse_mask_confirmed_durable_or_repai
     selected = discovery._select_qualified_strategic_route(
         PortfolioAllocator(DEFAULT_CONFIG), snapshots={"b": {"persistent_ret240": DEFAULT_CONFIG.strategic_cohort_min_ret240}}, leaders={}, risk=_normal_risk(),
         account=account, reference_snapshots={},
-        strategic_universe=None, admission_open=True,
+        strategic_universe=None, admission_open=True, entry_blocks={"a": "READY", "b": "READY"},
     )
     assert selected is (durable if durable_confirmed and not repair_ready else impulse)

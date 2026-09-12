@@ -488,11 +488,7 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
               <= book.policy.cfg.transition_damage_repair)
     level1 = account.capital_budget_level == 1
     synchronized = (risk.state is Risk.CAUTION and risk.shock_state == "RECOVERY"
-                    and any(p.shares > 0 for p in account.positions.values())
-                    and account.risk_streaks.get("concentrated_repair", 0)
-                    >= book.policy.cfg.concentrated_repair_days
-                    and risk.evidence.get("held_repair_ratio") == 1.0
-                    and risk.evidence.get("held_damage_ratio") == 0.0
+                    and "two-day synchronized leader repair" in risk.reasons
                     and account.capital_budget_level <= 1 and account.chronic_level <= 1)
     return bool(
         repair and (

@@ -12,7 +12,7 @@ import pandas as pd
 
 from .config import SystemConfig
 from .contracts.universe import default_ai_universe
-from .features import scalar
+from .features import causal_close, scalar
 from .industry import compute_industry_signals, decision_industries
 
 
@@ -142,7 +142,7 @@ def _aggregate_reference_breadth_inputs(
         reference_returns.loc[:date].tail(max(61, cfg.correlation_window))
         if reference_returns is not None
         else pd.DataFrame(
-            {symbol: panel[symbol].loc[:date, "close"].pct_change(fill_method=None) for symbol in visible}
+            {symbol: causal_close(panel[symbol], date).pct_change(fill_method=None) for symbol in visible}
         )
     )
     correlation = float("nan")

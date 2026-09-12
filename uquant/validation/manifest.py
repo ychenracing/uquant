@@ -106,11 +106,21 @@ def verify_data_manifest(root: str | Path) -> dict[str, Any]:
         if observed != expected_digest:
             raise DataContractError(f"frozen data checksum mismatch: {filename}")
 
+    account_input = data_root / "ACCOUNT_INPUT.json"
+    account_identity = {}
+    if account_input.exists() or "account_input_sha256" in manifest:
+        if account_input.is_symlink() or not account_input.is_file():
+            raise DataContractError("raw account input must be a regular source file")
+        digest = _digest(account_input)
+        if manifest.get("account_input_sha256") != digest:
+            raise DataContractError("raw account input differs from sealed data manifest")
+        account_identity["account_input_sha256"] = digest
     return {
         "snapshot_id": str(manifest.get("snapshot_id", "")),
         "files_verified": len(expected),
         "manifest_sha256": _digest(manifest_path),
         "checksums_sha256": _digest(checksums_path),
+        **account_identity,
     }
 
 

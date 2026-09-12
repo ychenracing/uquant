@@ -17,9 +17,13 @@ def _wilder(values: pd.Series, window: int) -> pd.Series:
 def compute_features(frame: pd.DataFrame, cfg: SystemConfig) -> pd.DataFrame:
     """Build lagged trend, momentum, volatility, breakout, and breadth inputs."""
     out = frame.copy()
-    close = out["close"].astype(float)
-    high = out["high"].astype(float)
-    low = out["low"].astype(float)
+    linked = "signal_close" in out
+    prefix = "signal_" if linked else ""
+    close = out[f"{prefix}close"].astype(float)
+    high = out[f"{prefix}high"].astype(float)
+    low = out[f"{prefix}low"].astype(float)
+    # Shares expand at splits; turnover must use the same share basis over time.
+    volume = out["volume"] / out["share_scale"] if linked else out["volume"]
     previous = close.shift(1)
     true_range = pd.concat([(high - low).abs(), (high - previous).abs(), (low - previous).abs()], axis=1).max(
         axis=1
@@ -32,7 +36,7 @@ def compute_features(frame: pd.DataFrame, cfg: SystemConfig) -> pd.DataFrame:
     out["hhv"] = high.shift(1).rolling(cfg.breakout_window, min_periods=cfg.breakout_window).max()
     out["breakout"] = close / out["hhv"] - 1.0
     out["vol20"] = close.pct_change(fill_method=None).rolling(20, min_periods=20).std(ddof=0)
-    out["volume_expansion"] = out["volume"] / out["volume"].rolling(20, min_periods=10).mean()
+    out["volume_expansion"] = volume / volume.rolling(20, min_periods=10).mean()
     slope_base = out[f"ma{cfg.trend_fast}"].shift(10)
     out["trend_slope"] = out[f"ma{cfg.trend_fast}"] / slope_base - 1.0
     out["ma60_slope"] = out[f"ma{cfg.trend_medium}"] / out[f"ma{cfg.trend_medium}"].shift(20) - 1.0
@@ -73,7 +77,27 @@ def compute_features(frame: pd.DataFrame, cfg: SystemConfig) -> pd.DataFrame:
         dtype=float,
     )
     out["trend_r2_120"] = log_close.rolling(120, min_periods=80).corr(time).pow(2)
+    if linked:
+        # Compute ratios/slopes before translating price levels into today's
+        # executable units. The raw OHLC and actual share volume stay untouched.
+        levels = ["atr", "hhv"]
+        levels.extend(f"ma{window}" for window in (cfg.trend_fast, cfg.trend_medium, cfg.trend_slow))
+        out[levels] = out[levels].div(out["adjustment_scale"], axis=0)
     return out.replace([np.inf, -np.inf], np.nan)
+
+
+def causal_close(frame: pd.DataFrame, as_of: pd.Timestamp) -> pd.Series:
+    """Bound signal history and express every close in the last visible units.
+
+    Forward-linked prices never rewrite the past. Dividing the bounded history
+    by its final scale makes historical peaks comparable with today's real
+    close, while preserving continuous returns. Frozen legacy inputs retain
+    their exact original series and calculations.
+    """
+    bounded = frame.loc[:as_of]
+    if "signal_close" not in bounded or bounded.empty:
+        return bounded["close"]
+    return (bounded["signal_close"] / float(bounded["adjustment_scale"].iloc[-1])).rename("close")
 
 
 def scalar(
@@ -104,7 +128,7 @@ def cross_section_returns(panel: dict[str, pd.DataFrame], date: pd.Timestamp) ->
     """Return the recent point-in-time return panel used for correlations."""
     series: dict[str, pd.Series] = {}
     for symbol, frame in panel.items():
-        bounded = frame.loc[:date, "close"].tail(61).pct_change(fill_method=None).dropna()
+        bounded = causal_close(frame, date).tail(61).pct_change(fill_method=None).dropna()
         if len(bounded) >= 20:
             series[symbol] = bounded
     return pd.DataFrame(series).dropna(how="all")

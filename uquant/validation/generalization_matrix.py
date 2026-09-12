@@ -189,6 +189,8 @@ def _execute_matrix_scenario(
             attribution=attribution,
             trusted_sessions=trusted_sessions,
             trusted_close=market.close,
+            trusted_corporate_actions=market.corporate_actions,
+            trusted_tax_debits=market.tax_debits,
             require_daily_replay_evidence=True,
         )
     except Exception as exc:

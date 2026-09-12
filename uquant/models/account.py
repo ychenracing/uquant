@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from .corporate_action import CorporateActionState, DividendTaxDebit
 from .enums import Opportunity, Risk
 from .strategic_epoch import StrategicEpoch
 from .strategic_grant import StrategicGrantIntent, StrategicQualificationObservation
@@ -26,6 +27,9 @@ class AccountState:
     order_ledger: list[AccountOrder] = field(default_factory=list)
     next_order_sequence: int = 1
     fills: list[Fill] = field(default_factory=list)
+    corporate_actions: list[CorporateActionState] = field(default_factory=list)
+    corporate_action_cursor: str = ""
+    dividend_tax_debits: list[DividendTaxDebit] = field(default_factory=list)
     broker_as_of: str = ""
     opportunity: str = Opportunity.CHOPPY.value
     risk: str = Risk.NORMAL.value

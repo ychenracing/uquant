@@ -114,7 +114,7 @@ class MarketWorkspace:
         ):
             self._reference_returns = pd.DataFrame(
                 {
-                    symbol: self._raw[symbol]["close"].pct_change(fill_method=None)
+                    symbol: self._raw[symbol].get("signal_close", self._raw[symbol]["close"]).pct_change(fill_method=None)
                     for symbol in references
                 }
             )

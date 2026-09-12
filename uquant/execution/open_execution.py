@@ -177,7 +177,7 @@ def _eligible_open_row(
         account_order.last_event = "INSUFFICIENT_HISTORY"
         retained.append(order)
         return None
-    previous_close = float(history.iloc[-2]["close"])
+    previous_close = float(row.get("reference_close", history.iloc[-2]["close"]))
     if _blocked(order.symbol, order.side, row, previous_close):
         order.attempts += 1
         account_order.attempts = order.attempts
@@ -205,7 +205,9 @@ def _size_open_order(
     execution_price = open_price * (
         1.0 + cfg.slippage if order.side == Side.BUY.value else 1.0 - cfg.slippage
     )
-    open_equity = account.cash + sum(
+    from ..account.corporate_actions import corporate_action_receivable, corporate_action_share_rights
+    rights_marks = {symbol: scalar(frame.loc[date], "open", 0.0) for symbol, frame in panel.items() if date in frame.index}
+    open_equity = account.cash + corporate_action_receivable(account, rights_marks) + sum(
         float(position.shares)
         * (
             scalar(panel[symbol].loc[date], "open", position.avg_cost)
@@ -218,7 +220,8 @@ def _size_open_order(
     if order.symbol.startswith("sh688") and desired_shares > 0:
         desired_shares = max(200, desired_shares)
     current = account.positions.get(order.symbol, Position(symbol=order.symbol))
-    requested = desired_shares - current.shares
+    economic_shares = current.shares + corporate_action_share_rights(account).get(order.symbol, 0)
+    requested = desired_shares - economic_shares
     if order.side == Side.SELL.value:
         target_requested = max(0, -requested)
         if order.target_weight == 0:
@@ -261,7 +264,7 @@ def _size_open_order(
                 )
                 * 100
             )
-            - current.shares
+            - economic_shares
         )
         shares = min(shares, max(0, max_by_weight))
         while shares >= 100:
@@ -379,6 +382,8 @@ def _apply_sell_fill(
     transfer: float,
     slippage_cost: float,
 ) -> list[dict[str, Any]]:
+    from ..account.corporate_actions import settle_dividend_tax
+    settle_dividend_tax(account, symbol=request.order.symbol, shares=request.shares, date=date_str)
     account.cash += gross - commission - stamp - transfer
     sold_tranches = _consume_sell_tranches(
         request.current,

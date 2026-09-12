@@ -193,6 +193,22 @@ def validate_lot_origin_chains(state: AccountState) -> None:
         buy_fills.setdefault(key, []).append(fill)
         acquired_shares[key] = acquired_shares.get(key, 0) + fill.shares
 
+    # Source-verified share distributions extend their original acquisition chain.
+    # The immutable record-date lots are themselves validated below before any
+    # delivered quantity can increase the native acquired-share bound.
+    distributions = [event for event in state.corporate_actions if event.recorded_date]
+    for event in distributions:
+        for lot in event.entitled_lots:
+            key = (event.action.symbol, lot.event_id)
+            matches = [fill for fill in buy_fills.get(key, [])
+                       if fill.fill_date == lot.entry_date and all(
+                           getattr(fill, field, "") == getattr(lot, field, "")
+                           for field in ATTRIBUTION_IDENTITY_FIELDS)]
+            if not matches:
+                raise RuntimeError("corporate action entitlement does not chain to originating BUY")
+            if event.distributed_date:
+                acquired_shares[key] = acquired_shares.get(key, 0) + round(lot.shares * event.action.share_ratio)
+
     attributed_lot_shares: dict[tuple[str, str], int] = {}
 
     def validate_lot(

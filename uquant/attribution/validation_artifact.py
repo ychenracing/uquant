@@ -375,7 +375,7 @@ def _validated_daily_ledger_row(
     economic_start: str,
     economic_end: str,
 ) -> tuple[str, float, float]:
-    row = _require_exact_fields(raw_row, _LEDGER_FIELDS, label=f"daily ledger row {index}")
+    row = _require_exact_fields(raw_row, _LEDGER_FIELDS | ({"corporate_action_receivable", "corporate_action_share_rights_value"} if isinstance(raw_row, Mapping) and "corporate_action_receivable" in raw_row else set()), label=f"daily ledger row {index}")
     date = row["date"]
     if not isinstance(date, str):
         raise ValueError("daily attribution ledger date is invalid")
@@ -442,7 +442,9 @@ def _validate_ledger_weights_and_owner(
         label="daily attribution gross exposure",
     )
     _close(net_exposure, sum(position_weights.values()), label="daily attribution net exposure")
-    _close(cash_weight + sum(position_weights.values()), 1.0, label="daily attribution portfolio weights")
+    receivable = _finite(row.get("corporate_action_receivable", 0.0), label="corporate action receivable")
+    rights_value = _finite(row.get("corporate_action_share_rights_value", 0.0), label="corporate action share rights value", minimum=0.0)
+    _close(cash_weight + sum(position_weights.values()) + (receivable - rights_value) / equity, 1.0, label="daily attribution portfolio weights")
     _close(target_gross, sum(target_weights.values()), label="daily attribution target gross")
     caps = _require_exact_fields(row["caps"], {"risk_gross", "system_gross"}, label="daily ledger caps")
     risk_cap = _finite(caps["risk_gross"], label="daily risk cap", minimum=0.0)

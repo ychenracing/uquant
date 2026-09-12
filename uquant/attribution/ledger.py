@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from datetime import date as date_type
 from typing import Any
 
+from ..account.corporate_actions import corporate_action_receivable, corporate_action_share_rights
 from ..types import AccountState
 from .concentration import finite_attribution_number as _finite
 
@@ -40,7 +41,16 @@ def build_daily_ledger_row(
         if price <= 0.0:
             raise ValueError(f"daily close for {symbol} must be positive")
         position_values[symbol] = position.shares * price
-    equity = cash + sum(position_values.values())
+    receivable = corporate_action_receivable(account, close_prices)
+    equity = cash + sum(position_values.values()) + receivable
+    rights_value = 0.0
+    for symbol, shares in corporate_action_share_rights(account).items():
+        price = _finite(close_prices.get(symbol), label=f"daily share-right close for {symbol}", minimum=0.0)
+        if price <= 0.0:
+            raise ValueError(f"daily share-right close for {symbol} must be positive")
+        value = shares * price
+        rights_value += value
+        position_values[symbol] = position_values.get(symbol, 0.0) + value
     if equity <= 0.0:
         raise ValueError("daily equity must be positive")
     risk_cap = _finite(risk_gross_cap, label="risk gross cap", minimum=0.0)
@@ -66,6 +76,7 @@ def build_daily_ledger_row(
     gross = sum(abs(value) for value in position_values.values()) / equity
     net = sum(position_values.values()) / equity
     return {
+        **({"corporate_action_receivable": receivable, "corporate_action_share_rights_value": rights_value} if account.corporate_actions else {}),
         "date": date,
         "cash": cash,
         "equity": equity,

@@ -205,7 +205,10 @@ def validated_economic_lots(
     lots: list[dict[str, Any]] = []
     seen_lots: set[tuple[str, str, str, str]] = set()
     for index, raw_lot in enumerate(lots_value):
-        lot = dict(_require_exact_fields(raw_lot, _LOT_FIELDS, label=f"economic lot {index}"))
+        extra = {"dividend_income", "dividend_tax"} if isinstance(raw_lot, dict) and "dividend_income" in raw_lot else set()
+        lot = dict(_require_exact_fields(raw_lot, _LOT_FIELDS | extra, label=f"economic lot {index}"))
+        for field in extra:
+            lot[field] = _finite(lot[field], label=f"economic lot {field}", minimum=0.0)
         status = lot["economic_status"]
         if status not in {"REALIZED", "OPEN"}:
             raise ValueError("economic lot status is invalid")

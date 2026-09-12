@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
+from ...features import causal_close
 from ...portfolio_core import effective_n
 from ...portfolio_strategic import StrategicPortfolioPolicy
 from ...types import (
@@ -182,8 +183,7 @@ def _correlations(
     date: pd.Timestamp,
 ) -> pd.DataFrame:
     returns = {
-        symbol: user_panel[symbol]
-        .loc[:date, "close"]
+        symbol: causal_close(user_panel[symbol], date)
         .pct_change(fill_method=None)
         .tail(self.cfg.correlation_window)
         for symbol in symbols

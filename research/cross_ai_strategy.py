@@ -29,7 +29,12 @@ from typing import Any, BinaryIO
 import pandas as pd
 
 from uquant.account import account_from_dict
-from uquant.attribution import build_daily_ledger_row, build_economic_attribution
+from uquant.account.corporate_actions import apply_corporate_actions
+from uquant.attribution import (
+    build_daily_ledger_row,
+    build_daily_replay_evidence_row,
+    build_economic_attribution,
+)
 from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.strict_json import canonical_json_bytes, strict_json_loads
@@ -280,11 +285,13 @@ def run_production_case(
                 reference_symbols=roles["risk"], index_symbols=roles["indexes"],
             ))
             fill_start = len(account.fills)
+            if engine.data.account_input is not None:
+                apply_corporate_actions(account, engine.data.account_input.actions,
+                    date=session, phase="open", tax_debits=engine.data.account_input.tax_debits)
             engine.execution.execute_open(
                 date=date, account=account,
                 panel={symbol: engine.workspace.raw_frame(symbol) for symbol in roles["tradable"]},
             )
-            equity = engine.equity(account, date)
             observed = engine._observe_decision(
                 symbols=roles["tradable"], as_of=session, account=account,
                 strategic_universe_declaration=build_strategic_universe_declaration(
@@ -292,6 +299,7 @@ def run_production_case(
                     risk_reference_symbols=roles["risk"],
                 ),
             )
+            equity = engine.equity(account, date)
             decision = observed.decision
             actual_roles = observed.observation.strategic_universe_roles
             if (
@@ -310,6 +318,9 @@ def run_production_case(
                 symbol: engine.workspace.price(symbol, date)
                 for symbol, position in account.positions.items() if position.shares > 0
             }
+            prices.update({state.action.symbol: engine.workspace.price(state.action.symbol, date)
+                           for state in account.corporate_actions if state.ex_processed_date
+                           and state.action.share_ratio and not state.distributed_date})
             ledger_row = build_daily_ledger_row(
                 date=session, account=account, close_prices=prices, previous_equity=previous_equity,
                 target_weights={target.symbol: target.weight for target in decision.targets},
@@ -331,6 +342,8 @@ def run_production_case(
                 "date": session, "equity": equity, "observation": observed.observation,
                 "decision": decision.canonical_payload(effective_config_sha256=identity["config_sha256"]),
                 "state": state, "new_fills": account.fills[fill_start:], "ledger": ledger_row,
+                "daily_replay_evidence": build_daily_replay_evidence_row(
+                    date=session, account=account, close_prices=prices),
             }))
             equity_rows.append((date, equity))
             daily_ledger.append(ledger_row)
@@ -360,8 +373,10 @@ def run_production_case(
             attribution = build_economic_attribution(
                 account=account,
                 final_prices={
-                    symbol: engine.workspace.price(symbol, last_date)
-                    for symbol, position in account.positions.items() if position.shares > 0
+                    symbol: engine.workspace.price(symbol, last_date) for symbol in
+                    ({symbol for symbol, position in account.positions.items() if position.shares > 0}
+                     | {state.action.symbol for state in account.corporate_actions
+                        if state.ex_processed_date and state.action.share_ratio and not state.distributed_date})
                 },
                 sessions=tuple(str(date.date()) for date, _ in equity_rows),
                 economic_start=str(equity_rows[0][0].date()), economic_end=str(last_date.date()), final_equity=equity_rows[-1][1],

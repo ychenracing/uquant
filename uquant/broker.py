@@ -896,6 +896,8 @@ def sync_broker_snapshot(
     Strategy state remains intact so the next decision continues the same
     lifecycle.  Every fill must reference the engine's broker-visible order ID.
     """
+    if account.corporate_actions or account.corporate_action_cursor:
+        raise RuntimeError("broker snapshot lacks corporate-action entitlement/tax reconciliation; use reviewed native replay")
     original_account = account
     state = _prepare_broker_sync(account, payload)
     _import_broker_fills(state)

@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ..models.corporate_action import DividendTaxDebit
 from ..models.strategic_epoch import strategic_epoch_from_payload
 from ..models.strategic_grant import (
     strategic_grant_from_payload,
@@ -23,6 +24,7 @@ from ..types import (
     Fill,
     PendingOrder,
 )
+from .corporate_actions import corporate_action_state_from_payload, validate_corporate_action_state
 from .validation_attribution import validate_lot_origin_chains as _validate_lot_origin_chains
 from .validation_common import (
     finite_number as _finite_number,
@@ -104,6 +106,10 @@ def _validate_decoded_account(
         sequence_was_explicit=sequence_was_explicit,
     )
     _validate_strategy_risk_state(state)
+    try:
+        validate_corporate_action_state(state)
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
     _validate_lot_origin_chains(state)
     if require_hashes and (not state.data_hash or not state.code_hash):
         raise RuntimeError("account state missing validation hashes")
@@ -148,6 +154,9 @@ def _decode_account_core_fields(
         "order_ledger": [AccountOrder(**item) for item in payload.get("order_ledger", [])],
         "next_order_sequence": payload["next_order_sequence"],
         "fills": [Fill(**item) for item in payload.get("fills", [])],
+        "corporate_actions": [corporate_action_state_from_payload(item) for item in payload.get("corporate_actions", [])],
+        "corporate_action_cursor": payload.get("corporate_action_cursor", ""),
+        "dividend_tax_debits": [DividendTaxDebit(**item) for item in payload.get("dividend_tax_debits", [])],
         "broker_as_of": payload.get("broker_as_of", ""),
         "opportunity": payload.get("opportunity", "CHOPPY"),
         "risk": payload.get("risk", "NORMAL"),

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ...features import scalar
+from ...features import causal_close, scalar
 from ...types import AccountState, LeaderScore, Opportunity, RiskAssessment, Target
 from .targets import (
     controlled_oversold_rebound_targets,
@@ -141,7 +141,7 @@ def _scan_tactical_evidence(
         ret20 = scalar(row, f"ret{self.cfg.trend_fast}", -1.0)
         ret60 = scalar(row, f"ret{self.cfg.trend_medium}", -1.0)
         ret120 = scalar(row, f"ret{self.cfg.trend_slow}", math.nan)
-        ret1 = float(frame.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
+        ret1 = float(causal_close(frame, date).pct_change(fill_method=None).iloc[-1])
         if _deep_recovery_qualified(
             self,
             frame=frame,

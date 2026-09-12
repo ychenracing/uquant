@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from .config import SystemConfig
-from .features import scalar
+from .features import causal_close, scalar
 from .holding_history import protected_weights_for_current_episode
 from .types import AccountState
 
@@ -70,7 +70,7 @@ def observe_deployed_sector(
         frame = panel.get(symbol)
         if frame is None or date not in frame.index:
             continue
-        history = frame.loc[:date, "close"].dropna().astype(float)
+        history = causal_close(frame, date).dropna().astype(float)
         if len(history) < cfg.sector_recovery_ma:
             continue
         current = float(history.iloc[-1])

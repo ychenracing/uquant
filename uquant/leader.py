@@ -12,7 +12,7 @@ import pandas as pd
 
 from .config import SystemConfig
 from .contracts.universe import decision_ai_universe
-from .features import scalar
+from .features import causal_close, scalar
 from .industry import IndustrySignal, compute_industry_signals, decision_industries, production_industries
 from .reference import production_reference_symbols
 from .types import AccountState, LeaderScore, Opportunity
@@ -150,7 +150,7 @@ def _inferred_industries(
         frame = panel.get(symbol)
         if industry is None or frame is None:
             continue
-        series = frame.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
+        series = causal_close(frame, as_of).astype(float).tail(121).pct_change(fill_method=None).dropna()
         if len(series) >= 60:
             group_returns.setdefault(industry, []).append(series)
     baskets = {
@@ -165,7 +165,7 @@ def _inferred_industries(
         if symbol in industries:
             inferred[symbol] = (industries[symbol], 1.0)
             continue
-        series = frame.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
+        series = causal_close(frame, as_of).astype(float).tail(121).pct_change(fill_method=None).dropna()
         residual = _residual_returns(series, tech_returns)
         window_rankings: list[list[tuple[float, str]]] = []
         for window in (60, 120):

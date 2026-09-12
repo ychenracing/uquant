@@ -27,6 +27,7 @@ from .concentration import (
     holding_summary as _holding_summary,
 )
 from .diagnostics import attribution_diagnostics
+from .replay_evidence import corporate_origin_cash, economic_positions
 from .replay_evidence import positive_attribution_integer as _positive_integer
 from .validation import economic_sessions as _economic_sessions
 
@@ -78,6 +79,7 @@ def _realized_lot_rows(account: AccountState, session_set: set[str]) -> list[dic
             lots.append(
                 {
                     "economic_status": "REALIZED",
+                    "_cost_basis": cost_basis,
                     "symbol": fill.symbol,
                     "tranche_id": str(allocation["tranche_id"]),
                     "shares": shares,
@@ -132,6 +134,7 @@ def _open_lot_rows(
             lots.append(
                 {
                     "economic_status": "OPEN",
+                    "_cost_basis": tranche.shares * tranche.avg_cost,
                     "symbol": symbol,
                     "tranche_id": tranche.tranche_id,
                     "shares": tranche.shares,
@@ -180,14 +183,28 @@ def _allocate_entry_fill_economics(account: AccountState, lots: list[dict[str, A
         rows_by_buy.setdefault(key, []).append(lot)
     if set(rows_by_buy) != set(buy_fills):
         raise ValueError("economic lots do not exactly cover originating BUY fills")
+    origin_cash = corporate_origin_cash(account)
     for key, fill in sorted(buy_fills.items()):
-        _allocate_one_entry_fill(fill, rows_by_buy[key])
+        rows = rows_by_buy[key]
+        if account.corporate_actions:
+            income, tax = origin_cash.pop(key, (0.0, 0.0))
+            row = rows[-1]
+            row["dividend_income"] = income
+            row["dividend_tax"] = tax
+            row["realized_pnl" if row["economic_status"] == "REALIZED" else "open_pnl"] += income - tax
+            row["total_pnl"] += income - tax
+        _allocate_one_entry_fill(fill, rows, actual_cost_basis=bool(account.corporate_actions))
+    if origin_cash:
+        raise ValueError("corporate action income lacks originating economic lot")
 
 
-def _allocate_one_entry_fill(fill: Any, raw_rows: list[dict[str, Any]]) -> None:
+def _allocate_one_entry_fill(fill: Any, raw_rows: list[dict[str, Any]], *, actual_cost_basis: bool = False) -> None:
     rows = sorted(raw_rows, key=lambda item: (str(item["tranche_id"]), str(item["economic_status"])))
-    if sum(int(row["shares"]) for row in rows) != fill.shares:
+    if not actual_cost_basis and sum(int(row["shares"]) for row in rows) != fill.shares:
         raise ValueError("economic lot shares do not reconcile to originating BUY fill")
+    total_basis = fill.gross_value + fill.commission + fill.stamp_duty + fill.transfer_fee
+    if actual_cost_basis and not math.isclose(sum(float(row["_cost_basis"]) for row in rows), total_basis, rel_tol=1e-12, abs_tol=1e-8):
+        raise ValueError("corporate action lot cost basis differs from originating BUY")
     entry_components = {
         "entry_gross_value": "gross_value",
         "entry_commission": "commission",
@@ -198,7 +215,8 @@ def _allocate_one_entry_fill(fill: Any, raw_rows: list[dict[str, Any]]) -> None:
     allocated = {name: 0.0 for name in entry_components}
     for index, row in enumerate(rows):
         final_row = index == len(rows) - 1
-        ratio = int(row["shares"]) / fill.shares
+        basis = float(row.pop("_cost_basis"))
+        ratio = basis / total_basis if actual_cost_basis else int(row["shares"]) / fill.shares
         entry_costs: dict[str, float] = {}
         for output_name, fill_name in entry_components.items():
             total = float(getattr(fill, fill_name))
@@ -438,7 +456,7 @@ def build_economic_attribution(
     lots = _realized_lot_rows(account, session_set)
     lots.extend(
         _open_lot_rows(
-            account,
+            economic_positions(account),
             final_prices,
             economic_end=economic_end,
             session_set=session_set,

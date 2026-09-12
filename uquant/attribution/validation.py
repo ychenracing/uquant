@@ -6,9 +6,16 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import date as date_type
 from typing import Any, cast
 
+from ..models.corporate_action import CorporateAction, DividendTaxDebit
 from ..types import Side
 from .concentration import finite_attribution_number as _finite
 from .replay_evidence import close_attribution_values as _close
+from .replay_evidence import (
+    corporate_account_from_payload,
+    corporate_origin_cash,
+    economic_positions,
+    validate_corporate_sources,
+)
 from .replay_evidence import positive_attribution_integer as _positive_integer
 from .replay_evidence import validate_daily_replay_evidence as _validate_daily_replay_evidence
 from .validation_artifact import (
@@ -258,6 +265,65 @@ def _validate_engine_symbol_pnl(
         )
 
 
+def _validate_corporate_lots(
+    *, account: Mapping[str, Any], positions: Mapping[str, Any],
+    lots: list[dict[str, Any]], buy_shares: _BuyFillShares,
+) -> Mapping[str, Any]:
+    """Verify original origins/income and include recognized stock-right lots."""
+    economic_open_positions = positions
+    if account.get("corporate_actions"):
+        from dataclasses import asdict
+
+        from ..account.corporate_actions import corporate_action_share_award
+
+        source_account = corporate_account_from_payload(account)
+        economic_open_positions = {symbol: asdict(position) for symbol, position in economic_positions(source_account).positions.items()}
+        for state in source_account.corporate_actions:
+            if state.ex_processed_date:
+                for entitlement in state.entitled_lots:
+                    key = (state.action.symbol, entitlement.event_id, entitlement.entry_date)
+                    if key not in buy_shares:
+                        raise ValueError("corporate action lot lacks originating BUY")
+                    buy_shares[key] += corporate_action_share_award(entitlement, state.action)
+        cash_by_origin = corporate_origin_cash(source_account)
+        observed_cash: dict[tuple[str, str, str], tuple[float, float]] = {}
+        origins = {(fill.symbol, fill.event_id, fill.fill_date): fill for fill in source_account.fills if fill.side == "BUY"}
+        for lot in lots:
+            key = (lot["symbol"], lot["origin_event_id"], lot["entry_date"])
+            origin = origins.get(key)
+            if origin is None or any(lot[reported] != getattr(origin, source) for reported, source in (
+                ("origin_subsystem", "origin_subsystem"), ("origin_mechanism", "mechanism"),
+                ("origin_lifecycle", "origin_lifecycle"), ("replaces_symbol", "replaces_symbol"),
+                ("industry_at_entry", "industry_at_entry"),
+            )):
+                raise ValueError("corporate action lot origin differs from originating BUY")
+            income, tax = observed_cash.get(key, (0.0, 0.0))
+            observed_cash[key] = (income + float(lot.get("dividend_income", 0.0)), tax + float(lot.get("dividend_tax", 0.0)))
+        for key in set(cash_by_origin) | set(observed_cash):
+            expected_income, expected_tax = cash_by_origin.get(key, (0.0, 0.0))
+            actual_income, actual_tax = observed_cash.get(key, (0.0, 0.0))
+            _close(actual_income, expected_income, label="corporate action original-origin dividend")
+            _close(actual_tax, expected_tax, label="corporate action original-origin tax")
+    elif any("dividend_income" in lot for lot in lots):
+        raise ValueError("corporate action attribution lacks source state")
+    return economic_open_positions
+
+
+def _validate_corporate_reconstruction(account: Mapping[str, Any], result: Mapping[str, Any], canonical: Mapping[str, Any], *, economic_start: str, economic_end: str, final_equity: float) -> None:
+    if account.get("corporate_actions"):
+        from .builder import build_economic_attribution
+
+        daily_evidence = result["daily_replay_evidence"]
+        rebuilt = build_economic_attribution(
+            account=corporate_account_from_payload(account),
+            final_prices=daily_evidence[-1]["close_marks"],
+            sessions=[row["date"] for row in daily_evidence],
+            economic_start=economic_start, economic_end=economic_end, final_equity=final_equity,
+        )
+        if rebuilt["lots"] != canonical["lots"]:
+            raise ValueError("corporate action economic lots differ from source reconstruction")
+
+
 def validate_attribution_against_engine_result(
     result: Mapping[str, Any],
     *,
@@ -267,6 +333,8 @@ def validate_attribution_against_engine_result(
     trusted_sessions: Sequence[str] | None = None,
     trusted_close: Callable[[str, str], float] | None = None,
     require_daily_replay_evidence: bool = False,
+    trusted_corporate_actions: Sequence[CorporateAction] | None = None,
+    trusted_tax_debits: Sequence[DividendTaxDebit] | None = None,
 ) -> dict[str, Any]:
     """Reconcile attribution to raw fills, sold tranches, positions, and equity."""
 
@@ -281,6 +349,11 @@ def validate_attribution_against_engine_result(
     account = result.get("final_account")
     if not isinstance(account, Mapping):
         raise ValueError("engine result is missing structured final account")
+    if account.get("corporate_actions") or account.get("dividend_tax_debits") or trusted_corporate_actions is not None or trusted_tax_debits is not None:
+        validate_corporate_sources(
+            account, economic_start=economic_start, economic_end=economic_end,
+            trusted_corporate_actions=trusted_corporate_actions, trusted_tax_debits=trusted_tax_debits,
+        )
     fills = account.get("fills")
     positions = account.get("positions")
     if not isinstance(fills, list) or not isinstance(positions, Mapping):
@@ -308,14 +381,17 @@ def validate_attribution_against_engine_result(
     )
     _validate_engine_fill_totals(canonical=canonical, fill_costs=fill_costs, result=result)
     attributed_buy, attributed_sold, attributed_open = _attributed_lot_identities(canonical["lots"])
+    economic_open_positions = _validate_corporate_lots(
+        account=account, positions=positions, lots=canonical["lots"], buy_shares=buy_shares,
+    )
     if attributed_buy != buy_shares:
         raise ValueError("attribution lots do not exactly cover raw BUY fills")
     if sorted(attributed_sold) != sorted(sold_lots):
         raise ValueError("attribution realized lots differ from raw sold tranches")
-    if sorted(attributed_open) != sorted(_engine_open_lots(positions)):
+    if sorted(attributed_open) != sorted(_engine_open_lots(economic_open_positions)):
         raise ValueError("attribution open lots differ from raw account tranches")
     _validate_engine_symbol_pnl(result, canonical, final_equity=final_equity)
-    if require_daily_replay_evidence or result.get("daily_replay_evidence") is not None:
+    if account.get("corporate_actions") or require_daily_replay_evidence or result.get("daily_replay_evidence") is not None:
         _validate_daily_replay_evidence(
             result=result,
             attribution=canonical,
@@ -326,5 +402,7 @@ def validate_attribution_against_engine_result(
             economic_end=economic_end,
             trusted_sessions=trusted_sessions,
             trusted_close=trusted_close,
+            trusted_corporate_actions=trusted_corporate_actions, trusted_tax_debits=trusted_tax_debits,
         )
+    _validate_corporate_reconstruction(account, result, canonical, economic_start=economic_start, economic_end=economic_end, final_equity=final_equity)
     return canonical

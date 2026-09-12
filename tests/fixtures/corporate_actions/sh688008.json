@@ -1,0 +1,87 @@
+{
+  "source_url": "https://static.cninfo.com.cn/finalpage/2023-08-05/1217467414.PDF",
+  "source_sha256": "aaa198694c4b9391aa6d5db14cc75dc83eebbc4422f5bf471349666aed78c450",
+  "notice_text_sha256": "c224559db0cf4164861201d66c8a115fe067030b65387d7e8103486e9ecc29d0",
+  "quote_source": "https://q.stock.sohu.com/hisHq?code=cn_688008&start=20210101&end=20260805&stat=1&order=D&period=d&callback=historySearchHandler&rt=jsonp",
+  "quote_full_sha256": "1290c31e0dfafc5bdf2b09987d8dfa3b2e81bc2b423916a2a185881e48089b3e",
+  "quotes": [
+    {
+      "date": "2022-08-08",
+      "open": 63.8,
+      "close": 61.78,
+      "low": 60.72,
+      "high": 64.79,
+      "volume": 13522900.0,
+      "amount": 834158600.0,
+      "reported_change": -1.13,
+      "post_close_volume": 0.0
+    },
+    {
+      "date": "2022-08-09",
+      "open": 61.5,
+      "close": 63.9,
+      "low": 60.11,
+      "high": 64.1,
+      "volume": 9703700.0,
+      "amount": 598745800.0,
+      "reported_change": 2.12,
+      "post_close_volume": 450.0
+    },
+    {
+      "date": "2023-08-08",
+      "open": 58.0,
+      "close": 57.49,
+      "low": 57.3,
+      "high": 59.31,
+      "volume": 7410600.0,
+      "amount": 430844600.0,
+      "reported_change": -0.3,
+      "post_close_volume": 0.0
+    },
+    {
+      "date": "2023-08-09",
+      "open": 57.26,
+      "close": 56.63,
+      "low": 56.31,
+      "high": 57.75,
+      "volume": 5205400.0,
+      "amount": 296809000.0,
+      "reported_change": -0.86,
+      "post_close_volume": 0.0
+    },
+    {
+      "date": "2023-08-10",
+      "open": 56.92,
+      "close": 56.87,
+      "low": 55.51,
+      "high": 57.17,
+      "volume": 6335900.0,
+      "amount": 356319400.0,
+      "reported_change": 0.24,
+      "post_close_volume": 200.0
+    },
+    {
+      "date": "2023-08-11",
+      "open": 56.52,
+      "close": 54.55,
+      "low": 54.4,
+      "high": 56.99,
+      "volume": 7955200.0,
+      "amount": 442618900.0,
+      "reported_change": -2.02,
+      "post_close_volume": 0.0
+    },
+    {
+      "date": "2023-08-14",
+      "open": 54.3,
+      "close": 53.08,
+      "low": 52.83,
+      "high": 54.98,
+      "volume": 10321200.0,
+      "amount": 551448600.0,
+      "reported_change": -1.47,
+      "post_close_volume": 1000.0
+    }
+  ],
+  "quote_source_sha256": "d7ccdfb24c12a83bdf4e9f029327f708614639ed1bdc1fa198d44f5be4d961db"
+}

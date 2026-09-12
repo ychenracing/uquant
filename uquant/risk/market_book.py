@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import SystemConfig
-from ..features import cross_section_returns, scalar
+from ..features import causal_close, cross_section_returns, scalar
 from ..industry import decision_industries
 from ..leader import REFERENCE_UNIVERSE
 from ..market_risk import (
@@ -468,7 +468,7 @@ def _held_book_state(
         ma20 = scalar(row, f"ma{cfg.trend_fast}")
         ret5 = scalar(row, "ret5", 0.0)
         returns.append(ret5)
-        ret1 = float(frame.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
+        ret1 = float(causal_close(frame, date).pct_change(fill_method=None).iloc[-1])
         damage.append(math.isfinite(close) and math.isfinite(ma20) and close < ma20 and ret5 <= -0.05)
         loss.append(math.isfinite(close) and close < position.avg_cost)
         repair.append(math.isfinite(ret1) and ret1 > 0)

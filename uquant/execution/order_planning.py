@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uquant.contracts.universe import decision_ai_universe
 
+from ..account.corporate_actions import corporate_action_receivable, corporate_action_share_rights
 from ..config import SystemConfig
 from ..portfolio_core import restoration_trade_weight
 from ..types import (
@@ -156,7 +157,8 @@ def _plan_target_order(
         detail["block"] = "STICKY_HOLD"
         return None
     current = account.positions.get(target.symbol)
-    current_value = (current.shares if current else 0) * prices.get(target.symbol, 0.0)
+    held_shares = (current.shares if current else 0) + corporate_action_share_rights(account).get(target.symbol, 0)
+    current_value = held_shares * prices.get(target.symbol, 0.0)
     difference = target.weight * equity - current_value
     threshold = max(cfg.min_trade_value, cfg.min_trade_weight * equity)
     restoration_buy_below_completion = _restoration_buy_below_completion(
@@ -246,7 +248,7 @@ def plan_orders(
     to close-price drift.
     """
     market = sum(position.shares * prices.get(symbol, 0.0) for symbol, position in account.positions.items())
-    equity = account.cash + market
+    equity = account.cash + market + corporate_action_receivable(account, prices)
     planned: list[PendingOrder] = []
     cancel_pending_buy_symbols = {
         order.symbol

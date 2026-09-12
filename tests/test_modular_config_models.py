@@ -3,18 +3,14 @@ from __future__ import annotations
 import dataclasses
 import importlib
 import importlib.util
-import json
 import typing
 from pathlib import Path
-
-import pytest
 
 from uquant.config import DEFAULT_CONFIG, SystemConfig
 
 ROOT = Path(__file__).parents[1]
 CONFIG_MODULES = (
     "uquant.config.model",
-    "uquant.config.views",
     "uquant.config.validation",
     "uquant.config.validation.execution",
     "uquant.config.validation.market",
@@ -40,18 +36,6 @@ def _find_spec(module: str) -> object | None:
         return None
 
 
-def _governed_owner_fields(owner: str) -> list[str]:
-    payload = json.loads(
-        (ROOT / "benchmarks" / "config_parameter_governance.json").read_text(encoding="utf-8")
-    )
-    owned = {
-        field
-        for groups in payload["categories"].values()
-        for group in groups
-        if group["owner"] == owner
-        for field in group["fields"]
-    }
-    return [field.name for field in dataclasses.fields(SystemConfig) if field.name in owned]
 
 
 def test_config_and_model_implementation_packages_are_importable() -> None:
@@ -64,32 +48,8 @@ def test_config_and_model_implementation_packages_are_importable() -> None:
     assert not (ROOT / "uquant" / "config.py").exists()
 
 
-@pytest.mark.parametrize(
-    ("view_name", "owner"),
-    (
-        ("ExecutionConfigView", "EXECUTION"),
-        ("PortfolioConfigView", "PORTFOLIO"),
-        ("RiskConfigView", "RISK"),
-    ),
-)
-def test_config_views_are_minimal_immutable_owner_derived_snapshots(
-    view_name: str,
-    owner: str,
-) -> None:
-    views = importlib.import_module("uquant.config.views")
-    view_type = getattr(views, view_name)
-    view = view_type.from_config(DEFAULT_CONFIG)
-    fields = dataclasses.fields(view_type)
-    expected_names = _governed_owner_fields(owner)
-
-    assert [field.name for field in fields] == expected_names
-    assert expected_names
-    assert all(field.default is dataclasses.MISSING for field in fields)
-    assert all(field.default_factory is dataclasses.MISSING for field in fields)
-    assert dataclasses.asdict(view) == {name: getattr(DEFAULT_CONFIG, name) for name in expected_names}
-    assert not hasattr(view, "__dict__")
-    with pytest.raises(dataclasses.FrozenInstanceError):
-        setattr(view, expected_names[0], object())
+def test_unused_configuration_views_are_not_an_alternate_input_surface() -> None:
+    assert importlib.util.find_spec("uquant.config.views") is None
 
 
 def test_compatibility_facades_export_the_same_config_and_model_objects() -> None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from policy_inputs import policy_inputs
 
 import uquant.risk as risk_module
 from uquant.config import DEFAULT_CONFIG
@@ -46,7 +47,7 @@ def test_sector_observation_uses_only_deployed_symbols() -> None:
         date=dates[4],
         panel=panel,
         symbols={"arbitrary_a", "arbitrary_b"},
-        cfg=DEFAULT_CONFIG.override(sector_recovery_ma=3),
+        cfg=policy_inputs(sector_recovery_ma=3),
     )
 
     assert observation is not None
@@ -61,7 +62,7 @@ def test_sector_observation_accepts_an_exact_recovery_ma_window() -> None:
         date=dates[2],
         panel=_panel(dates),
         symbols={"arbitrary_a", "arbitrary_b"},
-        cfg=DEFAULT_CONFIG.override(sector_recovery_ma=3),
+        cfg=policy_inputs(sector_recovery_ma=3),
     )
 
     assert observation is not None
@@ -96,7 +97,7 @@ def test_sector_observation_weighted_return_is_independent_of_blas_dot(
         date=dates[-1],
         panel=panel,
         symbols=set(changes),
-        cfg=DEFAULT_CONFIG.override(sector_recovery_ma=2),
+        cfg=policy_inputs(sector_recovery_ma=2),
         weights=weights,
         minimum_symbols=3,
     )
@@ -108,7 +109,7 @@ def test_sector_observation_weighted_return_is_independent_of_blas_dot(
 def test_single_live_holding_is_observable_only_for_existing_acute_owner() -> None:
     dates = pd.bdate_range("2026-06-01", periods=11)
     panel = _panel(dates)
-    cfg = DEFAULT_CONFIG.override(sector_recovery_ma=3)
+    cfg = policy_inputs(sector_recovery_ma=3)
 
     ordinary = observe_deployed_sector(
         date=dates[4],
@@ -133,7 +134,7 @@ def test_single_live_holding_is_observable_only_for_existing_acute_owner() -> No
 def test_sector_guard_requires_repeated_shock_and_independent_divergence() -> None:
     dates = pd.bdate_range("2026-06-01", periods=11)
     panel = _panel(dates)
-    cfg = DEFAULT_CONFIG.override(
+    cfg = policy_inputs(
         sector_recovery_ma=3,
         sector_guard_min_sessions=2,
         sector_recovery_confirmations=2,
@@ -176,7 +177,7 @@ def test_sector_guard_recovery_observes_the_trigger_cohort_after_sparse_cut() ->
     dates = pd.bdate_range("2026-06-01", periods=11)
     panel = _panel(dates)
     panel["arbitrary_c"] = panel["arbitrary_a"].copy()
-    cfg = DEFAULT_CONFIG.override(
+    cfg = policy_inputs(
         sector_recovery_ma=3,
         sector_guard_min_sessions=2,
         sector_recovery_confirmations=2,
@@ -233,7 +234,7 @@ def test_sector_guard_uses_weighted_exposure_when_equal_weight_breadth_is_benign
         "concentrated_loser": Position("concentrated_loser", shares=8, avg_cost=100.0),
         "small_winner": Position("small_winner", shares=2, avg_cost=100.0),
     }
-    cfg = DEFAULT_CONFIG.override(sector_recovery_ma=3)
+    cfg = policy_inputs(sector_recovery_ma=3)
 
     first = update_sector_guard(
         date=dates[2],
@@ -263,7 +264,7 @@ def test_sector_guard_uses_weighted_exposure_when_equal_weight_breadth_is_benign
 
 def test_confirmed_acute_sector_collapse_requires_full_weighted_and_breadth_damage() -> None:
     dates = pd.bdate_range("2026-06-01", periods=4)
-    cfg = DEFAULT_CONFIG.override(sector_recovery_ma=3)
+    cfg = policy_inputs(sector_recovery_ma=3)
 
     def transition_for(daily_multiplier: float):
         close = np.asarray(
@@ -327,7 +328,7 @@ def test_disabling_sector_guard_clears_persisted_state() -> None:
         panel=_panel(dates),
         account=account,
         leadership_divergence=1.0,
-        cfg=DEFAULT_CONFIG.override(sector_guard_enabled=False),
+        cfg=policy_inputs(sector_guard_enabled=False),
     )
 
     assert not transition.active
@@ -349,7 +350,7 @@ def test_future_dated_sector_shock_cannot_confirm_current_guard() -> None:
         panel=_panel(dates),
         account=account,
         leadership_divergence=1.0,
-        cfg=DEFAULT_CONFIG.override(sector_recovery_ma=3),
+        cfg=policy_inputs(sector_recovery_ma=3),
     )
 
     assert not transition.active

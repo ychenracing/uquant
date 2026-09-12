@@ -17,7 +17,7 @@ import pandas as pd
 from research.risk_counterfactual import POLICY_SET, classify_promotion
 from research.risk_differential import forward_outcomes, merge_episodes
 from research.risk_differential_models import canonical_bytes, canonical_sha256
-from uquant.atomic_io import atomic_write_text
+from uquant.infrastructure.atomic_files import atomic_write_text
 
 
 def _seal(payload: dict[str, Any]) -> dict[str, Any]:

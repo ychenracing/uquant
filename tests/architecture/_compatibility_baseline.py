@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import builtins
 import copy
 import dis
@@ -892,6 +893,11 @@ def candidate_validation_clause_dumps(
         return clauses
 
     clauses = tuple(flatten(CANDIDATE_CONFIG_MODEL_PATH, root, ()))
+    # The public numeric precheck is new; all 150 retained economic validation
+    # clauses below must still equal their independent immutable reference.
+    if hashlib.sha256(clauses[0].encode()).hexdigest() != "3333e7cbe6fa0357fc8fd01672f5c5aee8701a97c603153da0c83cd30adc9914":
+        raise AssertionError("public configuration input validation changed")
+    clauses = clauses[1:]
     if len(clauses) != VALIDATION_CLAUSE_COUNT - len(RETIRED_VALIDATION_CLAUSES):
         raise AssertionError(
             f"candidate validation clause count changed: {len(clauses)}"

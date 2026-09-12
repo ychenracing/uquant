@@ -9,9 +9,9 @@ from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
-from uquant.atomic_io import atomic_write_bytes, validate_atomic_output_boundary
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes, canonical_json_sha256, strict_json_loads
+from uquant.infrastructure.atomic_files import atomic_write_bytes, validate_atomic_output_boundary
 from uquant.models.decision import LeaderScore, RiskAssessment, Target
 from uquant.models.strategic_epoch import StrategicEpoch
 from uquant.models.strategic_grant import StrategicGrantIntent, StrategicQualificationObservation

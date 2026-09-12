@@ -174,7 +174,6 @@ _STRATEGY_FIXED_RELATIVES: Final = frozenset(
 )
 _STRATEGY_OPERATIONAL_RELATIVES: Final = frozenset(
     {
-        "uquant/atomic_io.py",
         "uquant/cli.py",
         "uquant/execution_journal.py",
         "uquant/report.py",

@@ -33,8 +33,8 @@ from research.window_matrix import (
 from research.window_matrix import (
     WINDOWS as WINDOWS,
 )
-from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.engine import ProductionEngine
+from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 
 SYSTEMS = ("uquant", "aquant", "qwenquant", "trade")
 COMPETITORS = SYSTEMS[1:]

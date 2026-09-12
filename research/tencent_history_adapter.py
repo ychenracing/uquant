@@ -26,7 +26,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from uquant.atomic_io import (
+from uquant.infrastructure.atomic_files import (
     atomic_write_bytes,
     atomic_write_text,
     validate_atomic_output_path,

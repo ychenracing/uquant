@@ -81,7 +81,7 @@ def test_shared_timeline_key_isolates_data_config_universe_source_and_builder(
     replay()
     assert builds == ["first"]
     replay(data_identity="data-b")
-    replay(cfg=DEFAULT_CONFIG.override(atr_window=15))
+    replay(cfg=DEFAULT_CONFIG.override(max_positions=5))
     replay(tradable=("sz300502",))
     source_identity[0] = "source-b"
     replay()

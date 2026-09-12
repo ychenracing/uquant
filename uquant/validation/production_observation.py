@@ -20,13 +20,13 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from uquant.atomic_io import (
+from uquant.cli import main as uquant_main
+from uquant.engine import code_fingerprint
+from uquant.infrastructure.atomic_files import (
     atomic_write_bytes,
     atomic_write_text,
     validate_atomic_output_boundary,
 )
-from uquant.cli import main as uquant_main
-from uquant.engine import code_fingerprint
 from uquant.infrastructure.file_lock import (
     FileLockMode,
     acquire_file_lock,

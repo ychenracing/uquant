@@ -570,8 +570,8 @@ def test_transitional_market_does_not_use_weak_market_early_graduation():
 
 def test_recovery_breadth_perturbation_does_not_change_primary_path(data_dir):
     results = []
-    for breadth in (DEFAULT_CONFIG.recovery_breadth_min * 0.90, DEFAULT_CONFIG.recovery_breadth_min * 1.10):
-        result = ProductionEngine(data_dir, DEFAULT_CONFIG.override(recovery_breadth_min=breadth)).backtest(
+    for profile in ("recovery_breadth_lower", "recovery_breadth_upper"):
+        result = ProductionEngine.for_validation(data_dir, profile).backtest(
             symbols=PRIMARY, start="2025-04-01", end="2026-06-30"
         )
         results.append(

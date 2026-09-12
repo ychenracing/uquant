@@ -4,7 +4,6 @@ import copy
 import dataclasses
 import hashlib
 import json
-from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
@@ -16,8 +15,10 @@ from uquant import config_governance as governance_module
 from uquant.config import SystemConfig
 from uquant.config_governance import (
     ParameterCategory,
-    load_config_governance,
     validate_governed_config_migration,
+)
+from uquant.config_governance import (
+    _load_historical_governance as load_config_governance,
 )
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 
@@ -48,7 +49,7 @@ def _canonical_sha256(payload: dict[str, Any]) -> str:
 def test_governance_classifies_every_system_config_field_once() -> None:
     governance = load_config_governance()
     entries = governance.entries
-    config_fields = {field.name for field in fields(SystemConfig)}
+    config_fields = set(SystemConfig().to_dict())
 
     assert {category.value for category in ParameterCategory} == {
         "MARKET_RULE",
@@ -217,8 +218,8 @@ def test_governance_json_and_deletion_helpers_fail_closed(
     governance = load_config_governance()
     monkeypatch.setattr(
         governance_module,
-        "load_config_governance",
-        lambda: dataclasses.replace(governance, removed_fields=()),
+        "_load_historical_governance",
+        lambda _path: dataclasses.replace(governance, removed_fields=()),
     )
     with pytest.raises(ValueError, match="authorized field deletion"):
         validate_governed_config_migration(SystemConfig())
@@ -263,7 +264,7 @@ def test_resealed_rule_removal_cannot_change_its_frozen_authority(tmp_path: Path
 
 
 def test_governed_config_migration_rejects_any_remaining_field_change() -> None:
-    changed = SystemConfig().override(leader_mature_score=0.73)
+    changed = SystemConfig().override(initial_cash=1_000_000.0)
 
     with pytest.raises(ValueError, match="reviewed post-removal config"):
         validate_governed_config_migration(changed)
@@ -469,17 +470,16 @@ def test_current_retirement_projection_rejects_unreviewed_schema_changes(
         for field in (*governance_module.RETIRED_LEADER_CYCLE_FIELDS,
                       *governance_module._retired_reversal_fields())
     )
-    live_fields = list(fields(SystemConfig))
+    live_fields = SystemConfig().to_dict()
     if mutation == "extra-removal":
-        live_fields = [field for field in live_fields if field.name != "leader_mature_score"]
+        live_fields.pop("leader_mature_score")
     elif mutation == "reintroduced":
-        field = dataclasses.make_dataclass("Reintroduced", [("leader_cycle_confirm_days", int)])
-        live_fields.extend(fields(field))
+        live_fields["leader_cycle_confirm_days"] = 1
     elif mutation == "missing-retired":
         entries = [item for item in entries if item.field != "leader_cycle_confirm_days"]
     else:
         entries[-1] = dataclasses.replace(entries[-1], owner=governance_module.SubsystemOwner.RISK)
-    monkeypatch.setattr(governance_module, "fields", lambda _type: live_fields)
+    monkeypatch.setattr(SystemConfig, "to_dict", lambda _self: live_fields)
     with pytest.raises(RuntimeError):
         governance_module._validate_governed_fields_and_removals(entries, payload)
 
@@ -511,3 +511,18 @@ def test_retired_leader_cycle_knobs_cannot_reach_candidate_runner(field: str) ->
             runner=runner,  # type: ignore[arg-type]
         )
     assert calls == 0
+
+
+def test_current_inventory_covers_configurable_and_fixed_policy_without_history() -> None:
+    current = governance_module.load_config_governance()
+    assert {entry.field for entry in current.entries} == set(SystemConfig().to_dict())
+    assert current.removed_fields == current.strategy_rule_removals == ()
+    assert len(current.entries) == 266
+
+
+def test_current_inventory_rejects_resealed_resource(tmp_path: Path) -> None:
+    path = tmp_path / "current.json"
+    raw = governance_module.CURRENT_GOVERNANCE_PATH.read_bytes()
+    path.write_bytes(raw.replace(b"initial_cash", b"initial_cazh"))
+    with pytest.raises(RuntimeError, match="compiled reviewed governance"):
+        governance_module.load_config_governance(path)

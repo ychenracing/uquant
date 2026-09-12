@@ -12,6 +12,7 @@ import json
 import math
 import statistics
 import traceback
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,7 @@ from uquant.validation.acceptance_tolerance import (
     wealth_floor,
 )
 from uquant.validation.evidence_source import evidence_root
+from uquant.validation.parameter_policy import frozen_policy_config
 
 CASES = ('champion', 'remove_all_three', 'no_optical')
 
@@ -231,10 +233,21 @@ def run_shard(root: Path, plan: dict[str, Any], shard: str) -> dict[str, Any]:
                 if 'contributor_from' in spec:
                     nominal = read_shard(root, plan, _spec(plan, spec['contributor_from']))
                     exclusions = (largest_positive_contributor(nominal),)
-                config = DEFAULT_CONFIG.override(**effective_config(plan, spec))
+                expected = effective_config(plan, spec)
+                config = DEFAULT_CONFIG.override(**{
+                    field.name: expected[field.name] for field in fields(DEFAULT_CONFIG)
+                })
+                if spec['group'] == 'parameter_neighbors':
+                    profile = spec['id'].removeprefix('new-').removesuffix('-' + spec['case'])
+                    config = frozen_policy_config(profile, config)
+                if config.to_dict() != expected:
+                    raise ValueError('frozen validation configuration differs from its full expected policy')
                 run_production_case(case_id=spec['case'], start=plan['interval'][0], end=plan['interval'][1],
-                                    output_dir=root / shard, cfg=config, start_session_offset=spec['offset'],
-                                    extra_excluded_symbols=exclusions)
+                                    output_dir=root / shard, cfg=DEFAULT_CONFIG.override(**{
+                                        field.name: expected[field.name] for field in fields(DEFAULT_CONFIG)
+                                    }), start_session_offset=spec['offset'],
+                                    extra_excluded_symbols=exclusions,
+                                    validation_profile=(profile if spec['group'] == 'parameter_neighbors' else None))
                 report = read_shard(root, plan, spec)
             outcome.update(status='COMPLETE', result_seal=report['canonical_sha256'])
     except (OSError, ValueError, KeyError, TypeError, RuntimeError, EOFError) as exc:

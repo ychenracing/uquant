@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
+from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from uquant.validation.ai_era import AI_ERA_WINDOWS
 from uquant.validation.competitor import REQUIRED_COMPETITORS, REQUIRED_POOLS
 from uquant.validation.generalization_matrix import run_generalization_matrix

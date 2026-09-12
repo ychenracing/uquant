@@ -1,20 +1,43 @@
 # 参数参考
 
-## 配置原则
+## 公开设置与固定规则
 
-`uquant.config.SystemConfig` 是参数的唯一来源，`DEFAULT_CONFIG` 是生产默认值。运行时可以用 `DEFAULT_CONFIG.override(...)` 创建不可变副本；不要修改模块级对象，也不要在日报、脚本或研究模块中复制第二份默认值。
+`SystemConfig` 只接受下面 13 个公开设置；`DEFAULT_CONFIG.override(...)` 也只接受这些键。
+金额单位为人民币元，费率、滑点、参与率和仓位使用小数比例。未知键、固定规则键、
+非数值、NaN、无穷及越界输入会被拒绝；当前对象保持不可变。
 
-查看全部参数：
+| 设置 | 默认值 | 用途 |
+|---|---:|---|
+| `initial_cash` | 2,000,000 | 新账户或回放初始现金 |
+| `max_gross` | 1.0 | 总仓硬上限，受固定政策关系约束 |
+| `max_symbol_weight` | 0.60 | 普通单票上限；既有战略窄例外另受固定政策约束 |
+| `max_positions` | 6 | 持仓数量上限，整数 |
+| `commission_rate` | 0.00025 | 佣金率 |
+| `min_commission` | 5 | 最低佣金 |
+| `stamp_duty` | 0.0005 | 卖出印花税 |
+| `transfer_fee` | 0.00001 | 过户费 |
+| `slippage` | 0.001 | 单边滑点 |
+| `max_volume_participation` | 0.005 | 成交量参与率 |
+| `minimum_median_amount` | 20,000,000 | 中位成交额门槛 |
+| `min_trade_value` | 20,000 | 最小交易金额 |
+| `risk_sentinel_mode` | `FREEZE_ONLY` | 生产冻结；`SHADOW` 用于离线只读诊断 |
+
+查看公开设置和完整有效规则：
 
 ```bash
 uv run python - <<'PY'
 import json
+from dataclasses import asdict
 from uquant.config import DEFAULT_CONFIG
+print(json.dumps(asdict(DEFAULT_CONFIG), indent=2, sort_keys=True))
 print(json.dumps(DEFAULT_CONFIG.to_dict(), indent=2, sort_keys=True))
 PY
 ```
 
-本页列出最影响收益、回撤和交易次数的参数。未列出的诊断参数仍以 `to_dict()` 输出为准。
+`config/policies.py` 按组合、特征、龙头选择、恢复、战略、机会、风险和行业风险所有者
+保存 253 条固定规则。它们没有构造参数或覆盖入口。`to_dict()` 是完整的只读有效策略
+摘要，包含公开设置和固定规则，不是构造配置的输入文件。下文的阈值表说明规则含义，
+并不增加可调入口。固定规则内化没有消除其经济自由度或过拟合风险。
 
 ## 生产与验收边界
 
@@ -22,38 +45,33 @@ PY
 
 `_decision_config_for_universe()` 对所有股票池大小都返回同一个传入配置。生产决策使用持久化 leader tenure，行业稀疏度按 `industry_signal_min_members` 收缩到中性值，group-balanced reference 只写诊断证据，风险票数按基础因果指标累计。
 
-## 参数治理
+## 规则身份与验证情境
 
-`benchmarks/config_parameter_governance.json` 要求每个 `SystemConfig` 字段恰好属于
-`MARKET_RULE`、`SAFETY`、`ECONOMIC` 或 `DERIVED` 一类，并有唯一
-owner。市场费用、T+1、涨跌停、停牌、手数、现金和组合硬上限不是搜索自由；derived
-字段不能独立覆盖，只有 `ECONOMIC` 字段可以
-进入候选选择。任何被接受的默认值变化都必须重新通过性能验收和完整的六窗口泛化
-验收，不能由人工日常运行或研究脚本临时注入场景专用参数。
+当前治理由打包资源 `uquant/contracts/resources/config_policy_governance.json` 描述，
+每个有效名称有唯一分类和所有者。`config_fingerprint()` 覆盖完整有效载荷；源码指纹
+同时覆盖规则定义、治理资源和具名验证实现。历史治理和结果保留原身份，仅在历史证据
+校验中读取，不作为当前配置迁移步骤。
+
+生产 `ProductionEngine(...)` 只接受精确的 `SystemConfig`，拒绝自定义配置子类和
+替代对象。`ProductionEngine.for_validation(data_dir, profile, cfg)` 是同一实现的离线
+验证入口，只接受具名情境和精确的公开基础配置：冻结合同的 `p2_lower/upper`、
+`p7_lower/upper`、`p8_lower/upper`、`confirmation_lower/upper`，以及既有回放测试的
+`recovery_breadth_lower/upper`。这 10 个情境扰动 5 条固定规则；不接受任意规则名和值。
+费用压力继续使用公开费用设置。验证结果记录实际完整配置及源码身份，不作为生产配置。
 
 官方 Generalization 的六个窗口、基准种子 `20260810`、索引 `0..4`、池大小
 `5 / 9 / 15 / 20` 是验证输入，不是 `SystemConfig` 调参项。future holdout 从
 `2026-08-06` 起只做观察，不能据其表现改参数；2023 年以前的数据仍只作 warm-up。
 
-## 资金与执行
+## 组合固定规则
 
 | 参数 | 默认值 | 作用 |
 |---|---:|---|
-| `initial_cash` | 2,000,000 | 回放和新账户初始资金 |
-| `max_gross` | 1.00 | 最大总仓 |
-| `max_symbol_weight` | 0.60 | 单票最大权重 |
-| `max_positions` | 6 | 最大持仓数 |
 | `industry_weight_cap` | 0.75 | 单行业最大权重 |
 | `min_trade_weight` | 0.05 | 常规最小权重变化 |
 | `restoration_min_trade_weight` | 0.05 | 恢复补仓最小权重变化 |
 | `protected_restore_min_trade_weight` | 0.04 | 受保护核心的恢复门槛 |
-| `min_trade_value` | 20,000 | 最小交易金额 |
-| `max_volume_participation` | 0.005 | 单日成交量参与率 |
-| `slippage` | 0.001 | 单边滑点 |
-| `commission_rate` | 0.00025 | 佣金率 |
-| `min_commission` | 5 | 最低佣金 |
-| `stamp_duty` | 0.0005 | 卖出印花税 |
-| `transfer_fee` | 0.00001 | 过户费 |
+
 
 ## 特征窗口
 
@@ -219,11 +237,8 @@ damage guard 或 acute evacuation；策略目标还必须不低于当前总仓�
 - 行业、相关性和未知行业上限不能绕过单票上限；
 - `fail_closed` 默认开启。
 
-## 调参建议
+## 变更规则
 
-1. 一次只改变一个参数族，并记录精确配置摘要；
-2. 先运行相关单元测试，再运行统一的 `promotion --profile full` AI-era 绩效门；
-3. 同时观察收益、最大回撤、订单数、换手和急跌期表现；
-4. 使用预先划分的 2023+ in-sample 研究证据，不以单一高收益区间或官方随机 cell 选择参数；
-5. 不通过降低费用、放宽数据校验或修改统计口径制造改善；
-6. 任何默认值变化都应单独提交，并附可复现证据；固定官方窗口、种子和证券池不得作为调节旋钮。
+日常运行只需维护证券范围、交易日、账户事实、数据来源、输出位置，以及实际适用的
+费用和执行约束。固定规则修改属于源码和策略变更，须另有明确授权，并遵循适用的
+收益、回撤、成本、交易次数和证据合同；不能以单个高收益窗口选择规则。

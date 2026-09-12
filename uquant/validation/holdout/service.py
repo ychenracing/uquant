@@ -11,7 +11,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 
-from ...atomic_io import atomic_write_text
+from ...infrastructure.atomic_files import atomic_write_text
 from ..execution_journal import JournalCheckpoint
 from .artifact_transaction import (
     artifact_bundle_lock as _artifact_bundle_lock,

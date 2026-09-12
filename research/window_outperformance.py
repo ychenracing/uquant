@@ -15,8 +15,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.engine import ProductionEngine
+from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 
 TARGET_START = "2025-01-02"
 TARGET_END = "2026-07-31"

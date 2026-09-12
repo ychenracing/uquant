@@ -36,7 +36,7 @@ from research.window_matrix import (
 from research.window_matrix import (
     WINDOWS as WINDOWS,
 )
-from uquant.atomic_io import atomic_write_text, validate_atomic_output_path
+from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_path
 
 TARGET_START = "2025-01-02"
 TARGET_END = "2026-07-31"

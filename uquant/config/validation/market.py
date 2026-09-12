@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -36,3 +37,17 @@ def validate_market(config: Any) -> None:
 
 
 __all__ = ("validate_market",)
+
+
+def validate_public_inputs(config: Any) -> None:
+    """Reject nonnumeric and nonfinite public settings before rule evaluation."""
+    for name in (
+        "initial_cash", "max_gross", "max_symbol_weight", "max_positions",
+        "commission_rate", "min_commission", "stamp_duty", "transfer_fee",
+        "slippage", "max_volume_participation", "minimum_median_amount", "min_trade_value",
+    ):
+        value = getattr(config, name)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError(f"{name} must be a finite number")
+        if name == "max_positions" and type(value) is not int:
+            raise ValueError("max_positions must be an integer")

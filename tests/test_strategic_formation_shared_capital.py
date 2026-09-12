@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from policy_inputs import policy_inputs
 from test_lifecycle_and_risk import _leader, _normal_risk, _strategic_frame
 
 from uquant.application.target_attribution import attach_target_attribution
@@ -55,7 +56,7 @@ def test_new_candidate_uses_shared_capital_without_relabeling_ordinary_incumbent
     leaders.update({s: _leader(s, .99 - i * .01, industry='optical') for i, s in enumerate(newcomers)})
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.account_identity, account.code_hash = 'account:shared-formation', 'source:shared-formation'
-    ordinary = PortfolioAllocator(DEFAULT_CONFIG.override(strategic_dynamic_enabled=False))
+    ordinary = PortfolioAllocator(policy_inputs(strategic_dynamic_enabled=False))
     for date in dates[240:245]:
         targets = _allocate(ordinary, account, date, {incumbent: panel[incumbent]},
                             {incumbent: leaders[incumbent]})

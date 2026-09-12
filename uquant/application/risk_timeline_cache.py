@@ -11,9 +11,9 @@ from typing import Any, Protocol, cast
 
 import pandas as pd
 
-from ..atomic_io import atomic_write_text
 from ..config import SystemConfig, config_fingerprint
 from ..contracts.universe import AIUniverse
+from ..infrastructure.atomic_files import atomic_write_text
 from ..market import MarketWorkspace
 from ..risk_sentinel.history import (
     risk_evidence_timeline_from_dict,

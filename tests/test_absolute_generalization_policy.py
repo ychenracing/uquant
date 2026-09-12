@@ -420,3 +420,27 @@ def test_historical_crowning_rejects_a_different_complete_source_cell() -> None:
 
     assert repeated.passed is False
     assert "historical crowning source epochs differ" in repeated.failures
+
+
+def test_complete_account_without_crowning_is_valid_but_not_met() -> None:
+    from uquant.types import AccountState
+
+    manifests = successful_manifests()
+    recovery = manifest(manifests, "recovery-and-reachability")
+    recovery["historical_crowning"]["chains"] = []
+    recovery["historical_crowning"]["final_account"] = AccountState.empty(2_000_000.).to_dict()
+    reseal_manifest(recovery)
+    report = aggregate_acceptance(manifests, load_absolute_generalization_contract())
+    repeated = next(item for item in report.components if item.name == "repeated_crowning")
+    assert not report.passed and not repeated.passed
+    assert "historical crowning requires two Fill-gated epochs" in repeated.failures
+    assert "historical crowning requires two distinct owners" in repeated.failures
+
+
+def test_missing_crowning_chain_is_invalid_not_an_absent_event() -> None:
+    manifests = successful_manifests()
+    recovery = manifest(manifests, "recovery-and-reachability")
+    recovery["historical_crowning"]["chains"].pop()
+    reseal_manifest(recovery)
+    with pytest.raises(ValueError, match="crowning account coverage"):
+        aggregate_acceptance(manifests, load_absolute_generalization_contract())

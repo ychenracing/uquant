@@ -18,7 +18,6 @@ from uquant.models.strategic_grant import StrategicGrantIntent, StrategicQualifi
 from uquant.models.strategic_universe import StrategicUniverseRoles
 from uquant.models.trading import AccountOrder, Fill
 from uquant.types import AccountState
-from uquant.validation.universe import default_ai_universe
 
 from ._account_payload import validate_account_payload
 from ._physical_identity import physical_fill_identity_sha256
@@ -613,19 +612,9 @@ def _crowning_payload(
             },
         )
     ordered = sorted(chains.values(), key=lambda item: cast(str, item["exit_session"]))
-    if len(ordered) < 2:
-        raise RuntimeError("absolute recovery repeated crowning evidence is absent")
-    if cross:
-        universe = default_ai_universe()
-        industries = {
-            universe.industry_of(
-                cast(str, cast(Mapping[str, object], item["epoch"])["owner_symbol"]),
-                cast(str, item["qualification_session"]),
-            )
-            for item in ordered
-        }
-        if len(industries) < 2:
-            raise RuntimeError("absolute recovery cross-industry crowning is absent")
+    # Complete observations may contain fewer events than the policy requires.
+    # The reader still checks every closed realized epoch against the account;
+    # event counts and industry diversity belong to the final policy evaluation.
     source_key = "source_scenario_id" if cross else "source_cell_id"
     return {
         source_key: source_name,

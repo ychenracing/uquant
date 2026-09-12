@@ -62,12 +62,21 @@ jobs:
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
       - name: Restore deterministic ownership evidence cache
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        id: cache
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: |
             /tmp/uquant-risk-evidence-v1
             ${{ runner.temp }}/strategic-ownership-cache
           key: >-
+            strategic-ownership-${{ runner.os }}-${{ matrix.shard }}-
+            ${{ hashFiles('uv.lock', 'data/frozen/SHA256SUMS',
+            'benchmarks/strategic_ownership_acceptance_contract.json',
+            'benchmarks/strategic_grant_acceptance_contract.json',
+            'uquant/**/*.py', 'research/**/*.py',
+            'scripts/run_strategic_grant_acceptance.py',
+            'scripts/run_strategic_ownership_acceptance.py') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: >-
             strategic-ownership-${{ runner.os }}-${{ matrix.shard }}-
             ${{ hashFiles('uv.lock', 'data/frozen/SHA256SUMS',
             'benchmarks/strategic_ownership_acceptance_contract.json',
@@ -82,6 +91,14 @@ jobs:
           --shard "${{ matrix.shard }}"
           --output "$RUNNER_TEMP/strategic-ownership-${{ matrix.shard }}.json"
           --cache-dir "$RUNNER_TEMP/strategic-ownership-cache"
+      - name: Save completed raw observations after evaluation
+        if: ${{ !cancelled() && steps.cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            /tmp/uquant-risk-evidence-v1
+            ${{ runner.temp }}/strategic-ownership-cache
+          key: ${{ steps.cache.outputs.cache-primary-key }}
       - name: Explain each ownership result
         if: ${{ always() }}
         env:

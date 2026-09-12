@@ -203,7 +203,9 @@ def test_ownership_workflow_is_bounded_cached_and_blocking() -> None:
     assert shard["strategy"]["fail-fast"] == "false"
     assert tuple(shard["strategy"]["matrix"]["shard"]) == SHARD_NAMES
     rendered = str(workflow).lower()
-    assert "actions/cache@" in rendered
+    assert "actions/cache/restore@" in rendered
+    assert "actions/cache/save@" in rendered
+    assert "!cancelled()" in rendered
     assert "scripts/run_strategic_ownership_acceptance.py" in rendered
     assert "--scenario" not in rendered
     assert "strategic ownership acceptance" in rendered
@@ -732,3 +734,41 @@ def test_execution_error_does_not_skip_independent_shard_scenarios(tmp_path, mon
     assert result["scenarios"][0]["evaluation"] == "INVALID"
     assert len(result["scenarios"]) == len(calls)
     assert all(row["status"] == "PASS" for row in result["scenarios"][1:])
+
+
+def test_corrupt_participation_alias_is_invalid_and_preserves_original_error(tmp_path, monkeypatch):
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay()
+    monkeypatch.setattr(ownership_runner, "_native_sessions", lambda contract: [row.date for row in replay.trace])
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    error = ValueError("CORE participation daily cash or continuous position differs")
+
+    def reject(result):
+        raise error
+
+    monkeypatch.setattr(ownership_runner, "_core_participation_facts", reject)
+    output = tmp_path / "alias.json"
+    with pytest.raises(ValueError) as observed:
+        run_acceptance_shard(shard="continuity", scenario="same-industry-crowning",
+                             output=output, cache_dir=tmp_path / "cache")
+    assert observed.value is error
+    result = json.loads(output.read_text())
+    assert result["diagnostic_only"] and not result["authoritative_acceptance"]
+    row = result["scenarios"][-1]
+    assert row["evaluation"] == "INVALID" and row["error"] == str(error)
+    assert "raw_replay" in row and "same_industry_core_participation" not in row
+
+
+def test_ownership_raw_cache_is_saved_even_when_evaluation_fails():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/strategic-ownership-acceptance.yml").read_text())
+    steps = workflow["jobs"]["ownership-shard"]["steps"]
+    restore = next(step for step in steps if step.get("id") == "cache")
+    save = next(step for step in steps if step.get("name") == "Save completed raw observations after evaluation")
+    assert restore["uses"].startswith("actions/cache/restore@")
+    assert save["uses"].startswith("actions/cache/save@")
+    assert "!cancelled()" in save["if"] and "success()" not in save["if"]
+    assert "github.run_attempt" in restore["with"]["key"]
+    assert restore["with"]["restore-keys"]
+    assert save["with"]["path"] == restore["with"]["path"]
+    assert save["with"]["key"] == "${{ steps.cache.outputs.cache-primary-key }}"

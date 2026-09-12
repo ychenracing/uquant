@@ -74,10 +74,18 @@ jobs:
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
       - name: Restore raw cell cache
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        id: cache
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ${{ runner.temp }}/absolute-generalization-cache
           key: >-
+            absolute-generalization-${{ runner.os }}-${{ matrix.shard }}-
+            ${{ hashFiles('uv.lock', 'data/frozen/SHA256SUMS',
+            'benchmarks/absolute_generalization_acceptance_contract.json',
+            'benchmarks/source_surface_registry.json', 'uquant/config/**',
+            'uquant/contracts/universe/**', 'uquant/validation/absolute_generalization/**',
+            'scripts/run_absolute_generalization_acceptance.py') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: >-
             absolute-generalization-${{ runner.os }}-${{ matrix.shard }}-
             ${{ hashFiles('uv.lock', 'data/frozen/SHA256SUMS',
             'benchmarks/absolute_generalization_acceptance_contract.json',
@@ -94,6 +102,12 @@ jobs:
           --output "$RUNNER_TEMP/absolute-generalization/manifest.json"
           --cache-dir "$RUNNER_TEMP/absolute-generalization-cache"
           --data-dir data/frozen
+      - name: Save completed raw observations after evaluation
+        if: ${{ !cancelled() && steps.cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/absolute-generalization-cache
+          key: ${{ steps.cache.outputs.cache-primary-key }}
       - name: Explain execution and economic evaluation
         if: ${{ always() }}
         env:

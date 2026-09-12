@@ -1306,17 +1306,13 @@ def _participation_alias(contract: Mapping[str, Any], source: dict[str, Any]) ->
     except _EconomicNotMet as exc:
         adjacent_crowning.update(status="FAIL", reason=str(exc))
     result = _continuity_result(source["raw_replay"])
-    error = ""
-    try:
-        admissions = _core_participation_facts(result)
-    except (ValueError, TypeError, KeyError) as exc:
-        admissions = []
-        error = str(exc)
+    admissions = _core_participation_facts(result)
     witness = _participation_witness(admissions)
     participation = {"status": "PASS" if witness else "FAIL", "overlay_sha256": overlay["canonical_sha256"],
                    "raw_sha256": source["continuity"]["raw_sha256"], "admissions": admissions, "witness": witness,
-                   "error": error if error else ("" if witness else "no independently qualified same-industry participation pair")}
+                   "error": "" if witness else "no independently qualified same-industry participation pair"}
     return {**source, "status": "FAIL" if source_failures else participation["status"],
+            "evaluation": "NOT_MET" if source_failures or not witness else "MET",
             "violations": source_failures, "same_industry_witness": adjacent_witness,
             "adjacent_same_industry_crowning": adjacent_crowning,
             "same_industry_core_participation": participation}

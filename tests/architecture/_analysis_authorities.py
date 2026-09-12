@@ -60,7 +60,7 @@ MODULE_AUTHORITIES = {
     "uquant.config": "production_safe",
     "uquant.config.model": "production_safe",
     "uquant.config.policies": "production_safe",
-    "uquant.validation.parameter_policy": "production_safe",
+    "uquant.validation.parameter_policy": "validation_runner",
     "uquant.config.validation": "production_safe",
     "uquant.config.validation.execution": "production_safe",
     "uquant.config.validation.market": "production_safe",

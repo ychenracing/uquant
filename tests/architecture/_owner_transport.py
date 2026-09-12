@@ -272,10 +272,10 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
             projected.remove(previous)
             projected.add(current)
     assert not (projected & additions)
-    if identifier == "validation_runner_v1":
+    if identifier in {"validation_runner_v1", "full_package_v1"}:
         projected.add("uquant/validation/parameter_policy.py")
     if "uquant/config/model.py" in projected:
-        projected.update({"uquant/config/policies.py", "uquant/validation/parameter_policy.py"})
+        projected.add("uquant/config/policies.py")
     return (projected | set(additions)) - RETIRED_ALLOCATION_SOURCES - {
         "uquant/atomic_io.py", "uquant/infrastructure/atomic_io.py", "uquant/config/views.py",
         "research/generalization_ablation_cli.py", "research/ablation_registry.py",

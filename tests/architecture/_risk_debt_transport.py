@@ -21,6 +21,7 @@ _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
         "uquant.attribution.validation_artifact",
         "uquant.attribution.validation_lots",
         "uquant.broker_contract",
+        "uquant.config.policies",
         "uquant.holding_history",
         "uquant.models.ordinary_entry",
         "uquant.ordinary_pullback",
@@ -44,10 +45,16 @@ _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
         "uquant.validation.production_observation",
         "uquant.validation.production_observation_contract",
         "uquant.validation.promotion_contract",
+        "uquant.validation.parameter_policy",
     }
 )
 _RISK_ARCHITECTURE_AUTHORITY_REBINDINGS = {
     "uquant.account.code_identity": "uquant.account.migrations",
+}
+_RISK_ARCHIVED_REMOVED_MODULES = {
+    "uquant.atomic_io": "production_safe",
+    "uquant.infrastructure.atomic_io": "production_safe",
+    "uquant.config.views": "production_safe",
 }
 
 
@@ -62,7 +69,9 @@ def architecture_risk_historical_authorities(
     stale = set(authorities) - source_modules
     assert stale == _RISK_ARCHITECTURE_AUTHORITY_STALE
     archived = source_modules - set(authorities)
-    assert archived == set(_RISK_ARCHITECTURE_AUTHORITY_REBINDINGS.values())
+    assert archived == (
+        set(_RISK_ARCHITECTURE_AUTHORITY_REBINDINGS.values()) | set(_RISK_ARCHIVED_REMOVED_MODULES)
+    )
     projected = {
         module: authority
         for module, authority in authorities.items()
@@ -71,6 +80,7 @@ def architecture_risk_historical_authorities(
     for current, historical in _RISK_ARCHITECTURE_AUTHORITY_REBINDINGS.items():
         assert current in stale
         projected[historical] = authorities[current]
+    projected.update(_RISK_ARCHIVED_REMOVED_MODULES)
     return projected
 
 

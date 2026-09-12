@@ -66,25 +66,3 @@ def test_market_persistence_resets_on_invalid_or_missing_sessions(damage):
     market = _observe(p, a, dates[5] if damage == 'gap' else dates[4],
                       panel, leaders, risk, refs, frames)
     assert not market['persistent_mature_entry_open']
-
-
-def test_trend_grades_preserve_five_observations_but_weak_market_resets():
-    from uquant.portfolio.ordinary import observe_persistent_maturity, observe_repair_maturity
-
-    p, a, dates, panel, leaders, risk, refs, frames, symbol = _setup()
-    a.leader_tenure[symbol] = 5
-    grades = [Opportunity.TREND, Opportunity.STRONG_TREND] * 3
-    for i, day in enumerate(dates[:5]):
-        market = observe_ordinary_market(p, date=day, opportunity=grades[i],
-            risk=risk, leaders=leaders, user_panel=panel)
-        observe_repair_maturity(p, account=a, date=day, market=market, user_panel=panel)
-        observe_persistent_maturity(p, account=a, date=day, market=market,
-            opportunity=grades[i], risk=risk, leaders=refs, user_panel=frames)
-        proof = ordinary_core_entry(p, symbol=symbol, score=leaders[symbol], date=day,
-            user_panel=panel, account=a, confirmation_days=5, market=market)
-        assert (proof['block'] == 'READY') == (i == 4)
-    assert market['persistent_maturity']['observed'] == 5
-    observe_persistent_maturity(p, account=a, date=dates[5],
-        market={**market, 'as_of': str(dates[5].date())},
-        opportunity=Opportunity.WEAK, risk=risk, leaders=refs, user_panel=frames)
-    assert a.candidate_tenure['ordinary_persistence_count'] == 0

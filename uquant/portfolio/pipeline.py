@@ -472,7 +472,9 @@ def _restore_ordinary_holdings(book: AllocationBook) -> None:
             row["restore_block"] = "RESTORATION_COMPLETED_RETAIN_DRIFT"
             continue
         if book.fund(symbol, wanted, phase="POST_SHOCK_RESTORATION",
-                     minimum=0.0 if pending else cfg.protected_restore_min_trade_weight):
+                     minimum=0.0 if pending else cfg.protected_restore_min_trade_weight,
+                     concentration_cap=(cfg.recovery_target_gross
+                                        if symbol in book.recovery_restore_symbols else None)):
             book.mechanisms[symbol] = AttributionMechanism.POST_SHOCK_RESTORATION
             book.reasons[symbol] = "core restoration after account risk repair"
 

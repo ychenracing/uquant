@@ -49,7 +49,7 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 检查收益、回撤、订单、换手、集中度和归因一致性。失败场景、样本不足、证券池、seed、
 统计口径和冻结 champion 都不能为了让候选通过而改写。
 
-经济账本必须满足 `realized_pnl + open_pnl = final_equity - initial_cash`。只有治理为
+经济账本必须满足 `realized_pnl + open_pnl = final_equity - initial_cash`。
 生产公开设置共 13 项；固定策略与风险规则不能通过构造或 `override()` 改写。规则变更需要独立策略授权与适用验证。完整合同见[性能与证据](docs/PERFORMANCE.md)和[参数参考](docs/CONFIGURATION.md)。
 
 Future Holdout 从 `2026-08-06` 起只接受真实、按顺序追加的新 session，遵守 no-backfill；

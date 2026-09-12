@@ -93,7 +93,10 @@ def test_existing_bounded_repair_restores_continuous_core_within_risk_cap(permis
         risk = replace(risk, shock_state="NONE")
     elif permission == "synchronized":
         account.capital_budget_repair_streak = 0
-        risk = replace(risk, reasons=("two-day synchronized leader repair",))
+        account.risk_streaks["concentrated_repair"] = DEFAULT_CONFIG.concentrated_repair_days
+        risk = replace(risk, evidence={**risk.evidence, "held_repair_ratio": 1.,
+                                     "held_damage_ratio": 0.},
+                       reasons=("two-day synchronized leader repair",))
     targets = _allocate(fixture, dates[0], risk=risk)
     target = next(target for target in targets if target.symbol == SYMBOL)
     assert target.weight == pytest.approx(risk.target_gross_cap)

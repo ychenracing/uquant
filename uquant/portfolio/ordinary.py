@@ -139,6 +139,9 @@ def _mature_core_eligible(self: PortfolioAllocator, *, score: LeaderScore, tenur
             and not account.candidate_tenure.get("ordinary_market_rearm_required", 0)
             and market is not None and market.get("as_of") == str(date.date())
             and (market.get("impulse") is True or local_open)
+            and (market.get("impulse") is True
+                 or account.replacement_tenure.get("ordinary_repair_maturity:" + symbol, 0)
+                 >= self.cfg.leader_tenure_days)
             and symbol in market.get("credible_symbols", ()))
 
 
@@ -182,6 +185,8 @@ def ordinary_core_entry(
             "required_confirmation": self.cfg.leader_tenure_days,
             "confirmations": {"leader_tenure": tenure}, "as_of": str(date.date()),
         }
+        if market is not None and market.get("impulse") is not True:
+            certificate["confirmations"]["credible_maturity"] = credible
         if persistent_only:
             certificate["confirmations"].update(credible_maturity=credible,
                                                  market_persistence=cast(dict[str, Any], market)["persistent_maturity"])

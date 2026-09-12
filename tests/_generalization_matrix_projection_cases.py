@@ -19,6 +19,7 @@ from uquant.config import (
 )
 from uquant.validation import generalization_matrix as matrix_module
 from uquant.validation import generalization_reference as reference_module
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.generalization_matrix import (
     execute_generalization_matrix,
     validate_matrix_artifact,
@@ -68,7 +69,7 @@ def test_champion_exact_equality_passes_but_mutation_fails(
 
 def test_v2_projection_uses_reconstructed_legacy_control_and_only_normalizes_validated_bindings() -> None:
     frozen = json.loads(
-        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+        (evidence_root() / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )

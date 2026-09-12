@@ -542,6 +542,7 @@ holdout session。
 原始审计证据由不可变 Git 提交保存。仓库内的审计校验通过
 `uquant.validation.evidence_source.evidence_root()` 读取并核验 Git 对象，将数据解包到独立目录，
 不执行历史源码、不覆盖当前账户或冻结输入。完整克隆保留这些 Git 对象；生产运行不依赖审计数据。
+跨 AI 对照入口也从该来源读取冻结基线，并继续核验合同中记录的文件 SHA256；缺失或摘要不符时拒绝继续。
 证据中的生产者、配置、数据、失败结论和 seal 保持原样，不能作为新运行结果重新贴签。
 
 冻结数据清单位于 `data/frozen/DATA_MANIFEST.json`，源码表面定义位于

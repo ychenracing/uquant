@@ -30,6 +30,7 @@ from uquant.validation.acceptance_tolerance import (
     principal_wealth_floor,
     wealth_floor,
 )
+from uquant.validation.evidence_source import evidence_root
 
 CONTRACT_PATH = ROOT / 'benchmarks/cross_ai_core_strategy_contract.json'
 REMOVALS = ('remove_all_three', 'no_optical')
@@ -199,7 +200,7 @@ def check_metrics(
 
 def evaluate(candidate_root: Path, *, principal_only: bool = False) -> dict[str, Any]:
     contract = json.loads(CONTRACT_PATH.read_text())
-    baseline_path = ROOT / contract['basis']['baseline_file']
+    baseline_path = evidence_root() / contract['basis']['baseline_file']
     if hashlib.sha256(baseline_path.read_bytes()).hexdigest() != contract['basis']['baseline_file_sha256']:
         raise ValueError('frozen baseline identity mismatch')
     baseline = json.loads(baseline_path.read_text())

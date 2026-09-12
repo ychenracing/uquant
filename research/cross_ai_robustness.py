@@ -26,6 +26,7 @@ from uquant.validation.acceptance_tolerance import (
     principal_wealth_floor,
     wealth_floor,
 )
+from uquant.validation.evidence_source import evidence_root
 
 CASES = ('champion', 'remove_all_three', 'no_optical')
 
@@ -48,7 +49,7 @@ def _read_sealed(path: Path) -> dict[str, Any]:
 
 def _contract() -> tuple[dict[str, Any], dict[str, Any]]:
     contract = json.loads(CONTRACT_PATH.read_text())
-    baseline_path = ROOT / contract['basis']['baseline_file']
+    baseline_path = evidence_root() / contract['basis']['baseline_file']
     if _sha(baseline_path) != contract['basis']['baseline_file_sha256']:
         raise ValueError('frozen baseline seal mismatch')
     baseline = json.loads(baseline_path.read_text())

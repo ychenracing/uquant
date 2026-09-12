@@ -11,6 +11,7 @@ from test_generalization_matrix import (
 )
 
 from uquant.validation import generalization_matrix as matrix_module
+from uquant.validation.evidence_source import evidence_root
 from uquant.validation.generalization_matrix import (
     _head_and_source,
 )
@@ -131,7 +132,7 @@ def test_untouched_champion_exact_equality_is_an_accepted_policy_result() -> Non
     baseline = load_generalization_baseline()
     policy = load_generalization_policy()
     artifact = json.loads(
-        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+        (evidence_root() / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )
@@ -164,7 +165,7 @@ def test_equal_champion_tail_bounds_survive_a_benign_non_tail_improvement() -> N
     """Catches benign candidate drift reviving absolute floors the champion never met."""
     baseline = load_generalization_baseline()
     artifact = json.loads(
-        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+        (evidence_root() / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )
@@ -191,7 +192,7 @@ def test_equal_champion_tail_bounds_survive_a_benign_non_tail_improvement() -> N
 def test_grandfathered_random_tail_rejects_worsening_beyond_the_baseline() -> None:
     """Catches grandfathering turning a frozen tail ceiling into an unbounded waiver."""
     artifact = json.loads(
-        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+        (evidence_root() / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )
@@ -231,7 +232,7 @@ def test_champion_equality_acceptance_does_not_hide_a_genuine_cell_degradation()
     """Catches an equality exemption bypassing the frozen per-cell non-regression gate."""
     baseline = load_generalization_baseline()
     artifact = json.loads(
-        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+        (evidence_root() / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )
@@ -323,7 +324,7 @@ def test_exact_equality_fails_closed_for_every_incomplete_or_mismatched_binding(
 ) -> None:
     """Catches structural failures being reported while exact equality stays true."""
     artifact = json.loads(
-        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+        (evidence_root() / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )
@@ -402,7 +403,7 @@ def test_exact_equality_rejects_schema_presence_and_raw_evidence_drift(
 ) -> None:
     """Catches absent nullable fields and unbound artifact structure or raw evidence."""
     artifact = json.loads(
-        (Path("artifacts") / "phase2" / "champion-generalization-matrix.json").read_text(
+        (evidence_root() / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
             encoding="utf-8"
         )
     )

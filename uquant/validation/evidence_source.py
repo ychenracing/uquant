@@ -23,6 +23,7 @@ def evidence_root() -> Path:
         archive = subprocess.run(
             [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
              "benchmarks/current_heads_competitor_matrix.json",
+             "benchmarks/cross_ai_stage1_baselines.json",
              "research/current_heads_competitor_matrix.py",
              "benchmarks/strategic_evidence_closure_contract.json"],
             check=True, capture_output=True,

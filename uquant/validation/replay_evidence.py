@@ -30,6 +30,8 @@ class VerifiedMarketData:
                 "frozen market data differs from artifact provenance"
             )
         store = DataStore(root)
+        self.corporate_actions = store.account_input.actions if store.account_input is not None else ()
+        self.tax_debits = store.account_input.tax_debits if store.account_input is not None else ()
         symbols = tuple(sorted(path.stem for path in root.glob("*.csv")))
         if not symbols:
             raise DataContractError("verified market data has no symbol panels")

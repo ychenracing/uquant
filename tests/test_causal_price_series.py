@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from research.causal_price_series import linked_prices
+from uquant.market.price_series import linked_prices
 
 
 def bar(day, price):
@@ -25,7 +25,16 @@ def test_split_and_dividend_link_preserves_raw_execution_fields():
     assert linked[1]['close'] == 49
     assert linked[1]['volume'] == 1000
     assert linked[1]['amount'] == 49000
+    assert linked[1]['share_scale'] == 2
+    assert linked[1]['reference_close'] == 49
     assert rows == original
+
+
+def test_cash_adjustment_does_not_change_share_volume_units():
+    linked = linked_prices([bar('2021-01-04', 100), bar('2021-01-05', 99)],
+                           [event('2021-01-05', '1')], as_of='2021-01-05')
+    assert linked[1]['share_scale'] == 1
+    assert linked[1]['reference_close'] == 99
 
 
 def test_appended_actions_and_market_rows_cannot_change_visible_prefix():

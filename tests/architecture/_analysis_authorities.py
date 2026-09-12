@@ -26,6 +26,10 @@ FINAL_BUDGETS = {
 }
 
 MODULE_AUTHORITIES = {
+    "uquant.account.corporate_actions": "production_safe",
+    "uquant.market.account_input": "production_safe",
+    "uquant.market.price_series": "production_safe",
+    "uquant.models.corporate_action": "production_safe",
     "uquant.validation.evidence_source": "validation_runner",
     "uquant": "production_safe",
     "uquant.__main__": "cli_runner",

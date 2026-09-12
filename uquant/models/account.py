@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from .corporate_action import CorporateActionState, DividendTaxDebit, corporate_action_share_award
 from .enums import Opportunity, Risk
 from .strategic_epoch import StrategicEpoch
 from .strategic_grant import StrategicGrantIntent, StrategicQualificationObservation
@@ -26,6 +27,9 @@ class AccountState:
     order_ledger: list[AccountOrder] = field(default_factory=list)
     next_order_sequence: int = 1
     fills: list[Fill] = field(default_factory=list)
+    corporate_actions: list[CorporateActionState] = field(default_factory=list)
+    corporate_action_cursor: str = ""
+    dividend_tax_debits: list[DividendTaxDebit] = field(default_factory=list)
     broker_as_of: str = ""
     opportunity: str = Opportunity.CHOPPY.value
     risk: str = Risk.NORMAL.value
@@ -110,6 +114,17 @@ class AccountState:
     data_hash_as_of: str = ""
     data_hash_symbols: list[str] = field(default_factory=list)
     code_hash: str = ""
+
+    def share_rights(self) -> dict[str, int]:
+        """Economic shares already owned but not yet available for execution."""
+        rights: dict[str, int] = {}
+        for state in self.corporate_actions:
+            if state.ex_processed_date and state.action.share_ratio and not state.distributed_date:
+                rights[state.action.symbol] = rights.get(state.action.symbol, 0) + sum(
+                    corporate_action_share_award(lot, state.action) for lot in state.entitled_lots
+                )
+        return rights
+
 
     @classmethod
     def empty(cls, cash: float) -> AccountState:

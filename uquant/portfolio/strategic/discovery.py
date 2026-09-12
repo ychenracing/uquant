@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from ...features import causal_close
 from ...models.strategic_epoch import (
     settle_account_strategic_epoch,
 )
@@ -296,7 +297,7 @@ def strategic_qualification_snapshots(
     for symbol, frame in user_panel.items():
         if date not in frame.index:
             continue
-        history = frame.loc[:date, "close"].dropna()
+        history = causal_close(frame, date).dropna()
         if (
             len(history) < 121
             or "amount" not in frame.columns

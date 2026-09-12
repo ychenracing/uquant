@@ -237,6 +237,8 @@ def _validated_economic_evidence(
             attribution=canonical_attribution,
             trusted_sessions=trusted_sessions,
             trusted_close=state.market.close,
+            trusted_corporate_actions=state.market.corporate_actions,
+            trusted_tax_debits=state.market.tax_debits,
             require_daily_replay_evidence=True,
         )
     except (TypeError, ValueError) as exc:

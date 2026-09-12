@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import math
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -78,6 +79,11 @@ class DataStore:
             raise DataContractError(f"data directory does not exist: {self.root}")
         self._cache: dict[str, pd.DataFrame] = {}
         self._prefix_hash_cache: dict[str, tuple[pd.DatetimeIndex, tuple[str, ...]]] = {}
+        from .market.account_input import HistoricalAccountInput
+
+        self.account_input = (
+            HistoricalAccountInput(self.root) if (self.root / "ACCOUNT_INPUT.json").exists() else None
+        )
 
     def path_for(self, symbol: str) -> Path:
         """Resolve a normalized symbol to an existing CSV path."""
@@ -96,7 +102,20 @@ class DataStore:
         if normalized not in self._cache:
             path = self.path_for(normalized)
             frame = pd.read_csv(path)
-            self._cache[normalized] = self._validate(frame, normalized)
+            if self.account_input is not None:
+                raw_columns: tuple[str, ...] = (*REQUIRED_COLUMNS[1:], "amount")
+                if normalized not in {"sh000300", "sh000682"}:
+                    raw_columns += ("reported_change",)
+                for column in raw_columns:
+                    if column not in frame or not pd.to_numeric(frame[column], errors="coerce").map(math.isfinite).all():
+                        raise DataContractError(f"{normalized}: missing/nonfinite raw {column}")
+                if (frame["amount"] < 0).any():
+                    raise DataContractError(f"{normalized}: negative raw amount")
+            validated = self._validate(frame, normalized)
+            self._cache[normalized] = (
+                self.account_input.augment(normalized, validated, path)
+                if self.account_input is not None else validated
+            )
         frame = self._cache[normalized]
         if as_of is None:
             return frame.copy()
@@ -198,11 +217,16 @@ class DataStore:
             files[path.name] = self._prefix_hash(symbol, as_of=bound)
             starts.append(str(bounded.index.min().date()))
             ends.append(str(bounded.index.max().date()))
+        if self.account_input is not None:
+            files["ACCOUNT_INPUT.json"] = self.account_input.visible_identity(
+                normalized, str(bound.date()) if bound is not None else min(ends)
+            )
         payload = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
         return DataManifest(
             generated_at=datetime.now(UTC).isoformat(),
             source=source,
-            adjustment="QFQ stocks; raw indices",
+            adjustment=("raw execution; causal linked signals" if self.account_input is not None
+                        else "QFQ stocks; raw indices"),
             files=files,
             symbols=normalized,
             start=max(starts),

@@ -286,7 +286,8 @@ def validated_decision_symbols(
     if not user_symbols:
         raise ValueError("at least one technology-sector symbol is required")
     durable_symbols = (
-        set(account.positions)
+        set(account.share_rights())
+        | set(account.positions)
         | set(account.protected_weights)
         | set(account.sector_guard_symbols)
         | set(account.anchor_weights)
@@ -338,6 +339,12 @@ def verify_decision_provenance(
     current_code_hash = self._code_hash
     if account.code_hash and account.code_hash != current_code_hash and self.cfg.fail_closed:
         raise RuntimeError("production code hash differs from account state")
+    account_input = self.data.account_input
+    if account_input is None:
+        if account.corporate_actions or account.corporate_action_cursor:
+            raise RuntimeError("corporate-action account requires its reviewed ACCOUNT_INPUT sources")
+    else:
+        account_input.apply(account, date=str(date.date()), phase="close")
     self._mark_account_positions(account, date)
     return _DecisionInputs(
         date=date,
@@ -406,7 +413,7 @@ def decision_market_context(
         score_cache=self._leader_score_cache,
     )
     visible_users = set(user_panel)
-    prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions)}
+    prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions) | set(account.share_rights())}
     _, equity = current_weights(account, prices)
     expected_reference_symbols = self.workspace.filter_reference_symbols(canonical_symbols)
     if active_reference_symbols != expected_reference_symbols:

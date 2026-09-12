@@ -10,6 +10,7 @@ from typing import Any, Final
 import numpy as np
 import pandas as pd
 
+from ..features import causal_close
 from .models import RISK_FAMILIES, SubindustryEvidence
 
 _FAST_SESSIONS: Final = 5
@@ -60,7 +61,7 @@ class NameMarketEvidence:
 def _causal_close(frame: pd.DataFrame, point: pd.Timestamp) -> pd.Series:
     if not isinstance(frame.index, pd.DatetimeIndex) or "close" not in frame:
         raise ValueError("Sentinel frames require DatetimeIndex and close")
-    values = pd.to_numeric(frame.loc[:point, "close"], errors="coerce").dropna()
+    values = pd.to_numeric(causal_close(frame, point), errors="coerce").dropna()
     values = values[values > 0.0]
     return values.astype(float)
 

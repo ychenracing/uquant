@@ -599,6 +599,8 @@ def _validated_attribution(
         attribution=attribution,
         trusted_sessions=trusted_sessions,
         trusted_close=None if state.market is None else state.market.close,
+        trusted_corporate_actions=None if state.market is None else state.market.corporate_actions,
+        trusted_tax_debits=None if state.market is None else state.market.tax_debits,
         require_daily_replay_evidence=True,
     )
 

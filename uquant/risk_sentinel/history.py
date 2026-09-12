@@ -46,7 +46,7 @@ def _normalized_timestamp(value: object) -> pd.Timestamp:
 
 
 def _valid_close(frame: pd.DataFrame) -> pd.Series:
-    values = pd.to_numeric(frame["close"], errors="coerce")
+    values = pd.to_numeric(frame.get("signal_close", frame["close"]), errors="coerce")
     return values[values > 0.0].astype(float)
 
 
@@ -392,7 +392,7 @@ def _base_covariance_inputs(
         reference_returns.loc[:session].tail(_MARKET_LOOKBACK)
         if reference_returns is not None
         else pd.DataFrame(
-            {symbol: frame["close"].pct_change(fill_method=None) for symbol, frame in reference_panel.items()}
+            {symbol: frame.get("signal_close", frame["close"]).pct_change(fill_method=None) for symbol, frame in reference_panel.items()}
         )
     )
     correlation = float("nan")

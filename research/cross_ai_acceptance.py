@@ -15,12 +15,14 @@ from typing import Any
 
 import pandas as pd
 
-from research.cross_ai_strategy import ROOT, case_symbols
+from research.cross_ai_strategy import ROOT, case_symbols, research_data_root
 from uquant.account import load_account
 from uquant.attribution import build_economic_attribution
+from uquant.attribution.replay_evidence import validate_daily_replay_evidence
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.contracts.universe import decision_ai_universe, default_ai_universe
+from uquant.data import DataStore
 from uquant.engine import code_fingerprint, performance_metrics
 from uquant.validation.acceptance_tolerance import (
     acceptance_revision,
@@ -58,6 +60,7 @@ def read_case(
     effective_config: dict[str, Any] | None = None, start_session_offset: int = 0,
     extra_excluded_symbols: tuple[str, ...] = (), runner_sha256: str | None = None,
     risk_reference_additions: tuple[str, ...] = (),
+    research_data_dir: Path | None = None, research_data_sha256: str | None = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = json.loads((directory / 'result.json').read_text())
     seal = result.pop('canonical_sha256')
@@ -97,6 +100,7 @@ def read_case(
     previous, rows = '', 0
     equity_rows: list[tuple[pd.Timestamp, float]] = []
     ledger_rows: list[dict[str, Any]] = []
+    replay_rows: list[dict[str, Any]] = []
     with gzip.open(raw, 'rt', encoding='utf-8') as stream:
         for line in stream:
             row = json.loads(line)
@@ -119,6 +123,8 @@ def read_case(
             previous = date
             equity_rows.append((pd.Timestamp(date), number(row, 'equity')))
             ledger_rows.append(row['ledger'])
+            if 'daily_replay_evidence' in row:
+                replay_rows.append(row['daily_replay_evidence'])
     if rows < 2 or rows != result['sessions']:
         raise ValueError('raw observation row count mismatch')
     dates = [str(date.date()) for date, _ in equity_rows]
@@ -141,10 +147,36 @@ def read_case(
         raise ValueError('raw daily ledger PnL does not reconcile')
     # Symbol accounting uses literal fills and terminal marks; cash-drag diagnostics
     # require benchmark prices and are not needed to select a contributor.
+    final_prices = {symbol: number(ledger_rows[-1]['position_weights'], symbol) * equity_rows[-1][1]
+                    / position.shares for symbol, position in account.positions.items() if position.shares > 0}
+    data = None
+    if account.corporate_actions or identity.get('research_data_manifest_sha256') is not None:
+        if research_data_dir is None or identity.get('research_data_manifest_sha256') != research_data_sha256:
+            raise ValueError('corporate-action readback requires the exact reviewed raw input')
+        data = DataStore(research_data_root(research_data_dir, research_data_sha256))
+        if account.corporate_actions and data.account_input is None:
+            raise ValueError('corporate-action readback lacks original action sources')
+    if data is not None and data.account_input is not None:
+        sources = {action.action_id: action for action in data.account_input.actions}
+        if any(sources.get(state.action.action_id) != state.action for state in account.corporate_actions):
+            raise ValueError('readback corporate-action sources differ')
+        payload = account.to_dict()
+        validate_daily_replay_evidence(
+            result={'daily_replay_evidence': replay_rows,
+                    'equity_curve': [{'date': str(day.date()), 'equity': value} for day, value in equity_rows]},
+            attribution={'daily_ledger': ledger_rows}, account=payload,
+            fills=payload['fills'], positions=payload['positions'],
+            economic_start=dates[0], economic_end=dates[-1],
+            trusted_sessions=[day for day in data.account_input.document['sessions'] if dates[0] <= day <= dates[-1]],
+            trusted_close=lambda symbol, day: float(data.load(symbol, as_of=day).iloc[-1]['close']),
+            trusted_corporate_actions=data.account_input.actions,
+            trusted_tax_debits=data.account_input.tax_debits,
+        )
+        final_prices = {symbol: float(data.load(symbol, as_of=dates[-1]).iloc[-1]['close'])
+                        for symbol in replay_rows[-1]['close_marks']}
     attribution = build_economic_attribution(
         account=account,
-        final_prices={symbol: number(ledger_rows[-1]['position_weights'], symbol) * equity_rows[-1][1]
-                      / position.shares for symbol, position in account.positions.items() if position.shares > 0},
+        final_prices=final_prices,
         sessions=dates, economic_start=dates[0], economic_end=dates[-1], final_equity=equity_rows[-1][1],
     )
     verified_pnl = {symbol: number(bucket, 'total_pnl') for symbol, bucket in attribution['by_symbol'].items()}

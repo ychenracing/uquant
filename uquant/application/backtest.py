@@ -9,6 +9,9 @@ from typing import Any, Protocol
 
 import pandas as pd
 
+from ..account.corporate_actions import (
+    corporate_action_receivable,
+)
 from ..attribution import (
     build_daily_ledger_row,
     build_daily_replay_evidence_row,
@@ -55,7 +58,9 @@ def equity(
     field: str = "close",
 ) -> float:
     """Mark current positions at the latest visible field and add cash."""
-    return account.cash + sum(
+    mark_symbols = set(account.positions) | set(account.share_rights())
+    marks = {symbol: self._price(symbol, date, field) for symbol in mark_symbols if symbol in self._raw}
+    return account.cash + corporate_action_receivable(account, marks) + sum(
         (
             position.shares * self._price(symbol, date, field)
             for symbol, position in account.positions.items()
@@ -127,8 +132,7 @@ def _finalize_backtest_metrics(
             account=account,
             final_prices={
                 symbol: self._price(symbol, final_date)
-                for symbol, position in account.positions.items()
-                if position.shares > 0
+                for symbol in set(account.positions) | set(account.share_rights())
             },
             sessions=tuple(str(date.date()) for date in sessions),
             economic_start=str(sessions[0].date()),
@@ -174,16 +178,22 @@ def backtest(
     daily_replay_evidence: list[dict[str, Any]] = []
     previous_equity = account.initial_cash
     raw_user_panel = {symbol: self._raw[symbol] for symbol in user_symbols}
+    account_input = self.workspace.data.account_input
+    if account_input is not None and (start < account_input.start or end > account_input.end):
+        raise ValueError("backtest interval exceeds reviewed historical account input")
     for date in sessions:
+        if account_input is not None:
+            account_input.apply(account, date=str(date.date()), phase="open")
         self.execution.execute_open(date=date, account=account, panel=raw_user_panel)
+        if account_input is not None:
+            account_input.apply(account, date=str(date.date()), phase="close")
         equity = self.equity(account, date)
         equity_rows.append((date, equity))
         decision = self.decide(symbols=user_symbols, as_of=str(date.date()), account=account)
         decisions.append(decision)
         close_prices = {
             symbol: self._price(symbol, date)
-            for symbol, position in account.positions.items()
-            if position.shares > 0
+            for symbol in set(account.positions) | set(account.share_rights())
         }
         daily_ledger.append(
             build_daily_ledger_row(

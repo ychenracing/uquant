@@ -7,6 +7,7 @@ import math
 import numpy as np
 import pandas as pd
 
+from .account.corporate_actions import corporate_action_receivable
 from .config import SystemConfig
 from .features import scalar
 from .types import (
@@ -22,19 +23,14 @@ from .types import (
 
 def current_weights(account: AccountState, prices: dict[str, float]) -> tuple[dict[str, float], float]:
     """Mark current positions and return normalized weights plus total equity."""
-    market_value = sum(
-        position.shares * prices.get(symbol, 0.0) for symbol, position in account.positions.items()
-    )
-    equity = account.cash + market_value
+    values = {symbol: position.shares * prices.get(symbol, 0.0)
+              for symbol, position in account.positions.items()}
+    equity = account.cash + sum(values.values()) + corporate_action_receivable(account, prices)
+    for symbol, shares in account.share_rights().items():
+        values[symbol] = values.get(symbol, 0.0) + shares * prices[symbol]
     if equity <= 0:
         raise RuntimeError("account equity must be positive")
-    return (
-        {
-            symbol: position.shares * prices.get(symbol, 0.0) / equity
-            for symbol, position in account.positions.items()
-        },
-        equity,
-    )
+    return ({symbol: value / equity for symbol, value in values.items()}, equity)
 
 
 def effective_n(weights: dict[str, float], correlations: pd.DataFrame | None = None) -> float:

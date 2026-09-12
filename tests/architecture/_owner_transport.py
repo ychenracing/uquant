@@ -34,6 +34,10 @@ _RETIRED_PORTFOLIO_PRIVATE_EDGES = frozenset(
 
 _ECONOMIC_ADDITIONS = frozenset(
     {
+        "uquant/account/corporate_actions.py",
+        "uquant/market/account_input.py",
+        "uquant/market/price_series.py",
+        "uquant/models/corporate_action.py",
         "uquant/ordinary_pullback.py",
         "uquant/models/ordinary_entry.py",
         "uquant/risk/pullback.py",
@@ -69,6 +73,10 @@ _ECONOMIC_ADDITIONS = frozenset(
 )
 _EXECUTION_ADDITIONS = frozenset(
     {
+        "uquant/account/corporate_actions.py",
+        "uquant/market/account_input.py",
+        "uquant/market/price_series.py",
+        "uquant/models/corporate_action.py",
         "uquant/models/ordinary_entry.py",
         "uquant/account/validation_attribution.py",
         "uquant/broker_contract.py",
@@ -196,7 +204,6 @@ ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
             | _VALIDATION_ADDITIONS
             | {
                 "research/capital_holding_attribution.py",
-                "research/causal_price_series.py",
                 "research/fixed_promotion_screen.py",
                 "research/global_bottleneck_audit.py",
                 "research/historical_cohort_audit.py",

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Protocol, cast
 
 import pandas as pd
 
-from ...features import scalar
+from ...features import causal_close, scalar
 from ...types import AccountState, LeaderScore, Risk, RiskAssessment, Target
 from .targets import (
     awaiting_recovery_cohort_targets,
@@ -108,7 +108,7 @@ def scan_recovery_evidence(
         close = scalar(row, "close")
         ma20 = scalar(row, f"ma{self.cfg.trend_fast}")
         ret120 = scalar(row, f"ret{self.cfg.trend_slow}", 0.0)
-        previous_high = float(frame["close"].iloc[-11:-1].max()) if len(frame) >= 11 else float("nan")
+        previous_high = float(causal_close(frame, date).iloc[-11:-1].max()) if len(frame) >= 11 else float("nan")
         if (
             math.isfinite(close)
             and math.isfinite(ma20)

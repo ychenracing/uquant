@@ -113,7 +113,8 @@ def test_reference_only_third_member_cannot_create_immediate_full_recovery(recov
 
 
 @pytest.mark.parametrize("exit_owner", ("risk", "strategy"))
-def test_only_actual_risk_sales_preserve_flat_cohort_restoration(recovery_prefix, exit_owner):
+@pytest.mark.parametrize("restore_cap", (.5, DEFAULT_CONFIG.recovery_target_gross))
+def test_only_actual_risk_sales_preserve_flat_cohort_restoration(recovery_prefix, exit_owner, restore_cap):
     engine, snapshots = recovery_prefix
     account, _ = deepcopy(snapshots["2025-05-09"])
     panel = {symbol: engine._features[symbol] for symbol in SYMBOLS}
@@ -138,7 +139,7 @@ def test_only_actual_risk_sales_preserve_flat_cohort_restoration(recovery_prefix
     assert not account.positions
     account.capital_budget_level = 1
     account.capital_budget_repair_streak = 1
-    repair = RiskAssessment(Risk.CAUTION, .5, 0, {
+    repair = RiskAssessment(Risk.CAUTION, restore_cap, 0, {
         "transition_damage": .1, "broad_ret120": .2, "tech_ret120": .4,
     }, (), "RECOVERY", freeze_new_risk=True, reduction_level=1)
     targets = _decide(policy, account, pd.Timestamp("2025-10-16"), panel, leaders, repair)
@@ -146,7 +147,11 @@ def test_only_actual_risk_sales_preserve_flat_cohort_restoration(recovery_prefix
     if exit_owner == "strategy":
         assert not restored and not account.pending_orders
         return
-    assert restored and sum(target.weight for target in restored) <= .5 + 1e-12
+    expected = min(restore_cap, sum(min(DEFAULT_CONFIG.max_symbol_weight, weight)
+                                   for weight in account.protected_weights.values()))
+    assert restored and sum(target.weight for target in restored) == pytest.approx(expected)
+    if restore_cap == DEFAULT_CONFIG.recovery_target_gross:
+        assert {target.symbol for target in restored} == set(SYMBOLS)
     assert all(target.mechanism == "POST_SHOCK_RESTORATION" and target.lifecycle == "RECOVERY"
                and target.origin_subsystem == "RECOVERY" and target.origin_lifecycle == "RECOVERY"
                for target in restored)

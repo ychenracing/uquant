@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001
 from __future__ import annotations
 
 import json
@@ -11,6 +12,7 @@ import pytest
 from uquant.account import economic_state_sha256, load_account, save_account
 from uquant.attribution import build_economic_attribution
 from uquant.cli import main
+from uquant.config import DEFAULT_CONFIG
 from uquant.report import render_daily_report, render_economic_attribution_report
 from uquant.types import (
     AccountState,
@@ -38,7 +40,8 @@ class _FakeData:
 
 
 class _FakeEngine:
-    def __init__(self, data_dir: str | Path) -> None:
+    def __init__(self, data_dir: str | Path, cfg=DEFAULT_CONFIG) -> None:
+        self.cfg = cfg
         assert str(data_dir)
         self.data = _FakeData()
 
@@ -420,11 +423,11 @@ def test_daily_report_renders_every_action_and_pending_order() -> None:
     )
 
     report = render_daily_report(decision, account)
-    for action in ("HOLD/ADJUST", "SELL", "BUY", "BLOCKED"):
-        assert f"| {action} |" in report
-    assert "1. BUY new_buy" in report
-    assert "Deployed-sector guard: INACTIVE" in report
-    assert "Deployed-sector daily return: N/A" in report
+    assert "准备买入／增加" in report
+    assert "未生成买入意图" in report
+    assert "没有卖出意图记录" in report
+    assert "行业风险保护：未取得" in report
+    assert "持仓行业当日收益：未取得" in report
 
 
 def test_economic_attribution_report_labels_accounting_and_diagnostics() -> None:

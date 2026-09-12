@@ -264,10 +264,19 @@ def _size_open_order(
             - current.shares
         )
         shares = min(shares, max(0, max_by_weight))
+        if cfg.max_gross < 1.0:
+            gross_room = max(0.0, cfg.max_gross * open_equity - (open_equity - account.cash))
+            shares = min(shares, int(gross_room / execution_price / 100) * 100)
         while shares >= 100:
             gross = shares * execution_price
             commission, _stamp, transfer = fee_components(order.side, gross, cfg)
-            if gross + commission + transfer <= account.cash + 1e-8:
+            funded = gross + commission + transfer <= account.cash + 1e-8
+            # An opening gap must not turn a lower account limit into extra
+            # buying permission. Retained shares themselves are not force-sold.
+            within_gross = (cfg.max_gross == 1.0 or
+                            open_equity - account.cash + gross <=
+                            cfg.max_gross * (open_equity - commission - transfer) + 1e-8)
+            if funded and within_gross:
                 break
             shares -= 100
     if shares <= 0:

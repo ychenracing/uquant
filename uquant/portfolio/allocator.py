@@ -224,7 +224,7 @@ def allocate(
     if dominant_level1_retention:
         gross_cap = max(
             gross_cap,
-            min(self.cfg.strategic_dominant_max_weight, current_gross),
+            min(self.cfg.max_gross, self.cfg.strategic_dominant_max_weight, current_gross),
         )
     if (
         current_gross > gross_cap + 1e-12

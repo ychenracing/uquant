@@ -93,8 +93,8 @@ def strategic_dominant_symbol(account: AccountState) -> str | None:
 
 
 def symbol_weight_cap(cfg: SystemConfig, account: AccountState, symbol: str) -> float:
-    """Keep the ordinary 60% cap except for one validated dominant owner."""
-    return (
+    """Apply the account ceiling while preserving the qualified owner exception."""
+    return min(cfg.max_gross,
         cfg.strategic_dominant_max_weight
         if strategic_dominant_symbol(account) == symbol
         else cfg.max_symbol_weight

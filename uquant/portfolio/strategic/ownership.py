@@ -233,6 +233,13 @@ def _prepare_strategic_owner_targets(
         return False, None
     weights, _ = current_weights(account, prices)
     committed, cash = committed_capital(account=account, prices=prices, proposed=weights)
+    # Capacity limits deployment, never the evidence quorum or its confirmation.
+    required_symbols = {symbol for symbol, weight in desired.items() if weight > 0}
+    occupied = {symbol for symbol, weight in committed.items() if weight > 0}
+    if len(occupied | required_symbols) > self.cfg.max_positions:
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "POSITION_COUNT_LIMIT"
+        return False, None
     targets = _fund_owner_targets(
         self, qualified=qualified, owner=owner, held=held, reserved=reserved,
         dominant_symbol=dominant_symbol, desired=desired, committed=committed, cash=cash,

@@ -10,7 +10,7 @@ def validate_portfolio(config: Any) -> None:
 
     if not 0 < config.trend_entry_gross <= config.trend_target_gross <= 1:
         raise ValueError("invalid trend gross targets")
-    if not 0 < config.add1_weight <= config.add2_weight <= config.max_symbol_weight:
+    if not 0 < config.add1_weight <= config.add2_weight <= 0.60:
         raise ValueError("invalid add tranche weights")
     if not 0 <= config.add1_min_mfe <= config.add2_min_mfe:
         raise ValueError("invalid add-tranche MFE thresholds")
@@ -26,7 +26,7 @@ def validate_portfolio(config: Any) -> None:
         raise ValueError("industry_rotation_edge must be in [0, 1]")
     if config.replacement_confirm_days < 1 or config.min_hold_days < 1:
         raise ValueError("replacement confirmation and minimum hold must be positive")
-    if not 0 < config.replacement_transfer_cap <= config.max_symbol_weight:
+    if not 0 < config.replacement_transfer_cap <= 0.60:
         raise ValueError("invalid replacement transfer cap")
     if not 0 <= config.max_satellites <= 2:
         raise ValueError("max_satellites must be in [0, 2]")

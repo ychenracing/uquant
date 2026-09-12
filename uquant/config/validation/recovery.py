@@ -36,9 +36,9 @@ def validate_recovery(config: Any) -> None:
         raise ValueError("recovery transition strong-leg return must be in (0, 1)")
     if not 0 < config.recovery_transition_min_divergence < 1:
         raise ValueError("recovery transition divergence must be in (0, 1)")
-    if not 0 < config.tactical_probe_weight <= config.tactical_rebound_weight <= config.max_symbol_weight:
+    if not 0 < config.tactical_probe_weight <= config.tactical_rebound_weight <= 0.60:
         raise ValueError(
-            "tactical probe/rebound weights must be positive, ordered, and within max_symbol_weight"
+            "tactical probe/rebound weights must be positive, ordered, and within the fixed ordinary policy ceiling"
         )
     if not (-1 < config.tactical_rebound_max_ret20 <= config.tactical_rebound_breadth_max_ret20 < 0):
         raise ValueError("tactical rebound return thresholds must be ordered in (-1, 0)")

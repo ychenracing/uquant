@@ -847,7 +847,12 @@ def test_execution_engine_method_reflection_and_descriptors_match_immutable_sour
         "__package__": "uquant",
         "__file__": str(ROOT / "uquant/engine.py"),
     }
-    exec(compile(_git_source("uquant/engine.py"), "uquant/engine.py", "exec"), namespace)
+    # Execute the immutable descriptor oracle with its retired import routed
+    # to the identical atomic implementation; no legacy module is installed.
+    oracle_source = _git_source("uquant/engine.py").replace(
+        b"from .atomic_io import ", b"from .infrastructure.atomic_files import "
+    )
+    exec(compile(oracle_source, "uquant/engine.py", "exec"), namespace)
     immutable_engine = namespace["ProductionEngine"]
     immutable_definitions = _top_level_definitions(ast.parse(_git_source("uquant/engine.py")))
     for name, definition in immutable_definitions.items():

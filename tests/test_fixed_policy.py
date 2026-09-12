@@ -13,6 +13,7 @@ from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.engine import ProductionEngine
 from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.provenance.surfaces import load_source_surface_registry
+from uquant.validation.parameter_policy import validation_engine
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -51,19 +52,19 @@ def test_production_engine_rejects_subclass_and_duck_policy(tmp_path: Path) -> N
     with pytest.raises(AttributeError):
         engine.cfg = Tuned()
     with pytest.raises(TypeError, match="exact SystemConfig"):
-        ProductionEngine.for_validation(tmp_path, "p2_lower", Tuned())
+        validation_engine(tmp_path, "p2_lower", Tuned())
 
 
 def test_closed_native_profiles_match_the_existing_frozen_contract(tmp_path: Path) -> None:
     profiles = json.loads((ROOT / "benchmarks/cross_ai_core_strategy_contract.json").read_text())["profiles"]
     for name in ("p2_lower", "p2_upper", "p7_lower", "p7_upper", "p8_lower", "p8_upper",
                  "confirmation_lower", "confirmation_upper"):
-        engine = ProductionEngine.for_validation(tmp_path, name)
+        engine = validation_engine(tmp_path, name)
         assert engine.cfg.to_dict() == DEFAULT_CONFIG.to_dict() | profiles[name]
         assert config_fingerprint(engine.cfg) != config_fingerprint()
     for unknown in ("", "leader_tenure_days=99", "p4_lower", "custom"):
         with pytest.raises(ValueError, match="unknown frozen policy profile"):
-            ProductionEngine.for_validation(tmp_path, unknown)
+            validation_engine(tmp_path, unknown)
 
 
 @pytest.mark.parametrize("relative", [

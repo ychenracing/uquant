@@ -151,7 +151,7 @@ def _mutated_model_source_with_adjacent_validator_calls_swapped(
         and isinstance(post_init.body[0].value, ast.Constant)
         and isinstance(post_init.body[0].value.value, str)
     )
-    left = offset + left_call_index
+    left = offset + 1 + left_call_index
     post_init.body[left], post_init.body[left + 1] = (
         post_init.body[left + 1],
         post_init.body[left],
@@ -541,6 +541,12 @@ def test_semantic_gate_rejects_live_system_config_dispatch_rebinding(
 
     with pytest.raises(AssertionError):
         candidate_validation_clause_dumps()
+
+
+def test_public_input_precheck_cannot_move_after_economic_validation() -> None:
+    mutated = _mutated_model_source_with_adjacent_validator_calls_swapped(-1)
+    with pytest.raises(AssertionError):
+        candidate_validation_clause_dumps({"uquant/config/model.py": mutated})
 
 
 @pytest.mark.parametrize("left_call_index", range(9))

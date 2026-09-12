@@ -1,8 +1,10 @@
 """Closed policy neighbors used only by explicit offline validation."""
 
 from dataclasses import asdict
+from pathlib import Path
 
 from uquant.config import DEFAULT_CONFIG, SystemConfig
+from uquant.engine import ProductionEngine
 
 
 def frozen_policy_config(profile: str, base: SystemConfig = DEFAULT_CONFIG) -> SystemConfig:
@@ -63,3 +65,15 @@ def frozen_policy_config(profile: str, base: SystemConfig = DEFAULT_CONFIG) -> S
     if profile not in profiles:
         raise ValueError(f"unknown frozen policy profile: {profile}")
     return profiles[profile](**asdict(base))
+
+
+def validation_engine(
+    data_dir: str | Path, profile: str, cfg: SystemConfig = DEFAULT_CONFIG,
+) -> ProductionEngine:
+    """Bind one frozen offline scenario to the same production engine."""
+    if type(cfg) is not SystemConfig:
+        raise TypeError("validation base must be an exact SystemConfig")
+    effective = frozen_policy_config(profile, cfg)
+    engine = ProductionEngine.__new__(ProductionEngine)
+    engine._initialize(data_dir, effective)
+    return engine

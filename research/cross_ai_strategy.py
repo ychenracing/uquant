@@ -39,6 +39,7 @@ from uquant.market import ReplayUniverse
 from uquant.models.strategic_universe import build_strategic_universe_declaration
 from uquant.types import AccountState
 from uquant.validation.manifest import verify_data_manifest
+from uquant.validation.parameter_policy import validation_engine
 
 CASE_IDS = ("champion", "full", "remove_all_three", "no_optical")
 CHAMPION_SYMBOLS = ("sh603986", "sh688008", "sz300308", "sz300394", "sz300502")
@@ -247,7 +248,7 @@ def run_production_case(
     data_root = research_data_root(research_data_dir, research_data_sha256)
     engine = (
         ProductionEngine(data_root, cfg=cfg) if validation_profile is None
-        else ProductionEngine.for_validation(data_root, validation_profile, cfg)
+        else validation_engine(data_root, validation_profile, cfg)
     )
     cfg = engine.cfg
     identity = case_identity(case_id, start, end, cfg, research_data_dir=research_data_dir,

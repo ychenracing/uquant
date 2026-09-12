@@ -210,6 +210,11 @@ def exception_observation(config: object, changes: Mapping[str, object]) -> dict
             # Exercise the unchanged rule invariants directly. Public rejection
             # of fixed/unknown constructor keys has its own exhaustive tests.
             SystemConfig.__post_init__(types.SimpleNamespace(**(config.to_dict() | dict(changes))))
+        elif type(config) is SystemConfig:
+            # Historical retired-key priority is measured independently of the
+            # newly closed fixed-rule constructor surface.
+            unknown = {name: value for name, value in changes.items() if name not in config.to_dict()}
+            override(**unknown)
         else:
             override(**dict(changes))
     except Exception as exc:

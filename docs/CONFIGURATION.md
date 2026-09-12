@@ -53,7 +53,7 @@ PY
 校验中读取，不作为当前配置迁移步骤。
 
 生产 `ProductionEngine(...)` 只接受精确的 `SystemConfig`，拒绝自定义配置子类和
-替代对象。`ProductionEngine.for_validation(data_dir, profile, cfg)` 是同一实现的离线
+替代对象。`uquant.validation.parameter_policy.validation_engine(data_dir, profile, cfg)` 是同一实现的离线
 验证入口，只接受具名情境和精确的公开基础配置：冻结合同的 `p2_lower/upper`、
 `p7_lower/upper`、`p8_lower/upper`、`confirmation_lower/upper`，以及既有回放测试的
 `recovery_breadth_lower/upper`。这 10 个情境扰动 5 条固定规则；不接受任意规则名和值。

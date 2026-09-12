@@ -472,11 +472,30 @@ def _restore_ordinary_holdings(book: AllocationBook) -> None:
             row["restore_block"] = "RESTORATION_COMPLETED_RETAIN_DRIFT"
             continue
         if book.fund(symbol, wanted, phase="POST_SHOCK_RESTORATION",
-                     minimum=0.0 if pending else cfg.protected_restore_min_trade_weight,
-                     concentration_cap=(cfg.recovery_target_gross
-                                        if symbol in book.recovery_restore_symbols else None)):
+                     minimum=0.0 if pending else cfg.protected_restore_min_trade_weight):
             book.mechanisms[symbol] = AttributionMechanism.POST_SHOCK_RESTORATION
             book.reasons[symbol] = "core restoration after account risk repair"
+
+
+def _held_repair_evidence_complete(book: AllocationBook) -> bool:
+    """Require observed repair inputs for every actual holding, including its prior close."""
+    for symbol, position in book.account.positions.items():
+        if position.shares <= 0:
+            continue
+        frame = book.user_panel.get(symbol)
+        if frame is None or book.date not in frame.index or "close" not in frame:
+            return False
+        history = frame.loc[:book.date, "close"]
+        row = frame.loc[book.date]
+        if len(history) < 2:
+            return False
+        prices = (scalar(row, "close"), float(history.iloc[-2]))
+        if not all(math.isfinite(value) and value > 0 for value in prices):
+            return False
+        if not all(math.isfinite(scalar(row, column))
+                   for column in (f"ma{book.policy.cfg.trend_fast}", "ret5")):
+            return False
+    return True
 
 
 def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
@@ -490,7 +509,12 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
               <= book.policy.cfg.transition_damage_repair)
     level1 = account.capital_budget_level == 1
     synchronized = (risk.state is Risk.CAUTION and risk.shock_state == "RECOVERY"
-                    and "two-day synchronized leader repair" in risk.reasons
+                    and any(p.shares > 0 for p in account.positions.values())
+                    and account.risk_streaks.get("concentrated_repair", 0)
+                    >= book.policy.cfg.concentrated_repair_days
+                    and _held_repair_evidence_complete(book)
+                    and risk.evidence.get("held_repair_ratio") == 1.0
+                    and risk.evidence.get("held_damage_ratio") == 0.0
                     and account.capital_budget_level <= 1 and account.chronic_level <= 1)
     return bool(
         repair and (

@@ -120,7 +120,7 @@ def test_backtest_and_daily_share_decision_kernel(data_dir):
     report = render_daily_report(decision, account)
     assert decision.decision_digest in report
     assert config_fingerprint(engine.cfg) in report
-    assert "Opportunity" in report and "Tomorrow" in report
+    assert "市场基础风险" in report and "下一可交易日需要核对的事项" in report
 
 def test_structured_sector_guard_counts_as_first_risk_reduction():
     from uquant.engine import performance_metrics

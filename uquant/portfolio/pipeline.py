@@ -500,6 +500,19 @@ def _held_repair_evidence_complete(book: AllocationBook) -> bool:
     return True
 
 
+def _synchronized_ordinary_repair_open(book: AllocationBook) -> bool:
+    """Require complete live held-book repair evidence for synchronized restoration."""
+    risk, account = book.risk, book.account
+    return (risk.state is Risk.CAUTION and risk.shock_state == "RECOVERY"
+                    and any(p.shares > 0 for p in account.positions.values())
+                    and account.risk_streaks.get("concentrated_repair", 0)
+                    >= book.policy.cfg.concentrated_repair_days
+                    and _held_repair_evidence_complete(book)
+                    and risk.evidence.get("held_repair_ratio") == 1.0
+                    and risk.evidence.get("held_damage_ratio") == 0.0
+                    and account.capital_budget_level <= 1 and account.chronic_level <= 1)
+
+
 def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
     """Preserve existing protected-book repair permissions inside Base Risk's cap."""
     risk, account = book.risk, book.account
@@ -510,14 +523,6 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
               and float(risk.evidence.get("transition_damage", float("inf")))
               <= book.policy.cfg.transition_damage_repair)
     level1 = account.capital_budget_level == 1
-    synchronized = (risk.state is Risk.CAUTION and risk.shock_state == "RECOVERY"
-                    and any(p.shares > 0 for p in account.positions.values())
-                    and account.risk_streaks.get("concentrated_repair", 0)
-                    >= book.policy.cfg.concentrated_repair_days
-                    and _held_repair_evidence_complete(book)
-                    and risk.evidence.get("held_repair_ratio") == 1.0
-                    and risk.evidence.get("held_damage_ratio") == 0.0
-                    and account.capital_budget_level <= 1 and account.chronic_level <= 1)
     return bool(
         repair and (
             (level1 and account.capital_budget_repair_streak >= 2)
@@ -526,7 +531,7 @@ def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
             and risk.shock_state in {"RECOVERY", "ROTATION_RECOVERY", "FAST_V_RECOVERY"})
             or (account.capital_budget_level <= 1 and account.chronic_level >= 1
             and account.chronic_repair_streak >= 2)
-            or synchronized
+            or _synchronized_ordinary_repair_open(book)
         )
     )
 

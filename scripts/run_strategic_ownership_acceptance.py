@@ -934,7 +934,7 @@ def _continuity_summary(contract: Mapping[str, Any], result: ReplayResult) -> di
     for item in _sequence(raw_account.get("pending_orders", []), label="continuity pending orders"):
         pending = PendingOrder(**_mapping(item, label="continuity pending order"))
         if pending.symbol not in symbols or pending.order_id not in orders or any(
-            getattr(pending, field) != getattr(orders[pending.order_id], field)
+            asdict(pending)[field] != asdict(orders[pending.order_id])[field]
             for field in ORDER_INTENT_IMMUTABLE_FIELDS
         ):
             raise ValueError("continuity pending order attribution differs")
@@ -945,7 +945,7 @@ def _continuity_summary(contract: Mapping[str, Any], result: ReplayResult) -> di
     for fill in fills:
         fill_order = orders.get(str(fill["order_id"]))
         if fill_order is None or any(
-            fill.get(field) != getattr(fill_order, field)
+            fill.get(field) != asdict(fill_order)[field]
             for field in (*ATTRIBUTION_IDENTITY_FIELDS, "symbol", "signal_date", "side")
         ):
             raise ValueError("continuity fill attribution differs")
@@ -972,7 +972,7 @@ def _continuity_summary(contract: Mapping[str, Any], result: ReplayResult) -> di
                    for target in row.targets if target.get("event_id") == order.event_id
                    and target.get("symbol") == order.symbol]
         if len(targets) != 1 or any(
-            targets[0].get(field) != getattr(order, field) for field in ATTRIBUTION_IDENTITY_FIELDS
+            targets[0].get(field) != asdict(order)[field] for field in ATTRIBUTION_IDENTITY_FIELDS
         ):
             raise ValueError("continuity admission target attribution differs")
         admissions.append({
@@ -1196,7 +1196,7 @@ def _participation_admission(result: ReplayResult, fill: Mapping[str, Any]) -> d
     filled_quantity = sum(item["shares"] for item in result.final_account["fills"] if item["order_id"] == order.order_id)
     if (order.side != "BUY" or not 0 < order.filled_shares <= order.requested_shares
             or filled_quantity != order.filled_shares or any(
-        fill.get(field) != getattr(order, field) for field in (*ATTRIBUTION_IDENTITY_FIELDS, "symbol", "signal_date", "side")
+        fill.get(field) != asdict(order)[field] for field in (*ATTRIBUTION_IDENTITY_FIELDS, "symbol", "signal_date", "side")
     )):
         raise ValueError("CORE participation order and positive fill attribution differ")
     rows = [row for row in result.trace if row.date == order.signal_date]
@@ -1205,11 +1205,11 @@ def _participation_admission(result: ReplayResult, fill: Mapping[str, Any]) -> d
     row = rows[0]
     traced_orders = [item for item in row.orders if item.get("order_id") == order.order_id]
     if len(traced_orders) != 1 or any(
-        traced_orders[0].get(field) != getattr(order, field) for field in ORDER_INTENT_IMMUTABLE_FIELDS
+        traced_orders[0].get(field) != asdict(order)[field] for field in ORDER_INTENT_IMMUTABLE_FIELDS
     ):
         raise ValueError("CORE participation registered order lacks its immutable decision trace")
     targets = [target for target in row.targets if target.get("event_id") == order.event_id and target.get("symbol") == order.symbol]
-    if len(targets) != 1 or any(targets[0].get(field) != getattr(order, field) for field in ATTRIBUTION_IDENTITY_FIELDS):
+    if len(targets) != 1 or any(targets[0].get(field) != asdict(order)[field] for field in ATTRIBUTION_IDENTITY_FIELDS):
         raise ValueError("CORE participation admission target identity differs")
     target = targets[0]
     if _participation_number(target.get("weight")) <= 0 or target["weight"] != order.target_weight:

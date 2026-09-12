@@ -583,7 +583,8 @@ def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str
     ])]
     actions = _action_lines(decision)
     sections.append(("下一可交易日需要核对的事项", actions))
-    symbols = list(dict.fromkeys([*held, *(o.symbol for o in decision.pending_orders), *analyzed, *(t.symbol for t in decision.targets), *rows]))
+    unsettled = [o.symbol for o in account.order_ledger if o.status not in {"FILLED", "CANCELLED", "REPLACED"}]
+    symbols = list(dict.fromkeys([*held, *(o.symbol for o in decision.pending_orders), *unsettled, *analyzed, *(t.symbol for t in decision.targets), *rows]))
     for symbol in symbols:
         sections.append((f"逐只股票：{symbol}", _recorded_symbol_lines(symbol, decision, account)))  # noqa: PERF401
     sections.append(("风险及其实际影响", _daily_risk_lines(decision)))

@@ -553,7 +553,7 @@ def test_daily_formats_use_one_decision_and_identical_terminal_markdown(monkeypa
     _state(tmp_path / 'account.json')
     assert main(_daily_args(tmp_path)) == 0
     assert len(calls) == 1
-    assert capsys.readouterr().out == (tmp_path / 'daily.md').read_text() + '\n'
+    assert capsys.readouterr().out == (tmp_path / 'daily.md').read_text()
     assert 'fake-decision' in (tmp_path / 'daily.html').read_text()
 
 

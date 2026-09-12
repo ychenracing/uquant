@@ -336,10 +336,10 @@
     "cli_help": {
       "uquant": "usage: uquant [-h]\n              {account-init,daily,account-sync,account-code-migrate,backtest,holdout-manifest,holdout-append,holdout-replay,execution-journal}\n              ...\n\nCausal A-share daily portfolio decisions and replay\n\npositional arguments:\n  {account-init,daily,account-sync,account-code-migrate,backtest,holdout-manifest,holdout-append,holdout-replay,execution-journal}\n\noptions:\n  -h, --help            show this help message and exit\n",
       "uquant account-code-migrate": "usage: uquant account-code-migrate [-h] --account ACCOUNT [--output OUTPUT]\n                                   [--acknowledge-code-change]\n\noptions:\n  -h, --help            show this help message and exit\n  --account ACCOUNT\n  --output OUTPUT       destination account file (defaults to atomic in-place\n                        rebinding)\n  --acknowledge-code-change\n                        confirm code-identity rebinding with no economic-state\n                        changes\n",
-      "uquant account-init": "usage: uquant account-init [-h] [--output OUTPUT] [--cash CASH] --data-dir\n                           DATA_DIR --symbols SYMBOLS [SYMBOLS ...]\n                           [--date DATE]\n\noptions:\n  -h, --help            show this help message and exit\n  --output OUTPUT\n  --cash CASH\n  --data-dir DATA_DIR\n  --symbols SYMBOLS [SYMBOLS ...]\n  --date DATE           bounded data-provenance date (defaults to latest\n                        common date)\n",
+      "uquant account-init": "usage: uquant account-init [-h] [--output OUTPUT] [--cash CASH] --data-dir\n                           DATA_DIR --symbols SYMBOLS [SYMBOLS ...]\n                           [--date DATE] [--config CONFIG]\n\noptions:\n  -h, --help            show this help message and exit\n  --output OUTPUT\n  --cash CASH\n  --data-dir DATA_DIR\n  --symbols SYMBOLS [SYMBOLS ...]\n  --date DATE           bounded data-provenance date (defaults to latest\n                        common date)\n  --config CONFIG       strict JSON public settings\n",
       "uquant account-sync": "usage: uquant account-sync [-h] --account ACCOUNT --snapshot SNAPSHOT\n\noptions:\n  -h, --help           show this help message and exit\n  --account ACCOUNT\n  --snapshot SNAPSHOT\n",
-      "uquant backtest": "usage: uquant backtest [-h] --symbols SYMBOLS [SYMBOLS ...] --start START\n                       --end END --data-dir DATA_DIR [--output OUTPUT]\n\noptions:\n  -h, --help            show this help message and exit\n  --symbols SYMBOLS [SYMBOLS ...]\n  --start START\n  --end END\n  --data-dir DATA_DIR\n  --output OUTPUT\n",
-      "uquant daily": "usage: uquant daily [-h] --symbols SYMBOLS [SYMBOLS ...] --date DATE --account\n                    ACCOUNT --data-dir DATA_DIR [--output OUTPUT]\n                    [--broker-snapshot BROKER_SNAPSHOT]\n\noptions:\n  -h, --help            show this help message and exit\n  --symbols SYMBOLS [SYMBOLS ...]\n  --date DATE\n  --account ACCOUNT\n  --data-dir DATA_DIR\n  --output OUTPUT\n  --broker-snapshot BROKER_SNAPSHOT\n                        authoritative JSON cash/positions/fills snapshot\n                        applied before decision\n",
+      "uquant backtest": "usage: uquant backtest [-h] --symbols SYMBOLS [SYMBOLS ...] --start START\n                       --end END --data-dir DATA_DIR [--output OUTPUT]\n                       [--config CONFIG]\n\noptions:\n  -h, --help            show this help message and exit\n  --symbols SYMBOLS [SYMBOLS ...]\n  --start START\n  --end END\n  --data-dir DATA_DIR\n  --output OUTPUT\n  --config CONFIG       strict JSON public settings\n",
+      "uquant daily": "usage: uquant daily [-h] --symbols SYMBOLS [SYMBOLS ...] --date DATE --account\n                    ACCOUNT --data-dir DATA_DIR [--output OUTPUT]\n                    [--html-output HTML_OUTPUT]\n                    [--broker-snapshot BROKER_SNAPSHOT] [--config CONFIG]\n\noptions:\n  -h, --help            show this help message and exit\n  --symbols SYMBOLS [SYMBOLS ...]\n  --date DATE\n  --account ACCOUNT\n  --data-dir DATA_DIR\n  --output OUTPUT\n  --html-output HTML_OUTPUT\n  --broker-snapshot BROKER_SNAPSHOT\n                        authoritative JSON cash/positions/fills snapshot\n                        applied before decision\n  --config CONFIG       strict JSON public settings\n",
       "uquant execution-journal": "usage: uquant execution-journal [-h] {planned,filled,skipped,report} ...\n\npositional arguments:\n  {planned,filled,skipped,report}\n\noptions:\n  -h, --help            show this help message and exit\n",
       "uquant execution-journal filled": "usage: uquant execution-journal filled [-h] [--journal JOURNAL] --plan-id\n                                       PLAN_ID --recorded-at RECORDED_AT\n                                       --next-open NEXT_OPEN --actual-time\n                                       ACTUAL_TIME --actual-price ACTUAL_PRICE\n                                       --actual-shares ACTUAL_SHARES\n\noptions:\n  -h, --help            show this help message and exit\n  --journal JOURNAL\n  --plan-id PLAN_ID\n  --recorded-at RECORDED_AT\n  --next-open NEXT_OPEN\n  --actual-time ACTUAL_TIME\n  --actual-price ACTUAL_PRICE\n  --actual-shares ACTUAL_SHARES\n",
       "uquant execution-journal planned": "usage: uquant execution-journal planned [-h] [--journal JOURNAL] --plan-id\n                                        PLAN_ID --recorded-at RECORDED_AT\n                                        --symbol SYMBOL --side {BUY,SELL}\n                                        --planned-price PLANNED_PRICE\n                                        --planned-shares PLANNED_SHARES\n\noptions:\n  -h, --help            show this help message and exit\n  --journal JOURNAL\n  --plan-id PLAN_ID\n  --recorded-at RECORDED_AT\n  --symbol SYMBOL\n  --side {BUY,SELL}\n  --planned-price PLANNED_PRICE\n  --planned-shares PLANNED_SHARES\n",
@@ -4470,6 +4470,39 @@
           "SystemConfig",
           "canonical_control_float",
           "config_fingerprint"
+        ]
+      },
+      "uquant.config.input": {
+        "classes": {},
+        "dataclasses": {},
+        "enums": {},
+        "functions": {
+          "load_public_config": {
+            "parameters": [
+              {
+                "annotation": "str | Path | None",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "path"
+              },
+              {
+                "annotation": "float | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "initial_cash"
+              }
+            ],
+            "return": "SystemConfig"
+          }
+        },
+        "path": "uquant/config/input.py",
+        "public_names": [
+          "load_public_config"
         ]
       },
       "uquant.config.model": {
@@ -34785,6 +34818,15 @@
                 },
                 "kind": "KEYWORD_ONLY",
                 "name": "user_panel"
+              },
+              {
+                "annotation": "dict[str, Any] | None",
+                "default": {
+                  "kind": "value",
+                  "value": null
+                },
+                "kind": "KEYWORD_ONLY",
+                "name": "checks"
               }
             ],
             "return": "str"
@@ -37181,6 +37223,27 @@
         "dataclasses": {},
         "enums": {},
         "functions": {
+          "render_daily_html": {
+            "parameters": [
+              {
+                "annotation": "Decision",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "decision"
+              },
+              {
+                "annotation": "AccountState",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "account"
+              }
+            ],
+            "return": "str"
+          },
           "render_daily_report": {
             "parameters": [
               {
@@ -37231,7 +37294,11 @@
         },
         "path": "uquant/report.py",
         "public_names": [
-          "_CORE_REVIEW_CHANGES",
+          "_BLOCK_TEXT",
+          "_EXECUTION_TEXT",
+          "_REASON_TEXT",
+          "_TARGET_REASON_TEXT",
+          "render_daily_html",
           "render_daily_report",
           "render_economic_attribution_report",
           "render_execution_journal"
@@ -81706,7 +81773,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "cb2b2336ec16b47d060176be5e2166e8fe51676047ebd9ebd9d4189e12bb3865",
+  "contract_sha256": "9f8274300a52c272dba56951deeb71b1b581d1c2f2b777b5419f8bc78c7a2c2e",
   "recorded_on": "2026-09-12",
   "schema_version": 1
 }

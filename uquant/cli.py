@@ -202,8 +202,8 @@ def _run_daily(args: argparse.Namespace) -> int:
         for path, content in documents:
             fd, temporary = tempfile.mkstemp(prefix=Path(path).name + ".ready-", dir=Path(path).parent)
             os.close(fd)
-            atomic_write_text(temporary, content, protected_paths=exact_inputs)
             staged.append((path, temporary))
+            atomic_write_text(temporary, content, protected_paths=exact_inputs)
     except Exception:
         for _, temporary in staged:
             Path(temporary).unlink(missing_ok=True)
@@ -228,7 +228,7 @@ def _run_daily(args: argparse.Namespace) -> int:
                   f"未发布的已渲染文件：{[(p, t) for p, t in staged if p not in published]}。"
                   "恢复时将对应 ready 文件移至报告目标路径；不要重新运行 daily 补报告。", file=sys.stderr)
             return 1
-    print(report)
+    print(report, end="")
     return 0
 
 

@@ -88,7 +88,11 @@ def test_real_shared_certificate_retains_priority_and_original_identity():
     result = ordinary_core_entry(policy, symbol=CHALLENGER, score=leaders[CHALLENGER], date=date,
                                  user_panel=panel, account=account,
                                  confirmation_days=DEFAULT_CONFIG.leader_tenure_days, certificate=certificate)
-    assert result == certificate and result['block'] == 'READY'
+    assert {k: v for k, v in result.items() if k != 'checks'} == certificate
+    assert result['block'] == 'READY'
+    assert set(result['checks']) == {'confidence', 'industry', 'current_data', 'history', 'structure', 'liquidity'}
+    assert all(check['passed'] is True for check in result['checks'].values())
+    assert result['checks']['confidence']['value'] == leaders[CHALLENGER].confidence
 
 
 def test_real_strict_clock_remains_fallback_without_self_maturity_tenure():

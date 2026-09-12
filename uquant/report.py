@@ -558,14 +558,18 @@ def _recorded_held_weight(held: list[str], rows: Mapping[str, Any]) -> float | N
     return float(sum(rows[s]["held_weight"] for s in held))
 
 
+def _daily_conclusion(buys: int, sells: int, freeze: object) -> str:
+    conclusion = ("有买入意图，等待下一可交易日核对" if buys else "需要处理减仓，等待下一可交易日核对" if sells else "本次没有生成买卖意图")
+    if freeze is True:
+        conclusion += "；系统暂不允许增加持仓，已记录的有限例外须逐单核对" if buys else "；系统暂不允许增加持仓"
+    return conclusion
+
+
 def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str, list[str]]]:
     summary = decision.risk_summary
     buys = sum(o.side == "BUY" for o in decision.pending_orders)
     sells = sum(o.side == "SELL" for o in decision.pending_orders)
-    freeze = summary.get("freeze_new_risk")
-    conclusion = ("有买入意图，等待下一可交易日核对" if buys else "需要处理减仓，等待下一可交易日核对" if sells else "本次没有生成买卖意图")
-    if freeze is True:
-        conclusion += "；系统暂不允许增加持仓，已记录的有限例外须逐单核对" if buys else "；系统暂不允许增加持仓"
+    conclusion = _daily_conclusion(buys, sells, summary.get("freeze_new_risk"))
     ranking = summary.get("leader_ranking")
     analyzed = [str(r['symbol']) for r in ranking if isinstance(r, Mapping) and r.get('symbol')] if isinstance(ranking, (list, tuple)) else []
     held = [s for s, p in account.positions.items() if p.shares > 0]

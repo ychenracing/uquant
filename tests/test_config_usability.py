@@ -142,3 +142,34 @@ def test_open_gap_and_fees_cannot_exceed_lower_gross(cap):
     value = sum(p.shares * fills[0].price for p in account.positions.values()) if fills else 0
     assert value / (account.cash + value) <= cap + 1e-12
     assert account.cash >= 0
+
+
+def test_lower_capacity_keeps_real_inventory_until_execution_settles():
+    from copy import deepcopy
+
+    from uquant.portfolio_core import PortfolioCore
+    from uquant.types import AccountState, AttributionMechanism, Lifecycle, OriginSubsystem, Position
+    account = AccountState.empty(2e6)
+    account.positions = {s: Position(s, shares=1000, avg_cost=20.) for s in ['sz300308', 'sz300502']}
+    before = deepcopy(account)
+    targets = PortfolioCore(SystemConfig(max_positions=1))._targets(
+        proposed={s: .2 for s in account.positions}, leaders={}, account=account,
+        lifecycle=Lifecycle.CORE, reason='existing core', origin_subsystem=OriginSubsystem.LEADER,
+        mechanism=AttributionMechanism.LEADER_SELECTION)
+    assert {t.symbol for t in targets if t.weight > 0} == set(account.positions)
+    assert account == before
+
+
+def test_tiny_lower_cap_does_not_relax_order_planning_minimum():
+    from uquant.execution.order_planning import plan_orders
+    from uquant.types import AccountState, Target
+    cfg = SystemConfig(max_gross=.001, max_symbol_weight=.001)
+    account = AccountState.empty(cfg.initial_cash)
+    diagnostics = {}
+    orders = plan_orders(signal_date='2026-01-05', targets=(Target('sz300308', .001, 'CORE', .9, 1., 'entry'),),
+        account=account, prices={'sz300308': 10.}, cfg=cfg, diagnostics=diagnostics)
+    assert not orders
+    assert cfg.min_trade_value == DEFAULT_CONFIG.min_trade_value
+    assert diagnostics['sz300308']['block'] == 'NO_TRADE_BAND'
+    assert diagnostics['sz300308']['difference_value'] < diagnostics['sz300308']['standard_trade_threshold']
+    assert diagnostics['sz300308']['standard_trade_threshold'] >= cfg.min_trade_value

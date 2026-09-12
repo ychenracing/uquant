@@ -624,3 +624,23 @@ def test_daily_rejects_changed_configuration_without_touching_account(monkeypatc
     with pytest.raises(ValueError, match='configuration identity'):
         main([*_daily_args(tmp_path), '--config', str(cfg)])
     assert path.read_bytes() == before
+
+
+def test_one_configuration_reaches_init_daily_and_backtest(monkeypatch, tmp_path):
+    configs = []
+    class ConfiguredEngine(_FakeEngine):
+        def __init__(self, data_dir, cfg=DEFAULT_CONFIG):
+            configs.append(cfg)
+            super().__init__(data_dir, cfg)
+    monkeypatch.setattr('uquant.cli.ProductionEngine', ConfiguredEngine)
+    cfg = tmp_path / 'config.json'
+    cfg.write_text('{"initial_cash": 1000000, "max_gross": 0.5, "max_symbol_weight": 0.3, "max_positions": 1}')
+    account = tmp_path / 'account.json'
+    assert main(['account-init', '--data-dir', 'fixture', '--symbols', 'sz300308',
+                 '--config', str(cfg), '--output', str(account)]) == 0
+    assert load_account(account).initial_cash == 1000000
+    assert main([*_daily_args(tmp_path), '--config', str(cfg)]) == 0
+    assert main(['backtest', '--data-dir', 'fixture', '--symbols', 'sz300308', '--start', '2026-01-01',
+                 '--end', '2026-01-06', '--config', str(cfg)]) == 0
+    assert len(configs) == 3 and configs[0] == configs[1] == configs[2]
+    assert configs[0].max_gross == .5 and configs[0].max_positions == 1

@@ -36,26 +36,23 @@ def _january_prefix(symbols=SYMBOLS):
     return engine, account, panel, decision
 
 
-def test_confirmed_full_persistent_formation_buys_before_ordinary_maturity():
-    engine, account, panel, decision = _january_prefix()
-    observed = account.strategic_qualification
-    assert observed.qualification_ready and observed.qualification_route == "persistent_industry"
-    assert observed.qualification_quorum == "FULL_COHORT"
-    assert all(account.leader_tenure[symbol] == 0 for symbol in SYMBOLS)
-    ordinary = decision.risk_summary["core_allocation"]["symbols"]
-    assert ordinary["sz300394"]["entry"]["block"] == "STRUCTURE_NOT_REPAIRED"
+def test_confirmed_full_persistent_formation_requires_current_structure():
+    from uquant.execution import ExecutionPlanner
+
+    policy, account, dates, panel, leaders, risk, _, _ = _formation_fixture()
+    _decide(policy, account, dates[-2], panel, leaders, risk)
+    assert all(not leaders[symbol].mature for symbol in SYMBOLS)
     assert {order.symbol for order in account.pending_orders} == set(SYMBOLS)
     assert [order.target_weight for order in account.pending_orders] == pytest.approx([1 / 3] * 3)
     grant = account.strategic_grant
     assert grant is not None
     assert all(order.epoch_id == grant.epoch_id for order in account.pending_orders)
-    assert {order.symbol: order.grant_id for order in account.pending_orders} == {
-        "sz300308": "", "sz300394": grant.grant_id, "sz300502": "",
-    }
-    fills = engine.execution.execute_open(date=pd.Timestamp("2024-01-04"), account=account, panel=panel)
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=dates[-1], account=account, panel=panel,
+    )
     assert len(fills) == 3 and all(fill.side == "BUY" and fill.shares > 0 for fill in fills)
     assert all(position.epoch_id == grant.epoch_id for position in account.positions.values())
-    assert account.positions["sz300394"].grant_id == grant.grant_id
+    assert account.positions[grant.candidate_symbol].grant_id == grant.grant_id
     assert account.cash >= 0
 
 
@@ -69,8 +66,8 @@ def _formation_fixture():
     dates = pd.bdate_range("2023-01-02", periods=247)
     panel = {symbol: _strategic_frame(dates) for symbol in SYMBOLS}
     for frame in panel.values():
-        frame["ma60"] = frame["close"] * 1.1
-        frame["ret60"] = -.1
+        frame["ma60"] = frame["close"] * .9
+        frame["ret60"] = .1
         frame["open"] = frame["close"]
         frame["high"] = frame["close"] * 1.01
         frame["low"] = frame["close"] * .99
@@ -97,14 +94,16 @@ def _formation_fixture():
     return policy, account, dates, panel, leaders, risk, entries, snapshots
 
 
-@pytest.mark.parametrize("failure", [None, "stale", "missing_certificate", "reference_only",
+@pytest.mark.parametrize("failure", [None, "structure", "stale", "missing_certificate", "reference_only",
                                     "illiquid", "not_full", "other_route", "cash_rearm",
                                     "unconfirmed", "lost_persistence"])
 def test_full_formation_requires_every_members_current_own_proof(failure):
     policy, account, dates, panel, leaders, risk, entries, snapshots = _formation_fixture()
     qualified = _qualified(account, SYMBOLS)
     peer = SYMBOLS[-1]
-    if failure == "stale":
+    if failure == "structure":
+        entries[peer]["block"] = "STRUCTURE_NOT_REPAIRED"
+    elif failure == "stale":
         entries[peer]["as_of"] = str(dates[-3].date())
     elif failure == "missing_certificate":
         entries[peer].pop("qualification_evidence_sha256")
@@ -127,9 +126,9 @@ def test_full_formation_requires_every_members_current_own_proof(failure):
         account=account, risk=risk, date=dates[-2], user_panel=panel,
     )
     if failure is None:
-        assert all(entry["block"] == "READY" for entry in entries.values())
+        assert all(entry.get("formation_quality") == "CONFIRMED_PERSISTENT" for entry in entries.values())
     else:
-        assert all(entry["block"] == "STRUCTURE_NOT_REPAIRED" for entry in entries.values())
+        assert all("formation_quality" not in entry for entry in entries.values())
 
 
 def test_partial_formation_keeps_fills_and_revokes_invalid_owner_remainder():

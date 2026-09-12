@@ -274,7 +274,7 @@ def _validate_corporate_lots(
     if account.get("corporate_actions"):
         from dataclasses import asdict
 
-        from ..account.corporate_actions import corporate_action_share_award
+        from ..models.corporate_action import corporate_action_share_award
 
         source_account = corporate_account_from_payload(account)
         economic_open_positions = {symbol: asdict(position) for symbol, position in economic_positions(source_account).positions.items()}

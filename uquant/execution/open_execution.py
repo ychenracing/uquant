@@ -205,7 +205,7 @@ def _size_open_order(
     execution_price = open_price * (
         1.0 + cfg.slippage if order.side == Side.BUY.value else 1.0 - cfg.slippage
     )
-    from ..account.corporate_actions import corporate_action_receivable, corporate_action_share_rights
+    from ..account.corporate_actions import corporate_action_receivable
     rights_marks = {symbol: scalar(frame.loc[date], "open", 0.0) for symbol, frame in panel.items() if date in frame.index}
     open_equity = account.cash + corporate_action_receivable(account, rights_marks) + sum(
         float(position.shares)
@@ -220,7 +220,7 @@ def _size_open_order(
     if order.symbol.startswith("sh688") and desired_shares > 0:
         desired_shares = max(200, desired_shares)
     current = account.positions.get(order.symbol, Position(symbol=order.symbol))
-    economic_shares = current.shares + corporate_action_share_rights(account).get(order.symbol, 0)
+    economic_shares = current.shares + account.share_rights().get(order.symbol, 0)
     requested = desired_shares - economic_shares
     if order.side == Side.SELL.value:
         target_requested = max(0, -requested)

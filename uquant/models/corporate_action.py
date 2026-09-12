@@ -1,6 +1,7 @@
 """Source-bound corporate actions and durable account entitlements."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 from .trading import Tranche
@@ -60,3 +61,10 @@ class DividendTaxDebit:
     amount: float
     source_url: str
     source_sha256: str
+
+
+def corporate_action_share_award(lot: Tranche, action: CorporateAction) -> int:
+    quantity = lot.shares * action.share_ratio
+    if not math.isclose(quantity, round(quantity), rel_tol=0.0, abs_tol=1e-8):
+        raise ValueError(f"{action.symbol} {action.record_date}: fractional entitlement requires broker allocation")
+    return round(quantity)

@@ -10,7 +10,13 @@ from datetime import date as Date
 from typing import Any
 
 from ..models.account import AccountState
-from ..models.corporate_action import CorporateAction, CorporateActionState, DividendTaxDebit, DividendTaxLot
+from ..models.corporate_action import (
+    CorporateAction,
+    CorporateActionState,
+    DividendTaxDebit,
+    DividendTaxLot,
+    corporate_action_share_award,
+)
 from ..models.trading import Position, Tranche
 
 
@@ -51,13 +57,6 @@ def validate_action(action: CorporateAction) -> None:
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
             raise ValueError("corporate action requires explicit nonnegative cash/share terms")
     _validate_distribution_terms(action)
-
-
-def corporate_action_share_award(lot: Tranche, action: CorporateAction) -> int:
-    quantity = lot.shares * action.share_ratio
-    if not math.isclose(quantity, round(quantity), rel_tol=0.0, abs_tol=1e-8):
-        raise ValueError(f"{action.symbol} {action.record_date}: fractional entitlement requires broker allocation")
-    return round(quantity)
 
 
 def _fifo_events(account: AccountState, symbol: str, through: str) -> list[tuple[str, int, int, str, int, str]]:
@@ -144,17 +143,6 @@ def settle_dividend_tax(account: AccountState, *, symbol: str, shares: int, date
         state.tax_assessed += tax
         total += tax
     return total
-
-
-def corporate_action_share_rights(account: AccountState) -> dict[str, int]:
-    """Economic shares already owned but not yet available for execution."""
-    rights: dict[str, int] = {}
-    for state in account.corporate_actions:
-        if state.ex_processed_date and state.action.share_ratio and not state.distributed_date:
-            rights[state.action.symbol] = rights.get(state.action.symbol, 0) + sum(
-                corporate_action_share_award(lot, state.action) for lot in state.entitled_lots
-            )
-    return rights
 
 
 def corporate_action_receivable(account: AccountState, marks: Mapping[str, float] | None = None) -> float:

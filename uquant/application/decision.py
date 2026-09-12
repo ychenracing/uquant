@@ -15,7 +15,6 @@ import pandas as pd
 from uquant.contracts.universe import decision_ai_universe
 
 from ..account.codec import UnsupportedAccountSchemaError
-from ..account.corporate_actions import apply_corporate_actions, corporate_action_share_rights
 from ..config import (
     DEFAULT_CONFIG,
     SystemConfig,
@@ -287,7 +286,7 @@ def validated_decision_symbols(
     if not user_symbols:
         raise ValueError("at least one technology-sector symbol is required")
     durable_symbols = (
-        set(corporate_action_share_rights(account))
+        set(account.share_rights())
         | set(account.positions)
         | set(account.protected_weights)
         | set(account.sector_guard_symbols)
@@ -345,8 +344,7 @@ def verify_decision_provenance(
         if account.corporate_actions or account.corporate_action_cursor:
             raise RuntimeError("corporate-action account requires its reviewed ACCOUNT_INPUT sources")
     else:
-        apply_corporate_actions(account, account_input.actions, date=str(date.date()),
-                                phase="close", tax_debits=account_input.tax_debits)
+        account_input.apply(account, date=str(date.date()), phase="close")
     self._mark_account_positions(account, date)
     return _DecisionInputs(
         date=date,
@@ -415,7 +413,7 @@ def decision_market_context(
         score_cache=self._leader_score_cache,
     )
     visible_users = set(user_panel)
-    prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions) | set(corporate_action_share_rights(account))}
+    prices = {symbol: self._price(symbol, date) for symbol in visible_users | set(account.positions) | set(account.share_rights())}
     _, equity = current_weights(account, prices)
     expected_reference_symbols = self.workspace.filter_reference_symbols(canonical_symbols)
     if active_reference_symbols != expected_reference_symbols:

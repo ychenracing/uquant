@@ -7,7 +7,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from .account.corporate_actions import corporate_action_receivable, corporate_action_share_rights
+from .account.corporate_actions import corporate_action_receivable
 from .config import SystemConfig
 from .features import scalar
 from .types import (
@@ -26,7 +26,7 @@ def current_weights(account: AccountState, prices: dict[str, float]) -> tuple[di
     values = {symbol: position.shares * prices.get(symbol, 0.0)
               for symbol, position in account.positions.items()}
     equity = account.cash + sum(values.values()) + corporate_action_receivable(account, prices)
-    for symbol, shares in corporate_action_share_rights(account).items():
+    for symbol, shares in account.share_rights().items():
         values[symbol] = values.get(symbol, 0.0) + shares * prices[symbol]
     if equity <= 0:
         raise RuntimeError("account equity must be positive")

@@ -419,7 +419,8 @@ def economic_positions(account: AccountState) -> AccountState:
     from copy import deepcopy
     from dataclasses import replace
 
-    from ..account.corporate_actions import corporate_action_share_award, validate_corporate_action_state
+    from ..account.corporate_actions import validate_corporate_action_state
+    from ..models.corporate_action import corporate_action_share_award
     from ..types import Position
 
     validate_corporate_action_state(account)
@@ -532,8 +533,7 @@ def _validate_corporate_replay(
     from ..account.corporate_actions import (
         apply_corporate_actions,
         corporate_action_receivable,
-        corporate_action_share_rights,
-    )
+        )
 
     final = corporate_account_from_payload(account)
     replay = AccountState.empty(final.initial_cash)
@@ -558,7 +558,7 @@ def _validate_corporate_replay(
         )
         equity = base_equity + receivable
         rights_value = 0.0
-        for symbol, shares in corporate_action_share_rights(replay).items():
+        for symbol, shares in replay.share_rights().items():
             value = shares * float(evidence["close_marks"][symbol])
             rights_value += value
             values[symbol] = values.get(symbol, 0.0) + value

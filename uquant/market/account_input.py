@@ -9,8 +9,9 @@ from typing import Any
 
 import pandas as pd
 
-from ..account.corporate_actions import validate_action
+from ..account.corporate_actions import apply_corporate_actions, validate_action
 from ..contracts.strict_json import canonical_json_sha256, strict_json_loads
+from ..models.account import AccountState
 from ..models.corporate_action import CorporateAction, DividendTaxDebit
 from .price_series import linked_prices
 
@@ -64,6 +65,10 @@ class HistoricalAccountInput:
                 raise ValueError(f'original source path/URL differs: {source_id}')
             if hashlib.sha256(path.read_bytes()).hexdigest() != source['sha256']:
                 raise ValueError(f'original source bytes differ: {source_id}')
+
+    def apply(self, account: AccountState, *, date: str, phase: str) -> None:
+        """Apply this verified source bundle at one native account boundary."""
+        apply_corporate_actions(account, self.actions, date=date, phase=phase, tax_debits=self.tax_debits)
 
     def _require_source(self, url: str, digest: str) -> None:
         if not any(row['url'] == url and row['sha256'] == digest

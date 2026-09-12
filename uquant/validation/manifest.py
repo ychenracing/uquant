@@ -53,6 +53,19 @@ def _checksum_entries(path: Path) -> dict[str, str]:
     return entries
 
 
+def _account_input_identity(data_root: Path, manifest: dict[str, Any]) -> dict[str, str]:
+    account_input = data_root / "ACCOUNT_INPUT.json"
+    account_identity = {}
+    if account_input.exists() or "account_input_sha256" in manifest:
+        if account_input.is_symlink() or not account_input.is_file():
+            raise DataContractError("raw account input must be a regular source file")
+        digest = _digest(account_input)
+        if manifest.get("account_input_sha256") != digest:
+            raise DataContractError("raw account input differs from sealed data manifest")
+        account_identity["account_input_sha256"] = digest
+    return account_identity
+
+
 def verify_data_manifest(root: str | Path) -> dict[str, Any]:
     """Fail closed unless manifest, checksum inventory, and CSV bytes agree."""
     data_root = Path(root)
@@ -106,15 +119,7 @@ def verify_data_manifest(root: str | Path) -> dict[str, Any]:
         if observed != expected_digest:
             raise DataContractError(f"frozen data checksum mismatch: {filename}")
 
-    account_input = data_root / "ACCOUNT_INPUT.json"
-    account_identity = {}
-    if account_input.exists() or "account_input_sha256" in manifest:
-        if account_input.is_symlink() or not account_input.is_file():
-            raise DataContractError("raw account input must be a regular source file")
-        digest = _digest(account_input)
-        if manifest.get("account_input_sha256") != digest:
-            raise DataContractError("raw account input differs from sealed data manifest")
-        account_identity["account_input_sha256"] = digest
+    account_identity = _account_input_identity(data_root, manifest)
     return {
         "snapshot_id": str(manifest.get("snapshot_id", "")),
         "files_verified": len(expected),

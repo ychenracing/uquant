@@ -12,7 +12,7 @@ from typing import Protocol
 
 import pandas as pd
 
-from uquant.account.corporate_actions import corporate_action_receivable, corporate_action_share_rights
+from uquant.account.corporate_actions import corporate_action_receivable
 from uquant.config import DEFAULT_CONFIG
 from uquant.contracts.strict_json import canonical_json_bytes
 from uquant.data import DataManifest
@@ -662,7 +662,7 @@ def _closing_marks(
     marked_equity = account.cash + sum(
         account.positions[symbol].shares * mark for symbol, mark in marks
     ) + corporate_action_receivable(account, {
-        symbol: engine.workspace.price(symbol, date) for symbol in corporate_action_share_rights(account)
+        symbol: engine.workspace.price(symbol, date) for symbol in account.share_rights()
     })
     if not math.isclose(equity, marked_equity, rel_tol=1e-9, abs_tol=1e-8):
         raise RuntimeError("absolute replay closing marks do not reconcile")

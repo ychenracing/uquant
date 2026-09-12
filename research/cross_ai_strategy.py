@@ -29,7 +29,6 @@ from typing import Any, BinaryIO
 import pandas as pd
 
 from uquant.account import account_from_dict
-from uquant.account.corporate_actions import apply_corporate_actions
 from uquant.attribution import (
     build_daily_ledger_row,
     build_daily_replay_evidence_row,
@@ -286,8 +285,7 @@ def run_production_case(
             ))
             fill_start = len(account.fills)
             if engine.data.account_input is not None:
-                apply_corporate_actions(account, engine.data.account_input.actions,
-                    date=session, phase="open", tax_debits=engine.data.account_input.tax_debits)
+                engine.data.account_input.apply(account, date=session, phase="open")
             engine.execution.execute_open(
                 date=date, account=account,
                 panel={symbol: engine.workspace.raw_frame(symbol) for symbol in roles["tradable"]},

@@ -25,6 +25,21 @@ def _number(value: object) -> Decimal:
     return result
 
 
+def _reference_terms(action: dict[str, Any]) -> tuple[Decimal, Decimal]:
+    if 'ratio_denominator' in action:
+        denominator = _number(action['ratio_denominator'])
+        if denominator <= 0:
+            raise ValueError('action denominator must be positive')
+        cash = _number(action['cash_ratio_numerator']) / denominator
+        shares = _number(action['share_ratio_numerator']) / denominator
+    else:
+        cash = _number(action['cash_adjustment_per_share'])
+        shares = _number(action['share_change_ratio'])
+    if cash < 0 or shares < 0:
+        raise ValueError('negative action coefficient requires separate review')
+    return cash, shares
+
+
 def linked_prices(rows: list[dict[str, Any]], events: list[dict[str, Any]], *, as_of: str) -> list[dict[str, Any]]:
     """Link only already-effective events, without changing prior output rows."""
     bound = _day(as_of)
@@ -61,17 +76,7 @@ def linked_prices(rows: list[dict[str, Any]], events: list[dict[str, Any]], *, a
         if action is not None:
             if previous_close is None:
                 raise ValueError('action requires previous observed close')
-            if 'ratio_denominator' in action:
-                denominator = _number(action['ratio_denominator'])
-                if denominator <= 0:
-                    raise ValueError('action denominator must be positive')
-                cash = _number(action['cash_ratio_numerator']) / denominator
-                shares = _number(action['share_ratio_numerator']) / denominator
-            else:
-                cash = _number(action['cash_adjustment_per_share'])
-                shares = _number(action['share_change_ratio'])
-            if cash < 0 or shares < 0:
-                raise ValueError('negative action coefficient requires separate review')
+            cash, shares = _reference_terms(action)
             reference = (previous_close - cash) / (1 + shares)
             if reference <= 0:
                 raise ValueError('action reference price must be positive')

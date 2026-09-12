@@ -173,3 +173,23 @@ def test_tiny_lower_cap_does_not_relax_order_planning_minimum():
     assert diagnostics['sz300308']['block'] == 'NO_TRADE_BAND'
     assert diagnostics['sz300308']['difference_value'] < diagnostics['sz300308']['standard_trade_threshold']
     assert diagnostics['sz300308']['standard_trade_threshold'] >= cfg.min_trade_value
+
+
+def test_lower_ordinary_cap_accounts_for_fees_at_an_exact_lot_boundary():
+    import pandas as pd
+    from test_execution import _canonical_pending, _frame
+
+    from uquant.execution import ExecutionPlanner
+    from uquant.types import AccountState
+    symbol = 'sh603986'
+    cfg = SystemConfig(max_symbol_weight=.3003)
+    panel = {symbol: _frame([
+        {'date': '2026-01-05', 'open': 10, 'high': 10.5, 'low': 9.5, 'close': 10, 'volume': 1e8, 'amount': 1e9},
+        {'date': '2026-01-06', 'open': 10, 'high': 10.5, 'low': 9.5, 'close': 10, 'volume': 1e8, 'amount': 1e9},
+    ])}
+    account = AccountState.empty(2e6)
+    account.pending_orders = [_canonical_pending('2026-01-05', symbol, 'BUY', cfg.max_symbol_weight, 'entry')]
+    fills = ExecutionPlanner(cfg).execute_open(date=pd.Timestamp('2026-01-06'), account=account, panel=panel)
+    assert fills
+    value = account.positions[symbol].shares * fills[0].price
+    assert value / (account.cash + value) <= cfg.max_symbol_weight + 1e-12

@@ -189,6 +189,43 @@ def _eligible_open_row(
     return row
 
 
+def _bounded_buy_shares(
+    *, cfg: SystemConfig, account: AccountState, order: PendingOrder, current: Position,
+    open_equity: float, execution_price: float, shares: int,
+) -> int:
+    """Fit the original lot request within cash and user-selected ceilings."""
+    max_by_weight = (
+        int(
+            math.floor(
+                symbol_weight_cap(cfg, account, order.symbol) * open_equity / execution_price / 100.0
+            )
+            * 100
+        )
+        - current.shares
+    )
+    shares = min(shares, max(0, max_by_weight))
+    if cfg.max_gross < 1.0:
+        gross_room = max(0.0, cfg.max_gross * open_equity - (open_equity - account.cash))
+        shares = min(shares, int(gross_room / execution_price / 100) * 100)
+    while shares >= 100:
+        gross = shares * execution_price
+        commission, _stamp, transfer = fee_components(order.side, gross, cfg)
+        funded = gross + commission + transfer <= account.cash + 1e-8
+        # An opening gap must not turn a lower account limit into extra
+        # buying permission. Retained shares themselves are not force-sold.
+        within_gross = (cfg.max_gross == 1.0 or
+                        open_equity - account.cash + gross <=
+                        cfg.max_gross * (open_equity - commission - transfer) + 1e-8)
+        within_symbol = (cfg.max_symbol_weight == .60 or
+                         (current.shares + shares) * execution_price <=
+                         symbol_weight_cap(cfg, account, order.symbol) *
+                         (open_equity - commission - transfer) + 1e-8)
+        if funded and within_gross and within_symbol:
+            break
+        shares -= 100
+    return shares
+
+
 def _size_open_order(
     *,
     cfg: SystemConfig,
@@ -254,31 +291,8 @@ def _size_open_order(
             account_order.last_event = "POSITION_CAP_BLOCKED"
             retained.append(order)
             return None
-        max_by_weight = (
-            int(
-                math.floor(
-                    symbol_weight_cap(cfg, account, order.symbol) * open_equity / execution_price / 100.0
-                )
-                * 100
-            )
-            - current.shares
-        )
-        shares = min(shares, max(0, max_by_weight))
-        if cfg.max_gross < 1.0:
-            gross_room = max(0.0, cfg.max_gross * open_equity - (open_equity - account.cash))
-            shares = min(shares, int(gross_room / execution_price / 100) * 100)
-        while shares >= 100:
-            gross = shares * execution_price
-            commission, _stamp, transfer = fee_components(order.side, gross, cfg)
-            funded = gross + commission + transfer <= account.cash + 1e-8
-            # An opening gap must not turn a lower account limit into extra
-            # buying permission. Retained shares themselves are not force-sold.
-            within_gross = (cfg.max_gross == 1.0 or
-                            open_equity - account.cash + gross <=
-                            cfg.max_gross * (open_equity - commission - transfer) + 1e-8)
-            if funded and within_gross:
-                break
-            shares -= 100
+        shares = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
+            open_equity=open_equity, execution_price=execution_price, shares=shares)
     if shares <= 0:
         if economic_target_requested > 0:
             order.attempts += 1

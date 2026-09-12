@@ -273,7 +273,7 @@ _EXECUTION_TEXT = MappingProxyType({
     "INSUFFICIENT_HISTORY": "执行检查缺少所需历史行情",
     "LIMIT_BLOCKED": "执行当日涨跌停限制阻止成交",
     "POSITION_CAP_BLOCKED": "执行时持仓数量已达上限",
-    "CAPACITY_OR_CASH_BLOCKED": "执行时可成交股数为零，需核对成交量、现金与可卖股份",
+    "CAPACITY_OR_CASH_BLOCKED": "执行时可成交股数为零，需核对总仓／单票额度、成交量、现金与可卖股份",
     "AWAITING_HANDOFF_SELL": "等待前置卖出实际完成",
     "WAITING_NEXT_OPEN": "等待原信号之后的可交易开盘",
     "CANCEL_REQUESTED": "已请求撤销，尚未确认取消",

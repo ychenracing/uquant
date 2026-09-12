@@ -339,6 +339,9 @@ def close_account_strategic_epoch(
     )
     if account.active_strategic_epoch_id == epoch_id:
         account.active_strategic_epoch_id = ""
+        if account.candidate_tenure.get("strategic_damage_guard_active_epoch", -1) == account.strategic_epoch:
+            # Settlement ends this epoch's guard, not its recorded capital loss.
+            account.candidate_tenure["strategic_damage_guard_active_epoch"] = 0
     for ownership_field, weights_field in (
         ("protected_weight_epoch_ids", "protected_weights"),
         ("strategic_restore_epoch_ids", "strategic_restore_weights"),

@@ -943,7 +943,7 @@ def _confirm_persistent_formation_entries(
         return
     for symbol in qualified.symbols:
         entry = entries.get(symbol, {})
-        if (entry.get("block") not in {"READY", "STRUCTURE_NOT_REPAIRED"}
+        if (entry.get("block") != "READY"
                 or entry.get("as_of") != str(date.date())
                 or entry.get("qualification_route") != "persistent_industry"
                 or entry.get("qualification_quorum") != "FULL_COHORT"

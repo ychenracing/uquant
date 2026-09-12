@@ -78,7 +78,7 @@ def _fifo_events(account: AccountState, symbol: str, through: str) -> list[tuple
     return events
 
 
-def _fifo_inventory(account: AccountState, symbol: str, through: str = "9999-12-31", sales: list[tuple[str, str, int]] | None = None) -> list[DividendTaxLot]:
+def corporate_action_fifo_inventory(account: AccountState, symbol: str, through: str = "9999-12-31", sales: list[tuple[str, str, int]] | None = None) -> list[DividendTaxLot]:
     """Reconstruct statutory FIFO independently of strategy tranche reduction order."""
     events = _fifo_events(account, symbol, through)
     distribution_dates = {f"action:{state.action.action_id}:{index}": (
@@ -127,7 +127,7 @@ def settle_dividend_tax(account: AccountState, *, symbol: str, shares: int, date
         return 0.0
     remaining = shares
     allocations: dict[str, int] = {}
-    for lot in _fifo_inventory(account, symbol):
+    for lot in corporate_action_fifo_inventory(account, symbol):
         consumed = min(remaining, lot.remaining_shares)
         allocations[lot.lot_id] = consumed
         remaining -= consumed
@@ -278,7 +278,7 @@ def _record_action(account: AccountState, action: CorporateAction, known: dict[s
         lots = [replace(lot) for lot in position.tranches] if position else []
         for lot in lots:
             corporate_action_share_award(lot, action)
-        tax_lots = _fifo_inventory(account, action.symbol)
+        tax_lots = corporate_action_fifo_inventory(account, action.symbol)
         if sum(lot.remaining_shares for lot in tax_lots) != sum(lot.shares for lot in lots):
             raise ValueError(f"{action.symbol}: record-date holdings lack FIFO fill evidence")
         state.entitled_lots = lots
@@ -428,7 +428,7 @@ def _validate_recorded_rights(account: AccountState, state: CorporateActionState
             actual[key] = actual.get(key, 0) + lot.shares
         if {key: value for key, value in expected.items() if value} != actual:
             raise ValueError("corporate action record-date lots differ from native fill inventory")
-        fifo = _fifo_inventory(account, action.symbol, action.record_date)
+        fifo = corporate_action_fifo_inventory(account, action.symbol, action.record_date)
         if [(lot.lot_id, lot.acquired_date, lot.remaining_shares) for lot in fifo] != [
             (lot.lot_id, lot.acquired_date, lot.shares) for lot in state.tax_lots
         ]:
@@ -443,7 +443,7 @@ def _validate_assessed_tax(account: AccountState, state: CorporateActionState) -
         if type(tax_lot.shares) is not int or type(tax_lot.remaining_shares) is not int or not 0 <= tax_lot.remaining_shares <= tax_lot.shares:
             raise ValueError("corporate action tax shares differ")
     sales: list[tuple[str, str, int]] = []
-    live = {tax_lot.lot_id: tax_lot.remaining_shares for tax_lot in _fifo_inventory(account, action.symbol, sales=sales)}
+    live = {tax_lot.lot_id: tax_lot.remaining_shares for tax_lot in corporate_action_fifo_inventory(account, action.symbol, sales=sales)}
     expected_tax = 0.0
     for tax_lot in state.tax_lots:
         if tax_lot.remaining_shares != min(tax_lot.shares, live.get(tax_lot.lot_id, 0)):

@@ -445,7 +445,7 @@ def economic_positions(account: AccountState) -> AccountState:
 def corporate_origin_cash(account: AccountState) -> dict[tuple[str, str, str], tuple[float, float]]:
     """Assign dividends and statutory FIFO tax to the original acquisition."""
     from ..account.corporate_actions import (
-        _fifo_inventory,
+        corporate_action_fifo_inventory,
         dividend_tax_rate,
         validate_corporate_action_state,
     )
@@ -466,7 +466,7 @@ def corporate_origin_cash(account: AccountState) -> dict[tuple[str, str, str], t
             income, tax = totals.get(key, (0.0, 0.0))
             totals[key] = (income + lot.shares * state.action.cash_per_share, tax)
         sales: list[tuple[str, str, int]] = []
-        _fifo_inventory(account, state.action.symbol, sales=sales)
+        corporate_action_fifo_inventory(account, state.action.symbol, sales=sales)
         for tax_lot in state.tax_lots:
             key = origins[tax_lot.lot_id]
             income, tax = totals.get(key, (0.0, 0.0))

@@ -94,6 +94,29 @@ jobs:
           --output "$RUNNER_TEMP/absolute-generalization/manifest.json"
           --cache-dir "$RUNNER_TEMP/absolute-generalization-cache"
           --data-dir data/frozen
+      - name: Explain execution and economic evaluation
+        if: ${{ always() }}
+        env:
+          EXECUTION_OUTCOME: ${{ steps.execute.outcome }}
+          MANIFEST_PATH: ${{ steps.execute.outputs.artifact_path }}
+          DIAGNOSTIC_PATH: ${{ steps.execute.outputs.diagnostic_path }}
+        run: |
+          python - <<'PYCODE'
+          import json, os
+          from pathlib import Path
+          lines = ["## Absolute shard", "", "Execution: " + os.environ["EXECUTION_OUTCOME"],
+                   "A complete execution supplies evidence; only final aggregation decides economic acceptance."]
+          for name in ("MANIFEST_PATH", "DIAGNOSTIC_PATH"):
+              path = Path(os.environ[name])
+              if os.environ[name] and path.is_file():
+                  document = json.loads(path.read_text())
+                  lines.append(name + ": " + path.name)
+                  for key in ("status", "error_type", "error"):
+                      if key in document:
+                          lines.append(key + ": " + str(document[key])[:2000])
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as stream:
+              stream.write("\n".join(lines) + "\n")
+          PYCODE
       - name: Upload sealed shard manifest
         if: ${{ !cancelled() && steps.execute.outputs.artifact_path != '' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -116,6 +139,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Report aggregation prerequisites
+        env:
+          PREFLIGHT_RESULT: ${{ needs.absolute-preflight.result }}
+          SHARD_RESULT: ${{ needs.absolute-shard.result }}
+        run: |
+          printf '## Absolute aggregation\n\nPreflight: %s\n\nShard execution: %s\n\nMissing or invalid execution blocks formal aggregation. Complete valid economic misses remain failures in the final report. Inspect each shard summary and original diagnostic for precise causes.\n' "$PREFLIGHT_RESULT" "$SHARD_RESULT" >> "$GITHUB_STEP_SUMMARY"
       - name: Require successful preflight and complete shard execution
         if: ${{ needs.absolute-preflight.result != 'success' || needs.absolute-shard.result != 'success' }}
         run: |

@@ -76,11 +76,37 @@ jobs:
             'scripts/run_strategic_grant_acceptance.py',
             'scripts/run_strategic_ownership_acceptance.py') }}
       - name: Run exact ownership shard
+        id: execute
         run: >-
           uv run python scripts/run_strategic_ownership_acceptance.py
           --shard "${{ matrix.shard }}"
           --output "$RUNNER_TEMP/strategic-ownership-${{ matrix.shard }}.json"
           --cache-dir "$RUNNER_TEMP/strategic-ownership-cache"
+      - name: Explain each ownership result
+        if: ${{ always() }}
+        env:
+          SHARD: ${{ matrix.shard }}
+          EXECUTION_OUTCOME: ${{ steps.execute.outcome }}
+        run: |
+          python - <<'PYCODE'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ["RUNNER_TEMP"]) / ("strategic-ownership-" + os.environ["SHARD"] + ".json")
+          lines = ["## Ownership " + os.environ["SHARD"], "", "Process: " + os.environ["EXECUTION_OUTCOME"]]
+          if path.is_file():
+              result = json.loads(path.read_text())
+              lines.append("Overall: " + result["status"])
+              for row in result["scenarios"]:
+                  lines.append("- " + row["scenario_id"] + ": " + row["status"] + " / " + row.get("evaluation", "see raw evidence"))
+                  if row.get("error"):
+                      lines.append("  " + row["error"][:2000])
+                  for failure in row.get("violations", []):
+                      lines.append("  " + json.dumps(failure, ensure_ascii=False))
+          else:
+              lines.append("No result: economic evaluation is not available; inspect the original failing step.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as stream:
+              stream.write("\n".join(lines) + "\n")
+          PYCODE
       - name: Upload compact ownership facts
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -102,6 +128,7 @@ jobs:
         run: |
           tests='${{ needs.ownership-tests.result }}'
           shards='${{ needs.ownership-shard.result }}'
+          printf '## Ownership required check\n\nModel tests: %s\n\nShard checks: %s\n\nSee shard summaries for invalid evidence versus valid economic misses.\n' "$tests" "$shards" >> "$GITHUB_STEP_SUMMARY"
           if [ "$tests" != "success" ] || [ "$shards" != "success" ]; then
             echo "Strategic Ownership Acceptance failed: tests=$tests shards=$shards"
             exit 1

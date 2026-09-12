@@ -11,9 +11,9 @@ from typing import Any, Final
 
 import pandas as pd
 
-from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine, code_fingerprint
+from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from uquant.risk_sentinel.models import (
     BaseMarketRiskRow,
     RiskEvidenceTimeline,

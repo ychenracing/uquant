@@ -14,21 +14,11 @@ def test_strict_json_compatibility_path_exports_the_canonical_contract() -> None
     assert compatibility.canonical_json_sha256 is canonical.canonical_json_sha256
 
 
-def test_atomic_compatibility_paths_export_the_canonical_contract() -> None:
-    """Breaks if callers can reach a second atomic-publication implementation."""
-    import uquant.atomic_io as legacy
-    from uquant.infrastructure import atomic_files as canonical
-    from uquant.infrastructure import atomic_io as compatibility
+def test_atomic_publication_has_one_owner() -> None:
+    import importlib.util
 
-    for name in (
-        "atomic_write_bytes",
-        "atomic_write_text",
-        "validate_atomic_output_boundary",
-        "validate_atomic_output_path",
-    ):
-        expected = getattr(canonical, name)
-        assert getattr(compatibility, name) is expected
-        assert getattr(legacy, name) is expected
+    assert importlib.util.find_spec("uquant.atomic_io") is None
+    assert importlib.util.find_spec("uquant.infrastructure.atomic_io") is None
 
 
 def test_source_provenance_compatibility_path_exports_split_contracts() -> None:

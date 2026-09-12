@@ -12,10 +12,10 @@ from .account import (
     migrate_code_identity,
     save_account,
 )
-from .atomic_io import atomic_write_text, validate_atomic_output_boundary
 from .broker import sync_broker_snapshot
 from .config import DEFAULT_CONFIG
 from .engine import ProductionEngine, code_fingerprint
+from .infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from .leader import REFERENCE_UNIVERSE
 from .report import render_daily_report
 from .types import AccountState

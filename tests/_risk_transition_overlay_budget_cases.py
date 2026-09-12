@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from policy_inputs import policy_inputs
 from test_risk_transitions import (
     _assess,
     _isolated_risk_config,
@@ -93,7 +94,7 @@ def test_acute_overlay_preserves_existing_zero_gross_crisis_owner() -> None:
         operating_peak=20_000.0,
         capital_peak=20_000.0,
     )
-    cfg = DEFAULT_CONFIG.override(
+    cfg = policy_inputs(
         dynamic_risk_anchors_enabled=False,
         chronic_overlay_enabled=False,
         caution_confirm_days=99,

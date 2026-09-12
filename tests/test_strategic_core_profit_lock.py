@@ -6,6 +6,7 @@ from dataclasses import asdict, replace
 from types import SimpleNamespace
 
 import pytest
+from policy_inputs import policy_inputs
 from test_strategic_probe_holding import OWNER, _decide_and_submit, _entry_deteriorated, _filled_probe
 from test_strategic_universe_quorum import _risk
 
@@ -284,7 +285,7 @@ def _actual_budget_probe(budget, full):
     from uquant.types import AccountState
 
     _, _, _, panel, leaders, roles = _filled_probe()
-    cfg = DEFAULT_CONFIG.override(core_admission_weight=budget, max_symbol_weight=max(.6, full),
+    cfg = policy_inputs(core_admission_weight=budget, max_symbol_weight=max(.6, full),
                                   strategic_one_name_gross=full)
     allocator = PortfolioAllocator(cfg)
     account = AccountState.empty(2_000_000.)

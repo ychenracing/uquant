@@ -185,3 +185,59 @@ def test_full_package_fingerprint_includes_its_sealed_registry_without_recursion
 
     assert source_surface_fingerprint(tmp_path, "full_package_v1") != expected
     assert git_source_surface_fingerprint(tmp_path, "HEAD", "full_package_v1") == expected
+
+
+def test_installed_source_identity_uses_original_resources_and_actual_code(tmp_path: Path) -> None:
+    import shutil
+
+    source = tmp_path / "checkout"
+    installed = tmp_path / "installed"
+    _write_registry(source)
+    _write_selected_members(source)
+    expected = source_surface_fingerprint(source, "economic_decision_v1")
+    shutil.copytree(source / "uquant", installed / "uquant")
+    packaged = installed / "uquant/_source"
+    shutil.copytree(source / "benchmarks", packaged / "benchmarks")
+    assert source_surface_fingerprint(installed, "economic_decision_v1") == expected
+    member = installed / "uquant/engine.py"
+    member.write_bytes(b"different installed code\n")
+    assert source_surface_fingerprint(installed, "economic_decision_v1") != expected
+    member.write_bytes((source / "uquant/engine.py").read_bytes())
+    resource = packaged / "benchmarks/config_parameter_governance.json"
+    resource.write_bytes(b'{"changed":true}\n')
+    assert source_surface_fingerprint(installed, "economic_decision_v1") != expected
+    resource.unlink()
+    with pytest.raises(ValueError, match="missing or unsafe"):
+        source_surface_fingerprint(installed, "economic_decision_v1")
+
+
+@pytest.mark.parametrize("marker", (".git", "pyproject.toml"))
+def test_packaged_resources_cannot_shadow_checkout_identity(tmp_path: Path, marker: str) -> None:
+    _write_registry(tmp_path)
+    _write_selected_members(tmp_path)
+    (tmp_path / "uquant/_source").mkdir()
+    (tmp_path / marker).write_text("checkout")
+    with pytest.raises(ValueError, match="must not shadow"):
+        source_surface_fingerprint(tmp_path, "economic_decision_v1")
+
+
+def test_installed_identity_resources_reject_symlinks(tmp_path: Path) -> None:
+    _write_registry(tmp_path)
+    _write_selected_members(tmp_path)
+    (tmp_path / "uquant/_source").symlink_to(tmp_path / "benchmarks", target_is_directory=True)
+    with pytest.raises(ValueError, match="must not shadow"):
+        source_surface_fingerprint(tmp_path, "economic_decision_v1")
+
+
+def test_installed_resource_reads_reject_symlinked_package_parent(tmp_path: Path) -> None:
+    from uquant.provenance.surfaces import read_source_surface_bytes
+
+    outside = tmp_path / "outside"
+    resource = outside / "_source/benchmarks/registry.json"
+    resource.parent.mkdir(parents=True)
+    resource.write_bytes(b"outside")
+    installed = tmp_path / "installed"
+    installed.mkdir()
+    (installed / "uquant").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match="must not shadow"):
+        read_source_surface_bytes(installed, "benchmarks/registry.json", label="registry")

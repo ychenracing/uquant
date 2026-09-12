@@ -9,8 +9,8 @@ from typing import Any
 
 import pytest
 
-from uquant.atomic_io import atomic_write_text
 from uquant.cli import main
+from uquant.infrastructure.atomic_files import atomic_write_text
 from uquant.observation import execution_journal as journal_surface
 from uquant.observation.execution_journal import (
     JournalStatus,

@@ -13,6 +13,8 @@ from typing import Any, Final, cast
 
 import pandas as pd
 
+from uquant.provenance.surfaces import read_source_surface_bytes
+
 DEFAULT_CONTRACT_PATH: Final = (
     Path(__file__).resolve().parents[2] / "benchmarks" / "risk_sentinel_calibration_contract.json"
 )
@@ -75,11 +77,19 @@ def load_calibration_contract(
     """Load the strict pre-outcome calibration definition."""
 
     source = Path(path)
-    if source.is_symlink() or not source.is_file():
+    if source != DEFAULT_CONTRACT_PATH and (source.is_symlink() or not source.is_file()):
         raise ValueError("calibration contract must be a regular file")
     try:
+        document = (
+            read_source_surface_bytes(
+                DEFAULT_CONTRACT_PATH.parents[1],
+                "benchmarks/risk_sentinel_calibration_contract.json",
+                label="calibration contract",
+            )
+            if source == DEFAULT_CONTRACT_PATH else source.read_bytes()
+        )
         raw = json.loads(
-            source.read_text(encoding="utf-8"),
+            document.decode("utf-8"),
             object_pairs_hook=_reject_duplicate_keys,
             parse_constant=_reject_constant,
         )

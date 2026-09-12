@@ -19,10 +19,10 @@ from research.strategic_evidence.forced_owner import (
     NATIVE_ELIGIBILITY_DATE,
     run_forced_owner_economic_cell,
 )
-from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.engine import ProductionEngine, code_fingerprint
+from uquant.infrastructure.atomic_files import atomic_write_text
 from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.provenance.surfaces import load_source_surface_registry
 from uquant.validation.absolute_generalization._acceptance_evidence import current_candidate_champion_evidence

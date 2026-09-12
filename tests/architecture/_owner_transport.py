@@ -272,7 +272,12 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
             projected.remove(previous)
             projected.add(current)
     assert not (projected & additions)
+    if identifier in {"validation_runner_v1", "full_package_v1"}:
+        projected.add("uquant/validation/parameter_policy.py")
+    if "uquant/config/model.py" in projected:
+        projected.add("uquant/config/policies.py")
     return (projected | set(additions)) - RETIRED_ALLOCATION_SOURCES - {
+        "uquant/atomic_io.py", "uquant/infrastructure/atomic_io.py", "uquant/config/views.py",
         "research/generalization_ablation_cli.py", "research/ablation_registry.py",
         "scripts/run_generalization_ablation.py",
         "scripts/run_risk_negative_controls.py",
@@ -287,6 +292,8 @@ def architecture_resource_surface_projection(
 
     assert identifier in _RESOURCE_SURFACE_ADDITIONS
     projected = {_CURRENT_RESOURCE_PATHS.get(path, path) for path in historical}
+    if identifier in {"economic_decision_v1", "execution_account_v1", "sentinel_v1", "full_package_v1"}:
+        projected.add("uquant/contracts/resources/config_policy_governance.json")
     return sorted((projected | _RESOURCE_SURFACE_ADDITIONS[identifier]) - {
         "benchmarks/current_heads_competitor_matrix.json",
     })

@@ -43,7 +43,7 @@ from research.risk_replay_runtime import (
     run_trade_cell,
     run_uquant_cell,
 )
-from uquant.atomic_io import atomic_write_bytes, atomic_write_text
+from uquant.infrastructure.atomic_files import atomic_write_bytes, atomic_write_text
 from uquant.validation.evidence_source import evidence_root
 
 STARTING_MAIN = "ba314003044a229969270bee6854240dfb7f211e"

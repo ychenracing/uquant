@@ -36,11 +36,11 @@ from scripts.run_strategic_grant_acceptance import run_baseline
 from uquant.account import economic_state_sha256
 from uquant.account.validation_attribution import validate_lot_origin_chains, validate_order_intent
 from uquant.account.validation_positions import position_from_payload, validate_position_state
-from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.contracts.runtime_identity import runtime_environment_provenance
 from uquant.contracts.universe import default_ai_universe
 from uquant.engine import ProductionEngine, code_fingerprint, performance_metrics
+from uquant.infrastructure.atomic_files import atomic_write_text
 from uquant.market import ReplayHarness
 from uquant.models.strategic_universe import (
     build_strategic_universe_declaration,

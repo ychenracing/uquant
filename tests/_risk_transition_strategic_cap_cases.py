@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 import pytest
+from policy_inputs import policy_inputs
 from test_risk_transitions import (
     _assess,
     _damaged_holding_frame,
@@ -47,7 +48,7 @@ def test_strategic_label_cannot_bypass_confirmed_capital_budget_damage() -> None
         operating_peak=225.0,
         capital_peak=260.0,
     )
-    cfg = DEFAULT_CONFIG.override(
+    cfg = policy_inputs(
         dynamic_risk_anchors_enabled=False,
         chronic_overlay_enabled=False,
         sector_guard_enabled=False,
@@ -141,7 +142,7 @@ def test_chronic_overlay_cap_is_a_hard_minimum_on_fast_recovery_path() -> None:
     account.protected_weights = {"held": 0.50}
     account.risk_streaks["independent_market_repair"] = DEFAULT_CONFIG.fast_v_recovery_confirm_days - 1
     account.chronic_level = 3
-    cfg = DEFAULT_CONFIG.override(
+    cfg = policy_inputs(
         dynamic_risk_anchors_enabled=False,
         capital_budget_ladder_enabled=False,
         sector_guard_enabled=False,
@@ -186,7 +187,7 @@ def test_confirmed_acute_sector_evacuation_preempts_concentrated_crisis_cap() ->
         operating_peak=30_000.0,
         capital_peak=30_000.0,
     )
-    cfg = DEFAULT_CONFIG.override(
+    cfg = policy_inputs(
         dynamic_risk_anchors_enabled=False,
         chronic_overlay_enabled=False,
         caution_confirm_days=99,

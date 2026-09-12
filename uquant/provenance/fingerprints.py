@@ -8,13 +8,13 @@ from pathlib import Path
 from uquant.contracts.source_surfaces import SourceSurface
 from uquant.infrastructure.git_source import (
     read_git_file_bytes,
-    read_worktree_file_bytes,
 )
 
 from .surfaces import (
     DEFAULT_SOURCE_SURFACE_REGISTRY,
     load_git_source_surface_registry,
     load_source_surface_registry,
+    read_source_surface_bytes,
 )
 
 
@@ -38,7 +38,7 @@ def _worktree_entries(
     return tuple(
         (
             relative,
-            read_worktree_file_bytes(root, relative, label="source surface member"),
+            read_source_surface_bytes(root, relative, label="source surface member"),
         )
         for relative in surface.paths
     )

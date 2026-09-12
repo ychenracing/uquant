@@ -28,7 +28,6 @@ from research.risk_counterfactual import (
     wilder_atr,
 )
 from research.risk_differential_models import canonical_sha256
-from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG
 from uquant.data import normalize_symbol
 from uquant.engine import (
@@ -39,6 +38,7 @@ from uquant.engine import (
 from uquant.engine import (
     attach_target_attribution as _attach_target_attribution,
 )
+from uquant.infrastructure.atomic_files import atomic_write_text
 from uquant.leader import REFERENCE_UNIVERSE
 from uquant.types import (
     AccountState,

@@ -39,12 +39,10 @@ _risk_timeline_disk_path = _application.risk_timeline_disk_path
 _decision_config_for_universe = _application.decision_config_for_universe
 performance_metrics = _application.calculate_performance_metrics
 _drawdown_stats = _application.drawdown_stats
-_load_risk_timeline_disk_cache, _write_risk_timeline_disk_cache = _application.bind_risk_timeline_disk_cache(
-    lambda: _RISK_TIMELINE_CACHE_SCHEMA
-)
+_load_risk_timeline_disk_cache, _write_risk_timeline_disk_cache = (
+    _application.bind_risk_timeline_disk_cache(lambda: _RISK_TIMELINE_CACHE_SCHEMA))
 _attach_target_attribution = _application.bind_target_attribution(
-    lambda: _LEGACY_INDUSTRY,
-    lambda: _LEGACY_MANIFEST_SHA256,
+    lambda: _LEGACY_INDUSTRY, lambda: _LEGACY_MANIFEST_SHA256,
 )
 attach_target_attribution = _attach_target_attribution
 
@@ -66,7 +64,17 @@ class ProductionEngine:
             workspace.replace_data_store(cast(DataStore, value))
 
     def __init__(self, data_dir: str | Path, cfg: SystemConfig = DEFAULT_CONFIG) -> None:
-        self.cfg = cfg
+        if type(cfg) is not SystemConfig:
+            raise TypeError("production configuration must be an exact SystemConfig")
+        self._initialize(data_dir, cfg)
+
+    @property
+    def cfg(self) -> SystemConfig:
+        """Read the effective configuration bound at engine construction."""
+        return self._cfg
+
+    def _initialize(self, data_dir: str | Path, cfg: SystemConfig = DEFAULT_CONFIG) -> None:
+        self._cfg = cfg
         self.workspace = _MarketWorkspace.production(
             data_dir, cfg, reference_symbols=REFERENCE_UNIVERSE, index_symbols=INDEX_SYMBOLS
         )
@@ -94,12 +102,9 @@ class ProductionEngine:
         return self.workspace._reference_returns
 
     _causal_risk_timeline = _application.bind_causal_risk_timeline(
-        lambda: build_risk_evidence_timeline,
-        lambda: _RISK_TIMELINE_BUILDER,
-        lambda: code_fingerprint,
-        lambda: _SHARED_RISK_TIMELINE_CACHE,
-        lambda: _load_risk_timeline_disk_cache,
-        lambda: _write_risk_timeline_disk_cache,
+        lambda: build_risk_evidence_timeline, lambda: _RISK_TIMELINE_BUILDER,
+        lambda: code_fingerprint, lambda: _SHARED_RISK_TIMELINE_CACHE,
+        lambda: _load_risk_timeline_disk_cache, lambda: _write_risk_timeline_disk_cache,
     )
     equity = _application.mark_equity
     _mark_account_positions = _application.mark_account_positions
@@ -109,7 +114,6 @@ class ProductionEngine:
     )
     _observe_decision = _application.bind_engine_observed_decision(
         lambda: assess_risk, lambda: evaluate_sentinel, lambda: reconcile_account_orders,
-        lambda: code_fingerprint, lambda: _attach_target_attribution,
-    )
+        lambda: code_fingerprint, lambda: _attach_target_attribution)
     deterministic_decision = _application.deterministic_decision
     backtest = _application.bind_engine_backtest(lambda: performance_metrics)

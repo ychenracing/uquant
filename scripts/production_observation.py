@@ -12,8 +12,8 @@ from contextlib import AbstractContextManager
 from functools import wraps
 from typing import Any
 
-from uquant.atomic_io import atomic_write_bytes, atomic_write_text
 from uquant.cli import main as uquant_main
+from uquant.infrastructure.atomic_files import atomic_write_bytes, atomic_write_text
 from uquant.infrastructure.file_lock import acquire_file_lock, release_file_lock
 from uquant.validation.holdout.cli_operations import (
     CANONICAL_JOURNAL_CHECKPOINT_PATH,

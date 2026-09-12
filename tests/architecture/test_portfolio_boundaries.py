@@ -55,31 +55,25 @@ _TRACE_RUNNER_SHA256 = "00672c67b31374c50e1e56e236a45609374637b86f9900d47dc550ab
 _INVENTORY = (evidence_root() / 'artifacts') / "architecture_refactor" / "task8_cleanup_inventory.json"
 _DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
-# Current eight-field leader-cycle retirement changes instance configuration bytes;
-# the immutable inventory still retains its original reflection and pickle facts.
+# Instance bytes contain only the 13 public settings. Class identity, MRO,
+# descriptors and roundtrip behavior remain bound to the immutable inventory.
 _CURRENT_PORTFOLIO_INSTANCE_PICKLES = {
     "LeaderPortfolioPolicy": (
-        "7edce58acffd9c2267178775f103ffc91d888ebdd993478abdd94dbce4437ed3",
-        1881,
+        "74cbb4565cdbb4499373b0432b8b643eb1ceb0132538e2023b733c5872334077",
+        234,
     ),
     "PortfolioAllocator": (
-        "2ae2d74102de8f9341b0cc7a5a77efa91b37f3f7a9823532e86fe0110ebca6e8",
-        1870,
+        "16f9f50a99a3eedf8ad5130cff5bc9565d6b3375c1f434c5ab609b95693b301f",
+        223,
     ),
     "RecoveryPortfolioPolicy": (
-        "c65215212cdec12c8b29d1b0355e50184881be037407843dc8936db82863df9c",
-        1884,
+        "555d3c7bade94e12d1bdc2b90aa7b3a5132a027a0ea2741258d03b70b14b7659",
+        237,
     ),
     "StrategicPortfolioPolicy": (
-        "a5aa5c97a3eb05db4f3c3b74259f5208d86fca3061133fdc07051db4b626a14b",
-        1886,
+        "be9904b37c4c0eccc7eb3b7606a9c6b93285b4fe14058a9f52078cb54d984614",
+        239,
     ),
-}
-_CURRENT_PORTFOLIO_MODE_SHA256 = {
-    "double_optimized": "55153ae91593190d69b0910546b3befbdf7aa3dabd502f9011bfbfa42058e87a",
-    "normal": "6df7eed1769a6e9fe8aff2443012fd413ffe309d2a3587127f021e11595a0293",
-    "optimized": "6df7eed1769a6e9fe8aff2443012fd413ffe309d2a3587127f021e11595a0293",
-    "windows_no_fcntl": "55153ae91593190d69b0910546b3befbdf7aa3dabd502f9011bfbfa42058e87a",
 }
 _IMPLEMENTATION_IDENTITIES = {
     "uquant/portfolio.py": (
@@ -445,7 +439,21 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
             method["signature"] = method["signature"].replace(
                 ") ->", qualification_arguments + ") ->", 1
             )
-    expected["mode_sha256"] = _CURRENT_PORTFOLIO_MODE_SHA256
+    # Derive import-mode expectations from the same independent reflection
+    # structure, changing only Python -OO's documented removal of docstrings.
+    stripped = json.loads(json.dumps(expected["normal"]))
+    for contract in stripped["classes"].values():
+        contract["raw_docstring"] = None
+        for method in contract["methods"].values():
+            method["raw_docstring"] = None
+    for function in stripped["functions"].values():
+        function["raw_docstring"] = None
+    normal_hash = canonical_json_sha256(expected["normal"])
+    stripped_hash = canonical_json_sha256(stripped)
+    expected["mode_sha256"] = {
+        "normal": normal_hash, "optimized": normal_hash,
+        "double_optimized": stripped_hash, "windows_no_fcntl": stripped_hash,
+    }
     assert current_reflection_contract(ROOT) == expected
     assert expected["normal"]["classes"]["PortfolioAllocator"]["mro"] == [
         "uquant.portfolio.PortfolioAllocator",

@@ -9,6 +9,7 @@
         "pyproject.toml",
         "requirements.txt",
         "uquant/contracts/resources/ai_universe_manifest.json",
+        "uquant/contracts/resources/config_policy_governance.json",
         "uv.lock"
       ],
       "source_paths": [
@@ -29,7 +30,6 @@
         "uquant/application/metrics.py",
         "uquant/application/risk_timeline_cache.py",
         "uquant/application/target_attribution.py",
-        "uquant/atomic_io.py",
         "uquant/attribution/__init__.py",
         "uquant/attribution/builder.py",
         "uquant/attribution/concentration.py",
@@ -41,6 +41,7 @@
         "uquant/attribution/validation_lots.py",
         "uquant/config/__init__.py",
         "uquant/config/model.py",
+        "uquant/config/policies.py",
         "uquant/config/validation/__init__.py",
         "uquant/config/validation/execution.py",
         "uquant/config/validation/market.py",
@@ -49,7 +50,6 @@
         "uquant/config/validation/risk.py",
         "uquant/config/validation/sentinel.py",
         "uquant/config/validation/strategic.py",
-        "uquant/config/views.py",
         "uquant/config_governance.py",
         "uquant/contracts/__init__.py",
         "uquant/contracts/runtime_identity.py",
@@ -158,6 +158,7 @@
         "pyproject.toml",
         "requirements.txt",
         "uquant/contracts/resources/ai_universe_manifest.json",
+        "uquant/contracts/resources/config_policy_governance.json",
         "uv.lock"
       ],
       "source_paths": [
@@ -176,6 +177,7 @@
         "uquant/broker_contract.py",
         "uquant/config/__init__.py",
         "uquant/config/model.py",
+        "uquant/config/policies.py",
         "uquant/config/validation/__init__.py",
         "uquant/config/validation/execution.py",
         "uquant/config/validation/market.py",
@@ -184,7 +186,6 @@
         "uquant/config/validation/risk.py",
         "uquant/config/validation/sentinel.py",
         "uquant/config/validation/strategic.py",
-        "uquant/config/views.py",
         "uquant/contracts/__init__.py",
         "uquant/contracts/universe.py",
         "uquant/data.py",
@@ -233,6 +234,7 @@
         "pyproject.toml",
         "requirements.txt",
         "uquant/contracts/resources/ai_universe_manifest.json",
+        "uquant/contracts/resources/config_policy_governance.json",
         "uv.lock"
       ],
       "source_paths": [
@@ -246,9 +248,9 @@
         "uquant/account/validation_orders.py",
         "uquant/account/validation_positions.py",
         "uquant/account/validation_strategy.py",
-        "uquant/atomic_io.py",
         "uquant/config/__init__.py",
         "uquant/config/model.py",
+        "uquant/config/policies.py",
         "uquant/config/validation/__init__.py",
         "uquant/config/validation/execution.py",
         "uquant/config/validation/market.py",
@@ -257,7 +259,6 @@
         "uquant/config/validation/risk.py",
         "uquant/config/validation/sentinel.py",
         "uquant/config/validation/strategic.py",
-        "uquant/config/views.py",
         "uquant/contracts/__init__.py",
         "uquant/contracts/runtime_identity.py",
         "uquant/contracts/universe.py",
@@ -507,6 +508,7 @@
         "uquant/validation/holdout_lanes.py",
         "uquant/validation/holdout_runtime.py",
         "uquant/validation/manifest.py",
+        "uquant/validation/parameter_policy.py",
         "uquant/validation/production_observation.py",
         "uquant/validation/production_observation_contract.py",
         "uquant/validation/promotion.py",
@@ -525,6 +527,7 @@
         "pyproject.toml",
         "requirements.txt",
         "uquant/contracts/resources/ai_universe_manifest.json",
+        "uquant/contracts/resources/config_policy_governance.json",
         "uquant/contracts/resources/performance_frozen_champion.json",
         "uquant/validation/resources/ai_universe_manifest.json",
         "uquant/validation/resources/performance_frozen_champion.json",
@@ -612,7 +615,6 @@
         "uquant/application/metrics.py",
         "uquant/application/risk_timeline_cache.py",
         "uquant/application/target_attribution.py",
-        "uquant/atomic_io.py",
         "uquant/attribution/__init__.py",
         "uquant/attribution/builder.py",
         "uquant/attribution/concentration.py",
@@ -627,6 +629,7 @@
         "uquant/cli.py",
         "uquant/config/__init__.py",
         "uquant/config/model.py",
+        "uquant/config/policies.py",
         "uquant/config/validation/__init__.py",
         "uquant/config/validation/execution.py",
         "uquant/config/validation/market.py",
@@ -635,7 +638,6 @@
         "uquant/config/validation/risk.py",
         "uquant/config/validation/sentinel.py",
         "uquant/config/validation/strategic.py",
-        "uquant/config/views.py",
         "uquant/config_governance.py",
         "uquant/contracts/__init__.py",
         "uquant/contracts/json.py",
@@ -659,7 +661,6 @@
         "uquant/industry.py",
         "uquant/infrastructure/__init__.py",
         "uquant/infrastructure/atomic_files.py",
-        "uquant/infrastructure/atomic_io.py",
         "uquant/infrastructure/file_lock.py",
         "uquant/infrastructure/git_source.py",
         "uquant/leader.py",
@@ -833,6 +834,7 @@
         "uquant/validation/holdout_lanes.py",
         "uquant/validation/holdout_runtime.py",
         "uquant/validation/manifest.py",
+        "uquant/validation/parameter_policy.py",
         "uquant/validation/production_observation.py",
         "uquant/validation/production_observation_contract.py",
         "uquant/validation/promotion.py",
@@ -843,5 +845,5 @@
       ]
     }
   ],
-  "canonical_sha256": "dea858555643c09aec57eb69270e326683e7583e1a1bda088bf038d7ece00f89"
+  "canonical_sha256": "787c5a0a92580929e05d776d23b52cc7f97764acad7fcd9c213a229e6335eaf7"
 }

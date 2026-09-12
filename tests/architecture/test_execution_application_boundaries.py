@@ -779,7 +779,16 @@ def test_execution_moved_definitions_are_mechanically_bound_to_immutable_source(
 
     candidate_methods = _engine_methods(ast.parse((ROOT / "uquant/engine.py").read_bytes()))
     for name in _ENGINE_COMPATIBILITY_METHODS:
-        candidate = _normalized_docstring_indentation(candidate_methods[name])
+        if name == "__init__":
+            candidate = copy.deepcopy(candidate_methods["_initialize"])
+            candidate.name = "__init__"
+            # Preserve the exact workspace/cache/executor initialization order.
+            for node in ast.walk(candidate):
+                if isinstance(node, ast.Attribute) and node.attr == "_cfg":
+                    node.attr = "cfg"
+            candidate = _normalized_docstring_indentation(candidate)
+        else:
+            candidate = _normalized_docstring_indentation(candidate_methods[name])
         immutable = _normalized_docstring_indentation(immutable_methods[name])
         current_docstring = ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS.get(name)
         if current_docstring is not None:
@@ -838,7 +847,12 @@ def test_execution_engine_method_reflection_and_descriptors_match_immutable_sour
         "__package__": "uquant",
         "__file__": str(ROOT / "uquant/engine.py"),
     }
-    exec(compile(_git_source("uquant/engine.py"), "uquant/engine.py", "exec"), namespace)
+    # Execute the immutable descriptor oracle with its retired import routed
+    # to the identical atomic implementation; no legacy module is installed.
+    oracle_source = _git_source("uquant/engine.py").replace(
+        b"from .atomic_io import ", b"from .infrastructure.atomic_files import "
+    )
+    exec(compile(oracle_source, "uquant/engine.py", "exec"), namespace)
     immutable_engine = namespace["ProductionEngine"]
     immutable_definitions = _top_level_definitions(ast.parse(_git_source("uquant/engine.py")))
     for name, definition in immutable_definitions.items():

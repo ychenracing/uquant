@@ -2,6 +2,8 @@
 # Late re-exports preserve the public test facade and pytest collection order.
 from __future__ import annotations
 
+from policy_inputs import policy_inputs
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -446,7 +448,7 @@ def test_recovery_substitution_respects_transfer_cap_and_retains_lead_drift():
         }
     )
     allocator = PortfolioAllocator(
-        DEFAULT_CONFIG.override(replacement_transfer_cap=0.10)
+        policy_inputs(replacement_transfer_cap=0.10)
     )
     targets = None
     for date in dates[-DEFAULT_CONFIG.replacement_confirm_days :]:
@@ -472,7 +474,7 @@ def test_recovery_substitution_respects_transfer_cap_and_retains_lead_drift():
 
 def test_config_rejects_an_invalid_unbacked_tail_threshold():
     with pytest.raises(ValueError, match="unbacked universe tail"):
-        DEFAULT_CONFIG.override(unbacked_universe_tail_dd=DEFAULT_CONFIG.operating_dd_caution)
+        policy_inputs(unbacked_universe_tail_dd=DEFAULT_CONFIG.operating_dd_caution)
 
 
 def _dynamic_cohort_inputs(

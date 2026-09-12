@@ -39,6 +39,7 @@ from uquant.market import ReplayUniverse
 from uquant.models.strategic_universe import build_strategic_universe_declaration
 from uquant.types import AccountState
 from uquant.validation.manifest import verify_data_manifest
+from uquant.validation.parameter_policy import validation_engine
 
 CASE_IDS = ("champion", "full", "remove_all_three", "no_optical")
 CHAMPION_SYMBOLS = ("sh603986", "sh688008", "sz300308", "sz300394", "sz300502")
@@ -220,6 +221,7 @@ def case_identity(
 def run_production_case(
     *, case_id: str, start: str, end: str, output_dir: Path,
     cfg: SystemConfig = DEFAULT_CONFIG,
+    validation_profile: str | None = None,
     initial_cash: float | None = None,
     start_session_offset: int = 0,
     extra_excluded_symbols: tuple[str, ...] = (),
@@ -244,6 +246,11 @@ def run_production_case(
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     data_root = research_data_root(research_data_dir, research_data_sha256)
+    engine = (
+        ProductionEngine(data_root, cfg=cfg) if validation_profile is None
+        else validation_engine(data_root, validation_profile, cfg)
+    )
+    cfg = engine.cfg
     identity = case_identity(case_id, start, end, cfg, research_data_dir=research_data_dir,
                              research_data_sha256=research_data_sha256)
     identity.update(effective_config=cfg.to_dict(), initial_cash=cfg.initial_cash,
@@ -251,7 +258,6 @@ def run_production_case(
     if risk_additions:
         identity["risk_reference_additions"] = list(risk_additions)
     write_json(output_dir / "identity.json", identity)
-    engine = ProductionEngine(data_root, cfg=cfg)
     engine.workspace.prepare(ReplayUniverse.from_symbols(
         tradable_symbols=(), reference_symbols=(), index_symbols=INDEX_SYMBOLS,
     ))

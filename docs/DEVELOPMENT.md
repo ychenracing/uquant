@@ -29,7 +29,7 @@ UV_CACHE_DIR=/tmp/uquant-uv-cache uv sync --frozen --extra dev
 - `report.py` 只渲染，不改变账户或组合；
 - `research/` 接收调用方提供的观测和回调，不写生产配置；
 - `validation/` 失败关闭，不创建占位基线；
-- 配置默认值只定义在 `SystemConfig`。
+- 公开设置默认值只定义在 `SystemConfig`；固定规则只定义在 `config/policies.py` 的相应所有者。
 
 新增模块前先确认职责不能放入现有边界。不要复制第二套决策、执行或账户逻辑。
 

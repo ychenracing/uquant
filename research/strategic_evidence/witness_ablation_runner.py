@@ -18,10 +18,10 @@ from itertools import combinations
 from pathlib import Path, PurePosixPath
 from typing import Any, Protocol
 
-from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.contracts.universe import default_ai_universe
 from uquant.engine import ProductionEngine
+from uquant.infrastructure.atomic_files import atomic_write_text
 from uquant.validation.generalization.scenarios import compute_pre_window_evidence
 from uquant.validation.generalization_contract import INDUSTRY_MIN_SAMPLE
 

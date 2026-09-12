@@ -14,8 +14,8 @@ from dataclasses import asdict, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from uquant.atomic_io import atomic_write_text
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.infrastructure.atomic_files import atomic_write_text
 
 from .contract import StrategicEvidenceContract, load_contract
 from .forced_owner import (

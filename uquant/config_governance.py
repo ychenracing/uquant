@@ -5,12 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Final, cast
 
-from .config import SystemConfig, config_fingerprint
+from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 
 GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
 DEFAULT_GOVERNANCE_PATH: Final = Path(__file__).resolve().parents[1] / GOVERNANCE_PATH
@@ -300,7 +300,7 @@ def _validate_governed_fields_and_removals(
     entry_names = tuple(item.field for item in entries)
     if len(entry_names) != len(set(entry_names)):
         raise RuntimeError("configuration governance classifies a field more than once")
-    actual_names = {field.name for field in fields(SystemConfig)}
+    actual_names = set(DEFAULT_CONFIG.to_dict())
     retired = set(RETIRED_LEADER_CYCLE_FIELDS) | set(_retired_reversal_fields())
     if actual_names.intersection(retired):
         raise RuntimeError("retired strategic configuration field reintroduced")
@@ -346,7 +346,7 @@ def _retired_reversal_fields() -> tuple[str, ...]:
     return tuple(cast(list[str], json.loads(raw)))
 
 
-def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
+def _load_historical_governance(path: str | Path | None = None) -> ConfigGovernance:
     """Load the exact reviewed inventory and reject edits, gaps, and duplicates."""
 
     (
@@ -422,7 +422,7 @@ def validate_governed_config_migration(config: SystemConfig) -> GovernedConfigMi
 
     if not isinstance(config, SystemConfig):
         raise ValueError("governed config migration requires a trusted SystemConfig")
-    governance = load_config_governance()
+    governance = _load_historical_governance(None)
     if not governance.removed_fields:
         raise ValueError("governed config migration requires an authorized field deletion")
     candidate_config_sha256 = config_fingerprint(config)
@@ -451,3 +451,30 @@ def economic_parameter_names() -> frozenset[str]:
         for entry in load_config_governance().entries
         if entry.category is ParameterCategory.ECONOMIC
     )
+
+
+CURRENT_GOVERNANCE_PATH: Final = Path(__file__).parent / "contracts/resources/config_policy_governance.json"
+CURRENT_GOVERNANCE_SHA256: Final = "a48f70537c40e442e2fc7f8138a38fb38cf476e8323be63ac84ecff25a31b237"
+
+
+def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:
+    """Read the complete current policy inventory from its reviewed package resource."""
+    source = CURRENT_GOVERNANCE_PATH if path is None else Path(path)
+    if source.is_symlink() or not source.is_file():
+        raise RuntimeError("configuration governance artifact is missing or not a regular file")
+    raw = source.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != CURRENT_GOVERNANCE_SHA256:
+        raise RuntimeError("configuration governance differs from compiled reviewed governance")
+    payload = json.loads(raw)
+    entries = tuple(ParameterGovernance(name, ParameterCategory(category),
+                      SubsystemOwner(group["owner"]), group["rationale"])
+                    for category, groups in payload["categories"].items()
+                    for group in groups for name in group["fields"])
+    names = [entry.field for entry in entries]
+    if len(names) != len(set(names)) or set(names) != set(DEFAULT_CONFIG.to_dict()):
+        raise RuntimeError("configuration governance does not match complete effective policy")
+    count = sum(entry.category is ParameterCategory.ECONOMIC for entry in entries)
+    fingerprint = config_fingerprint()
+    return ConfigGovernance(entries, len(entries), count, len(entries), count,
+                            len(entries), count, (), (), fingerprint, fingerprint,
+                            CURRENT_GOVERNANCE_SHA256)

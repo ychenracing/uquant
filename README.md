@@ -49,9 +49,8 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 检查收益、回撤、订单、换手、集中度和归因一致性。失败场景、样本不足、证券池、seed、
 统计口径和冻结 champion 都不能为了让候选通过而改写。
 
-经济账本必须满足 `realized_pnl + open_pnl = final_equity - initial_cash`。只有治理为
-`ECONOMIC` 参数可以进入策略选择；`MARKET_RULE`、`SAFETY` 和 `DERIVED` 字段不得被当作
-优化自由度。完整合同见[性能与证据](docs/PERFORMANCE.md)和[参数参考](docs/CONFIGURATION.md)。
+经济账本必须满足 `realized_pnl + open_pnl = final_equity - initial_cash`。
+生产公开设置共 13 项；固定策略与风险规则不能通过构造或 `override()` 改写。规则变更需要独立策略授权与适用验证。完整合同见[性能与证据](docs/PERFORMANCE.md)和[参数参考](docs/CONFIGURATION.md)。
 
 Future Holdout 从 `2026-08-06` 起只接受真实、按顺序追加的新 session，遵守 no-backfill；
 未观察时正式分数必须为 `null`。人工执行 Journal 独立记录计划、成交、跳过与滑点，不写入
@@ -187,7 +186,7 @@ date,open,high,low,close,volume
 | 路径 | 职责 |
 |---|---|
 | `uquant/application/` | 日报决策、回放、指标、归因和风险时间线编排 |
-| `uquant/config/` | 参数模型、默认值、校验与治理分类 |
+| `uquant/config/` | 公开设置、领域固定规则、完整策略身份与校验 |
 | `uquant/data.py`、`features.py`、`reference*.py` | 点时数据、因果特征和共享参考上下文 |
 | `uquant/industry.py`、`leader.py`、`opportunity.py` | 行业、领涨与机会状态证据 |
 | `uquant/market/`、`uquant/risk/` | replay 工作区、Base Risk 评估与状态转换 |

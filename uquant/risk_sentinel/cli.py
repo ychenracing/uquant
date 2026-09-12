@@ -14,9 +14,9 @@ from typing import Any, Final, cast
 import pandas as pd
 
 from uquant.account import load_account
-from uquant.atomic_io import atomic_write_text, validate_atomic_output_boundary
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 from uquant.data import DataContractError, DataStore
+from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from uquant.reference_registry import resolve_reference_symbols
 from uquant.validation.ai_era import runtime_environment_provenance
 from uquant.validation.universe import canonical_sha256, load_ai_universe

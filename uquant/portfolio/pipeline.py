@@ -307,10 +307,11 @@ def _fund_strategic_owners(book: AllocationBook, *, frozen: bool,
 
 def _completed_ordinary_exit_owner(account: AccountState, grant: StrategicGrantIntent | None, symbol: str,
                                    full_settled: bool, full_members: set[str]) -> bool:
-    """Completed strategic entries may use the ordinary structural exit."""
+    """Persistent full formations retain their native strategic exit lifecycle."""
     return ((grant is not None and grant.candidate_symbol == symbol
              and _completed_strategic_core_entry(account, grant))
-            or (full_settled and symbol in full_members))
+            or (full_settled and symbol in full_members and grant is not None
+                and grant.qualification_route != "persistent_industry"))
 
 
 def _ordinary_exits(book: AllocationBook) -> None:

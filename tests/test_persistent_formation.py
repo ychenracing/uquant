@@ -36,7 +36,7 @@ def _january_prefix(symbols=SYMBOLS):
     return engine, account, panel, decision
 
 
-def test_confirmed_full_persistent_formation_requires_current_structure():
+def test_confirmed_full_persistent_formation_uses_existing_full_budget():
     from uquant.execution import ExecutionPlanner
 
     policy, account, dates, panel, leaders, risk, _, _ = _formation_fixture()
@@ -125,7 +125,7 @@ def test_full_formation_requires_every_members_current_own_proof(failure):
         policy, qualified=qualified, entries=entries, snapshots=snapshots, leaders=leaders,
         account=account, risk=risk, date=dates[-2], user_panel=panel,
     )
-    if failure is None:
+    if failure in {None, "structure"}:
         assert all(entry.get("formation_quality") == "CONFIRMED_PERSISTENT" for entry in entries.values())
     else:
         assert all("formation_quality" not in entry for entry in entries.values())

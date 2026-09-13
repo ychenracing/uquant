@@ -12,6 +12,8 @@ from uquant.types import Opportunity, Risk
 
 def test_native_mature_entry_without_impulse_keeps_own_proof_and_original_budget():
     policy, account, dates, panel, base, risk = _scenario()
+    for frame in panel.values():
+        frame["ret120"] = .5
     low = tuple(base)[-1]
     base[low] = replace(base[low], score=.81)
     risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02,
@@ -44,6 +46,8 @@ def test_local_maturity_does_not_open_caution_or_frozen_risk():
 
 def test_local_permission_is_current_and_cannot_borrow_strategic_capital():
     policy, account, dates, panel, base, risk = _scenario()
+    for frame in panel.values():
+        frame["ret120"] = .5
     symbol = next(iter(base))
     account.leader_tenure[symbol] = 5
     risk.evidence.update(ai_fast_return=.01, tech_speed=.02, broad_speed=.02,

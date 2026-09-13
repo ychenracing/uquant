@@ -10,6 +10,8 @@ from uquant.types import Opportunity, Risk
 
 def _setup():
     policy, account, dates, panel, leaders, risk = _scenario()
+    for frame in panel.values():
+        frame["ret120"] = .5
     symbol = next(iter(leaders))
     witness = 'reference_only'
     refs = {**leaders, witness: replace(leaders[symbol], symbol=witness)}

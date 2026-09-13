@@ -9,6 +9,8 @@ from uquant.types import Risk
 
 def _inputs():
     policy, account, dates, panel, base, risk = _scenario()
+    for frame in panel.values():
+        frame["ret120"] = .5
     low = tuple(base)[-1]
     base[low] = replace(base[low], score=.81)
     account.leader_tenure.update({symbol: 20 for symbol in base})

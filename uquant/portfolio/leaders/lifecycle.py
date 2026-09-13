@@ -103,11 +103,10 @@ def _leader_lifecycle_exit_confirmed(
         )
     )
     holding_return = scalar(row, f"ret{self.cfg.trend_medium}", math.nan)
-    if math.isfinite(holding_return) and math.isfinite(reference_return):
-        # Common market damage belongs to the account risk budget. A separate
-        # structural liquidation requires the holding to lose ground both
-        # absolutely and against the contemporaneous technology reference.
-        broken = broken and holding_return < min(0.0, reference_return)
+    if not protected_winner and math.isfinite(holding_return) and math.isfinite(reference_return):
+        # Relative resilience protects an unproven holding from common market
+        # damage. Proven winners already use the slower medium-trend exit.
+        broken = broken and holding_return < reference_return
     clock = f"lifecycle_exit_session:{symbol}"
     session = date.toordinal()
     previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0

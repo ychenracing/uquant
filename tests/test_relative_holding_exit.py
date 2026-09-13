@@ -6,10 +6,10 @@ from test_slow_structural_exit import setup_case
 
 
 @pytest.mark.parametrize("own,reference,expected", [
-    (-.05, -.20, False), (.05, .10, False), (-.20, .05, True),
+    (-.05, -.20, False), (.05, .10, True), (.10, .05, False), (-.20, .05, True),
     (-.20, float("nan"), True), (float("nan"), -.20, True),
 ])
-def test_relative_damage_requires_absolute_and_relative_loss(own, reference, expected):
+def test_unproven_holding_damage_requires_relative_underperformance(own, reference, expected):
     policy, account, symbol, frame, leader = setup_case()
     frame["ret60"] = own
     outcomes = []
@@ -19,6 +19,18 @@ def test_relative_damage_requires_absolute_and_relative_loss(own, reference, exp
             symbol=symbol, date=date, user_panel={symbol: frame},
             leaders={symbol: leader}, account=account, reference_return=reference))
     assert outcomes == [False, False, expected]
+
+
+def test_proven_winner_retains_its_medium_trend_exit_clock():
+    policy, account, symbol, frame, leader = setup_case()
+    account.positions[symbol].highest_close = 140.
+    frame["ma60"] = 100.
+    frame["ret60"] = .05
+    outcomes = [policy._leader_lifecycle_exit_confirmed(
+        symbol=symbol, date=date, user_panel={symbol: frame},
+        leaders={symbol: leader}, account=account, reference_return=-.20,
+    ) for date in frame.index[-3:]]
+    assert outcomes == [False, False, True]
 
 
 def test_relative_recovery_resets_the_same_confirmation_clock():

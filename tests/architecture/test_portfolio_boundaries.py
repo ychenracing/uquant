@@ -248,7 +248,23 @@ elif not broken:
 '''
     ).body
     projected = copy.deepcopy(node)
-    assert ast.get_docstring(projected) == "Confirm lost holding structure without a pre-entry-return velocity veto."
+    relative_damage = ast.parse('''
+holding_return = scalar(row, f"ret{self.cfg.trend_medium}", math.nan)
+if math.isfinite(holding_return) and math.isfinite(reference_return):
+    broken = broken and holding_return < min(0.0, reference_return)
+''').body
+    offset = next(index for index, item in enumerate(projected.body)
+                  if isinstance(item, ast.Assign) and any(
+                      isinstance(target, ast.Name) and target.id == "holding_return" for target in item.targets))
+    assert [ast.dump(item) for item in projected.body[offset:offset + 2]] == [
+        ast.dump(item) for item in relative_damage]
+    del projected.body[offset:offset + 2]
+    assert ast.dump(projected.args.kwonlyargs[-1]) == ast.dump(ast.arg(
+        arg="reference_return", annotation=ast.Name(id="float", ctx=ast.Load())))
+    assert ast.dump(projected.args.kw_defaults[-1]) == ast.dump(ast.parse("math.nan", mode="eval").body)
+    projected.args.kwonlyargs.pop()
+    projected.args.kw_defaults.pop()
+    assert ast.get_docstring(projected) == "Confirm holding-specific deterioration with causal session evidence."
     projected.body[0] = ast.Expr(value=ast.Constant(
         value="Reuse the existing per-symbol damage confirmation across owner gaps."))
     start = -len(observation) - 2
@@ -421,7 +437,10 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
         )
         contract["instance_pickle_sha256"] = pickle_sha256
         contract["instance_pickle_size"] = pickle_size
-    classes['LeaderPortfolioPolicy']["methods"]['_leader_lifecycle_exit_confirmed']["raw_docstring"] = 'Confirm lost holding structure without a pre-entry-return velocity veto.'
+    classes['LeaderPortfolioPolicy']["methods"]['_leader_lifecycle_exit_confirmed']["raw_docstring"] = 'Confirm holding-specific deterioration with causal session evidence.'
+    holding_method = classes['LeaderPortfolioPolicy']["methods"]['_leader_lifecycle_exit_confirmed']
+    holding_method["signature"] = holding_method["signature"].replace(
+        ") ->", ", reference_return: 'float' = nan) ->")
     classes['PortfolioAllocator']["methods"]['_sparse_risk_reduce']["raw_docstring"] = 'Meet every risk cap with one deterministic sparse reduction.\n\n        The lexicographic objective is cap compliance, safer normalized\n        lifecycle composition, sector guard health, stronger retention utility,\n        then the fewest changed symbols among otherwise equivalent plans.\n        At most one symbol receives a partial\n        boundary trim. A guard can only retain or reduce current exposure; it\n        never buys while protection is active.\n        '
     # Reflection exposes the existing executable qualification arguments directly.
     qualification_arguments = (
@@ -925,6 +944,8 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
         (">= self.cfg.min_hold_days", ">= 1"),
         ("not leader.mature", "leader.mature"),
         ("self.cfg.trend_medium if protected_winner", "self.cfg.trend_fast if protected_winner"),
+        ("holding_return < min(0.0, reference_return)", "holding_return < max(0.0, reference_return)"),
+        ("math.isfinite(holding_return) and math.isfinite(reference_return)", "True"),
     ),
 )
 def test_portfolio_lifecycle_exit_projection_rejects_clock_and_rule_mutations(

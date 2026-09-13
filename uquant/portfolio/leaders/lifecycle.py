@@ -83,7 +83,7 @@ def _leader_lifecycle_exit_confirmed(
     account: AccountState,
     reference_return: float = math.nan,
 ) -> bool:
-    """Confirm lost holding structure without a pre-entry-return velocity veto."""
+    """Confirm holding-specific deterioration with causal session evidence."""
     position = account.positions.get(symbol)
     frame = user_panel.get(symbol)
     leader = leaders.get(symbol)

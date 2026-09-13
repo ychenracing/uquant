@@ -157,6 +157,32 @@ def _continue_members(book: AllocationBook, pending: list[PendingOrder], members
         policy._release_recovery_anchor(account)
 
 
+def _fresh_leadership_budget(leaders: dict[str, LeaderScore], requests: dict[str, float], budget: float) -> dict[str, float]:
+    """Weight scarce fresh demand by current leadership, preserving request caps."""
+    budget = min(budget, sum(requests.values()))
+    fallback = {symbol: demand * budget / sum(requests.values()) for symbol, demand in requests.items()}
+    if budget >= sum(requests.values()):
+        return dict(requests)
+    scores = {}
+    for symbol, demand in requests.items():
+        score = leaders[symbol].score
+        if not math.isfinite(score) or score <= 0:
+            return fallback
+        scores[symbol] = demand * score
+    allocated: dict[str, float] = {}
+    while scores:
+        total = sum(scores.values())
+        proposed = {symbol: budget * score / total for symbol, score in scores.items()}
+        capped = {symbol for symbol in scores if proposed[symbol] >= requests[symbol]}
+        if not capped:
+            return {**allocated, **proposed}
+        for symbol in sorted(capped):
+            allocated[symbol] = requests[symbol]
+            budget -= requests[symbol]
+            del scores[symbol]
+    return allocated
+
+
 def _fund_members(book: AllocationBook, targets: tuple[Target, ...], members: set[str],
                    leaders: dict[str, LeaderScore]) -> None:
     account, policy = book.account, book.policy
@@ -165,18 +191,18 @@ def _fund_members(book: AllocationBook, targets: tuple[Target, ...], members: se
                 for target in targets if target.symbol in leaders
                 and target.weight > book.committed.get(target.symbol, 0.0)}
     industries = {leaders[symbol].industry for symbol in requests}
-    scale = 1.0
+    increments = dict(requests)
     if len(requests) > 1 and len(industries) == 1:
         industry_used = sum(weight for symbol, weight in book.committed.items()
                             if symbol in leaders and leaders[symbol].industry in industries)
         remaining = max(0.0, min(book.cash_room, book.gross_cap - sum(book.committed.values()),
                                 policy.cfg.recovery_target_gross - industry_used))
-        scale = min(1.0, remaining / sum(requests.values()))
+        increments = _fresh_leadership_budget(leaders, requests, remaining)
     for target in targets:
         if target.symbol not in leaders or target.weight <= book.weights_now.get(target.symbol, 0.0):
             continue
         reserved = min(target.weight, book.committed.get(target.symbol, 0.0))
-        desired = reserved + max(0.0, target.weight - reserved) * scale
+        desired = reserved + increments.get(target.symbol, 0.0)
         if book.fund(target.symbol, desired, phase="CONFIRMED_RECOVERY_ADMISSION",
                      minimum=policy.cfg.min_trade_weight, concentration_cap=policy.cfg.recovery_target_gross):
             funded.add(target.symbol)

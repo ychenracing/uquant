@@ -369,3 +369,5 @@ Future Holdout 与冻结数据隔离，按真实 session 向前追加并遵守 n
 `confirmation_history_trusted=false`，普通两日确认失败关闭，只有满足完整窄口径的
 severe-direct 当日例外仍可授权。生产权限与历史经济证明见
 [Risk Sentinel](RISK_SENTINEL.md)和相邻冻结 artifacts。
+
+恢复队列若已实际持有，全部成员具备当日成熟趋势及既有信誉要求，且市场为正常趋势、没有冻结、未结订单或待恢复份额，可将当前持有职责移交 CORE；原按期毕业路径保留。交接不产生交易，不清除账户损伤，不更改历史入场归因；之后由普通结构与共同风险规则管理。

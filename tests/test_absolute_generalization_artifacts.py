@@ -450,3 +450,41 @@ def test_nested_market_checks_require_strict_owned_parent(mutation):
         predicate["authoritative_state"] = {"nested": predicate["authoritative_state"]}
     with pytest.raises(ValueError, match="self-asserted pass"):
         reject_self_assertion_claims(predicate, path=path)
+
+
+@pytest.mark.parametrize("check,values", [
+    ("current_data", {}), ("industry", {}), ("structure", {}), ("liquidity", {}),
+    ("confidence", {"value": 1., "minimum": .7}),
+    ("history", {"value": 184, "minimum": 121}),
+])
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("owner", ["entry", "pending_entry", "repair_entry"])
+@pytest.mark.parametrize("in_cells", [True, False])
+def test_runtime_snapshot_preserves_owned_market_facts(check, values, observed, owner, in_cells):
+    fact = {"as_of": "2023-01-04", "passed": observed, **values}
+    path = ("replay_evidence", "observations", 1, "decision_runtime_payload", "value",
+            "risk_assessment", "evidence", "core_allocation", "symbols", "sz300308",
+            owner, "checks", check)
+    if in_cells:
+        path = ("cells", 0, *path)
+    reject_self_assertion_claims(fact, path=path)
+
+
+@pytest.mark.parametrize("mutation", ["prefix", "nested", "owner", "extra", "type"])
+def test_runtime_snapshot_does_not_authorize_unowned_claims(mutation):
+    fact = {"as_of": "2023-01-04", "passed": True}
+    path = ("replay_evidence", "observations", 1, "decision_runtime_payload", "value",
+            "risk_assessment", "evidence", "core_allocation", "symbols", "sz300308",
+            "entry", "checks", "structure")
+    if mutation == "prefix":
+        path = ("untrusted", *path)
+    elif mutation == "nested":
+        path = (*path[:7], "nested", *path[7:])
+    elif mutation == "owner":
+        path = (*path[:3], "untrusted_payload", *path[4:])
+    elif mutation == "extra":
+        fact["capability_pass"] = True
+    else:
+        fact["passed"] = "true"
+    with pytest.raises(ValueError, match="self-asserted pass"):
+        reject_self_assertion_claims(fact, path=path)

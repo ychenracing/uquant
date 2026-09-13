@@ -297,8 +297,12 @@ def _is_core_market_check_path(path: tuple[str | int, ...]) -> bool:
             and path[-6] == "strategic_cash_rearm"
             and _is_production_predicate_path(path[:-3])):
         return True
-    if len(path) == 14 and path[0] == "cells" and isinstance(path[1], int):
+    if len(path) in {14, 15} and path[0] == "cells" and isinstance(path[1], int):
         path = path[2:]
+    if (len(path) == 13 and path[:2] == ("replay_evidence", "observations")
+            and isinstance(path[2], int)
+            and path[3:7] == ("decision_runtime_payload", "value", "risk_assessment", "evidence")):
+        path = (*path[:3], "decision_payload", "value", "risk_summary", *path[7:])
     return (len(path) == 12 and path[:2] == ("replay_evidence", "observations")
             and isinstance(path[2], int)
             and path[3:8] == ("decision_payload", "value", "risk_summary", "core_allocation", "symbols")

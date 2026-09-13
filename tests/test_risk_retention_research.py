@@ -6,16 +6,17 @@ from uquant.portfolio import PortfolioAllocator
 from uquant.types import AccountState, Lifecycle, Target
 
 
-def test_equal_health_retains_stronger_core_before_saving_one_order():
+def test_equal_health_preserves_unchanged_core_before_retention_utility():
     account = AccountState.empty(100.)
     targets = (Target("strong", .6, Lifecycle.CORE.value, .95, .95, "core"),
                Target("weaker", .2, Lifecycle.CORE.value, .5, .95, "core"))
     reduced = PortfolioAllocator(DEFAULT_CONFIG)._sparse_risk_reduce(
         targets=targets, weights_now={"strong": .6, "weaker": .2}, account=account, gross_cap=.3)
     weights = {t.symbol:t.weight for t in reduced}
-    assert weights == pytest.approx({"strong": .3, "weaker": 0.})
+    assert weights == pytest.approx({"strong": .1, "weaker": .2})
     assert sum(weights.values()) == pytest.approx(.3)
-    assert all(t.origin_subsystem == "RISK" for t in reduced)
+    assert next(t for t in reduced if t.symbol == "strong").origin_subsystem == "RISK"
+    assert next(t for t in reduced if t.symbol == "weaker").origin_subsystem == targets[1].origin_subsystem
 
 
 def test_incremental_lifecycle_cannot_buy_priority_with_higher_alpha():

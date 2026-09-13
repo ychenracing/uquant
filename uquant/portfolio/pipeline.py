@@ -693,7 +693,9 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             continue
         if symbol not in eligible:
             book.record(symbol)["entry_gate"] = (
-                "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
+                ("MATURE_CYCLE_CAPACITY_EXHAUSTED" if book.account.candidate_tenure.get("leader_cycle_armed")
+                 else "MATURE_CYCLE_NOT_CONFIRMED") if symbol in cycle_symbols
+                else "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
             )
             continue
         if symbol not in selected:

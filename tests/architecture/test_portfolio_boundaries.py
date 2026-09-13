@@ -446,7 +446,7 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
     holding_method = classes['LeaderPortfolioPolicy']["methods"]['_leader_lifecycle_exit_confirmed']
     holding_method["signature"] = holding_method["signature"].replace(
         ") ->", ", reference_return: 'float' = nan, holding_return: 'float | None' = None) ->")
-    classes['PortfolioAllocator']["methods"]['_sparse_risk_reduce']["raw_docstring"] = 'Meet every risk cap with one deterministic sparse reduction.\n\n        The lexicographic objective is cap compliance, safer normalized\n        lifecycle composition, sector guard health, stronger retention utility,\n        then the fewest changed symbols among otherwise equivalent plans.\n        At most one symbol receives a partial\n        boundary trim. A guard can only retain or reduce current exposure; it\n        never buys while protection is active.\n        '
+    classes['PortfolioAllocator']["methods"]['_sparse_risk_reduce']["raw_docstring"] = 'Meet every risk cap with one deterministic sparse reduction.\n\n        The lexicographic objective is cap compliance, safer normalized\n        lifecycle composition, sector guard health, the fewest changed symbols,\n        then stronger retention utility among otherwise equivalent plans.\n        At most one symbol receives a partial\n        boundary trim. A guard can only retain or reduce current exposure; it\n        never buys while protection is active.\n        '
     # Reflection exposes the existing executable qualification arguments directly.
     qualification_arguments = (
         ", qualification_panel: 'dict[str, pd.DataFrame] | None' = None"

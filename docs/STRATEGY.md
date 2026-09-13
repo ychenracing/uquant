@@ -369,5 +369,3 @@ Future Holdout 与冻结数据隔离，按真实 session 向前追加并遵守 n
 `confirmation_history_trusted=false`，普通两日确认失败关闭，只有满足完整窄口径的
 severe-direct 当日例外仍可授权。生产权限与历史经济证明见
 [Risk Sentinel](RISK_SENTINEL.md)和相邻冻结 artifacts。
-
-同业多个新恢复请求争用有限资金时，以当日百分比 ATR 的倒数调整原请求的相对份额；每个请求仍受原额度封顶，封顶后的剩余预算重新分配。波动数据不完整时沿用原同比缩放。只分配实际可用且扣除当前持仓与挂单责任的资金，不使用预计卖出收入，不扩大行业、相关性或账户上限。

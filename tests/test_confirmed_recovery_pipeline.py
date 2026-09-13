@@ -53,10 +53,13 @@ def test_actual_tactical_probe_precedes_confirmed_recovery_and_fills(recovery_pr
     assert len(confirmed.pending_orders) == 2
     prices = {symbol: float(engine._raw[symbol].loc["2025-05-08", "close"]) for symbol in SYMBOLS}
     held_weights, _ = current_weights(confirmed, prices)
-    assert {order.symbol: order.target_weight for order in confirmed.pending_orders} == pytest.approx({
-        "sz300394": (DEFAULT_CONFIG.recovery_target_gross - held_weights[probe.symbol]) / 2,
-        "sz300502": (DEFAULT_CONFIG.recovery_target_gross - held_weights[probe.symbol]) / 2,
-    })
+    fresh = {order.symbol: order.target_weight for order in confirmed.pending_orders}
+    assert set(fresh) == {"sz300394", "sz300502"}
+    assert sum(fresh.values()) == pytest.approx(
+        DEFAULT_CONFIG.recovery_target_gross - held_weights[probe.symbol])
+    # Current leadership differentiates only the fresh requests. The filled
+    # probe remains intact and the same total recovery budget is conserved.
+    assert 0 < fresh["sz300394"] < fresh["sz300502"] <= DEFAULT_CONFIG.max_symbol_weight
     assert all(order.side == "BUY" and order.mechanism == "RECOVERY_COHORT"
                and order.origin_subsystem == "RECOVERY" and not order.grant_id and not order.epoch_id
                for order in confirmed.pending_orders)

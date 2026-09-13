@@ -26,6 +26,7 @@ def _scenario():
     symbols = tuple(groups.values())[:2]
     panel = {symbol: _strategic_frame(dates) for symbol in symbols}
     for frame in panel.values():
+        frame["ret120"] = .5
         frame["open"] = frame["close"]
         frame["high"] = frame["close"] * 1.01
         frame["low"] = frame["close"] * .99
@@ -80,17 +81,17 @@ def _confirmed_open():
     return policy, account, dates, panel, leaders, risk, targets
 
 
-def test_equal_nominal_trend_budget_preserves_actual_correlation_cap_and_unused_cash():
+def test_maturity_admission_preserves_bounded_capital_and_unused_cash():
     _, account, dates, panel, leaders, risk, targets = _confirmed_open()
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        dict(zip(leaders, (.40, .35), strict=True)))
+        dict.fromkeys(leaders, DEFAULT_CONFIG.core_admission_weight))
     trace = risk.evidence["core_allocation"]
     checks = [trace["symbols"][symbol]["budget_checks"][-1] for symbol in leaders]
-    assert all(check["desired_increment"] == DEFAULT_CONFIG.trend_entry_gross / 2 for check in checks)
+    assert all(check["desired_increment"] == DEFAULT_CONFIG.core_admission_weight for check in checks)
     assert checks[1]["industry_room"] == .75
-    assert checks[1]["correlation_room"] == pytest.approx(.35)
+    assert checks[1]["correlation_room"] == pytest.approx(.75 - DEFAULT_CONFIG.core_admission_weight)
     assert set(checks[1]["correlation_cluster"]) == set(leaders)
-    assert trace["unreserved_cash_after"] == pytest.approx(.25)
+    assert trace["unreserved_cash_after"] == pytest.approx(1 - 2 * DEFAULT_CONFIG.core_admission_weight)
     assert all(target.weight <= DEFAULT_CONFIG.single_core_entry_cap for target in targets)
     assert account.strategic_grant is None and not account.strategic_epochs
     assert len(account.pending_orders) == 2

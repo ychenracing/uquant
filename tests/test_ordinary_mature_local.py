@@ -10,7 +10,7 @@ from uquant.portfolio.ordinary import observe_ordinary_market, ordinary_core_ent
 from uquant.types import Opportunity, Risk
 
 
-def test_native_mature_entry_without_impulse_keeps_own_proof_and_original_budget():
+def test_native_mature_entry_without_impulse_keeps_own_proof_and_initial_budget():
     policy, account, dates, panel, base, risk = _scenario()
     for frame in panel.values():
         frame["ret120"] = .5
@@ -27,7 +27,7 @@ def test_native_mature_entry_without_impulse_keeps_own_proof_and_original_budget
     assert not risk.evidence['core_allocation']['ordinary_market']['impulse']
     high = next(s for s in base if s != low)
     assert {o.symbol for o in account.pending_orders} == {high}
-    assert account.pending_orders[0].target_weight == DEFAULT_CONFIG.single_core_entry_cap
+    assert account.pending_orders[0].target_weight == DEFAULT_CONFIG.core_admission_weight
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
     assert len(fills) == 1 and fills[0].symbol == high and fills[0].shares > 0
     assert not fills[0].grant_id and not fills[0].epoch_id

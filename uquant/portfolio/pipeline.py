@@ -697,7 +697,8 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
         allowance = independent_budget if independent else budget
         assert allowance is not None  # The shared market-input check above already passed.
         weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
-        if not book.leaders[symbol].mature:
+        maturity_only = book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
+        if not book.leaders[symbol].mature or maturity_only:
             weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"

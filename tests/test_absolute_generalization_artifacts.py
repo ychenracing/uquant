@@ -374,3 +374,79 @@ def test_artifact_rejects_resealed_noncanonical_replay_number_type() -> None:
 
     with pytest.raises(ValueError, match=r"replay evidence initial cash.*malformed"):
         validate_cell_artifact(raw, contract)
+
+
+@pytest.mark.parametrize("check,values", [
+    ("current_data", {}), ("industry", {}), ("structure", {}), ("liquidity", {}),
+    ("confidence", {"value": 1., "minimum": .7}),
+    ("history", {"value": 184, "minimum": 121}),
+])
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("owner", ["entry", "pending_entry", "repair_entry"])
+def test_round_trip_preserves_owned_core_market_check_facts(check, values, observed, owner):
+    from uquant.contracts.strict_json import strict_json_loads
+
+    replay = complete_replay()
+    first = replay.observations[0]
+    decision = strict_json_loads(first.decision_payload.canonical_json)
+    decision["risk_summary"]["core_allocation"] = {"symbols": {"sz300308": {
+        owner: {"checks": {check: {"as_of": first.session, "passed": observed, **values}}}}}}
+    replay = replace(replay, observations=(replace(first, decision_payload=payload(decision)),
+                                           *replay.observations[1:]))
+    artifact = derive_cell_metrics(replay, scenario(), _identities())
+    assert validate_cell_artifact(artifact.to_dict(), load_absolute_generalization_contract()) == artifact
+
+
+@pytest.mark.parametrize("mutation", ["prefix", "check", "extra", "type", "date"])
+def test_core_market_fact_exception_does_not_accept_unowned_claims(mutation):
+    fact = {"as_of": "2023-01-17", "passed": True}
+    path = ("replay_evidence", "observations", 0, "decision_payload", "value", "risk_summary",
+            "core_allocation", "symbols", "sz300308", "entry", "checks", "structure")
+    if mutation == "prefix":
+        path = ("untrusted", *path)
+    elif mutation == "check":
+        path = (*path[:-1], "capability")
+    elif mutation == "extra":
+        fact["runner_success"] = True
+    elif mutation == "type":
+        fact["passed"] = "true"
+    else:
+        fact["as_of"] = "not-a-session"
+    with pytest.raises(ValueError, match="self-asserted pass"):
+        reject_self_assertion_claims(fact, path=path)
+
+
+@pytest.mark.parametrize("observed", [True, False])
+def test_round_trip_preserves_current_repair_certificate_market_facts(observed):
+    from uquant.contracts.strict_json import strict_json_loads
+
+    replay = complete_replay()
+    first = replay.observations[0]
+    decision = strict_json_loads(first.decision_payload.canonical_json)
+    decision["risk_summary"]["strategic_cash_rearm"]["predicate_results"] = [{
+        "authoritative_state": {"checks": {"structure": {"as_of": first.session, "passed": observed}}},
+        "code": "current_independent_core", "economic_authority": True,
+        "orphan_residue": False, "passed": observed,
+    }]
+    replay = replace(replay, observations=(replace(first, decision_payload=payload(decision)),
+                                           *replay.observations[1:]))
+    artifact = derive_cell_metrics(replay, scenario(), _identities())
+    assert validate_cell_artifact(artifact.to_dict(), load_absolute_generalization_contract()) == artifact
+
+
+@pytest.mark.parametrize("mutation", ["missing_parent_passed", "extra_parent", "wrong_owner", "nested"])
+def test_nested_market_checks_require_strict_owned_parent(mutation):
+    predicate = {"authoritative_state": {"checks": {"structure": {"as_of": "2023-01-17", "passed": True}}},
+                 "code": "current_independent_core", "economic_authority": True,
+                 "orphan_residue": False, "passed": True}
+    path = ("replay_evidence", "final_account_payload", "value", "strategic_cash_rearm", "predicate_results", 0)
+    if mutation == "missing_parent_passed":
+        del predicate["passed"]
+    elif mutation == "extra_parent":
+        predicate["extra"] = True
+    elif mutation == "wrong_owner":
+        path = (*path[:3], "flat_book_capital_repair", *path[4:])
+    else:
+        predicate["authoritative_state"] = {"nested": predicate["authoritative_state"]}
+    with pytest.raises(ValueError, match="self-asserted pass"):
+        reject_self_assertion_claims(predicate, path=path)

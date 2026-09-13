@@ -1109,10 +1109,70 @@ def _participation_number(value: object) -> float:
     return float(value)
 
 
-def _participation_entry(row: RouteTraceRow, order: AccountOrder, target: Mapping[str, Any]) -> dict[str, Any]:
-    book = _mapping(row.risk.get("core_allocation"), label="CORE participation capital book")
-    owner = _mapping(_mapping(book.get("symbols"), label="CORE capital symbols").get(order.symbol), label="CORE owner")
-    entry = _mapping(owner.get("entry"), label="CORE qualification")
+def _validate_mature_participation(row: RouteTraceRow, order: AccountOrder,
+                                  book: Mapping[str, Any], entry: Mapping[str, Any]) -> None:
+    """Ordinary maturity needs its own live proof; it is not historical repair authority."""
+    market = _mapping(book.get("ordinary_market"), label="ordinary participation market")
+    confirmations = _mapping(entry.get("confirmations"), label="ordinary participation confirmations")
+    floor = DEFAULT_CONFIG.leader_tenure_days
+    flags = tuple(market.get(k) for k in ("impulse", "mature_entry_open", "persistent_mature_entry_open"))
+    if not all(type(flag) is bool for flag in flags):
+        raise ValueError("CORE participation ordinary market route flags are not boolean")
+    if (entry.get("qualification_quorum") != "ORDINARY_CORE" or entry.get("as_of") != row.date
+            or entry.get("block") != "READY" or type(entry.get("required_confirmation")) is not int
+            or entry["required_confirmation"] != floor or market.get("as_of") != row.date
+            or order.symbol not in market.get("credible_symbols", ())
+            or not any(flags)
+            or type(confirmations.get("leader_tenure")) is not int or confirmations["leader_tenure"] < floor):
+        raise ValueError("CORE participation lacks current ordinary maturity authority")
+    leaders = [leader for leader in row.leaders if leader.get("symbol") == order.symbol]
+    if len(leaders) != 1 or leaders[0].get("mature") is not True or _participation_number(leaders[0].get("score")) < .82:
+        raise ValueError("CORE participation lacks its own credible mature leader")
+    persistent = flags[2] and not flags[1] and not flags[0]
+    expected = {"leader_tenure", "credible_maturity", "market_persistence"} if persistent else {"leader_tenure"}
+    if set(confirmations) != expected:
+        raise ValueError("CORE participation ordinary confirmation fields differ")
+    if persistent:
+        proof = _mapping(confirmations.get("market_persistence"), label="ordinary market persistence")
+        witnesses = _sequence(proof.get("witnesses"), label="ordinary persistence witnesses")
+        if (proof != market.get("persistent_maturity") or type(proof.get("observed")) is not int
+                or type(proof.get("required")) is not int or proof["required"] != floor or proof["observed"] < floor
+                or type(confirmations.get("credible_maturity")) is not int or confirmations["credible_maturity"] < floor
+                or not all(isinstance(w, str) for w in witnesses) or len(set(witnesses)) != len(witnesses) or len(witnesses) < DEFAULT_CONFIG.strategic_cohort_min_size
+                or order.symbol not in witnesses):
+            raise ValueError("CORE participation lacks confirmed own and market persistence")
+    needed = set(witnesses) if persistent else {order.symbol}
+    ranked = {leader.get("symbol"): leader for leader in row.leaders}
+    if (len(ranked) != len(row.leaders) or not needed.issubset(market.get("credible_symbols", ()))
+            or any(symbol not in ranked or ranked[symbol].get("mature") is not True
+                   or _participation_number(ranked[symbol].get("score")) < .82
+                   or _participation_number(ranked[symbol].get("confidence")) < DEFAULT_CONFIG.leader_min_confidence
+                   for symbol in needed)):
+        raise ValueError("CORE participation witnesses differ from current credible leader facts")
+    checks = _mapping(entry.get("checks"), label="ordinary current market checks")
+    if set(checks) != {"confidence", "industry", "current_data", "history", "structure", "liquidity"} or any(
+        not isinstance(check, Mapping) or check.get("passed") is not True or check.get("as_of") != row.date
+        for check in checks.values()
+    ):
+        raise ValueError("CORE participation lacks current own-stock market checks")
+    for name, check in checks.items():
+        numeric = name in {"confidence", "history"}
+        if set(check) != ({"as_of", "passed", "value", "minimum"} if numeric else {"as_of", "passed"}):
+            raise ValueError("CORE participation current market check fields differ")
+        if numeric:
+            minimum = DEFAULT_CONFIG.leader_min_confidence if name == "confidence" else 121
+            if (_participation_number(check["minimum"]) != minimum
+                    or _participation_number(check["value"]) < minimum):
+                raise ValueError("CORE participation current market value fails its own minimum")
+    if checks["confidence"]["value"] != ranked[order.symbol]["confidence"]:
+        raise ValueError("CORE participation own confidence differs from current leader fact")
+
+
+def _validate_participation_qualification(row: RouteTraceRow, order: AccountOrder,
+                                        book: Mapping[str, Any], entry: Mapping[str, Any]) -> None:
+    if entry.get("qualification_route") == "mature_core":
+        _validate_mature_participation(row, order, book, entry)
+        return
     required = entry.get("required_confirmation")
     confirmations = _mapping(entry.get("confirmations"), label="CORE confirmations")
     floors = {"FULL_COHORT": DEFAULT_CONFIG.strategic_cohort_confirm_days,
@@ -1132,6 +1192,13 @@ def _participation_entry(row: RouteTraceRow, order: AccountOrder, target: Mappin
     if (entry.get("block") != "READY" or type(required) is not int or required != floor
             or set(confirmations) != {route} or type(streak) is not int or streak < required):
         raise ValueError("CORE participation lacks confirmed current qualification")
+
+
+def _participation_entry(row: RouteTraceRow, order: AccountOrder, target: Mapping[str, Any]) -> dict[str, Any]:
+    book = _mapping(row.risk.get("core_allocation"), label="CORE participation capital book")
+    owner = _mapping(_mapping(book.get("symbols"), label="CORE capital symbols").get(order.symbol), label="CORE owner")
+    entry = _mapping(owner.get("entry"), label="CORE qualification")
+    _validate_participation_qualification(row, order, book, entry)
     if (book.get("as_of") != row.date or book.get("scope") != "FINAL_DECISION"
             or book.get("planning_scope") != "ALLOCATOR_PROPOSAL"
             or book.get("freeze_new_risk") is not False

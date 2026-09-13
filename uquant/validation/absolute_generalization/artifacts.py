@@ -292,7 +292,17 @@ def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
     )
 
 
+def _market_check_alias(path: tuple[str | int, ...]) -> tuple[str | int, ...]:
+    if (len(path) == 12 and path[:2] == ("failed_grant_recovery", "transitions")
+            and isinstance(path[2], int)
+            and path[3:6] == ("runtime_state", "risk", "evidence")):
+        return ("replay_evidence", "observations", path[2],
+                "decision_payload", "value", "risk_summary", *path[6:])
+    return path
+
+
 def _is_core_market_check_path(path: tuple[str | int, ...]) -> bool:
+    path = _market_check_alias(path)
     if (len(path) >= 6 and path[-3:-1] == ("authoritative_state", "checks")
             and path[-6] == "strategic_cash_rearm"
             and _is_production_predicate_path(path[:-3])):

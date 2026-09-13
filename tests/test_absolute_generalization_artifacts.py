@@ -417,6 +417,37 @@ def test_core_market_fact_exception_does_not_accept_unowned_claims(mutation):
 
 
 @pytest.mark.parametrize("observed", [True, False])
+def test_failed_grant_transition_preserves_dated_market_fact(observed):
+    fact = {"as_of": "2023-02-03", "passed": observed, "value": 1., "minimum": .7}
+    path = ("failed_grant_recovery", "transitions", 0, "runtime_state", "risk",
+            "evidence", "core_allocation", "symbols", "sh688300", "entry", "checks", "confidence")
+    reject_self_assertion_claims(fact, path=path)
+
+
+@pytest.mark.parametrize("mutation", ["prefix", "owner", "index", "nested", "extra", "type", "number"])
+def test_failed_grant_transition_rejects_unowned_or_malformed_claim(mutation):
+    fact = {"as_of": "2023-02-03", "passed": True, "value": 1., "minimum": .7}
+    path = ("failed_grant_recovery", "transitions", 0, "runtime_state", "risk",
+            "evidence", "core_allocation", "symbols", "sh688300", "entry", "checks", "confidence")
+    if mutation == "prefix":
+        path = ("untrusted", *path)
+    elif mutation == "owner":
+        path = ("untrusted", *path[1:])
+    elif mutation == "index":
+        path = (*path[:2], "0", *path[3:])
+    elif mutation == "nested":
+        path = (*path[:6], "nested", *path[6:])
+    elif mutation == "extra":
+        fact["capability_pass"] = True
+    elif mutation == "type":
+        fact["passed"] = "true"
+    else:
+        fact["value"] = float("nan")
+    with pytest.raises(ValueError, match="self-asserted pass"):
+        reject_self_assertion_claims(fact, path=path)
+
+
+@pytest.mark.parametrize("observed", [True, False])
 def test_round_trip_preserves_current_repair_certificate_market_facts(observed):
     from uquant.contracts.strict_json import strict_json_loads
 

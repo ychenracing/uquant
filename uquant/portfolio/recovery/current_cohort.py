@@ -48,26 +48,6 @@ def _retain_members(book: AllocationBook, members: set[str], *, graduated: bool 
     book.recovery_targets.update({target.symbol: target for target in targets if target.symbol in members})
 
 
-def _mature_recovery_holding(book: AllocationBook, members: set[str], opportunity: Opportunity) -> bool:
-    """Hand over only settled current mature holdings, never restoration rights."""
-    account, cfg = book.account, book.policy.cfg
-    return bool(
-        members and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
-        and book.risk.state is Risk.NORMAL and not book.risk.freeze_new_risk
-        and not book.risk.evidence.get("freeze_new_risk", False)
-        and not book.risk.evidence.get("sentinel_freeze_new_risk", False)
-        and not account.sector_guard_active
-        and not account.pending_orders and not account.protected_weights
-        and not account.strategic_restore_weights
-        and all(order.status in {"FILLED", "CANCELLED", "REPLACED"} for order in account.order_ledger)
-        and all(symbol in book.leaders and book.leaders[symbol].mature
-                and symbol in book.user_panel and book.date in book.user_panel[symbol].index
-                and book.leaders[symbol].confidence >= cfg.leader_min_confidence
-                and account.leader_tenure.get(symbol, 0) >= cfg.leader_tenure_days
-                for symbol in members)
-    )
-
-
 def _graduate(book: AllocationBook, members: set[str], opportunity: Opportunity, weak: bool) -> bool:
     account, policy = book.account, book.policy
     if (not members or not account.recovery_anchor_date
@@ -77,12 +57,10 @@ def _graduate(book: AllocationBook, members: set[str], opportunity: Opportunity,
     elapsed = policy._session_distance(policy._session_clock(book.user_panel, book.date),
                                        account.recovery_anchor_date, book.date)
     duration = policy.cfg.recovery_cohort_weak_graduation_days if weak else policy.cfg.recovery_cohort_graduation_days
-    mature = _mature_recovery_holding(book, members, opportunity)
-    if elapsed < duration and not mature:
+    if elapsed < duration:
         return False
     policy._release_recovery_anchor(account)
     for symbol in members:
-        book.record(symbol)["recovery_graduation_basis"] = "CURRENT_MATURITY" if mature else "ELAPSED_SESSIONS"
         position = account.positions[symbol]
         position.lifecycle = Lifecycle.CORE.value
         for tranche in position.tranches:

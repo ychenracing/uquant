@@ -342,7 +342,8 @@ def _ordinary_exits(book: AllocationBook) -> None:
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
-        reference_return = float(book.risk.evidence.get("tech_ret60", math.nan))
+        reference_return = (float(book.risk.evidence.get("tech_ret60", math.nan))
+                            if book.risk.evidence.get("tech_ret60_observed") is True else math.nan)
         book.record(symbol)["holding_exit_reference_return"] = (
             reference_return if math.isfinite(reference_return) else None)
         pullback_exit = ordinary_pullback_exit(

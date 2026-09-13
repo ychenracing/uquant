@@ -46,7 +46,7 @@ def test_native_pipeline_uses_reference_and_keeps_restart_order_identity(referen
 
     policy, account, dates, panel, leaders, roles = _native_full()
     base = _risk(frozen=False)
-    risk = replace(base, evidence={**base.evidence, "tech_ret60": reference})
+    risk = replace(base, evidence={**base.evidence, "tech_ret60": reference, "tech_ret60_observed": True})
     _decide(policy, account, dates[0], panel, leaders, roles, risk=risk)
     symbol = SYMBOLS[0]
     leaders[symbol] = replace(leaders[symbol], mature=False)
@@ -65,3 +65,40 @@ def test_native_pipeline_uses_reference_and_keeps_restart_order_identity(referen
         account = account_from_dict(asdict(account))
         _decide(policy, account, day, panel, leaders, roles, risk=risk)
         assert asdict(next(o for o in account.pending_orders if o.symbol == symbol)) == before
+
+
+@pytest.mark.parametrize("reference,exits", [(float("nan"), True), (float("inf"), True), (None, True), (0., False)])
+def test_upstream_missing_return_never_becomes_valid_zero_holding_proof(reference, exits):
+    from dataclasses import replace
+
+    import pandas as pd
+    from test_shared_core_qualification import _decide
+    from test_strategic_cohort_deployment_settlement import SYMBOLS, _native_full
+    from test_strategic_grant_observation import _risk
+
+    from uquant.config import DEFAULT_CONFIG
+    from uquant.portfolio.allocation_book import AllocationBook
+    from uquant.portfolio.pipeline import _ordinary_exits
+    from uquant.portfolio_core import current_weights
+    from uquant.risk.market_book import _market_context
+
+    policy, account, dates, panel, leaders, roles = _native_full()
+    _decide(policy, account, dates[0], panel, leaders, roles, risk=_risk(frozen=False))
+    symbol = SYMBOLS[0]
+    leaders[symbol] = replace(leaders[symbol], mature=False)
+    market = pd.DataFrame({} if reference is None else {"ret60": reference}, index=dates)
+    start = DEFAULT_CONFIG.min_hold_days + 2
+    for day in dates[start:start + DEFAULT_CONFIG.replacement_confirm_days]:
+        for key in ("ma20", "ma60"):
+            panel[symbol].loc[day, key] = panel[symbol].loc[day, "close"] * 1.1
+        panel[symbol].loc[day, "ret60"] = .05
+        evidence = _market_context(day, market, market, DEFAULT_CONFIG)
+        assert evidence["tech_ret60"] == 0.  # Existing risk fallback remains intact.
+        base = _risk(frozen=False)
+        risk = replace(base, evidence={**base.evidence, **evidence})
+        prices = {s: float(panel[s].loc[day, "close"]) for s in SYMBOLS}
+        weights, _ = current_weights(account, prices)
+        book = AllocationBook(policy, day, risk, panel, leaders, account, prices,
+                              weights, set(SYMBOLS), {}, dict(weights), dict(weights), 0.)
+        _ordinary_exits(book)
+    assert (book.proposed[symbol] == 0.) == exits

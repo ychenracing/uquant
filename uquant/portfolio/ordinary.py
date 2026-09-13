@@ -59,7 +59,8 @@ def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
         and not qualification.deployment_blocked
     )
     local_open = (market is not None and (market.get("mature_entry_open") is True
-                  or market.get("persistent_mature_entry_open") is True)
+                  or market.get("persistent_mature_entry_open") is True
+                  or market.get("leader_cycle_armed") is True)
                   and not strategic_claims and not forming_full)
     return local_open
 
@@ -188,9 +189,9 @@ def ordinary_core_entry(
     elif certificate is None and _mature_core_eligible(
         self, score=score, tenure=tenure, account=account, market=market,
         date=date, local_open=local_open, symbol=symbol,
-    ) and _ordinary_relative_leadership(
+    ) and (bool(market and market.get("leader_cycle_armed")) or _ordinary_relative_leadership(
         self, symbol=symbol, date=date, user_panel=user_panel, market=market,
-    ):
+    )):
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
             "required_confirmation": self.cfg.leader_tenure_days,

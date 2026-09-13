@@ -34,6 +34,7 @@ from ..types import (
 )
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
+from .leaders.cycle import add_mature_leaders, mature_cycle_weights, observe_mature_cycle
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import (
     is_consumed_repair_order,
@@ -680,6 +681,11 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
+    cycle_symbols = [s for s in eligible if not book.owned and not book.account.pending_orders
+                     and not book.account.candidate_tenure.get("ordinary_repair_capital_active")
+                     and book.record(s).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"]
+    cycle_weights = mature_cycle_weights(book, cycle_symbols, opportunity)
+    eligible = [s for s in eligible if s not in cycle_symbols or s in cycle_weights]
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:
@@ -698,7 +704,9 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
         assert allowance is not None  # The shared market-input check above already passed.
         weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
         maturity_only = book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
-        if not book.leaders[symbol].mature or maturity_only:
+        if symbol in cycle_weights:
+            weight = min(cycle_weights[symbol], allowance)
+        elif not book.leaders[symbol].mature or maturity_only:
             weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
@@ -754,6 +762,8 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
     )
     merged = []
     for target in targets:
+        if "leader_lifecycle" in book.record(target.symbol):
+            target = replace(target, lifecycle=book.record(target.symbol)["leader_lifecycle"])
         if target.symbol in book.recovery_targets:
             recovery = book.recovery_targets[target.symbol]
             mechanism = book.mechanisms.get(target.symbol)
@@ -873,6 +883,7 @@ def _allocate_strategy(
         self, date=date, opportunity=opportunity, risk=risk, leaders=leaders,
         user_panel=user_panel,
     )
+    observe_mature_cycle(book, opportunity, market)
     rearm_ordinary_market(account=account, date=date, risk=risk, market=market,
                           confirmation_days=self.cfg.leader_tenure_days)
     observe_repair_maturity(self, account=account, date=date, market=market, user_panel=user_panel)
@@ -895,6 +906,7 @@ def _allocate_strategy(
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
     if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
         _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
+        add_mature_leaders(book, opportunity)
     else:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (

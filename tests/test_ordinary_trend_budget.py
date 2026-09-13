@@ -81,17 +81,17 @@ def _confirmed_open():
     return policy, account, dates, panel, leaders, risk, targets
 
 
-def test_maturity_admission_preserves_bounded_capital_and_unused_cash():
+def test_maturity_admission_funds_group_seed_with_reserved_cash_and_correlation_cap():
     _, account, dates, panel, leaders, risk, targets = _confirmed_open()
     assert {target.symbol: target.weight for target in targets} == pytest.approx(
-        dict.fromkeys(leaders, DEFAULT_CONFIG.core_admission_weight))
+        dict(zip(leaders, (.4, .35), strict=True)))
     trace = risk.evidence["core_allocation"]
     checks = [trace["symbols"][symbol]["budget_checks"][-1] for symbol in leaders]
-    assert all(check["desired_increment"] == DEFAULT_CONFIG.core_admission_weight for check in checks)
+    assert all(check["desired_increment"] == .4 for check in checks)
     assert checks[1]["industry_room"] == .75
-    assert checks[1]["correlation_room"] == pytest.approx(.75 - DEFAULT_CONFIG.core_admission_weight)
+    assert checks[1]["correlation_room"] == pytest.approx(.75 - .4)
     assert set(checks[1]["correlation_cluster"]) == set(leaders)
-    assert trace["unreserved_cash_after"] == pytest.approx(1 - 2 * DEFAULT_CONFIG.core_admission_weight)
+    assert trace["unreserved_cash_after"] == pytest.approx(.25)
     assert all(target.weight <= DEFAULT_CONFIG.single_core_entry_cap for target in targets)
     assert account.strategic_grant is None and not account.strategic_epochs
     assert len(account.pending_orders) == 2
@@ -117,7 +117,10 @@ def test_ordinary_partial_loses_common_permission_and_cannot_revive_after_strict
     assert all(order.status == "PARTIALLY_FILLED" for order in account.order_ledger)
     before = ({symbol: pos.shares for symbol, pos in account.positions.items()}, account.cash)
     risk.evidence["ai_fast_return"] = .01
-    assert all(leader.mature for leader in leaders.values())
+    # A completed impulse no longer cancels a valid armed trend; loss of
+    # current stock maturity does invalidate its unfinished ordinary BUY.
+    leaders = {symbol: replace(leader, mature=False) for symbol, leader in leaders.items()}
+    assert not any(leader.mature for leader in leaders.values())
     _decide(policy, account, dates[5], panel, leaders, risk)
     assert not account.pending_orders
     assert all(order.status == "CANCELLED" for order in account.order_ledger)

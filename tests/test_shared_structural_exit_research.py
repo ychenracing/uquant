@@ -51,7 +51,8 @@ def test_native_full_member_uses_confirmed_exit_and_preserves_restart_identity()
     start = DEFAULT_CONFIG.min_hold_days + 1
     for date in dates[1:start]:
         _decide(policy, account, date, panel, leaders, roles, risk=_risk(frozen=False))
-    weakened = {**leaders, symbol: replace(leaders[symbol], mature=False)}
+    weakened = {**leaders, symbol: replace(leaders[symbol], mature=False,
+                components={**leaders[symbol].components, "unknown_industry": 1.0})}
     frame = panel[symbol]
     for key in ("ma20", "ma60"):
         frame.loc[dates[start]:, key] = frame.loc[dates[start]:, "close"] * 1.1
@@ -72,7 +73,8 @@ def test_native_full_member_uses_confirmed_exit_and_preserves_restart_identity()
     assert any(p.shares > 0 for s, p in restored.positions.items() if s != symbol)
     # A settled member's actual exit must not permanently lock its remaining peers.
     peer = SYMBOLS[1]
-    weakened[peer] = replace(leaders[peer], mature=False)
+    weakened[peer] = replace(leaders[peer], mature=False,
+                             components={**leaders[peer].components, "unknown_industry": 1.0})
     for key in ("ma20", "ma60"):
         panel[peer].loc[fill_date:, key] = panel[peer].loc[fill_date:, "close"] * 1.1
     remaining_dates = dates[dates.get_loc(fill_date):]
@@ -149,3 +151,20 @@ def test_settled_persistent_members_allow_confirmed_structural_exit(restart):
                               prices, weights, members, {}, dict(weights), dict(weights), 0.)
         _ordinary_exits(book)
     assert all(book.proposed[symbol] == 0. for symbol in members)
+
+
+@pytest.mark.parametrize("restart", [False, True])
+def test_current_own_persistent_proof_retains_filled_member_through_short_structure(restart):
+    policy, account, dates, panel, leaders, roles = _native_full()
+    symbol = SYMBOLS[0]
+    leaders[symbol] = replace(leaders[symbol], mature=False)
+    for frame in panel.values():
+        frame.loc[dates, "ma20"] = frame.loc[dates, "close"] * 1.1
+        frame.loc[dates, "ma60"] = frame.loc[dates, "close"] * 1.1
+    if restart:
+        account = account_from_dict(asdict(account))
+    for date in dates[:DEFAULT_CONFIG.min_hold_days + DEFAULT_CONFIG.replacement_confirm_days + 2]:
+        _decide(policy, account, date, panel, leaders, roles, risk=_risk(frozen=False))
+        assert not any(o.symbol == symbol and o.side == "SELL" for o in account.pending_orders), str(date)
+        assert account.candidate_tenure["strategic_eligibility_session"] == date.toordinal()
+        assert account.replacement_tenure[f"strategic_eligibility:persistent_industry:{symbol}"] >= DEFAULT_CONFIG.strategic_cohort_confirm_days

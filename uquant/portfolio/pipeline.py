@@ -52,7 +52,6 @@ from .strategic.grant_lifecycle import completed_strategic_cohort_entry
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
 from .strategic.qualification_candidates import (
     reset_strategic_candidate_eligibility,
-    strategic_candidate_confirmation,
 )
 from .strategic.rearm import (
     authorize_ordinary_cash_rearm,
@@ -314,19 +313,6 @@ def _completed_ordinary_exit_owner(account: AccountState, grant: StrategicGrantI
             or (full_settled and symbol in full_members))
 
 
-def _current_persistent_holding(book: AllocationBook, symbol: str, *, full_settled: bool,
-                                full_members: set[str]) -> bool:
-    """A historical formation cannot replace this held member's current proof."""
-    account, grant = book.account, book.account.strategic_grant
-    return bool(
-        full_settled and symbol in full_members and grant is not None
-        and grant.qualification_route == "persistent_industry"
-        and account.candidate_tenure.get("strategic_eligibility_session", 0) == book.date.toordinal()
-        and strategic_candidate_confirmation(account=account, symbol=symbol, route="persistent_industry")
-        >= book.policy.cfg.strategic_cohort_confirm_days
-    )
-
-
 def _ordinary_exits(book: AllocationBook) -> None:
     """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
     account = book.account
@@ -350,11 +336,6 @@ def _ordinary_exits(book: AllocationBook) -> None:
         # The dominant lifecycle already owns its retained profit-locked stake.
         # Keep its disaster/risk reductions; do not overlay an ordinary exit.
         if symbol in book.owned and symbol == dominant and profit_locked:
-            continue
-        if symbol in book.owned and _current_persistent_holding(
-            book, symbol, full_settled=full_settled, full_members=full_members,
-        ):
-            book.record(symbol)["allocation_reason"] = "CURRENT_PERSISTENT_HOLDING"
             continue
         if symbol in book.owned and not _completed_ordinary_exit_owner(
             account, grant, symbol, full_settled, full_members,

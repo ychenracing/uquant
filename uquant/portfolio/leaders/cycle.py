@@ -55,8 +55,13 @@ def mature_cycle_weights(book: AllocationBook, symbols: list[str], opportunity: 
     if previous > session:
         raise ValueError('leader capacity observations must be causal')
     if previous != session:
+        ranked = sorted((leader for symbol, leader in book.leaders.items()
+                         if leader.mature and leader.confidence >= cfg.leader_min_confidence
+                         and symbol in book.user_panel and book.date in book.user_panel[symbol].index
+                         and policy._structure_ok(book.user_panel[symbol], book.date)),
+                        key=lambda leader: (-leader.score, leader.symbol))
         policy._dynamic_k(date=book.date, opportunity=opportunity, risk=book.risk,
-                          candidates=[book.leaders[s] for s in symbols], user_panel=book.user_panel, account=account)
+                          candidates=ranked, user_panel=book.user_panel, account=account)
         account.candidate_tenure[marker] = session
     occupied = {s for s, w in book.committed.items() if w > 0} | book.owned
     selected = symbols[:max(0, account.dynamic_k - len(occupied))]

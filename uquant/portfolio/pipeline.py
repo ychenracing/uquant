@@ -780,7 +780,8 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
 
 def _caution_probe_book_open(book: AllocationBook) -> bool:
     account, risk = book.account, book.risk
-    return not (risk.state is not Risk.CAUTION or not risk.freeze_new_risk
+    return not (risk.state not in {Risk.NORMAL, Risk.CAUTION}
+            or (risk.state is Risk.NORMAL and risk.freeze_new_risk)
             or risk.evidence.get("freeze_new_risk", False)
             or risk.evidence.get("sentinel_freeze_new_risk", False)
             or account.capital_budget_level != 0 or account.chronic_level != 0
@@ -791,7 +792,7 @@ def _caution_probe_book_open(book: AllocationBook) -> bool:
 
 
 def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> set[str]:
-    """Isolated research permission; reuse the original tactical signal unchanged."""
+    """Reach the original tactical signal in unfrozen or bounded caution books."""
     account, risk, policy = book.account, book.risk, book.policy
     if not _caution_probe_book_open(book):
         return set()
@@ -808,7 +809,7 @@ def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> s
     targets = tactical_admission_targets(
         policy, opportunity=opportunity, date=book.date, risk=risk,
         user_panel=book.user_panel, leaders=book.leaders, account=planned,
-        level1_recovery_repair=False, bounded_recovery_repair=True,
+        level1_recovery_repair=False, bounded_recovery_repair=risk.freeze_new_risk,
         tactical_recovery_market=weak or transitional,
         transitional_recovery_market=transitional, weak_secular_market=weak,
     )

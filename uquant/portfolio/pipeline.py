@@ -313,6 +313,19 @@ def _completed_ordinary_exit_owner(account: AccountState, grant: StrategicGrantI
             or (full_settled and symbol in full_members))
 
 
+def _holding_exit_returns(book: AllocationBook, symbol: str) -> tuple[float | None, float]:
+    evidence = book.risk.evidence
+    observed_key = f"holding_return_observed:{symbol}"
+    if observed_key in evidence:
+        if evidence[observed_key] is not True:
+            return math.nan, math.nan
+        return (float(evidence.get(f"holding_return:{symbol}", math.nan)),
+                float(evidence.get(f"holding_reference_return:{symbol}", math.nan)))
+    reference = (float(evidence.get("tech_ret60", math.nan))
+                 if evidence.get("tech_ret60_observed") is True else math.nan)
+    return None, reference
+
+
 def _ordinary_exits(book: AllocationBook) -> None:
     """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
     account = book.account
@@ -342,8 +355,7 @@ def _ordinary_exits(book: AllocationBook) -> None:
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
-        reference_return = (float(book.risk.evidence.get("tech_ret60", math.nan))
-                            if book.risk.evidence.get("tech_ret60_observed") is True else math.nan)
+        holding_return, reference_return = _holding_exit_returns(book, symbol)
         book.record(symbol)["holding_exit_reference_return"] = (
             reference_return if math.isfinite(reference_return) else None)
         pullback_exit = ordinary_pullback_exit(
@@ -354,6 +366,7 @@ def _ordinary_exits(book: AllocationBook) -> None:
             symbol=symbol, date=book.date, user_panel=book.user_panel,
             leaders=book.leaders, account=account,
             reference_return=reference_return,
+            holding_return=holding_return,
         )):
             continue
         book.proposed[symbol] = 0.0

@@ -82,6 +82,7 @@ def _leader_lifecycle_exit_confirmed(
     leaders: dict[str, LeaderScore],
     account: AccountState,
     reference_return: float = math.nan,
+    holding_return: float | None = None,
 ) -> bool:
     """Confirm holding-specific deterioration with causal session evidence."""
     position = account.positions.get(symbol)
@@ -102,7 +103,8 @@ def _leader_lifecycle_exit_confirmed(
             f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
         )
     )
-    holding_return = scalar(row, f"ret{self.cfg.trend_medium}", math.nan)
+    if holding_return is None:
+        holding_return = scalar(row, f"ret{self.cfg.trend_medium}", math.nan)
     if not protected_winner and math.isfinite(holding_return) and math.isfinite(reference_return):
         # Relative resilience protects an unproven holding from common market
         # damage. Proven winners already use the slower medium-trend exit.

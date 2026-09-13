@@ -100,6 +100,36 @@ def _market_context(
     }
 
 
+def _holding_return_context(
+    date: pd.Timestamp, tech: pd.DataFrame, user_panel: dict[str, pd.DataFrame],
+    account: AccountState, cfg: SystemConfig,
+) -> dict[str, float]:
+    """Compare the same observed holding interval, capped by the medium horizon."""
+    evidence: dict[str, float] = {}
+    for symbol, position in account.positions.items():
+        if position.shares <= 0:
+            continue
+        evidence[f"holding_return_observed:{symbol}"] = False
+        frame = user_panel.get(symbol)
+        if frame is None or date not in frame.index or date not in tech.index or not position.entry_date:
+            continue
+        sessions = frame.loc[:date].index
+        entry = pd.Timestamp(position.entry_date)
+        if entry not in sessions:
+            continue
+        start = max(entry, sessions[max(0, len(sessions) - 1 - cfg.trend_medium)])
+        if start not in tech.index:
+            continue
+        prices = [scalar(data.loc[day], "close", math.nan)
+                  for data, day in ((frame, start), (frame, date), (tech, start), (tech, date))]
+        if not all(math.isfinite(price) and price > 0 for price in prices):
+            continue
+        evidence.update({f"holding_return_observed:{symbol}": True,
+                         f"holding_return:{symbol}": prices[1] / prices[0] - 1,
+                         f"holding_reference_return:{symbol}": prices[3] / prices[2] - 1})
+    return evidence
+
+
 def _disabled_overlay_assessment(
     account: AccountState, cfg: SystemConfig, market_context: dict[str, float]
 ) -> RiskAssessment:
@@ -536,6 +566,7 @@ def assess_market_and_book_evidence(
 
     present = _present_reference_symbols(date, reference_panel)
     market_context = _market_context(date, broad, tech, cfg)
+    market_context.update(_holding_return_context(date, tech, user_panel, account, cfg))
     if not cfg.risk_overlay_enabled:
         return _disabled_overlay_assessment(account, cfg, market_context)
     observed = _collect_reference_observations(

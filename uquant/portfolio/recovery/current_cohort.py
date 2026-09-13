@@ -161,10 +161,23 @@ def _fund_members(book: AllocationBook, targets: tuple[Target, ...], members: se
                    leaders: dict[str, LeaderScore]) -> None:
     account, policy = book.account, book.policy
     funded = set(members)
+    requests = {target.symbol: target.weight - book.committed.get(target.symbol, 0.0)
+                for target in targets if target.symbol in leaders
+                and target.weight > book.committed.get(target.symbol, 0.0)}
+    industries = {leaders[symbol].industry for symbol in requests}
+    scale = 1.0
+    if len(requests) > 1 and len(industries) == 1:
+        industry_used = sum(weight for symbol, weight in book.committed.items()
+                            if symbol in leaders and leaders[symbol].industry in industries)
+        remaining = max(0.0, min(book.cash_room, book.gross_cap - sum(book.committed.values()),
+                                policy.cfg.recovery_target_gross - industry_used))
+        scale = min(1.0, remaining / sum(requests.values()))
     for target in targets:
         if target.symbol not in leaders or target.weight <= book.weights_now.get(target.symbol, 0.0):
             continue
-        if book.fund(target.symbol, target.weight, phase="CONFIRMED_RECOVERY_ADMISSION",
+        reserved = min(target.weight, book.committed.get(target.symbol, 0.0))
+        desired = reserved + max(0.0, target.weight - reserved) * scale
+        if book.fund(target.symbol, desired, phase="CONFIRMED_RECOVERY_ADMISSION",
                      minimum=policy.cfg.min_trade_weight, concentration_cap=policy.cfg.recovery_target_gross):
             funded.add(target.symbol)
             book.recovery_targets[target.symbol] = target

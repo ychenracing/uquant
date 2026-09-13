@@ -54,9 +54,8 @@ def test_actual_tactical_probe_precedes_confirmed_recovery_and_fills(recovery_pr
     prices = {symbol: float(engine._raw[symbol].loc["2025-05-08", "close"]) for symbol in SYMBOLS}
     held_weights, _ = current_weights(confirmed, prices)
     assert {order.symbol: order.target_weight for order in confirmed.pending_orders} == pytest.approx({
-        "sz300394": (DEFAULT_CONFIG.recovery_target_gross - DEFAULT_CONFIG.tactical_rebound_weight) / 2,
-        "sz300502": DEFAULT_CONFIG.recovery_target_gross - held_weights[probe.symbol]
-                     - (DEFAULT_CONFIG.recovery_target_gross - DEFAULT_CONFIG.tactical_rebound_weight) / 2,
+        "sz300394": (DEFAULT_CONFIG.recovery_target_gross - held_weights[probe.symbol]) / 2,
+        "sz300502": (DEFAULT_CONFIG.recovery_target_gross - held_weights[probe.symbol]) / 2,
     })
     assert all(order.side == "BUY" and order.mechanism == "RECOVERY_COHORT"
                and order.origin_subsystem == "RECOVERY" and not order.grant_id and not order.epoch_id

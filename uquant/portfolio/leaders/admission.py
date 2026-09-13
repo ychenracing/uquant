@@ -101,6 +101,7 @@ class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
             user_panel: dict[str, pd.DataFrame],
             leaders: dict[str, LeaderScore],
             account: AccountState,
+            reference_return: float = ...,
         ) -> bool: ...
 
         def _industry_handoff(self, *, challenger: LeaderScore, incumbent: LeaderScore) -> bool: ...

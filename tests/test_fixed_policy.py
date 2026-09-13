@@ -67,23 +67,23 @@ def test_closed_native_profiles_match_the_existing_frozen_contract(tmp_path: Pat
             validation_engine(tmp_path, unknown)
 
 
-@pytest.mark.parametrize("relative", [
-    "uquant/config/policies.py",
-    "uquant/contracts/resources/config_policy_governance.json",
-    "uquant/validation/parameter_policy.py",
+@pytest.mark.parametrize(("relative", "surface_id"), [
+    ("uquant/config/policies.py", "economic_decision_v1"),
+    ("uquant/contracts/resources/config_policy_governance.json", "economic_decision_v1"),
+    ("uquant/validation/parameter_policy.py", "validation_runner_v1"),
 ])
-def test_fixed_policy_sources_participate_in_economic_fingerprint(tmp_path: Path, relative: str) -> None:
+def test_fixed_policy_sources_participate_in_economic_fingerprint(tmp_path: Path, relative: str, surface_id: str) -> None:
     registry = load_source_surface_registry(ROOT)
-    surface = registry.surface("economic_decision_v1")
+    surface = registry.surface(surface_id)
     assert relative in surface.paths
     for member in (*surface.paths, "benchmarks/source_surface_registry.json"):
         destination = tmp_path / member
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / member, destination)
-    before = source_surface_fingerprint(tmp_path, "economic_decision_v1")
+    before = source_surface_fingerprint(tmp_path, surface_id)
     path = tmp_path / relative
     path.write_bytes(path.read_bytes() + b"\n")
-    assert source_surface_fingerprint(tmp_path, "economic_decision_v1") != before
+    assert source_surface_fingerprint(tmp_path, surface_id) != before
 
 
 def test_config_pickle_is_current_shape_and_validated() -> None:

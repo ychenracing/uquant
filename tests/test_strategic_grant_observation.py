@@ -163,7 +163,21 @@ def _assert_fresh_ordinary_peer_capital(
     for target in targets:
         certificate = certificates[target.symbol]
         trace = risk.evidence["core_allocation"]["symbols"][target.symbol]
-        assert trace["entry"] == certificate
+        entry = trace["entry"]
+        assert set(entry) == set(certificate) | {"checks"}
+        assert {key: entry[key] for key in certificate} == certificate
+        expected_checks = {
+            "confidence": {"passed": True, "value": .95, "minimum": .70},
+            "industry": {"passed": True},
+            "current_data": {"passed": True},
+            "history": {"passed": True, "value": 248, "minimum": 121},
+            "structure": {"passed": True},
+            "liquidity": {"passed": True},
+        }
+        assert list(entry["checks"]) == list(expected_checks)
+        assert entry["checks"] == {
+            key: values | {"as_of": "2023-12-13"} for key, values in expected_checks.items()
+        }
         assert certificate["block"] == "READY" and certificate["as_of"] == str(date.date())
         assert certificate["confirmations"][certificate["qualification_route"]] >= certificate["required_confirmation"]
         assert len(certificate["qualification_evidence_sha256"]) == 64

@@ -1,0 +1,28 @@
+{
+  "archive": "uquant-h-native-evidence-20260913.tar.xz",
+  "sha256": "1951a45aef0ecadc50d6ce5ea20506603bfdee70a63724991a3cadb733ce969a",
+  "parts": [
+    {
+      "name": "uquant-h-native-evidence-20260913.tar.xz.part01",
+      "sha256": "b623df5f8706047ac06bc8313f94d3e493a3921afbc4161e70e4ca3f69e316f8"
+    },
+    {
+      "name": "uquant-h-native-evidence-20260913.tar.xz.part02",
+      "sha256": "b8d3dfa634106c2f1c2f570d67290c9c220021b36856b81e0d64fb334f871a45"
+    },
+    {
+      "name": "uquant-h-native-evidence-20260913.tar.xz.part03",
+      "sha256": "deb04ffc1719f309e524e9a87a79c72ff187f5af3b41da99815efd762a408700"
+    },
+    {
+      "name": "uquant-h-native-evidence-20260913.tar.xz.part04",
+      "sha256": "3baeb92523b0374a2748e54f9d9ad2922bee8dceb893c12f7023739326f685af"
+    }
+  ],
+  "restore": "Concatenate parts in filename order, verify archive SHA256, extract tar.xz. Manifest inside archive binds all original raw files.",
+  "producer_notes": {
+    "absolute-sentinel": "276fd389ff822f045b236e65f409e54be64dd7fd",
+    "h-six-screens": "b2e2a0f5351d28ef12372dc1afecda41ed7969e0"
+  },
+  "scope": "Original raw evidence, not current-head acceptance."
+}

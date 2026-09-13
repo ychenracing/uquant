@@ -94,6 +94,7 @@ def _market_context(
         "tech_ret20": scalar(tech.loc[date], f"ret{cfg.trend_fast}", 0.0),
         "broad_ret60": scalar(broad.loc[date], f"ret{cfg.trend_medium}", 0.0),
         "tech_ret60": scalar(tech.loc[date], f"ret{cfg.trend_medium}", 0.0),
+        "tech_ret60_observed": math.isfinite(scalar(tech.loc[date], f"ret{cfg.trend_medium}", math.nan)),
         "broad_ret120": scalar(broad.loc[date], f"ret{cfg.trend_slow}", 0.0),
         "tech_ret120": scalar(tech.loc[date], f"ret{cfg.trend_slow}", 0.0),
     }

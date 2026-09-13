@@ -115,3 +115,37 @@ def test_one_filled_member_cannot_exit_before_full_deployment_settles():
         _ordinary_exits(book)
         assert book.proposed[symbol] == weights[symbol]
         assert book.trace.get(symbol, {}).get("allocation_reason") != "CONFIRMED_STRUCTURAL_EXIT"
+
+
+@pytest.mark.parametrize("restart", [False, True])
+def test_settled_persistent_members_allow_confirmed_structural_exit(restart):
+    import pandas as pd
+    from test_ordinary_trend_budget import _decide as decide_formation
+    from test_persistent_formation import _formation_fixture
+
+    from uquant.portfolio.allocation_book import AllocationBook
+    from uquant.portfolio.pipeline import _ordinary_exits
+    from uquant.portfolio.strategic.grant_lifecycle import completed_strategic_cohort_entry
+    from uquant.portfolio_core import current_weights
+
+    policy, account, dates, panel, leaders, risk, _, _ = _formation_fixture()
+    decide_formation(policy, account, dates[-2], panel, leaders, risk)
+    ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[-1], account=account, panel=panel)
+    assert account.strategic_grant.qualification_route == "persistent_industry"
+    members = set(account.strategic_cohort_targets)
+    assert completed_strategic_cohort_entry(account, members)
+    if restart:
+        account = account_from_dict(asdict(account))
+    future = pd.bdate_range(dates[-1] + pd.offsets.BDay(), periods=30)
+    panel = {s: frame.reindex(frame.index.union(future)).ffill() for s, frame in panel.items()}
+    for frame in panel.values():
+        frame.loc[future, "ma20"] = frame.loc[future, "close"] * 1.1
+        frame.loc[future, "ma60"] = frame.loc[future, "close"] * 1.1
+    leaders = {s: replace(leader, mature=False) for s, leader in leaders.items()}
+    for day in future:
+        prices = {s: float(panel[s].loc[day, "close"]) for s in members}
+        weights, _ = current_weights(account, prices)
+        book = AllocationBook(policy, day, risk, panel, leaders, account,
+                              prices, weights, members, {}, dict(weights), dict(weights), 0.)
+        _ordinary_exits(book)
+    assert all(book.proposed[symbol] == 0. for symbol in members)

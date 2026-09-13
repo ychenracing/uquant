@@ -60,8 +60,8 @@ def test_examples_preserve_objects_and_render_truthful_actions(kind):
     decision, account = example(kind)
     before = deepcopy((decision, account))
     markdown, html = rendered_example(kind)
-    render_daily_report(decision, account)
-    render_daily_html(decision, account)
+    assert render_daily_report(decision, account) == render_daily_report(decision, account)
+    assert render_daily_html(decision, account) == render_daily_html(decision, account)
     assert (decision, account) == before
     assert LABEL in markdown and LABEL in html
     assert '<script' not in html and 'src=' not in html and 'href=' not in html

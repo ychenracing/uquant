@@ -399,6 +399,8 @@ def test_alias_cache_readback_rederives_witness_from_one_complete_source(
         calls.append(kwargs["scenario_id"])
         return continuity_replay()
 
+    synthetic_sessions = [row.date for row in continuity_replay().trace]
+    monkeypatch.setattr(runner, "_native_sessions", lambda contract: synthetic_sessions)
     monkeypatch.setattr(runner, "_frozen_replay", frozen_replay)
     monkeypatch.setattr(runner, "_cache_identity_context", lambda contract: {"test": "synthetic raw"})
     options = {

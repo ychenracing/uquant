@@ -13,13 +13,16 @@ def test_synchronized_restoration_requires_current_health(votes, damage, allowed
     account = AccountState(initial_cash=10000., cash=8000.,
         positions={"lead": Position("lead", shares=2000, avg_cost=1., entry_date="2025-01-01")},
         protected_weights={"lead": .5}, capital_budget_level=1,
+        risk_streaks={"concentrated_repair": DEFAULT_CONFIG.concentrated_repair_days},
         last_shock_date="2026-01-02", operating_peak=10000., capital_peak=10000.)
     risk = RiskAssessment(Risk.CAUTION, .92, votes,
-        {"transition_damage": damage}, ("two-day synchronized leader repair",),
+        {"transition_damage": damage, "held_repair_ratio": 1., "held_damage_ratio": 0.}, ("two-day synchronized leader repair",),
         "RECOVERY", freeze_new_risk=True, reduction_level=1)
+    panel = _restore_panel(["lead"])
+    panel["lead"]["ret5"] = .01
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=pd.Timestamp("2026-01-07"), opportunity=Opportunity.RECOVERY,
-        risk=risk, user_panel=_restore_panel(["lead"]),
+        risk=risk, user_panel=panel,
         leaders={"lead": LeaderScore("lead", .8, 1., True, False, "materials", {})},
         account=account, prices={"lead": 1.})
     weight = next(t.weight for t in targets if t.symbol == "lead")

@@ -11,7 +11,8 @@ from uquant.portfolio_core import strategic_dominant_symbol
 from uquant.types import AccountState, Opportunity, Risk, RiskAssessment
 
 
-def _native_reversal(*, decisive: bool, opportunity: Opportunity):
+def _native_reversal(*, decisive: bool, opportunity: Opportunity,
+                     ordinary_market_evidence: bool = False):
     # Reuse the native decisive-opening price construction; changing relative
     # evidence creates a real nondecisive quorum, never an injected certificate.
     dates = pd.bdate_range("2023-01-02", periods=251)
@@ -29,6 +30,8 @@ def _native_reversal(*, decisive: bool, opportunity: Opportunity):
         "tech_ret120": -.10, "risk_anchor_symbols": [],
         "risk_anchor_group_count": 0, "configured_user_universe_size": 3,
     }, (), "NONE")
+    if ordinary_market_evidence:
+        risk.evidence["broad_ret120"] = -.12
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.account_identity, account.code_hash = "account:reversal-native", "code:reversal-native"
     policy = PortfolioAllocator(DEFAULT_CONFIG)
@@ -57,8 +60,8 @@ def test_nondecisive_synchronized_full_does_not_create_grant_in_choppy():
 
 
 def test_nondecisive_full_defers_commitment_without_owner_or_market_confirmation():
-    _, account, _, _, _, _, targets = _native_reversal(
-        decisive=False, opportunity=Opportunity.TREND,
+    _, account, _, _, _, risk, targets = _native_reversal(
+        decisive=False, opportunity=Opportunity.TREND, ordinary_market_evidence=True,
     )
     observed = account.strategic_qualification
     assert observed.qualification_ready
@@ -69,6 +72,10 @@ def test_nondecisive_full_defers_commitment_without_owner_or_market_confirmation
     assert account.strategic_grant is None
     assert strategic_dominant_symbol(account) is None
     assert not account.strategic_epochs
+    allocation = risk.evidence["core_allocation"]
+    assert allocation["symbols"][observed.candidate_symbol]["entry_gate"] == (
+        "STRATEGIC_COMMITMENT_EVIDENCE_PENDING"
+    )
     assert not any(target.weight > 0 for target in targets)
 
 

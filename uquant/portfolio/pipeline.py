@@ -48,7 +48,7 @@ from .ordinary import (
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
-from .strategic.discovery import current_core_qualification
+from .strategic.discovery import DEFERRED_STRATEGIC_COMMITMENT_REASON, current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_cohort_entry
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
 from .strategic.qualification_candidates import (
@@ -614,6 +614,22 @@ def _current_independent_entry(evidence: dict[str, Any], date: pd.Timestamp) -> 
             and evidence.get("qualification_quorum") in {"FULL_COHORT", "STRONG_PAIR", "ABSOLUTE_SINGLE"})
 
 
+def _same_deferred_strategic_certificate(book: AllocationBook, symbol: str) -> bool:
+    """Prevent one deferred certificate from entering through another capital path."""
+    observed = book.account.strategic_qualification
+    entry = book.record(symbol).get("entry", {})
+    return (
+        observed.candidate_symbol == symbol
+        and observed.qualification_ready
+        and observed.deployment_blocked
+        and observed.deployment_block_reason == DEFERRED_STRATEGIC_COMMITMENT_REASON
+        and observed.qualification_last_observed_session == str(book.date.date())
+        and entry.get("qualification_quorum") == observed.qualification_quorum == "FULL_COHORT"
+        and entry.get("qualification_signature") == observed.qualification_signature
+        and entry.get("qualification_evidence_sha256") == observed.qualification_evidence_sha256
+    )
+
+
 def _repair_tranche_filled(account: AccountState, symbol: str, event_id: str,
                            order_id: str) -> bool:
     """A repair tranche needs its matching positive native BUY fill."""
@@ -706,7 +722,11 @@ def _admit_new_cores(
         and not (deployed_ordinary or settled_strategic_rotation)
         and market.get("leader_cycle_armed") is not True
     }
-    eligible = [symbol for symbol in eligible if symbol not in deployment_pending]
+    strategic_commitment_deferred = {
+        symbol for symbol in eligible if _same_deferred_strategic_certificate(book, symbol)
+    }
+    eligible = [symbol for symbol in eligible
+                if symbol not in deployment_pending and symbol not in strategic_commitment_deferred]
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
     cycle_weights = _mature_admission_weights(book, eligible, opportunity)
     # Maturity sizes an already eligible request; an absent mature target
@@ -718,6 +738,9 @@ def _admit_new_cores(
             continue
         if symbol in deployment_pending:
             book.record(symbol)["entry_gate"] = "DEPLOYMENT_CONFIRMATION_PENDING"
+            continue
+        if symbol in strategic_commitment_deferred:
+            book.record(symbol)["entry_gate"] = "STRATEGIC_COMMITMENT_EVIDENCE_PENDING"
             continue
         if symbol not in eligible:
             book.record(symbol)["entry_gate"] = (

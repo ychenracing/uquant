@@ -57,6 +57,8 @@ from .rearm import (
     strategic_cash_rearm_grant_open,
 )
 
+DEFERRED_STRATEGIC_COMMITMENT_REASON = "strategic_commitment_evidence_not_confirmed"
+
 
 class StrategicPortfolioPolicy(PortfolioCore):
     """Discover, protect, trail, and retire a causal strategic cohort."""
@@ -1054,9 +1056,7 @@ def _initialize_strategic_cohort(
         # create durable ownership when neither the owner nor market confirms
         # committing capital. A later session is evaluated from fresh evidence.
         account.strategic_qualification.deployment_blocked = True
-        account.strategic_qualification.deployment_block_reason = (
-            "strategic_commitment_evidence_not_confirmed"
-        )
+        account.strategic_qualification.deployment_block_reason = DEFERRED_STRATEGIC_COMMITMENT_REASON
         return
     if not qualified.cash_rearm_authorized and not _new_strategic_formation_open(
         self, route=route, snapshots=snapshots, quorum_route=qualified.quorum_route,

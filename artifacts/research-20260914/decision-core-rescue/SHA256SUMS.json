@@ -1,0 +1,138 @@
+{
+  "H1-e-bull.json.gz": {
+    "bytes": 3297546,
+    "sha256": "3622a6a42a3b65a7c6bc8cf65be81ac212cce93210051801d62ca27f301132ec"
+  },
+  "H1-e-h2-acute.json.gz": {
+    "bytes": 210972,
+    "sha256": "d7231b09d7deaf97c2a1fdbfbe9e296110810c64b9b254731a591a39e6f22753"
+  },
+  "H2-e-bull.json.gz": {
+    "bytes": 2949465,
+    "sha256": "6ce27ec760d58b35a0b8b21a480915f537bbc955e594e600a9a5b1c6ea8a784b"
+  },
+  "H2-e-h2-acute.json.gz": {
+    "bytes": 214330,
+    "sha256": "0795967bb335799f13bdf6df953284ccbeac9b063669156f2e5a38cab5b7564e"
+  },
+  "H3-a-bull.json.gz": {
+    "bytes": 1129629,
+    "sha256": "77c88fd0273affd436aab644e5d478e421641a6329bba37ced97b96242d982cc"
+  },
+  "H3-d-bull.json.gz": {
+    "bytes": 2056267,
+    "sha256": "546f581d94d23c41767cd17017f5197c9ca16b33f36d1f228ff947d16c15d12c"
+  },
+  "H3-e-bull.json.gz": {
+    "bytes": 2313188,
+    "sha256": "af0e5445914c0dae29ea3822e6a7cbbdf28cd44f0f34ff010abe58a40f82d292"
+  },
+  "H3-remove308.json.gz": {
+    "bytes": 5506372,
+    "sha256": "73ce5d509c386d61ca95bab62d156ffa515eb456a30cf8c826d17228787602dd"
+  },
+  "H3-remove502.json.gz": {
+    "bytes": 5805863,
+    "sha256": "3accba5bafcfa7aeba1e2969484e094e928089f2285416f4654833b1ec6c5b07"
+  },
+  "H4-e-bull.json.gz": {
+    "bytes": 2312928,
+    "sha256": "226771865a0abc44cfea2cf962cb2c91d1cd541c2e30c0da1c784044692ccc9f"
+  },
+  "H4-e-h2-acute.json.gz": {
+    "bytes": 201094,
+    "sha256": "f11d422e778e926465ceacf44bfd1e53ab648616b02f437745a7203c955d4590"
+  },
+  "H4-native-remove502.json.gz": {
+    "bytes": 8369,
+    "sha256": "6e32bb50b09be2778146834d584942323af701982f197c480d4b6750b015b369"
+  },
+  "H4-remove502.json.gz": {
+    "bytes": 6531826,
+    "sha256": "ab04ff1a4568a461fdcf612cf4355d6920a3ee40018da74c5906fca15cad12e4"
+  },
+  "H5-e-bull.json.gz": {
+    "bytes": 2312992,
+    "sha256": "0a06c84975131af847eb2e7cd2edb702913b5990c8adf2cac4c223c996578dec"
+  },
+  "H5-native-remove308.json.gz": {
+    "bytes": 6684,
+    "sha256": "6ade8e7e4891454e29b9f4b75be413d46477724406006e356ce2da61ab0c8063"
+  },
+  "H5-native-remove502.json.gz": {
+    "bytes": 10778,
+    "sha256": "73205d08090c8cb8819dd495f118130ca702e1bf610538890afe2e772be7e337"
+  },
+  "H6-e-bull.json.gz": {
+    "bytes": 2479909,
+    "sha256": "c33aa090672716b30daaeb6967056ab0d23381765a085ef77ce74b8056b1ed7e"
+  },
+  "H6-native-remove308.json.gz": {
+    "bytes": 8603,
+    "sha256": "2affa20d7165a42be05e6440ed489a9be82f31a7d8916fc4cb37f351d512e0d9"
+  },
+  "H6-native-remove502.json.gz": {
+    "bytes": 10779,
+    "sha256": "e82a7418e900cd5222ba0a4a6a45ee68d2f6bc2f174084a27d712822d0da2225"
+  },
+  "H7-a-bull.json.gz": {
+    "bytes": 1309232,
+    "sha256": "fd82b212aa64419818a734e1a3c4d5e4c1c5fdd078a7d62de1278677a5df9c26"
+  },
+  "H8-a-bull.json.gz": {
+    "bytes": 1305901,
+    "sha256": "e8aaccb1647560b01ba75b905ac008bb9ab050d021279c5db367e9bd67d75649"
+  },
+  "H8-d-bull.json.gz": {
+    "bytes": 2247073,
+    "sha256": "b5e77633ee8ebf349847e1de5dbbb9d6b899961e2324e578c93a41e75efa6a5b"
+  },
+  "H8-e-bull.json.gz": {
+    "bytes": 2483896,
+    "sha256": "20b4b76bde1ea68e83b7841752304adbeab9dcce3d4d1dea6551c26d3eacb667"
+  },
+  "H8-e-h2-acute.json.gz": {
+    "bytes": 229030,
+    "sha256": "039496e5cc01aba87d1a6feb36916135c323366749574902d43b3ead613378fc"
+  },
+  "H8-e-h2-full.json.gz": {
+    "bytes": 813844,
+    "sha256": "41673acbb7348500186571b530febb89f7fd2fc0b3808c09bea31c251d5cbc1b"
+  },
+  "H8-native-remove308.json.gz": {
+    "bytes": 8599,
+    "sha256": "2104e4ece28e19f029c08f2839814a806063d21905cafdb3cea393757815ec1d"
+  },
+  "H8-native-remove502.json.gz": {
+    "bytes": 10778,
+    "sha256": "79699771b106e4ffbb6bc6d4393e8c37adbdd86c8d5f3358c5838d096d4c14cb"
+  },
+  "H8-v1-a-bull.json.gz": {
+    "bytes": 1306327,
+    "sha256": "107b5d83292ca428a6b1dfd02bc41da1253d487333f9cc578cf20e6980fe6596"
+  },
+  "H8-v1-d-bull.json.gz": {
+    "bytes": 2276433,
+    "sha256": "a5e5b3df497f44caeb792f5693dce92ff9cee2418a923691ae0791ff86ec87b4"
+  },
+  "H8-v1-e-bull.json.gz": {
+    "bytes": 2484601,
+    "sha256": "7cf6d8e356d4599ae4037924026693417336c63c6d4100f7f9b5ba762af5d566"
+  },
+  "H8-v1-e-h2-acute.json.gz": {
+    "bytes": 109015,
+    "sha256": "3398c08ff6cc8b42ed04cbf28353da9f7be34eab455f4e0a1832418658a8de1f"
+  },
+  "RESEARCH_LEDGER.md": {
+    "bytes": 25213,
+    "sha256": "0e5bc31d3192c55c507c708c03e278dc80c372c965090f6e40a7221fae1b9d1c"
+  },
+  "run_native_removal.py": {
+    "bytes": 5805,
+    "sha256": "eb13139a715c20246e95b74fac3d416dd83dfb56f748249246f20726916370f8"
+  },
+  "verify.py": {
+    "bytes": 9080,
+    "sha256": "aaab29396608f527f9a278a699a35761575041abbcc94be2d92ace7e86de4097"
+  }
+}

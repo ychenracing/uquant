@@ -676,7 +676,9 @@ def _mature_admission_weights(book: AllocationBook, eligible: list[str],
     return mature_cycle_weights(book, symbols, opportunity)
 
 
-def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
+def _admit_new_cores(
+    book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
+) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
@@ -688,6 +690,23 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+    deployed_ordinary = any(
+        weight > 1e-12 and symbol not in book.owned
+        for symbol, weight in book.weights_now.items()
+    )
+    settled_strategic_rotation = (
+        book.account.strategic_epochs_completed > 0
+        and book.account.strategic_last_exit_date == str(book.date.date())
+        and market.get("persistent_mature_entry_open") is True
+    )
+    market["settled_strategic_rotation_open"] = settled_strategic_rotation
+    deployment_pending = {
+        symbol for symbol in eligible
+        if book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
+        and not (deployed_ordinary or settled_strategic_rotation)
+        and market.get("leader_cycle_armed") is not True
+    }
+    eligible = [symbol for symbol in eligible if symbol not in deployment_pending]
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
     cycle_weights = _mature_admission_weights(book, eligible, opportunity)
     # Maturity sizes an already eligible request; an absent mature target
@@ -696,6 +715,9 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
+            continue
+        if symbol in deployment_pending:
+            book.record(symbol)["entry_gate"] = "DEPLOYMENT_CONFIRMATION_PENDING"
             continue
         if symbol not in eligible:
             book.record(symbol)["entry_gate"] = (
@@ -911,7 +933,7 @@ def _allocate_strategy(
         _restore_ordinary_holdings(book)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
     if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
-        _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
+        _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market)
         add_mature_leaders(book, opportunity)
     else:
         for symbol in candidates:

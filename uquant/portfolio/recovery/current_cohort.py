@@ -204,7 +204,18 @@ def _fund_members(book: AllocationBook, targets: tuple[Target, ...], members: se
                             if symbol in leaders and leaders[symbol].industry in industries)
         remaining = max(0.0, min(book.cash_room, book.gross_cap - sum(book.committed.values()),
                                 policy.cfg.recovery_target_gross - industry_used))
-        increments = _fresh_leadership_budget(leaders, requests, remaining)
+        target_rights = {target.symbol: target.weight for target in targets
+                         if target.symbol in requests}
+        transient_entry_sizing = any(
+            abs(weight - account.anchor_weights.get(symbol, weight)) > 1e-12
+            for symbol, weight in target_rights.items()
+        )
+        if transient_entry_sizing:
+            total = sum(requests.values())
+            increments = {symbol: request * remaining / total
+                          for symbol, request in requests.items()}
+        else:
+            increments = _fresh_leadership_budget(leaders, requests, remaining)
     for target in targets:
         if target.symbol not in leaders or target.weight <= book.weights_now.get(target.symbol, 0.0):
             continue

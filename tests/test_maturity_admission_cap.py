@@ -1,4 +1,4 @@
-"""Without mature-cycle capital, qualified ordinary requests keep their initial tier."""
+"""Without confirmed market deployment, qualified ordinary requests remain visible."""
 from dataclasses import replace
 
 from test_ordinary_trend_budget import _decide, _scenario
@@ -7,7 +7,7 @@ from uquant.config import DEFAULT_CONFIG
 from uquant.leader import apply_leader_tenure
 
 
-def test_maturity_only_admission_does_not_receive_independent_core_size():
+def test_maturity_only_admission_waits_instead_of_borrowing_independent_size():
     policy, account, dates, panel, base, risk = _scenario()
     low = tuple(base)[-1]
     base[low] = replace(base[low], score=.81)
@@ -23,8 +23,6 @@ def test_maturity_only_admission_does_not_receive_independent_core_size():
     assert not risk.evidence['core_allocation']['ordinary_market']['leader_cycle_armed']
     high = next(s for s in base if s != low)
     assert entries[high]["entry"]["qualification_quorum"] == "ORDINARY_CORE"
-    assert {target.symbol for target in targets} == {high}
-    assert all(target.weight <= DEFAULT_CONFIG.core_admission_weight for target in targets)
-    assert all(order.target_weight <= DEFAULT_CONFIG.core_admission_weight
-               for order in account.pending_orders)
+    assert entries[high]["entry_gate"] == "DEPLOYMENT_CONFIRMATION_PENDING"
+    assert not targets and not account.pending_orders
     assert account.capital_budget_level == 0

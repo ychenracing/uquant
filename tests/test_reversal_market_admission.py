@@ -56,13 +56,20 @@ def test_nondecisive_synchronized_full_does_not_create_grant_in_choppy():
     assert not any(target.weight > 0 for target in targets)
 
 
-def test_nondecisive_synchronized_full_may_deploy_in_open_trend():
+def test_nondecisive_full_defers_commitment_without_owner_or_market_confirmation():
     _, account, _, _, _, _, targets = _native_reversal(
         decisive=False, opportunity=Opportunity.TREND,
     )
-    assert account.strategic_grant is not None
+    observed = account.strategic_qualification
+    assert observed.qualification_ready
+    assert observed.evidence_family_status["MARKET_CONFIRMATION"] == "FAILED"
+    assert observed.evidence_family_status["OWNER_ABSOLUTE_QUALITY"] == "FAILED"
+    assert observed.deployment_blocked
+    assert observed.deployment_block_reason == "strategic_commitment_evidence_not_confirmed"
+    assert account.strategic_grant is None
     assert strategic_dominant_symbol(account) is None
-    assert any(target.weight > 0 and target.epoch_id for target in targets)
+    assert not account.strategic_epochs
+    assert not any(target.weight > 0 for target in targets)
 
 
 def test_decisive_native_two_member_opening_keeps_choppy_permission():
@@ -84,7 +91,7 @@ def test_native_partial_grant_keeps_identity_after_restart_in_choppy(tmp_path):
     from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
     policy, account, dates, panel, leaders, risk, targets = _native_reversal(
-        decisive=False, opportunity=Opportunity.TREND,
+        decisive=True, opportunity=Opportunity.TREND,
     )
     grant = account.strategic_grant
     assert grant is not None

@@ -1042,6 +1042,22 @@ def _initialize_strategic_cohort(
     )
     if qualified is None or account.strategic_qualification.deployment_blocked:
         return
+    evidence = account.strategic_qualification.evidence_family_status
+    if (
+        qualified.route == "reversal_industry"
+        and qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value
+        and qualified.decisive_reversal_symbol is None
+        and evidence.get("MARKET_CONFIRMATION") == "FAILED"
+        and evidence.get("OWNER_ABSOLUTE_QUALITY") == "FAILED"
+    ):
+        # Keep the synchronized cohort eligible and observable, but do not
+        # create durable ownership when neither the owner nor market confirms
+        # committing capital. A later session is evaluated from fresh evidence.
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = (
+            "strategic_commitment_evidence_not_confirmed"
+        )
+        return
     if not qualified.cash_rearm_authorized and not _new_strategic_formation_open(
         self, route=route, snapshots=snapshots, quorum_route=qualified.quorum_route,
         admission_open=admission_open,

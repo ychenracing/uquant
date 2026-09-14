@@ -356,8 +356,8 @@ def _risk_plan_rank(
     return (
         self._risk_lifecycle_rank(retained_vector),
         sector_guard_health,
-        unchanged,
         utility,
+        unchanged,
         tuple(symbol for symbol in sorted(plan) if plan[symbol] > 1e-12),
     )
 
@@ -433,8 +433,8 @@ def _sparse_risk_reduce(
     """Meet every risk cap with one deterministic sparse reduction.
 
     The lexicographic objective is cap compliance, safer normalized
-    lifecycle composition, sector guard health, the fewest changed symbols,
-    then stronger retention utility among otherwise equivalent plans.
+    lifecycle composition, sector guard health, stronger retention utility,
+    then the fewest changed symbols among otherwise equivalent plans.
     At most one symbol receives a partial
     boundary trim. A guard can only retain or reduce current exposure; it
     never buys while protection is active.

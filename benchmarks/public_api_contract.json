@@ -32394,6 +32394,98 @@
           "LeaderPortfolioPolicy"
         ]
       },
+      "uquant.portfolio.leaders.cycle": {
+        "classes": {},
+        "dataclasses": {},
+        "enums": {},
+        "functions": {
+          "add_mature_leaders": {
+            "parameters": [
+              {
+                "annotation": "AllocationBook",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "book"
+              },
+              {
+                "annotation": "Opportunity",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "opportunity"
+              }
+            ],
+            "return": "None"
+          },
+          "mature_cycle_weights": {
+            "parameters": [
+              {
+                "annotation": "AllocationBook",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "book"
+              },
+              {
+                "annotation": "list[str]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "symbols"
+              },
+              {
+                "annotation": "Opportunity",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "opportunity"
+              }
+            ],
+            "return": "dict[str, float]"
+          },
+          "observe_mature_cycle": {
+            "parameters": [
+              {
+                "annotation": "AllocationBook",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "book"
+              },
+              {
+                "annotation": "Opportunity",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "opportunity"
+              },
+              {
+                "annotation": "dict[str, Any]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "market"
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "path": "uquant/portfolio/leaders/cycle.py",
+        "public_names": [
+          "add_mature_leaders",
+          "mature_cycle_weights",
+          "observe_mature_cycle"
+        ]
+      },
       "uquant.portfolio.leaders.lifecycle": {
         "classes": {},
         "dataclasses": {},
@@ -81773,7 +81865,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "9f8274300a52c272dba56951deeb71b1b581d1c2f2b777b5419f8bc78c7a2c2e",
+  "contract_sha256": "72ee69d0a3e5220565bb8ae800aef6c3c49849b9bc94ea007449de27b9fdc61b",
   "recorded_on": "2026-09-12",
   "schema_version": 1
 }

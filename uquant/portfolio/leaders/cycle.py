@@ -11,6 +11,17 @@ if TYPE_CHECKING:
     from ..allocation_book import AllocationBook
 
 
+def _cycle_observation(book: AllocationBook, opportunity: Opportunity,
+                       market: dict[str, Any]) -> tuple[bool, bool]:
+    legs = [book.risk.evidence.get(k) for k in ('broad_ret120', 'tech_ret120')]
+    complete = all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in legs)
+    frozen = (book.risk.freeze_new_risk or book.risk.evidence.get('freeze_new_risk', False)
+              or book.risk.state in {Risk.RISK_OFF, Risk.CRISIS})
+    evidence = (complete and min(cast(float, v) for v in legs) >= .01 and opportunity is Opportunity.STRONG_TREND
+                and book.risk.votes <= 1 and len(market['credible_symbols']) >= 2)
+    return bool(frozen), evidence
+
+
 def observe_mature_cycle(book: AllocationBook, opportunity: Opportunity, market: dict[str, Any]) -> None:
     """Count distinct consecutive sessions of the leader cycle's own evidence."""
     account = book.account
@@ -22,13 +33,7 @@ def observe_mature_cycle(book: AllocationBook, opportunity: Opportunity, market:
     sessions = book.policy._session_clock(book.user_panel, book.date)
     earlier = sessions[sessions < book.date]
     prior = earlier[-1].toordinal() if len(earlier) else 0
-    legs = [book.risk.evidence.get(k) for k in ('broad_ret120', 'tech_ret120')]
-    complete = all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in legs)
-    credible = market['credible_symbols']
-    frozen = (book.risk.freeze_new_risk or book.risk.evidence.get('freeze_new_risk', False)
-              or book.risk.state in {Risk.RISK_OFF, Risk.CRISIS})
-    evidence = (complete and min(cast(float, v) for v in legs) >= .01 and opportunity is Opportunity.STRONG_TREND
-                and book.risk.votes <= 1 and len(credible) >= 2)
+    frozen, evidence = _cycle_observation(book, opportunity, market)
     count = account.candidate_tenure.get(key, 0) if previous in {prior, session} else 0
     if frozen:
         count = 0
@@ -44,11 +49,8 @@ def observe_mature_cycle(book: AllocationBook, opportunity: Opportunity, market:
     market['leader_cycle_confirmation'] = {'observed': count, 'required': 3}
 
 
-def mature_cycle_weights(book: AllocationBook, symbols: list[str], opportunity: Opportunity) -> dict[str, float]:
-    """Restore cohort seed, conviction and expansion amounts for qualified leaders."""
+def _observe_capacity(book: AllocationBook, opportunity: Opportunity) -> None:
     policy, cfg, account = book.policy, book.policy.cfg, book.account
-    if not symbols or not account.candidate_tenure.get('leader_cycle_armed'):
-        return {}
     session = book.date.toordinal()
     marker = 'leader_capacity_observed_session'
     previous = account.candidate_tenure.get(marker, 0)
@@ -63,6 +65,26 @@ def mature_cycle_weights(book: AllocationBook, symbols: list[str], opportunity: 
         policy._dynamic_k(date=book.date, opportunity=opportunity, risk=book.risk,
                           candidates=ranked, user_panel=book.user_panel, account=account)
         account.candidate_tenure[marker] = session
+
+
+def _high_confidence_entry(book: AllocationBook, selected: list[str], opportunity: Opportunity) -> bool:
+    cfg = book.policy.cfg
+    chasing = max(float(book.risk.evidence.get(k, 0.0)) for k in ('broad_ret5', 'tech_ret5')) >= cfg.add_index_chase_ret5
+    return (cfg.confidence_sizing_enabled and opportunity is Opportunity.STRONG_TREND
+            and book.risk.state is Risk.NORMAL and not chasing and len(selected) >= 2
+            and float(book.risk.evidence.get('trend_health', 0.0)) >= .70
+            and all(book.leaders[s].score >= cfg.high_confidence_entry_score
+                    and book.leaders[s].components.get('industry_breadth', 0.0) >= cfg.high_confidence_entry_breadth
+                    and scalar(book.user_panel[s].loc[book.date], 'vol20', math.inf) <= cfg.high_confidence_entry_vol20
+                    for s in selected))
+
+
+def mature_cycle_weights(book: AllocationBook, symbols: list[str], opportunity: Opportunity) -> dict[str, float]:
+    """Size qualified mature requests without deciding ordinary initial eligibility."""
+    policy, cfg, account = book.policy, book.policy.cfg, book.account
+    if not symbols or not account.candidate_tenure.get('leader_cycle_armed'):
+        return {}
+    _observe_capacity(book, opportunity)
     occupied = {s for s, w in book.committed.items() if w > 0} | book.owned
     selected = symbols[:max(0, account.dynamic_k - len(occupied))]
     if not selected:
@@ -72,14 +94,7 @@ def mature_cycle_weights(book: AllocationBook, symbols: list[str], opportunity: 
     if occupied:
         return {s: min(cfg.core_admission_weight, max(0.0, gross-sum(book.committed.values()))/len(selected))
                 for s in selected}
-    chasing = max(float(book.risk.evidence.get(k, 0.0)) for k in ('broad_ret5', 'tech_ret5')) >= cfg.add_index_chase_ret5
-    high = (cfg.confidence_sizing_enabled and opportunity is Opportunity.STRONG_TREND
-            and book.risk.state is Risk.NORMAL and not chasing and len(selected) >= 2
-            and float(book.risk.evidence.get('trend_health', 0.0)) >= .70
-            and all(book.leaders[s].score >= cfg.high_confidence_entry_score
-                    and book.leaders[s].components.get('industry_breadth', 0.0) >= cfg.high_confidence_entry_breadth
-                    and scalar(book.user_panel[s].loc[book.date], 'vol20', math.inf) <= cfg.high_confidence_entry_vol20
-                    for s in selected))
+    high = _high_confidence_entry(book, selected, opportunity)
     exceptional = high and min(book.leaders[s].score for s in selected) >= .90 and float(
         book.risk.evidence.get('trend_health', 0.0)) >= .82
     gross = min(gross, cfg.exceptional_entry_gross if exceptional else cfg.high_confidence_entry_gross
@@ -92,23 +107,35 @@ def mature_cycle_weights(book: AllocationBook, symbols: list[str], opportunity: 
     return {s: min(cap, gross*float(w)) for s, w in zip(selected, shares, strict=True)}
 
 
-def add_mature_leaders(book: AllocationBook, opportunity: Opportunity) -> None:
-    """Pyramid actual profitable tranches only with fresh permission and cash."""
+def _pyramid_open(book: AllocationBook, opportunity: Opportunity) -> bool:
     cfg, account = book.policy.cfg, book.account
     if (not account.candidate_tenure.get('leader_cycle_armed') or book.risk.state is not Risk.NORMAL
             or book.risk.freeze_new_risk or book.risk.evidence.get('freeze_new_risk', False)
             or opportunity is Opportunity.RECOVERY or account.pending_orders
             or account.candidate_tenure.get('ordinary_repair_capital_active')):
-        return
-    if max(float(book.risk.evidence.get(k, 0.0)) for k in ('broad_ret5', 'tech_ret5')) >= cfg.add_index_chase_ret5:
-        return
-    for symbol in sorted(account.positions):
-        position = account.positions[symbol]
-        if (symbol in book.owned or symbol in account.anchor_weights or position.shares <= 0
+        return False
+    return not (max(float(book.risk.evidence.get(k, 0.0)) for k in ('broad_ret5', 'tech_ret5'))
+                >= cfg.add_index_chase_ret5)
+
+
+def _pyramid_candidate(book: AllocationBook, symbol: str) -> bool:
+    return not (symbol in book.owned or symbol in book.account.anchor_weights
+                or book.account.positions[symbol].shares <= 0
                 or symbol not in book.leaders or not book.leaders[symbol].mature
                 or book.proposed.get(symbol, 0.0) < book.weights_now.get(symbol, 0.0)
                 or book.record(symbol).get('entry', {}).get('block') != 'READY'
-                or not book.policy._add_cooldown_complete(account=account, frame=book.user_panel[symbol], date=book.date, cooldown_sessions=cfg.add_tranche_cooldown_sessions)):
+                or not book.policy._add_cooldown_complete(account=book.account, frame=book.user_panel[symbol],
+                    date=book.date, cooldown_sessions=book.policy.cfg.add_tranche_cooldown_sessions))
+
+
+def add_mature_leaders(book: AllocationBook, opportunity: Opportunity) -> None:
+    """Pyramid actual profitable tranches only with fresh permission and cash."""
+    cfg, account = book.policy.cfg, book.account
+    if not _pyramid_open(book, opportunity):
+        return
+    for symbol in sorted(account.positions):
+        position = account.positions[symbol]
+        if not _pyramid_candidate(book, symbol):
             continue
         lifecycles = {t.lifecycle for t in position.tranches if t.shares > 0} or {position.lifecycle}
         mfe = max((max(t.mfe, book.prices[symbol]/max(t.avg_cost, 1e-12)-1) for t in position.tranches

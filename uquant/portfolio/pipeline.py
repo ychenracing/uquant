@@ -668,6 +668,14 @@ def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified:
     return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
 
 
+def _mature_admission_weights(book: AllocationBook, eligible: list[str],
+                             opportunity: Opportunity) -> dict[str, float]:
+    symbols = [s for s in eligible if not book.owned and not book.account.pending_orders
+               and not book.account.candidate_tenure.get("ordinary_repair_capital_active")
+               and book.record(s).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"]
+    return mature_cycle_weights(book, symbols, opportunity)
+
+
 def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
@@ -681,11 +689,9 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
-    cycle_symbols = [s for s in eligible if not book.owned and not book.account.pending_orders
-                     and not book.account.candidate_tenure.get("ordinary_repair_capital_active")
-                     and book.record(s).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"]
-    cycle_weights = mature_cycle_weights(book, cycle_symbols, opportunity)
-    eligible = [s for s in eligible if s not in cycle_symbols or s in cycle_weights]
+    cycle_weights = _mature_admission_weights(book, eligible, opportunity)
+    # Maturity sizes an already eligible request; an absent mature target
+    # leaves the ordinary initial tier subject to the same slots and cash.
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:
@@ -693,9 +699,7 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             continue
         if symbol not in eligible:
             book.record(symbol)["entry_gate"] = (
-                ("MATURE_CYCLE_CAPACITY_EXHAUSTED" if book.account.candidate_tenure.get("leader_cycle_armed")
-                 else "MATURE_CYCLE_NOT_CONFIRMED") if symbol in cycle_symbols
-                else "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
+                "IMMATURE_CORE_SLOT_OCCUPIED" if immature_occupied else "IMMATURE_CORE_LOWER_RANK"
             )
             continue
         if symbol not in selected:

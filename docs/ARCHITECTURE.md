@@ -132,6 +132,8 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 
 `portfolio/leaders/cycle.py` 观察成熟周期、计算成熟种子及盈利加仓申请；它只通过同一
 AllocationBook 取用真实可用资本，不生成战略授权或第二套目标。
+成熟权重是配置结果，不反向取消已合法合格的普通首次申请；没有成熟权重时沿用原有限
+初始额度。两种配置只形成一个目标，并由同一账簿检查持仓名额、真实持仓和未决资金责任。
 
 普通独立核心由资格观察层复用 `strict_absolute_owner_quality()`，与当天任一既有路线
 共同形成 `strategic_eligibility:independent_core:{symbol}` 计数。分配层读取该连续计数，

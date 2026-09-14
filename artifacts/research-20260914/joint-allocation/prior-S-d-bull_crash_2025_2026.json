@@ -1,0 +1,41 @@
+{
+  "name": "d/bull_crash_2025_2026",
+  "runtime": {
+    "data": {
+      "snapshot_id": "20260809T094222Z-causal-tech-index-rebase",
+      "files_verified": 36,
+      "manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+      "checksums_sha256": "ba460d65f791f238d8a4a16ac62e2225c1832caa6f4da5003166a894edf80e29"
+    },
+    "production": {
+      "repository": "ychenracing/uquant",
+      "commit": "b5eb59764b84cc5960886f6fcdabd45f662b6080",
+      "source_sha256": "34d2c3a2daeea44a4d6cc1f9b8d25a358c61c9d623f5ed3682673ef870fa0e1e"
+    },
+    "environment": {
+      "python_full_version": "3.12.13",
+      "numpy_version": "2.5.1",
+      "pandas_version": "3.0.5",
+      "uv_version": "0.11.33",
+      "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+    },
+    "effective_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51"
+  },
+  "metrics": {
+    "final_wealth": 9.534319881630598,
+    "cagr": 3.1724172047240993,
+    "max_drawdown": 0.24260450185471227,
+    "sharpe": 2.75476646718098,
+    "calmar": 13.07649767613939,
+    "annual_turnover": 9.47916020348403,
+    "gross_turnover": 14.96297189145,
+    "account_orders": 18,
+    "acute_return": 0.0
+  },
+  "fees": 19534.274838803998,
+  "slippage_cost": 29943.061900000004,
+  "failures": [],
+  "passed": true,
+  "complete_full_profile": false,
+  "seconds": 99.44870927299962
+}

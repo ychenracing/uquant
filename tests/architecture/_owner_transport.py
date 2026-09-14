@@ -48,6 +48,7 @@ _ECONOMIC_ADDITIONS = frozenset(
         "uquant/portfolio/recovery/current_cohort.py",
         "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/recovery/cohort_admission.py",
+        "uquant/portfolio/leaders/cycle.py",
         "uquant/portfolio/recovery/tactical_admission.py",
         "uquant/portfolio/strategic/authority.py",
         "uquant/portfolio/strategic/grant_lifecycle.py",

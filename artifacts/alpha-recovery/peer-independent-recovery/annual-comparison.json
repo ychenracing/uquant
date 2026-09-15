@@ -1,0 +1,50 @@
+{
+  "kind": "DESCRIPTIVE_NOT_CAUSAL_COUNTERFACTUAL",
+  "passive_sha256": "d1bf7077e20904c76fe66ff661d7fd1f4aa57e93f785b186992a2ec6cb1581ba",
+  "results": {
+    "308": {
+      "2023": {
+        "strategy_wealth": 1.10958168081619,
+        "passive_wealth": 1.2751642148156601,
+        "relative_wealth": 0.8701480702833188
+      },
+      "2024": {
+        "strategy_wealth": 1.1602817082933226,
+        "passive_wealth": 1.4928271250647984,
+        "relative_wealth": 0.7772378253395943
+      },
+      "2025": {
+        "strategy_wealth": 1.5034109723047144,
+        "passive_wealth": 2.41001325510161,
+        "relative_wealth": 0.6238185491811034
+      },
+      "2026": {
+        "strategy_wealth": 1.473099930608283,
+        "passive_wealth": 1.7076520498984107,
+        "relative_wealth": 0.8626464218491809
+      }
+    },
+    "502": {
+      "2023": {
+        "strategy_wealth": 1.8781361552121403,
+        "passive_wealth": 1.3142169489171103,
+        "relative_wealth": 1.429091412007499
+      },
+      "2024": {
+        "strategy_wealth": 1.1590131500442236,
+        "passive_wealth": 1.43381248008016,
+        "relative_wealth": 0.808343605699001
+      },
+      "2025": {
+        "strategy_wealth": 3.130997210636676,
+        "passive_wealth": 2.349000528440058,
+        "relative_wealth": 1.3329061329398388
+      },
+      "2026": {
+        "strategy_wealth": 2.114779662728786,
+        "passive_wealth": 1.7590719682528384,
+        "relative_wealth": 1.2022132697784087
+      }
+    }
+  }
+}

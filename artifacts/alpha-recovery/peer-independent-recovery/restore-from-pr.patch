@@ -1,0 +1,503 @@
+diff --git a/tests/test_capital_reentry.py b/tests/test_capital_reentry.py
+new file mode 100644
+index 0000000..1baf42e
+--- /dev/null
++++ b/tests/test_capital_reentry.py
+@@ -0,0 +1,128 @@
++"""Historical capital loss limits funded exposure after current risk repairs."""
++from dataclasses import asdict, replace
++
++import pytest
++from test_ordinary_cash_rearm import SYMBOL, _decide, _scenario
++from test_risk_transitions import _market_frame, _reference_context
++
++from uquant.account.codec import account_from_dict
++from uquant.config import DEFAULT_CONFIG
++from uquant.execution import ExecutionPlanner
++from uquant.reference import build_reference_context
++from uquant.risk import assess_risk
++from uquant.types import Risk
++
++
++def _inputs():
++    policy, account, dates, panel, leaders, _ = _scenario(sessions=0)
++    account.capital_budget_level = 3
++    account.capital_peak = account.cash / .78
++    market = _market_frame(panel[SYMBOL].index)
++    market['ret120'] = .04
++    reference, reference_leaders, returns = _reference_context(panel[SYMBOL].index)
++    return policy, account, dates, panel, leaders, market, reference, reference_leaders, returns
++
++
++def _risk(inputs, date, *, context_change=None, with_context=True):
++    policy, account, _, panel, leaders, market, reference, reference_leaders, returns = inputs
++    context = build_reference_context(date=date, panel=reference, cfg=policy.cfg, reference_returns=returns)
++    if context_change:
++        context = replace(context, **context_change)
++    return assess_risk(date=date, broad=market, tech=market, reference_panel=reference,
++                       reference_returns=returns, user_panel=panel,
++                       leaders={**reference_leaders, **leaders}, account=account,
++                       equity=account.cash, cfg=policy.cfg,
++                       reference_context=context if with_context else None)
++
++
++@pytest.mark.parametrize("with_context", [True, False])
++def test_five_healthy_sessions_reopen_cash_without_erasing_loss_or_capital_cap(with_context):
++    inputs = _inputs()
++    policy, account, dates, panel, leaders, *_ = inputs
++    peak, cash = account.capital_peak, account.cash
++    for date in dates[:4]:
++        risk = _risk(inputs, date, with_context=with_context)
++        assert risk.freeze_new_risk
++        assert not _decide(policy, account, date, panel, leaders, risk)
++    risk = _risk(inputs, dates[4], with_context=with_context)
++    assert risk.state is Risk.NORMAL
++    assert not risk.freeze_new_risk
++    assert risk.target_gross_cap == pytest.approx(DEFAULT_CONFIG.capital_budget_level3_cap)
++    targets = _decide(policy, account, dates[4], panel, leaders, risk)
++    assert targets and 0 < sum(t.weight for t in targets) <= risk.target_gross_cap
++    restored = account_from_dict(asdict(account))
++    fills = ExecutionPlanner(policy.cfg).execute_open(date=dates[5], account=restored, panel=panel)
++    assert fills and all(fill.side == 'BUY' and fill.shares > 0 for fill in fills)
++    assert 0 < cash - restored.cash <= cash * risk.target_gross_cap
++    assert restored.capital_peak == peak and restored.capital_budget_level == 3
++    assert risk.evidence['capital_drawdown'] == pytest.approx(.22)
++
++
++@pytest.mark.parametrize("failure", ["missing-session", "nonfinite-reference"])
++def test_production_path_without_context_still_requires_current_reference_inputs(failure):
++    inputs = _inputs()
++    _, account, dates, _, _, _, reference, *_ = inputs
++    for date in dates[:4]:
++        _risk(inputs, date, with_context=False)
++    assert account.risk_streaks["capital_reentry_days"] == 4
++    symbol = next(iter(reference))
++    if failure == "missing-session":
++        reference[symbol] = reference[symbol].drop(dates[4])
++    else:
++        reference[symbol].loc[dates[4], "ret60"] = float("nan")
++    assert _risk(inputs, dates[4], with_context=False).freeze_new_risk
++    assert account.risk_streaks["capital_reentry_days"] == 0
++
++
++def test_duplicate_scans_and_same_day_missing_inputs_cannot_advance_reentry():
++    inputs = _inputs()
++    dates = inputs[2]
++    for _ in range(8):
++        assert _risk(inputs, dates[0]).freeze_new_risk
++    for date in dates[1:4]:
++        assert _risk(inputs, date).freeze_new_risk
++    assert not _risk(inputs, dates[4]).freeze_new_risk
++    assert _risk(inputs, dates[4], context_change={"coverage": .5}).freeze_new_risk
++    assert _risk(inputs, dates[4]).freeze_new_risk
++    for date in dates[5:9]:
++        assert _risk(inputs, date).freeze_new_risk
++    assert not _risk(inputs, dates[9]).freeze_new_risk
++
++
++@pytest.mark.parametrize("failure", ["skipped-session", "reference-coverage", "nonfinite-input"])
++def test_interrupted_or_damaged_repair_keeps_new_capital_frozen(failure):
++    inputs = _inputs()
++    _, account, dates, _, _, market, *_ = inputs
++    for date in dates[:4]:
++        assert _risk(inputs, date).freeze_new_risk
++    if failure == "skipped-session":
++        risk = _risk(inputs, dates[5])
++    elif failure == "reference-coverage":
++        risk = _risk(inputs, dates[4], context_change={"coverage": .5})
++    elif failure == "nonfinite-input":
++        market.loc[dates[4], "ret60"] = float("nan")
++        risk = _risk(inputs, dates[4])
++    assert risk.freeze_new_risk
++    assert account.capital_budget_level == 3
++    assert risk.target_gross_cap <= DEFAULT_CONFIG.capital_budget_level3_cap
++
++
++def test_live_chronic_damage_retains_its_independent_capital_freeze():
++    from uquant.risk.capital import apply_capital_overlays
++
++    inputs = _inputs()
++    _, account, dates, *_ = inputs
++    for date in dates[:5]:
++        _risk(inputs, date)
++    # Assess the active owner at the overlay boundary; the full engine clears
++    # stale chronic levels on all-cash books before reaching this boundary.
++    account.chronic_level = 2
++    overlay = apply_capital_overlays(
++        date=dates[5], previous_session=dates[4], current_inputs_complete=True,
++        independent_damage=False, account=account, cfg=DEFAULT_CONFIG,
++        observed_budget_level=0, transition_damage=.1, votes=0,
++        held_damage_ratio=0., capital_dd=.22, operating_dd=0., strategic_damage_guard=False,
++    )
++    assert overlay.freeze_new_risk
++    assert overlay.overlay_cap <= DEFAULT_CONFIG.capital_budget_level3_cap
++    assert account.capital_budget_level == 3
+diff --git a/tests/test_recovery_peer_independence.py b/tests/test_recovery_peer_independence.py
+new file mode 100644
+index 0000000..2c65419
+--- /dev/null
++++ b/tests/test_recovery_peer_independence.py
+@@ -0,0 +1,42 @@
++"""A peer's removal must not change an otherwise identical recovery proof."""
++from dataclasses import replace
++
++from test_unified_core_book import _inputs
++
++from uquant.config import DEFAULT_CONFIG
++from uquant.portfolio import PortfolioAllocator
++from uquant.portfolio.recovery.cohort_admission import _filter_recovery_candidates
++from uquant.types import AccountState
++
++
++def test_recovery_depth_eligibility_is_independent_of_deep_peer_count():
++    date, panel, leaders, risk = _inputs()
++    names = list(leaders)
++    depth = dict(zip(names, (-.18, -.35, -.40), strict=True))
++    policy = PortfolioAllocator(DEFAULT_CONFIG)
++    for selected in (names, names[:2], names[:1]):
++        eligible, _, _, _ = _filter_recovery_candidates(
++            policy, date=date, risk=risk, user_panel=panel,
++            account=AccountState.empty(DEFAULT_CONFIG.initial_cash),
++            candidates=[leaders[s] for s in selected],
++            crash_depth={s: depth[s] for s in selected},
++            level1_recovery_repair=False, risk_neutral_recovery_transfer=False,
++            weak_secular_market=False,
++        )
++        assert names[0] in {s.symbol for s in eligible}
++
++
++def test_independent_recovery_depth_keeps_continuous_freeze_and_shallow_exclusion():
++    date, panel, leaders, risk = _inputs()
++    names = list(leaders)
++    for frozen in (False, True):
++        eligible, _, _, _ = _filter_recovery_candidates(
++            PortfolioAllocator(DEFAULT_CONFIG), date=date,
++            risk=replace(risk, evidence={**risk.evidence, 'freeze_new_risk': frozen}),
++            user_panel=panel, account=AccountState.empty(DEFAULT_CONFIG.initial_cash),
++            candidates=list(leaders.values()),
++            crash_depth=dict(zip(names, (-.18, -.10, -.05), strict=True)),
++            level1_recovery_repair=False, risk_neutral_recovery_transfer=False,
++            weak_secular_market=False,
++        )
++        assert {s.symbol for s in eligible} == (set() if frozen else {names[0]})
+diff --git a/tests/test_reentry_reference_history.py b/tests/test_reentry_reference_history.py
+new file mode 100644
+index 0000000..ee906d0
+--- /dev/null
++++ b/tests/test_reentry_reference_history.py
+@@ -0,0 +1,43 @@
++"""Undefined young-reference horizons are distinct from damaged mature data."""
++import pytest
++from test_capital_reentry import _inputs
++from uquant.risk.assessment import _capital_reentry_inputs_complete
++
++
++def check(inputs):
++    policy, account, dates, panel, _, market, reference, *_ = inputs
++    return _capital_reentry_inputs_complete(date=dates[4], broad=market, tech=market,
++        reference_panel=reference, user_panel=panel, account=account, cfg=policy.cfg, reference_context=None)
++
++
++def young_reference():
++    inputs = _inputs()
++    date = inputs[2][4]
++    reference = inputs[6]
++    symbol = next(iter(reference))
++    frame = reference[symbol].loc[:date].tail(35).copy()
++    frame[['ma60','ret60','ret120']] = float('nan')
++    reference[symbol] = frame
++    return inputs, symbol
++
++
++def test_young_reference_does_not_invent_missing_long_history_or_freeze_other_names():
++    inputs, symbol = young_reference()
++    assert check(inputs)
++    assert inputs[6][symbol]['ret120'].isna().all()
++
++
++@pytest.mark.parametrize('failure', ['missing-current','nan-fast','too-young'])
++def test_current_or_recent_reference_data_remain_required(failure):
++    inputs, symbol = young_reference()
++    date = inputs[2][4]
++    if failure == 'missing-current': inputs[6][symbol] = inputs[6][symbol].drop(date)
++    if failure == 'nan-fast': inputs[6][symbol].loc[date,'ret20'] = float('nan')
++    if failure == 'too-young': inputs[6][symbol] = inputs[6][symbol].tail(10)
++    assert not check(inputs)
++
++
++def test_mature_reference_missing_medium_data_still_blocks():
++    inputs = _inputs()
++    inputs[6][next(iter(inputs[6]))].loc[inputs[2][4],'ret60'] = float('nan')
++    assert not check(inputs)
+diff --git a/uquant/portfolio/recovery/cohort_admission.py b/uquant/portfolio/recovery/cohort_admission.py
+index 4475e2d..3c370a2 100644
+--- a/uquant/portfolio/recovery/cohort_admission.py
++++ b/uquant/portfolio/recovery/cohort_admission.py
+@@ -140,9 +140,9 @@ def _filter_recovery_candidates(
+ ) -> tuple[list[LeaderScore], int, int, float]:
+     recovery_elapsed = 0
+     deep_count = sum(value <= -0.30 for value in crash_depth.values())
+-    admission_depth = (
+-        -0.15 if deep_count >= 2 or (deep_count >= 1 and bool(account.anchor_weights)) else -0.30
+-    )
++    # The same current breakout proof cannot lose eligibility merely because
++    # another deep-recovery stock is absent from the tradable universe.
++    admission_depth = -0.15
+     candidates = [item for item in candidates if crash_depth.get(item.symbol, 0.0) <= admission_depth]
+     if (
+         weak_secular_market
+diff --git a/uquant/risk/assessment.py b/uquant/risk/assessment.py
+index c4e8dff..1cd697f 100644
+--- a/uquant/risk/assessment.py
++++ b/uquant/risk/assessment.py
+@@ -6,11 +6,13 @@ from collections.abc import Callable, Iterator
+ from contextlib import contextmanager
+ from contextvars import ContextVar
+ from dataclasses import dataclass
++from math import isfinite
+ from typing import Any
+ 
+ import pandas as pd
+ 
+ from ..config import SystemConfig
++from ..features import scalar
+ from ..market_risk import EVIDENCE_FAMILY_MEMBERS
+ from ..reference import ReferenceContext
+ from ..risk_sentinel.integration import integrate_freeze_only
+@@ -24,6 +26,7 @@ from .capital import (
+     apply_capital_overlays as _apply_capital_overlays,
+ )
+ from .capital import observe_capital_budget as _observe_capital_budget
++from .capital import observe_capital_reentry
+ from .confirmed_break import (
+     assess_confirmed_concentrated_break as _assess_confirmed_concentrated_break,
+ )
+@@ -176,6 +179,9 @@ class _BaseCapitalStages:
+ 
+ def _base_capital_stages(
+     *,
++    date: pd.Timestamp,
++    previous_session: pd.Timestamp | None,
++    current_inputs_complete: bool,
+     account: AccountState,
+     cfg: SystemConfig,
+     market: MarketBookEvidence,
+@@ -203,6 +209,10 @@ def _base_capital_stages(
+         cfg=cfg,
+     )
+     overlays = _apply_capital_overlays(
++        date=date,
++        previous_session=previous_session,
++        current_inputs_complete=current_inputs_complete,
++        independent_damage=observation.independent_damage,
+         account=account,
+         cfg=cfg,
+         observed_budget_level=observation.observed_budget_level,
+@@ -236,6 +246,7 @@ def _continuous_risk_evidence(
+         "freeze_new_risk": capital.overlays.freeze_new_risk,
+         "chronic_level": account.chronic_level,
+         "capital_budget_level": account.capital_budget_level,
++        "capital_reentry_healthy_sessions": account.risk_streaks.get("capital_reentry_days", 0),
+         "independent_damage": capital.observation.independent_damage,
+         "strategic_damage_guard": capital.strategic_damage_guard,
+         "strategic_guard_level2_overlay": capital.overlays.strategic_guard_level2_overlay,
+@@ -468,6 +479,65 @@ def _final_base_resolution(
+     )
+ 
+ 
++def _capital_reentry_inputs_complete(
++    *,
++    date: pd.Timestamp,
++    broad: pd.DataFrame,
++    tech: pd.DataFrame,
++    reference_panel: dict[str, pd.DataFrame],
++    user_panel: dict[str, pd.DataFrame],
++    account: AccountState,
++    cfg: SystemConfig,
++    reference_context: ReferenceContext | None,
++) -> bool:
++    """Do not infer repair from absent, stale or nonfinite decision inputs."""
++    context = reference_context
++    # Production deliberately omits the optional group-balanced context. Use
++    # its actual point-in-time risk panel without changing other risk inputs.
++    expected = (
++        context.expected_symbols if context is not None else tuple(
++            symbol for symbol, frame in reference_panel.items()
++            if not frame.empty and frame.index.min() <= date
++        )
++    )
++    if not expected or (context is not None and (
++        context.date != date or context.coverage != 1.0
++        or set(context.visible_symbols) != set(expected)
++    )):
++        return False
++    frames = [broad, tech]
++    for symbol in expected:
++        if symbol not in reference_panel:
++            return False
++        frame = reference_panel[symbol]
++        history = frame.loc[:date]
++        if date not in frame.index or len(history) <= cfg.trend_fast:
++            return False
++        # A newly listed reference has no long horizon yet. Require every
++        # horizon that is defined by its actual past observations; never
++        # excuse missing current data or a nonfinite mature feature.
++        required = ["close", f"ma{cfg.trend_fast}", "ret5", f"ret{cfg.trend_fast}"]
++        if len(history) >= cfg.trend_medium:
++            required.append(f"ma{cfg.trend_medium}")
++        if len(history) > cfg.trend_medium:
++            required.append(f"ret{cfg.trend_medium}")
++        if len(history) > cfg.trend_slow:
++            required.append(f"ret{cfg.trend_slow}")
++        if not all(isfinite(scalar(frame.loc[date], field)) for field in required):
++            return False
++    for symbol, position in account.positions.items():
++        if position.shares > 0:
++            if symbol not in user_panel:
++                return False
++            frames.append(user_panel[symbol])
++    fields = ("close", f"ma{cfg.trend_fast}", f"ma{cfg.trend_medium}", "ret5",
++              f"ret{cfg.trend_fast}", f"ret{cfg.trend_medium}", f"ret{cfg.trend_slow}")
++    return all(
++        date in frame.index and all(isfinite(scalar(frame.loc[date], field)) for field in fields)
++        for frame in frames
++    )
++
++
+ def _assess_base_risk(
+     *,
+     date: pd.Timestamp,
+@@ -490,6 +560,16 @@ def _assess_base_risk(
+     the portfolio allocator and daily report.
+     """
+ 
++    sessions = tech.index[tech.index < date]
++    previous_session = sessions[-1] if len(sessions) else None
++    current_inputs_complete = _capital_reentry_inputs_complete(
++        date=date, broad=broad, tech=tech, reference_panel=reference_panel,
++        user_panel=user_panel, account=account, cfg=cfg, reference_context=reference_context,
++    ) if account.capital_budget_level >= 1 else False
++    if not current_inputs_complete:
++        observe_capital_reentry(
++            date=date, previous_session=previous_session, account=account, cfg=cfg, healthy=False,
++        )
+     if date not in broad.index or date not in tech.index:
+         raise RuntimeError("risk indices missing at decision date")
+     del configured_universe_size
+@@ -519,7 +599,10 @@ def _assess_base_risk(
+         cfg=cfg,
+         market=market,
+     )
+-    capital = _base_capital_stages(account=account, cfg=cfg, market=market, recovery=recovery)
++    capital = _base_capital_stages(
++        date=date, previous_session=previous_session, current_inputs_complete=current_inputs_complete,
++        account=account, cfg=cfg, market=market, recovery=recovery,
++    )
+     continuous = _continuous_risk_evidence(
+         account=account,
+         market=market,
+@@ -527,6 +610,10 @@ def _assess_base_risk(
+         capital=capital,
+         reference_context=reference_context,
+     )
++    continuous["capital_reentry_warmup_symbols"] = [
++        symbol for symbol, frame in reference_panel.items()
++        if 0 < len(frame.loc[:date]) <= cfg.trend_slow
++    ]
+     ctx = _BaseRiskContext(
+         date=date,
+         broad=broad,
+diff --git a/uquant/risk/capital.py b/uquant/risk/capital.py
+index 70bdcd5..87fb00e 100644
+--- a/uquant/risk/capital.py
++++ b/uquant/risk/capital.py
+@@ -4,6 +4,8 @@ from __future__ import annotations
+ 
+ from dataclasses import dataclass
+ 
++import pandas as pd
++
+ from ..config import SystemConfig
+ from ..risk_sector import SectorGuardTransition
+ from ..types import AccountState
+@@ -241,6 +243,10 @@ def _observe_capital_budget(
+ 
+ def _apply_capital_overlays(
+     *,
++    date: pd.Timestamp,
++    previous_session: pd.Timestamp | None,
++    current_inputs_complete: bool,
++    independent_damage: bool,
+     account: AccountState,
+     cfg: SystemConfig,
+     observed_budget_level: int,
+@@ -272,8 +278,28 @@ def _apply_capital_overlays(
+     strategic_guard_level2_overlay = _strategic_guard_level2_overlay_required(account)
+     if strategic_guard_level2_overlay:
+         account.candidate_tenure["strategic_guard_level2_epoch"] = account.strategic_epoch
++    reentry_ready = observe_capital_reentry(
++        date=date,
++        previous_session=previous_session,
++        account=account,
++        cfg=cfg,
++        healthy=(
++            current_inputs_complete
++            and account.capital_budget_level >= 1
++            and observed_budget_level == 0
++            and not independent_damage
++            and transition_damage <= cfg.transition_damage_repair
++            and votes <= 1
++            and held_damage_ratio < 0.50
++            and not strategic_damage_guard
++            and not strategic_guard_level2_overlay
++            and account.chronic_level == 0
++        ),
++    )
+     freeze_new_risk = bool(
+-        strategic_damage_guard or account.capital_budget_level >= 1 or account.chronic_level >= 1
++        strategic_damage_guard
++        or (account.capital_budget_level >= 1 and not reentry_ready)
++        or account.chronic_level >= 1
+     )
+     overlay_cap = cfg.max_gross
+     if account.capital_budget_level >= 4:
+@@ -307,6 +333,39 @@ def _apply_capital_overlays(
+     )
+ 
+ 
++def observe_capital_reentry(
++    *,
++    date: pd.Timestamp,
++    previous_session: pd.Timestamp | None,
++    account: AccountState,
++    cfg: SystemConfig,
++    healthy: bool,
++) -> bool:
++    """Release only the historical freeze after distinct, consecutive repairs.
++
++    The capital ladder and its caps retain ownership of historical loss. A bad
++    observation consumes its session so rescanning cannot undo that damage.
++    """
++    streaks = account.risk_streaks
++    session = date.toordinal()
++    previous = previous_session.toordinal() if previous_session is not None else 0
++    last = streaks.get("capital_reentry_session", 0)
++    if not healthy or session < last:
++        streaks["capital_reentry_days"] = 0
++        streaks["capital_reentry_session"] = max(last, session)
++        streaks["capital_reentry_blocked_session"] = max(last, session)
++        return False
++    if streaks.get("capital_reentry_blocked_session", 0) == session:
++        return False
++    if session > last:
++        streaks["capital_reentry_days"] = min(
++            streaks.get("capital_reentry_days", 0) + 1 if last == previous else 1,
++            cfg.capital_budget_repair_days,
++        )
++        streaks["capital_reentry_session"] = session
++    return streaks.get("capital_reentry_days", 0) >= cfg.capital_budget_repair_days
++
++
+ apply_capital_overlays = _apply_capital_overlays
+ capital_budget_repair_drawdown_confirmed = _capital_budget_repair_drawdown_confirmed
+ observe_capital_budget = _observe_capital_budget

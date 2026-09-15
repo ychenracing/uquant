@@ -1,0 +1,11 @@
+{
+  "bytes": 1967082,
+  "git_blob_sha": "491114e03e79dbfd100da5e10da11d5b95863554",
+  "key": "holding-basis/e.json.gz",
+  "local_path": "/workspace/scratch/c24820a73481/uquant-candidate/artifacts/alpha-recovery/holding-basis/e.json.gz",
+  "raw_remote_saved": false,
+  "remote_path": "artifacts/alpha-recovery/holding-basis/e.json.gz",
+  "sha256": "593bfbef307c0078c9df84f84da122d22c4f1cdc78d179381527e5d8c171665b",
+  "status": "COMMITTED_PENDING_READBACK",
+  "storage": "existing_blob_reference"
+}

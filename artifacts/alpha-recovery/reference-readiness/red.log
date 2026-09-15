@@ -1,0 +1,13 @@
+F....                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_young_reference_does_not_invent_missing_long_history_or_freeze_other_names _
+
+    def test_young_reference_does_not_invent_missing_long_history_or_freeze_other_names():
+        inputs, symbol = young_reference()
+>       assert check(inputs)
+E       assert False
+E        +  where False = check((<uquant.portfolio.PortfolioAllocator object at 0x7f1f48956690>, AccountState(initial_cash=2000000.0, cash=2000000.0, ...1    0.2    0.04\n2026-06-19  110.000000  104.500000  99.000000  ...    0.1    0.2    0.04\n\n[150 rows x 8 columns], ...))
+
+tests/test_reentry_reference_history.py:27: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_reentry_reference_history.py::test_young_reference_does_not_invent_missing_long_history_or_freeze_other_names

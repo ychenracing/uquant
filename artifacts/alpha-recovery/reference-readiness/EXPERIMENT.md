@@ -1,0 +1,9 @@
+# Reference history readiness (second structural hypothesis)
+
+Parent: capital-reentry producer 1aaf83d12117d341626d82a87a87d9d9e263bbc9. Independent of the still-running holding candidate. No acceptance changes.
+
+Observed causal target: remove308 on 2024-02-27 has zero risk votes, no independent/chronic/strategic/sector damage, current reference coverage 1.0 and READY sz300502, but reentry counter remains zero. Actual feature inspection finds only sh688347 incomplete: 35 observations, no MA60/ret60/ret120. This is a deterministic history warmup, not an absent current bar. A newly added reference can therefore freeze every existing opportunity for 120 observations. Reentry control first deploys on 2024-07-22.
+
+Change only reentry readiness: indices and real held positions retain all existing required horizons. Every reference needs a current bar and at least trend_fast+1 observations with finite close, MA-fast, ret5 and ret-fast. Each longer reference feature must be finite once its causal observation count makes it defined; undefined longer horizons on young references remain undefined and are explicitly listed in risk evidence. No values imputed, no symbol removed from market risk, no coverage fabricated; mature-series missing/nonfinite data still blocks. Existing five distinct healthy sessions, damage/caps and execution remain. This replaces a universal 120-observation prerequisite with feature-specific readiness, not a parameter sweep.
+
+Expected benefit: allow existing eligible stocks to participate after broad risk repair while unrelated references are warming up. Cost: less long-history reference evidence; earlier exposure may increase losses/turnover. Reject if critical-removal benchmark gap is not materially reduced, recovered 502 or A/E windows breach the fixed comparison protections, or actual data/execution invariants fail. Run native critical removals and affected bull/bear screens first. Final matrix only for a stable winner.

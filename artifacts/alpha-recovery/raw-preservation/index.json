@@ -40,9 +40,11 @@
       "bytes": 2659266,
       "key": "holding-basis/remove502.json.gz",
       "manifest": "manifests/holding-basis/remove502.json.gz.json",
-      "raw_remote_saved": false,
-      "remote_readback_verified": false,
-      "sha256": "dace936cac43c583709b2c373a68f3289cb059efc6e4031beba938e05f27f5ef"
+      "raw_remote_saved": true,
+      "remote_readback_verified": true,
+      "sha256": "dace936cac43c583709b2c373a68f3289cb059efc6e4031beba938e05f27f5ef",
+      "manifest_sha256": "3e6e75fd5decbbabdd8d6f7b95d0de960d33297aa3cd900877dadecb5d1d4cf5",
+      "evidence_commit": "64a4942f922a01769d3e85170e36ef4a80bd4318"
     },
     {
       "bytes": 192194,

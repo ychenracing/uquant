@@ -1,7 +1,27 @@
-# Active alpha recovery continuation
+# uquant 续接结果（2026-09-15）
 
-Current candidate: breakout-confirmation/STATUS.md and EXPERIMENT.md. Producer 1e6951381df315146600139adbea175654484886, independent base 9e988979. Both matched-runtime complete critical removals are running. Do not duplicate; inspect registered local sessions and outputs first. Revised holding-basis/ACCEPTANCE.md unchanged.
+原会话达到长度上限后的现场已恢复；本次两项独立研究均已完成四个原生869日回放，没有本次研究进程待续。目标仍未联合达成，PR #67保持Draft，未合并。
 
-peer-independent-recovery/RESULT.md closes rejected f5d7ba1: remove3084.8573x/57 orders, remove5026.2308x/41 orders. 148 affected tests passed, but economics rejected; do not promote or stack this source. Raw-preservation.json records successful program-managed original backups, pending independent readback at this checkpoint. Prior three-arm FINAL_RESULT remains historical.
+## 结果与证据
 
-PR67 remains Draft at cffea663223b4216bff9239d158614f4a732eba8; main df45b4d7d9ea290ae953115afbb73140270537c2. Native Git reads work, push authentication unavailable, connector small writes work. No giant raw/Base64 bodies through model context. Use program-managed authorized preservation and exact hashes; older blanket no-large-original-saving instructions are superseded by latest user clarification.
+|候选|移除308财富/DD/订单|移除502财富/DD/订单|结果|
+|---|---|---|---|
+|原参考历史齐备方案9e988979|2.85123x/22.8889%/68|14.41329x/27.6552%/54|研究起点，未验收|
+|独立深度准入f5d7ba1|4.85731x/26.3239%/57|6.23084x/23.8124%/41|拒绝，伤害502财富|
+|突破持续确认1e69513|2.39164x/22.8889%/31|14.41329x/27.6552%/54|拒绝，308财富不足|
+
+各自RESULT.md、verified-summary.json和raw-preservation.json在peer-independent-recovery/及breakout-confirmation/。同源同运行时的结果不能拼接赢家。验收继续使用holding-basis/ACCEPTANCE.md；308需约7.050777x，订单优先40/上限44；未修改门槛。未跑不具晋级资格候选的主账户/完整最终矩阵，不挪用旧结果。
+
+第一方案148项受影响测试通过。第二方案先行45项通过，后续75通过1失败（含5项重叠）；失败是旧部分成交测试期待取消没有再创新高的候选，而新机制保留完整突破证明。没有改写测试制造通过。全部失败日志保留，第二方案不标工程通过。
+
+## 完整原件已保全
+
+本次通过程序直接读取本地文件并经已授权文件通道保存，没有把大型正文/Base64/JSON交给模型重写。16份原件（12份旧会话未完成项+4份本次新回放）全部远端保存并重新取回核对字节数和SHA256。GitHub保存源码补丁、状态和精确恢复标识；原始大文件的备份位置由raw-preservation.json及peer-independent-recovery/older-raw-preservation.json明确记录，并非宣称原件直接存于GitHub。旧Git已核验原件保留原记录。不要再重启未完成的大blob/分片计划，优先复用完整备份。
+
+## 仍待解决的问题与恢复入口
+
+突破确认确实使308场景在2025-05-13买入60%恢复持仓；随后2025-08-11风险卖出，直到2026-01-13才恢复，2026-03-04又卖出。下一项有信息价值的工作是量化这些真实减仓避免的回撤与缺席损失，在同样价格、成本和时序下评估持有/风险减仓/恢复的联合设计。尚未登记新候选；不要继续相邻深度或确认参数搜索。研究起点仍是9e988979，两个本次失败补丁均不晋级。
+
+本地：/workspace/scratch/d48feaec25fd/uquant（research/alpha-portfolio-attribution），以及/workspace/scratch/d48feaec25fd/uquant-recovery-confirmation（research/alpha-recovery-confirmation）；精确生产者与补丁见各目录。原生Git读取可用、push缺认证；写入使用连接器。先用peer-independent-recovery/run_checked.py预检真实uv0.11.33、Python/numpy/pandas/lock和完整源码表面；稀疏检出必须包括research/。此前运行身份与检出缺失失败已保留，勿重犯。
+
+PR实时最后核验cffea663223b4216bff9239d158614f4a732eba8；main df45b4d7d9ea290ae953115afbb73140270537c2。没有授权外改动其他仓库、定时任务或真实交易。

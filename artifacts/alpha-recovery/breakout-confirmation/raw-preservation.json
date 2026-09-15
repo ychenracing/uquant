@@ -1,0 +1,33 @@
+{
+  "status": "SAVED_AND_INDEPENDENTLY_HASH_VERIFIED",
+  "results": [
+    {
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-breakout-confirmation-remove308.json.gz",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000b8ac822fa6ed79440d9f7a73",
+      "library_file_id": "libfile_2ee4111a18dc8191921bc079a644de31",
+      "file_name": "uquant-breakout-confirmation-remove308.json.gz",
+      "local_metadata_applied": true,
+      "path": "/uquant-breakout-confirmation-remove308.json.gz",
+      "current_version_number": 0,
+      "bytes": 1905561,
+      "sha256": "26d57b41c1213dbdf916b4b9c88175c2608887ecb3b055506dbda6a43c48bd12",
+      "remote_readback_verified": true
+    },
+    {
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-breakout-confirmation-remove502.json.gz",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_0000000081c481f595ea5d4836b3ad4a",
+      "library_file_id": "libfile_cc6aedd1b6f08191bff1db169d269efa",
+      "file_name": "uquant-breakout-confirmation-remove502.json.gz",
+      "local_metadata_applied": true,
+      "path": "/uquant-breakout-confirmation-remove502.json.gz",
+      "current_version_number": 0,
+      "bytes": 2558695,
+      "sha256": "050d56c2434ab7e3fa12a816feda6ee8169083b5a3939aa5c6ff2857bfc9b0b0",
+      "remote_readback_verified": true
+    }
+  ]
+}

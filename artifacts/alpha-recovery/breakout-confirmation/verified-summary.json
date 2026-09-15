@@ -1,0 +1,63 @@
+{
+  "status": "REJECTED_DIAGNOSTIC",
+  "results": {
+    "308": {
+      "metrics": {
+        "final_wealth": 2.391637764907622,
+        "max_drawdown": 0.2288891949758597,
+        "account_orders": 31,
+        "annual_turnover": 2.7029614534025312,
+        "gross_turnover": 9.706088855399999
+      },
+      "source": {
+        "economic_decision_sha256": "653c9f15b73e0cca7adcd0cf723cc08aeb50bdca8904609e8e698df7faa4bbc9",
+        "full_package_sha256": "2b47aa87e2074de333c7118449c456ef7bd66d026f6f6b0f468e794473ee5655",
+        "head": "1e6951381df315146600139adbea175654484886",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "production_source_sha256": "653c9f15b73e0cca7adcd0cf723cc08aeb50bdca8904609e8e698df7faa4bbc9"
+      },
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "fees": 10598.679184758,
+      "slippage": 19414.990999999016,
+      "sha256": "26d57b41c1213dbdf916b4b9c88175c2608887ecb3b055506dbda6a43c48bd12",
+      "bytes": 1905561,
+      "local_path": "/workspace/scratch/d48feaec25fd/uquant-recovery-confirmation/artifacts/alpha-recovery/breakout-confirmation/remove308.json.gz",
+      "raw_remote_saved": false
+    },
+    "502": {
+      "metrics": {
+        "final_wealth": 14.413293907703471,
+        "max_drawdown": 0.2765516809430656,
+        "account_orders": 54,
+        "annual_turnover": 10.17461712042405,
+        "gross_turnover": 36.53612511425
+      },
+      "source": {
+        "economic_decision_sha256": "653c9f15b73e0cca7adcd0cf723cc08aeb50bdca8904609e8e698df7faa4bbc9",
+        "full_package_sha256": "2b47aa87e2074de333c7118449c456ef7bd66d026f6f6b0f468e794473ee5655",
+        "head": "1e6951381df315146600139adbea175654484886",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "production_source_sha256": "653c9f15b73e0cca7adcd0cf723cc08aeb50bdca8904609e8e698df7faa4bbc9"
+      },
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "fees": 43984.49069306,
+      "slippage": 73099.19389999838,
+      "sha256": "050d56c2434ab7e3fa12a816feda6ee8169083b5a3939aa5c6ff2857bfc9b0b0",
+      "bytes": 2558695,
+      "local_path": "/workspace/scratch/d48feaec25fd/uquant-recovery-confirmation/artifacts/alpha-recovery/breakout-confirmation/remove502.json.gz",
+      "raw_remote_saved": false
+    }
+  }
+}

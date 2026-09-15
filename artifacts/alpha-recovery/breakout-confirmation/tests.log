@@ -1,0 +1,30 @@
+.......F................................................................ [ 94%]
+....                                                                     [100%]
+=================================== FAILURES ===================================
+____ test_real_partial_recovery_keeps_fills_and_cancels_lost_current_proof _____
+
+recovery_prefix = (<uquant.engine.ProductionEngine object at 0x7f7150aa6240>, {'2025-04-01': (AccountState(initial_cash=2000000.0, cash=...alse, 'emerging': False}]}, decision_digest='01d3664f7bd97a5758574123c18fd2af72db1e6ef96f88e4f10a59e60668ba6e')), ...})
+
+    def test_real_partial_recovery_keeps_fills_and_cancels_lost_current_proof(recovery_prefix):
+        engine, snapshots = recovery_prefix
+        account, _ = deepcopy(snapshots["2025-05-08"])
+        date = pd.Timestamp("2025-05-09")
+        panel = {symbol: engine._raw[symbol].copy(deep=True) for symbol in SYMBOLS}
+        for frame in panel.values():
+            frame.loc[date, "volume"] = 100 / DEFAULT_CONFIG.max_volume_participation
+            frame.loc[date, "amount"] = frame.loc[date, "close"] * frame.loc[date, "volume"]
+        fills = engine.execution.execute_open(date=date, account=account, panel=panel)
+        assert len(fills) == 2 and account.pending_orders
+        assert {fill.symbol for fill in fills} == {"sz300394", "sz300502"}
+        shares = {symbol: position.shares for symbol, position in account.positions.items()}
+        decision = engine.decide(symbols=SYMBOLS, as_of=str(date.date()), account=account)
+        account.pending_orders = list(decision.pending_orders)
+        assert {symbol: position.shares for symbol, position in account.positions.items()} == shares
+>       assert not any(order.side == "BUY" and order.symbol in {"sz300308", "sz300394"}
+                       for order in account.pending_orders)
+E       assert not True
+E        +  where True = any(<generator object test_real_partial_recovery_keeps_fills_and_cancels_lost_current_proof.<locals>.<genexpr> at 0x7f715095d220>)
+
+tests/test_confirmed_recovery_pipeline.py:99: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_confirmed_recovery_pipeline.py::test_real_partial_recovery_keeps_fills_and_cancels_lost_current_proof

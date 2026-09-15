@@ -26,3 +26,5 @@ jobs:
         env:
           SCENARIO: ${{ matrix.scenario }}
         run: python3 artifacts/alpha-recovery/stock-confirmation/readback.py "$SCENARIO"
+
+# Preserve literal identity mismatches and raw bytes before classifying comparability.

@@ -27,8 +27,9 @@ jobs:
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
       - name: Grant intent, recovery, account, and identity tests
+        id: tests
         run: >-
-          uv run pytest
+          uv run pytest --junitxml="$RUNNER_TEMP/grant-tests.xml"
           tests/test_strategic_grant_model.py
           tests/test_strategic_grant_observation.py
           tests/test_strategic_grant_identity.py
@@ -37,13 +38,38 @@ jobs:
           tests/test_broker_sync.py
           tests/test_strategic_forced_owner.py
       - name: Champion baseline and native eligibility replay
+        id: replay
         run: >-
           uv run python scripts/run_strategic_grant_acceptance.py
           --output "$RUNNER_TEMP/strategic-grant-acceptance.json"
+      - name: Explain test and replay outcomes
+        if: ${{ always() }}
+        env:
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+          REPLAY_OUTCOME: ${{ steps.replay.outcome }}
+        run: |
+          python - <<'PYCODE'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          lines = ["## Grant acceptance", "", "Tests: " + os.environ["TEST_OUTCOME"],
+                   "Native replay: " + os.environ["REPLAY_OUTCOME"]]
+          if os.environ["REPLAY_OUTCOME"] == "skipped":
+              lines.append("Economic evaluation was not run; inspect the failing test or setup step.")
+          path = Path(os.environ["RUNNER_TEMP"]) / "grant-tests.xml"
+          if path.is_file():
+              for case in ET.parse(path).iter("testcase"):
+                  if case.find("failure") is not None or case.find("error") is not None:
+                      lines.append("- " + case.get("classname", "") + "::" + case.get("name", ""))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as stream:
+              stream.write("\n".join(lines) + "\n")
+          PYCODE
       - name: Upload compact acceptance facts
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: strategic-grant-acceptance-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/strategic-grant-acceptance.json
+          path: |
+            ${{ runner.temp }}/strategic-grant-acceptance.json
+            ${{ runner.temp }}/grant-tests.xml
           if-no-files-found: warn

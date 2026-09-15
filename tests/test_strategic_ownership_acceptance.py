@@ -203,7 +203,9 @@ def test_ownership_workflow_is_bounded_cached_and_blocking() -> None:
     assert shard["strategy"]["fail-fast"] == "false"
     assert tuple(shard["strategy"]["matrix"]["shard"]) == SHARD_NAMES
     rendered = str(workflow).lower()
-    assert "actions/cache@" in rendered
+    assert "actions/cache/restore@" in rendered
+    assert "actions/cache/save@" in rendered
+    assert "!cancelled()" in rendered
     assert "scripts/run_strategic_ownership_acceptance.py" in rendered
     assert "--scenario" not in rendered
     assert "strategic ownership acceptance" in rendered
@@ -381,7 +383,12 @@ def test_failed_ownership_replay_preserves_raw_without_cache_or_pass(
     assert evidence["authoritative_acceptance"] is False
     assert evidence["cache_hit"] is False
     assert evidence["selected_scenario"] == scenario
-    assert len(evidence["scenarios"]) == 1
+    assert len(evidence["scenarios"]) == (2 if scenario == "same-industry-crowning" else 1)
+    if scenario == "same-industry-crowning":
+        blocked = evidence["scenarios"][1]
+        assert blocked["evaluation"] == "BLOCKED"
+        assert blocked["source_scenario_id"] == "remove-sz300502"
+        assert "raw_replay" not in blocked
     failure = evidence["scenarios"][0]
     assert failure["scenario_id"] == "remove-sz300502"
     assert failure["status"] == "FAIL"
@@ -557,6 +564,7 @@ def test_missing_same_industry_witness_persists_source_raw_without_alias_cache(
     from test_cross_ai_ownership_continuity import continuity_replay
 
     replay = continuity_replay(owners=("sz300308", "sh688008"))
+    monkeypatch.setattr(ownership_runner, "_native_sessions", lambda contract: [row.date for row in replay.trace])
     monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
     monkeypatch.setattr(ownership_runner, "_cache_identity_context", lambda contract: {"test": "alias raw"})
     output, cache = tmp_path / "failed.json", tmp_path / "cache"
@@ -667,3 +675,100 @@ def test_fixture_and_report_post_replay_failures_retain_raw(
         assert failure["raw_replay_sha256"] == ownership_runner._canonical_sha256(asdict(replay))
         assert ownership_runner._canonical_sha256(failure["raw_replay"]) == failure["raw_replay_sha256"]
     assert list(cache.iterdir()) == []
+
+
+def test_all_economic_threshold_misses_are_reported_without_changing_limits():
+    summary = {"scenario_id": "known-account", "final_wealth": .8, "max_drawdown": .4,
+               "longest_healthy_zero_target_streak": 121, "positive_target_sessions": 0}
+    thresholds = ownership_runner.load_contract()["thresholds"]
+    with pytest.raises(ownership_runner._EconomicNotMet) as observed:
+        ownership_runner._require_economic_thresholds(summary, thresholds=thresholds)
+    failures = observed.value.violations
+    assert {row["metric"] for row in failures} == set(summary) - {"scenario_id"}
+    assert next(row for row in failures if row["metric"] == "final_wealth") == {
+        "metric": "final_wealth", "actual": .8, "operator": ">", "required": 1.0,
+        "reason": "known-account final wealth did not exceed one"}
+
+
+def test_valid_insufficient_epochs_are_reassessed_from_raw_cache(tmp_path, monkeypatch):
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay(owners=("sz300308",))
+    monkeypatch.setattr(ownership_runner, "_native_sessions", lambda contract: [row.date for row in replay.trace])
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    output, cache = tmp_path / "result.json", tmp_path / "cache"
+    first = run_acceptance_shard(shard="continuity", scenario="remove-sz300502", output=output, cache_dir=cache)
+    row = first["scenarios"][0]
+    assert first["status"] == "FAIL" and row["evaluation"] == "NOT_MET"
+    assert {v["metric"] for v in row["violations"]} >= {"actual_strategic_epoch_count", "distinct_owner_count"}
+    assert row["actual_strategic_epoch_count"] == 1
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: pytest.fail("raw cache was not reused"))
+    second = run_acceptance_shard(shard="continuity", scenario="remove-sz300502", output=output, cache_dir=cache)
+    assert second["cache_hit"] and second["status"] == "FAIL"
+    entry = next(cache.glob("*.json"))
+    envelope = json.loads(entry.read_text())
+    envelope["payload"]["status"] = "PASS"
+    envelope["sha256"] = ownership_runner._canonical_sha256(envelope["payload"])
+    entry.write_text(json.dumps(envelope))
+    assert ownership_runner._read_cache(entry, identity=first["cache_identity"]) is None
+
+
+def test_execution_error_does_not_skip_independent_shard_scenarios(tmp_path, monkeypatch):
+    calls = []
+    error = RuntimeError("native execution failed")
+
+    def execute(contract, *, spec):
+        calls.append(spec["scenario_id"])
+        if len(calls) == 1:
+            raise error
+        return {"scenario_id": spec["scenario_id"], "status": "PASS"}
+
+    monkeypatch.setattr(ownership_runner, "_execute_scenario", execute)
+    output = tmp_path / "result.json"
+    with pytest.raises(RuntimeError) as observed:
+        run_acceptance_shard(shard="critical", output=output, cache_dir=tmp_path / "cache")
+    assert observed.value is error
+    assert calls == [row["scenario_id"] for row in ownership_runner.load_contract()["shards"]["critical"]]
+    result = json.loads(output.read_text())
+    assert result["status"] == "FAIL" and result["diagnostic_only"]
+    assert result["scenarios"][0]["evaluation"] == "INVALID"
+    assert len(result["scenarios"]) == len(calls)
+    assert all(row["status"] == "PASS" for row in result["scenarios"][1:])
+
+
+def test_corrupt_participation_alias_is_invalid_and_preserves_original_error(tmp_path, monkeypatch):
+    from test_cross_ai_ownership_continuity import continuity_replay
+
+    replay = continuity_replay()
+    monkeypatch.setattr(ownership_runner, "_native_sessions", lambda contract: [row.date for row in replay.trace])
+    monkeypatch.setattr(ownership_runner, "_frozen_replay", lambda *args, **kwargs: replay)
+    error = ValueError("CORE participation daily cash or continuous position differs")
+
+    def reject(result):
+        raise error
+
+    monkeypatch.setattr(ownership_runner, "_core_participation_facts", reject)
+    output = tmp_path / "alias.json"
+    with pytest.raises(ValueError) as observed:
+        run_acceptance_shard(shard="continuity", scenario="same-industry-crowning",
+                             output=output, cache_dir=tmp_path / "cache")
+    assert observed.value is error
+    result = json.loads(output.read_text())
+    assert result["diagnostic_only"] and not result["authoritative_acceptance"]
+    row = result["scenarios"][-1]
+    assert row["evaluation"] == "INVALID" and row["error"] == str(error)
+    assert "raw_replay" in row and "same_industry_core_participation" not in row
+
+
+def test_ownership_raw_cache_is_saved_even_when_evaluation_fails():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/strategic-ownership-acceptance.yml").read_text())
+    steps = workflow["jobs"]["ownership-shard"]["steps"]
+    restore = next(step for step in steps if step.get("id") == "cache")
+    save = next(step for step in steps if step.get("name") == "Save completed raw observations after evaluation")
+    assert restore["uses"].startswith("actions/cache/restore@")
+    assert save["uses"].startswith("actions/cache/save@")
+    assert "!cancelled()" in save["if"] and "success()" not in save["if"]
+    assert "github.run_attempt" in restore["with"]["key"]
+    assert restore["with"]["restore-keys"]
+    assert save["with"]["path"] == restore["with"]["path"]
+    assert save["with"]["key"] == "${{ steps.cache.outputs.cache-primary-key }}"

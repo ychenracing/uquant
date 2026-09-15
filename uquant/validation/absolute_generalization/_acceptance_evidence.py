@@ -775,9 +775,14 @@ def validate_crowning_evidence(
     if not cross and source not in {f"remove-{symbol}" for symbol in contract.canonical_universe}:
         raise ValueError("absolute generalization crowning source cell differs")
     chains = _evidence_sequence(evidence["chains"], label="crowning chains")
-    if len(chains) < 2:
-        raise ValueError("absolute generalization crowning evidence is incomplete")
     account_epochs, account_orders, account_fills = _crowning_account_indexes(evidence["final_account"])
+    expected_epochs = {
+        epoch_id for epoch_id, epoch in account_epochs.items()
+        if epoch.active_session and epoch.closed_session
+    }
+    observed_epochs = [_crowning_chain(item).epoch.epoch_id for item in chains]
+    if len(observed_epochs) != len(set(observed_epochs)) or set(observed_epochs) != expected_epochs:
+        raise ValueError("absolute generalization crowning account coverage differs")
     previous_epoch: StrategicEpoch | None = None
     previous_grant: StrategicGrantIntent | None = None
     previous_exit = ""

@@ -1,0 +1,33 @@
+{
+  "status": "SAVED_PENDING_INDEPENDENT_READBACK",
+  "results": [
+    {
+      "local_path": "/workspace/scratch/d48feaec25fd/uquant/artifacts/alpha-recovery/peer-independent-recovery/remove308.json.gz",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000d1cc82098155d6a6d2c57c03",
+      "library_file_id": "libfile_328500e360d081919018365eaf8e29b5",
+      "file_name": "remove308.json.gz",
+      "local_metadata_applied": true,
+      "path": "/remove308.json.gz",
+      "current_version_number": 0,
+      "bytes": 3066191,
+      "sha256": "47b4f110b9e793c56ac95903b5b499076d6792286ca04161e8cc48c8a9ec484b",
+      "remote_readback_verified": false
+    },
+    {
+      "local_path": "/workspace/scratch/d48feaec25fd/uquant/artifacts/alpha-recovery/peer-independent-recovery/remove502.json.gz",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_0000000007f481f6b70791a0edf12a96",
+      "library_file_id": "libfile_fbdf26dfbce4819198fb39a807311b1c",
+      "file_name": "remove502.json.gz",
+      "local_metadata_applied": true,
+      "path": "/remove502.json.gz",
+      "current_version_number": 0,
+      "bytes": 2920294,
+      "sha256": "10186a95249e96cefa9fb7fcadd9a382ccada46c4db9490298d7500922e234c0",
+      "remote_readback_verified": false
+    }
+  ]
+}

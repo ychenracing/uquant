@@ -1,0 +1,51 @@
+{
+  "status": "REJECTED_DIAGNOSTIC",
+  "results": {
+    "308": {
+      "final_wealth": 4.857306520587355,
+      "max_drawdown": 0.26323912849501996,
+      "account_orders": 57,
+      "annual_turnover": 6.0281936517278485,
+      "sha256": "47b4f110b9e793c56ac95903b5b499076d6792286ca04161e8cc48c8a9ec484b",
+      "bytes": 3066191,
+      "raw_remote_saved": false,
+      "source": {
+        "economic_decision_sha256": "9a5080f660972b31dc41529ac66b505643bf7a389f671e2beb503f2665c57a19",
+        "full_package_sha256": "291b7125e32e1a67a0d85d6e0de8271edefba2616e8b4b097e109ec96fde06c4",
+        "head": "f5d7ba1305aa75fae334f1406e2a0c6b4140d567",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "production_source_sha256": "9a5080f660972b31dc41529ac66b505643bf7a389f671e2beb503f2665c57a19"
+      },
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      }
+    },
+    "502": {
+      "final_wealth": 6.230837665121464,
+      "max_drawdown": 0.23812423499266522,
+      "account_orders": 41,
+      "annual_turnover": 7.397873605211392,
+      "sha256": "10186a95249e96cefa9fb7fcadd9a382ccada46c4db9490298d7500922e234c0",
+      "bytes": 2920294,
+      "raw_remote_saved": false,
+      "source": {
+        "economic_decision_sha256": "9a5080f660972b31dc41529ac66b505643bf7a389f671e2beb503f2665c57a19",
+        "full_package_sha256": "291b7125e32e1a67a0d85d6e0de8271edefba2616e8b4b097e109ec96fde06c4",
+        "head": "f5d7ba1305aa75fae334f1406e2a0c6b4140d567",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "production_source_sha256": "9a5080f660972b31dc41529ac66b505643bf7a389f671e2beb503f2665c57a19"
+      },
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      }
+    }
+  }
+}

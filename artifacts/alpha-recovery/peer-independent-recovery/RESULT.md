@@ -1,0 +1,7 @@
+# Rejected peer-independent depth candidate
+
+Producer f5d7ba1305aa75fae334f1406e2a0c6b4140d567, complete native 869-session runs. Exact runtime/scenario/runner matched controls and all symbol cash flows plus final marks reconcile net P&L within 1e-7. remove308 wealth4.857306520587355, DD26.3239128495%,57 orders; remove502 wealth6.230837665121464,DD23.8124234993%,41 orders. Both fail revised wealth protection; 308 also fails44 orders. No promotion.
+
+Removing the depth conditional increased308 wealth70.36% but reduced502 wealth56.77%. The first actual economic divergence is 2024-02-26 (not earlier ID-only differences): shallow semiconductor recovery cohorts admitted on2024-02-23 before a sufficiently deep recovery, changing later ownership. The change did NOT directly construct the desired2025-05-08 cohort; no new2025 recovery buys occurred under this candidate. This rejects unrestricted depth relaxation and narrows the hypothesis.
+
+Next independently justified diagnostic: keep ORIGINAL depth/breadth thresholds and examine whether requiring a fresh10-session high on every confirmation day erases a still-valid breakout. In remove308 a deeply fallen member only breaks out on2025-05-08; losing the signal next day empties the pending cohort and opens ordinary allocation. Confirming persistence above the original breakout level across the EXISTING confirmation period is distinct from lowering depth or count. Never stack the rejected depth candidate.

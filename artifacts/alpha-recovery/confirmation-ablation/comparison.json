@@ -1,0 +1,95 @@
+{
+  "comparisons": {
+    "a": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_metrics": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "final_wealth": 11.87065858669219,
+        "gross_turnover": 18.4081591135,
+        "max_drawdown": 0.16004817592256193
+      },
+      "baseline_sha256": "a18b83cefb61d413d0d0e2c6cac3b624fddce18b4a3ad790b13820829f8af518",
+      "candidate_commit": "dca5838868908d7801891cba3e43b5c7f47219e7",
+      "candidate_metrics": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "final_wealth": 11.87065858669219,
+        "gross_turnover": 18.4081591135,
+        "max_drawdown": 0.16004817592256193
+      },
+      "candidate_sha256": "7c80a677bbc4fe354354080063ac279fe216c7dc5a6fb7d5311ada229c92e354",
+      "changed_source_files": [
+        "uquant/portfolio/ordinary.py"
+      ],
+      "equity_differences": [],
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "environment",
+        "symbols",
+        "adapter_sha256",
+        "runner_sha256"
+      ],
+      "sessions": 382
+    },
+    "e": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_metrics": {
+        "account_orders": 13,
+        "annual_turnover": 11.676899188185864,
+        "final_wealth": 13.821022723557565,
+        "gross_turnover": 18.432130123500002,
+        "max_drawdown": 0.17253036736852323
+      },
+      "baseline_sha256": "769b1092dc3ad76cc252a26249850f5f0c945a68b0fe278fd6f4fec25de6bf5a",
+      "candidate_commit": "dca5838868908d7801891cba3e43b5c7f47219e7",
+      "candidate_metrics": {
+        "account_orders": 13,
+        "annual_turnover": 11.676899188185864,
+        "final_wealth": 13.821022723557565,
+        "gross_turnover": 18.432130123500002,
+        "max_drawdown": 0.17253036736852323
+      },
+      "candidate_sha256": "07e80f7012b84fa763c8b19ab335cac01d7c66cc2be39a5e0b626eb99664bb56",
+      "changed_source_files": [
+        "uquant/portfolio/ordinary.py"
+      ],
+      "equity_differences": [],
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "environment",
+        "symbols",
+        "adapter_sha256",
+        "runner_sha256"
+      ],
+      "sessions": 382
+    },
+    "remove308-prefix": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_equity": 2219163.36163238,
+      "baseline_sha256": "bebf72900054276fde827bb93e324b9dbca3d50afab3a08095f22909cc790fb8",
+      "candidate_commit": "dca5838868908d7801891cba3e43b5c7f47219e7",
+      "candidate_equity": 2219163.36163238,
+      "candidate_sha256": "aa63201e183eebf080d1ea17c238f85c13ebf62195e9856a3abfc20babf49a1e",
+      "changed_source_files": [
+        "uquant/portfolio/ordinary.py"
+      ],
+      "equity_differences": [],
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "runtime",
+        "contract_sha256",
+        "removed_symbol"
+      ],
+      "runner_bridge": "Verified exact scripts differ only in root/output argument resolution; replay and observation code identical. Original hashes retained.",
+      "sessions": 118
+    }
+  },
+  "status": "DIAGNOSTIC_ONLY_NOT_JOINT_ACCEPTANCE"
+}

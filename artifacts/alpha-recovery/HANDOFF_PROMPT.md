@@ -1,3 +1,29 @@
+# Latest continuation checkpoint — 2026-09-15
+
+This section supersedes the obsolete pending-deployment instructions below. Original authorization and constraints remain in force. Joint acceptance remains NOT_MET; no accepted alpha candidate or main merge exists.
+
+Completed since a9f9803:
+- Exact deployment-only producer 7b000bc9170e6c9233dd82fd38bc34613be0fafd completed all three previously unrun diagnostics. A wealth 11.87065858669219 unchanged; E wealth 2.0787587597870383 versus current 13.821022723557565, MDD .18523439864176305, 34 orders; native remove308 prefix equity 2290629.2902634004 versus 2219163.36163238. REJECTED. Existing 88 tests reused.
+- Remaining confirmation-only component was independently restored on original parent 987ef52098e8246afe76f5eafcdfeee955dee922, without capacity or deployment removal. Producer dca5838868908d7801891cba3e43b5c7f47219e7; fingerprint ce04a3d5721c8a16664e0c5d5fde22434708d62855b1c74b4a135a9116eef2b8. Exact source.bundle and 49 passing tests saved in confirmation-ablation/. All three economics completed and every daily equity matches current canonical. REJECTED as zero-alpha.
+- These complete the four combinations of the original stock-confirmation/deployment experiment. Do not repeat or tune this family. Do not broaden failed/unchanged arms to full matrices.
+- All six raw gzip results, logs, comparison scripts/results, and failure diagnoses are under artifacts/alpha-recovery/deployment-ablation/ and confirmation-ablation/. Original source bundles retain true producers. The recovery evidence branch's production code still contains only the previously retained capacity correctness change; no failed component is promoted.
+- A/E observer/runtime/config/data identities match canonical controls. Prefix observer hashes differ only in two root/output CLI resolution lines; compare.py verifies original hashes and exact normalized script equality. Preserve that explicit bridge; do not claim identical runner hashes or rerun solely for it.
+- E deployment divergence first occurs on 2025-02-07 READY ordinary entries. Original confirmation delays the combined candidate by two sessions but does not avoid the February holding-dependent sector guard. March 3 cash is still above January cash; later missed recovery causes the main path loss. Never clear actual risk history to fix it.
+- Independent October restoration boundary extracted from preserved canonical A/E: October 16 base votes=4 exceeds existing <=1; October 17/20 sentinel freeze is active; October 17 transition damage .518296 exceeds .38. October 21 existing restoration permission opens and funding happens for October 22. This is not a funding bug or a global feasibility proof. Exact extracts are deployment-ablation/restoration-boundary.json and restoration-risk-inputs.json.
+- Existing H8/H9 upstream acute bound and failures were read, not rerun. They remain conditional historical evidence, not acceptance of either new component.
+
+Recovery state:
+- Evidence branch research/alpha-recovery. Read the commit containing this file and live ref, not a prior parent, as the checkpoint identity. Earlier durable commits: 1ca20231870574801fc17691938bd378334a7656 (complete deployment evidence); a248c43b23df0c868aad88d0de653aff774448f6 (confirmation source/tests and restoration extracts).
+- main last verified df45b4d7d9ea290ae953115afbb73140270537c2; PR67 open Draft, head 8aaebd20be09ba5d5cdf17f91c18fdf2c01a5d33. This continuation did not modify either.
+- Local confirmation workspace /workspace/scratch/73b9104c478a/uquant-confirmation, branch research/alpha-confirmation, tested HEAD dca5838868908d7801891cba3e43b5c7f47219e7. Diagnostics do not mutate tracked production source. Later local evidence commits, if present, are provenance-only; keep original raw producer identities.
+- Deployment workspace remains /workspace/scratch/fd0ea5a576ed/uquant-deployment. Do not reset/rebase unrelated worktrees or touch /workspace/scratch/f5be6a4782d7/uquant.
+- All six replay children completed exit 0; no new Actions, automation or subagents were started. No current candidate warrants final CI/full economics. No claim is made about unrelated account tasks.
+
+Next decision:
+There is no currently supported new implementation to promote. Continue only with a distinct causal alpha hypothesis and sufficient effect size, using existing eligibility/risk/capital duties. Opportunity discovery/holding and cross-window/native-removal robustness remain research gaps. Avoid capacity/deployment/confirmation/timing tuning and historical ordinary-swap/H1-H9 repeats. Failed bounded work is not proof of global impossibility, but another ungrounded patch is not progress. Existing authority to investigate and implement supported minimal changes persists; do not ask again for it. If no actionable evidence emerges within those boundaries, report that research blocker candidly, preserving failures rather than changing gates or merging.
+
+---
+
 # HANDOFF_PROMPT — uquant alpha recovery 续接
 
 请通过 GitHub 插件继续 `ychenracing/uquant` 原任务。本文件是用户于 2026-09-15 明确要求暂停旧会话并交接时保存的现场，不是完成声明。新会话收到本 Prompt 后按原授权直接推进，不重复询问授权，不重跑有效实验。

@@ -1,0 +1,85 @@
+{
+  "key": "reference-readiness/a.json.gz",
+  "local_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/a.json.gz",
+  "bytes": 522878,
+  "sha256": "12251c6039c4b5f42c1c2fb458594ab22eaffef6fbfbed39e599ab996858fd1a",
+  "git_blob_sha": "39aad9f2e1dd6777461cbb47055642f084b3fc70",
+  "status": "STORED_REQUIRES_INDEX_READBACK_RECEIPT",
+  "storage": "ordered_base64_parts",
+  "encoding": "base64",
+  "chunk_bytes": 65536,
+  "parts": [
+    {
+      "index": 0,
+      "offset": 0,
+      "bytes": 65536,
+      "sha256": "72ad315e857b9057398a602a2c6ee744c768557b61e4ee87de73eb970681a1f0",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "e8074035435a019f552d05518e3a102115d709c6",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/reference-readiness/a.json.gz/00000.b64"
+    },
+    {
+      "index": 1,
+      "offset": 65536,
+      "bytes": 65536,
+      "sha256": "8ed3512dbab90efe4d8f04aad9b74c7c80c0d455d728d6e1aace86560cfe873f",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "3c652d6714350d2329ed6a1217c7a4d7df3625c9",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/reference-readiness/a.json.gz/00001.b64"
+    },
+    {
+      "index": 2,
+      "offset": 131072,
+      "bytes": 65536,
+      "sha256": "cc45dd012fca4844d5c52f3cd67e29850cb55424064fbe08f62eed932650cf91",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "4df7b9b2845637a5db2c0bb209a37710a8891f9e",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/reference-readiness/a.json.gz/00002.b64"
+    },
+    {
+      "index": 3,
+      "offset": 196608,
+      "bytes": 65536,
+      "sha256": "9f89e504a3152a6059ad82b7d185ff0d1130c7dcca2223329dfe46e51fa832b7",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "96828f6f7663d73736f966bb62c8583bdddc3f4d",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/reference-readiness/a.json.gz/00003.b64"
+    },
+    {
+      "index": 4,
+      "offset": 262144,
+      "bytes": 65536,
+      "sha256": "66d077f8a676aa9d3a2726945ede00dabeb074b8eccb9d04eba56fd76a6b9a38",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "7b533701a33979b658d5cf80571c42e13db06a38",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/reference-readiness/a.json.gz/00004.b64"
+    },
+    {
+      "index": 5,
+      "offset": 327680,
+      "bytes": 65536,
+      "sha256": "a955d9b81363e27b3296c039e256ed7d46cf0ba221bfccfeee923c9f53f51fed",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "15fa2d55ed8981cc9b22129a79d5f282eb6f4357",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/reference-readiness/a.json.gz/00005.b64"
+    },
+    {
+      "index": 6,
+      "offset": 393216,
+      "bytes": 65536,
+      "sha256": "9c67baf8e4cb25d421c78811d4514cfcdb3b092936a177204f9b4f98e8c68fbb",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "53decc421c74be90b3ffea53eaf67e8034eb5cfa",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/reference-readiness/a.json.gz/00006.b64"
+    },
+    {
+      "index": 7,
+      "offset": 458752,
+      "bytes": 64126,
+      "sha256": "b1aca232f740ba13c6acef9971156573bf8ec6dbe10bc2c9b1e0bcb6cad15ff9",
+      "encoded_bytes": 85505,
+      "git_blob_sha": "3e5d112aa5674be987085d91b50756934075e160",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/reference-readiness/a.json.gz/00007.b64"
+    }
+  ]
+}

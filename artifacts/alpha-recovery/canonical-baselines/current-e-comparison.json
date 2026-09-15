@@ -1,0 +1,1977 @@
+{
+  "metadata": {
+    "arm": "current",
+    "git_blob_sha": "0a174deb24e5f219572b863b2739d32b163f7489",
+    "pool": "e",
+    "sha256": "769b1092dc3ad76cc252a26249850f5f0c945a68b0fe278fd6f4fec25de6bf5a",
+    "size": 1963368
+  },
+  "summary": {
+    "arm": "current",
+    "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+    "baseline_metrics": {
+      "account_orders": 13,
+      "annual_turnover": 11.676899188185864,
+      "final_wealth": 13.821022723557565,
+      "gross_turnover": 18.432130123500002,
+      "max_drawdown": 0.17253036736852323
+    },
+    "candidate_commit": "1abcdc6eef2a2f92bd7c0c05233504b67d7fffcd",
+    "candidate_metrics": {
+      "account_orders": 37,
+      "annual_turnover": 5.48930286258534,
+      "final_wealth": 1.8976716616758222,
+      "gross_turnover": 8.6649326178,
+      "max_drawdown": 0.2003465518039731
+    },
+    "candidate_only_config": [],
+    "configuration_shared_values_equal": true,
+    "frozen_inputs_equal": true,
+    "historical_only_config": [],
+    "old_runtime_bridge_metrics_equal": true,
+    "pool": "e",
+    "recovery_path": {
+      "candidate": {
+        "dates": [
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-02-28",
+            "equity": 2231305.5127210584,
+            "gross": 0.9892332033492978,
+            "opportunity": "WEAK",
+            "risk": "RISK_OFF",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 3,
+              "sector_guard_active": true,
+              "shock_state": "SECTOR_GUARD",
+              "transition_damage": 0.452763099349891
+            },
+            "sector_guard": true
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-03-03",
+            "equity": 2229355.5678708144,
+            "gross": 0,
+            "opportunity": "WEAK",
+            "risk": "RISK_OFF",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 2,
+              "sector_guard_active": true,
+              "shock_state": "SECTOR_GUARD",
+              "transition_damage": 0.5104328085459808
+            },
+            "sector_guard": true
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-04-03",
+            "equity": 2229355.5678708144,
+            "gross": 0,
+            "opportunity": "WEAK",
+            "risk": "RISK_OFF",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 2,
+              "sector_guard_active": true,
+              "shock_state": "SECTOR_GUARD",
+              "transition_damage": 0.6126478758169934
+            },
+            "sector_guard": true
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-05-08",
+            "equity": 2229355.5678708144,
+            "gross": 0,
+            "opportunity": "WEAK",
+            "risk": "RISK_OFF",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 2,
+              "sector_guard_active": true,
+              "shock_state": "SECTOR_GUARD",
+              "transition_damage": 0.16219161640911758
+            },
+            "sector_guard": true
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-06-24",
+            "equity": 2229355.5678708144,
+            "gross": 0,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.09128022875816993
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "as_of": "2025-07-09",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-07-09",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-07-09",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2631
+                    },
+                    "industry": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "transition": 2
+                  },
+                  "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "transition",
+                  "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sz300308",
+                    "sz300394",
+                    "sz300502"
+                  ]
+                },
+                "entry_gate": "POSITION_SLOTS_EXHAUSTED",
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "as_of": "2025-07-09",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-07-09",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-07-09",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2511
+                    },
+                    "industry": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "transition": 2
+                  },
+                  "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "transition",
+                  "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sz300308",
+                    "sz300394",
+                    "sz300502"
+                  ]
+                },
+                "entry_gate": "POSITION_SLOTS_EXHAUSTED",
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "budget_checks": [
+                  {
+                    "accepted": true,
+                    "cash_room": 0.20854069824457866,
+                    "correlation_cluster": [
+                      "sz300502"
+                    ],
+                    "correlation_room": 0.75,
+                    "desired_increment": 0.5,
+                    "effective_increment_room": 0.20854069824457877,
+                    "funded_increment": 0.20854069824457866,
+                    "gross_room": 0.20854069824457877,
+                    "industry_room": 0.6848547175680342,
+                    "minimum_increment": 0.05,
+                    "phase": "CORE_ADMISSION",
+                    "position_slots": 1,
+                    "reserved_for_intent": 0,
+                    "symbol_room": 0.6,
+                    "unreserved_cash": 0.20854069824457866
+                  }
+                ],
+                "entry": {
+                  "as_of": "2025-07-09",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-07-09",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-07-09",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2271
+                    },
+                    "industry": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "transition": 2
+                  },
+                  "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "transition",
+                  "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sz300308",
+                    "sz300394",
+                    "sz300502"
+                  ]
+                },
+                "proposal_weight": 0.20854069824457866
+              }
+            },
+            "date": "2025-07-09",
+            "equity": 2239449.9579053805,
+            "gross": 0.7914593017554213,
+            "opportunity": "STRONG_TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.20909008397737963
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "budget_checks": [
+                  {
+                    "accepted": true,
+                    "cash_room": 0.05610052186663004,
+                    "correlation_cluster": [
+                      "sz300308",
+                      "sz300502"
+                    ],
+                    "correlation_room": 0.47284372007946035,
+                    "desired_increment": 0.5,
+                    "effective_increment_room": 0.05610052186662995,
+                    "funded_increment": 0.05610052186662995,
+                    "gross_room": 0.05610052186662995,
+                    "industry_room": 0.3919652177740187,
+                    "minimum_increment": 0.05,
+                    "phase": "CORE_ADMISSION",
+                    "position_slots": 1,
+                    "reserved_for_intent": 0,
+                    "symbol_room": 0.6,
+                    "unreserved_cash": 0.05610052186663004
+                  }
+                ],
+                "entry": {
+                  "as_of": "2025-08-05",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-08-05",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-08-05",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2650
+                    },
+                    "industry": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "established": 16
+                  },
+                  "qualification_evidence_sha256": "bfb2ba67081fd0b70e9ae6c3c967e4bfa6409af1c759701b3f96dc5f9bc2b7cf",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "established",
+                  "qualification_signature": "strategic_qualification:SECULAR:sh601869:optical,sz300308:optical,sz300502:optical:evidence=established",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sh601869",
+                    "sz300308",
+                    "sz300502"
+                  ]
+                },
+                "proposal_weight": 0.05610052186662995
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "budget_checks": [
+                  {
+                    "accepted": false,
+                    "cash_room": 9.020562075079397e-17,
+                    "correlation_cluster": [
+                      "sz300308",
+                      "sz300502"
+                    ],
+                    "correlation_room": 0.4167431982128304,
+                    "desired_increment": 0.04999999999999999,
+                    "effective_increment_room": 0,
+                    "funded_increment": 0,
+                    "gross_room": 0,
+                    "industry_room": 0.3358646959073888,
+                    "minimum_increment": 0.05,
+                    "phase": "LEADER_PYRAMID",
+                    "position_slots": 1,
+                    "reserved_for_intent": 0,
+                    "symbol_room": 0.32284372007946033,
+                    "unreserved_cash": 9.020562075079397e-17
+                  }
+                ],
+                "entry": {
+                  "as_of": "2025-08-05",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-08-05",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-08-05",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2290
+                    },
+                    "industry": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "established": 49
+                  },
+                  "qualification_evidence_sha256": "bfb2ba67081fd0b70e9ae6c3c967e4bfa6409af1c759701b3f96dc5f9bc2b7cf",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "established",
+                  "qualification_signature": "strategic_qualification:SECULAR:sh601869:optical,sz300308:optical,sz300502:optical:evidence=established",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sh601869",
+                    "sz300308",
+                    "sz300502"
+                  ]
+                },
+                "entry_gate": "EXISTING_HOLDING_OR_COMMITMENT",
+                "proposal_weight": 0.27715627992053965
+              }
+            },
+            "date": "2025-08-05",
+            "equity": 2665499.4078135323,
+            "gross": 0.94389947813337,
+            "opportunity": "STRONG_TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.1703000983009818
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.12274039298802554
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.22010005420857645
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.32695336016476256
+              }
+            },
+            "date": "2025-09-08",
+            "equity": 3903906.353361172,
+            "gross": 0.9853766847373219,
+            "opportunity": "WEAK",
+            "risk": "CRISIS",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 3,
+              "shock_state": "SHOCK",
+              "transition_damage": 0.4827007709905474
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.20258447294519538
+              }
+            },
+            "date": "2025-09-09",
+            "equity": 3878870.8165831645,
+            "gross": 0.20258447294519538,
+            "opportunity": "WEAK",
+            "risk": "CRISIS",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 3,
+              "shock_state": "PERSISTENT_STRESS",
+              "transition_damage": 0.5238555303652916
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.2239231942887505
+              }
+            },
+            "date": "2025-09-12",
+            "equity": 3985522.8165831645,
+            "gross": 0.2239231942887505,
+            "opportunity": "WEAK",
+            "risk": "CRISIS",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 3,
+              "shock_state": "PERSISTENT_STRESS",
+              "transition_damage": 0.09168780119899073
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.21656160859260834
+              }
+            },
+            "date": "2025-09-22",
+            "equity": 3948072.8165831645,
+            "gross": 0.21656160859260834,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.009831699346405218
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.22752804278502842
+              }
+            },
+            "date": "2025-10-21",
+            "equity": 4004121.8165831645,
+            "gross": 0.22752804278502842,
+            "opportunity": "STRONG_TREND",
+            "risk": "CAUTION",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.16191783022599987
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-11-13",
+            "equity": 3905197.8165831645,
+            "gross": 0.20796027196147673,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.23984885620915034
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "as_of": "2026-01-05",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2026-01-05",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2026-01-05",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2026-01-05",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2751
+                    },
+                    "industry": {
+                      "as_of": "2026-01-05",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2026-01-05",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2026-01-05",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "credible_maturity": 5,
+                    "leader_tenure": 118
+                  },
+                  "qualification_quorum": "ORDINARY_CORE",
+                  "qualification_route": "mature_core",
+                  "required_confirmation": 5
+                },
+                "entry_gate": "NEW_RISK_FROZEN",
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2026-01-05",
+            "equity": 3884203.5731429243,
+            "gross": 0,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.032014705882352945
+            },
+            "sector_guard": false
+          }
+        ],
+        "post_september_block_counts": {
+          "('sz300308', 'NEW_RISK_FROZEN', None)": 38,
+          "('sz300308', None, None)": 177,
+          "('sz300394', 'NEW_RISK_FROZEN', None)": 21,
+          "('sz300394', None, None)": 194,
+          "('sz300502', 'NEW_RISK_FROZEN', None)": 12,
+          "('sz300502', None, None)": 203
+        }
+      },
+      "current": {
+        "dates": [
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-02-28",
+            "equity": 2197772.75318636,
+            "gross": 0,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.452763099349891
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-03-03",
+            "equity": 2197772.75318636,
+            "gross": 0,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.5104328085459808
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "budget_checks": [
+                  {
+                    "accepted": true,
+                    "cash_room": 1,
+                    "correlation_cluster": [
+                      "sz300308"
+                    ],
+                    "correlation_room": 0.75,
+                    "desired_increment": 0.6,
+                    "effective_increment_room": 0.6,
+                    "funded_increment": 0.6,
+                    "gross_room": 1,
+                    "industry_room": 0.75,
+                    "minimum_increment": 0.05,
+                    "phase": "RESEARCH_CAUTION_TACTICAL_PROBE",
+                    "position_slots": 6,
+                    "reserved_for_intent": 0,
+                    "symbol_room": 0.6,
+                    "unreserved_cash": 1
+                  }
+                ],
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0
+              }
+            },
+            "date": "2025-04-03",
+            "equity": 2197772.75318636,
+            "gross": 0,
+            "opportunity": "CHOPPY",
+            "risk": "CAUTION",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.6126478758169934
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6429827573858476
+              },
+              "sz300394": {
+                "budget_checks": [
+                  {
+                    "accepted": true,
+                    "cash_room": 0.3570172426141524,
+                    "correlation_cluster": [
+                      "sz300308",
+                      "sz300394"
+                    ],
+                    "correlation_room": 0.2770172426141524,
+                    "desired_increment": 0.07312549008165777,
+                    "effective_increment_room": 0.2770172426141524,
+                    "funded_increment": 0.07312549008165777,
+                    "gross_room": 0.35701724261415235,
+                    "industry_room": 0.2770172426141524,
+                    "minimum_increment": 0.05,
+                    "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                    "position_slots": 5,
+                    "reserved_for_intent": 0,
+                    "symbol_room": 0.6,
+                    "unreserved_cash": 0.3570172426141524
+                  }
+                ],
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.07312549008165777
+              },
+              "sz300502": {
+                "budget_checks": [
+                  {
+                    "accepted": true,
+                    "cash_room": 0.28389175253249466,
+                    "correlation_cluster": [
+                      "sz300308",
+                      "sz300394",
+                      "sz300502"
+                    ],
+                    "correlation_room": 0.20389175253249459,
+                    "desired_increment": 0.2038917525324946,
+                    "effective_increment_room": 0.20389175253249459,
+                    "funded_increment": 0.20389175253249459,
+                    "gross_room": 0.28389175253249455,
+                    "industry_room": 0.20389175253249459,
+                    "minimum_increment": 0.05,
+                    "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                    "position_slots": 4,
+                    "reserved_for_intent": 0,
+                    "symbol_room": 0.6,
+                    "unreserved_cash": 0.28389175253249466
+                  }
+                ],
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.20389175253249459
+              }
+            },
+            "date": "2025-05-08",
+            "equity": 2471469.07400876,
+            "gross": 0.6429827573858476,
+            "opportunity": "RECOVERY",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.16219161640911758
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6437686813639143
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.07468147392829066
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.21726747455679357
+              }
+            },
+            "date": "2025-06-24",
+            "equity": 3232030.479630956,
+            "gross": 0.9357176298489985,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.09128022875816993
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "as_of": "2025-07-09",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-07-09",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-07-09",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2631
+                    },
+                    "industry": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "transition": 2
+                  },
+                  "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "transition",
+                  "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sz300308",
+                    "sz300394",
+                    "sz300502"
+                  ]
+                },
+                "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+                "proposal_weight": 0.6357626294088069
+              },
+              "sz300394": {
+                "entry": {
+                  "as_of": "2025-07-09",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-07-09",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-07-09",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2511
+                    },
+                    "industry": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "transition": 2
+                  },
+                  "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "transition",
+                  "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sz300308",
+                    "sz300394",
+                    "sz300502"
+                  ]
+                },
+                "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+                "proposal_weight": 0.07454826487639414
+              },
+              "sz300502": {
+                "entry": {
+                  "as_of": "2025-07-09",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-07-09",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-07-09",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2271
+                    },
+                    "industry": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-07-09",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "transition": 2
+                  },
+                  "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "transition",
+                  "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sz300308",
+                    "sz300394",
+                    "sz300502"
+                  ]
+                },
+                "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+                "proposal_weight": 0.23505142581186814
+              }
+            },
+            "date": "2025-07-09",
+            "equity": 3802551.2796309562,
+            "gross": 0.9453623200970692,
+            "opportunity": "STRONG_TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.20909008397737963
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "as_of": "2025-08-05",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-08-05",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-08-05",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2650
+                    },
+                    "industry": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "established": 16
+                  },
+                  "qualification_evidence_sha256": "bfb2ba67081fd0b70e9ae6c3c967e4bfa6409af1c759701b3f96dc5f9bc2b7cf",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "established",
+                  "qualification_signature": "strategic_qualification:SECULAR:sh601869:optical,sz300308:optical,sz300502:optical:evidence=established",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sh601869",
+                    "sz300308",
+                    "sz300502"
+                  ]
+                },
+                "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+                "proposal_weight": 0.666306592122267
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.06619906641336933
+              },
+              "sz300502": {
+                "entry": {
+                  "as_of": "2025-08-05",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2025-08-05",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2025-08-05",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2290
+                    },
+                    "industry": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2025-08-05",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "established": 49
+                  },
+                  "qualification_evidence_sha256": "bfb2ba67081fd0b70e9ae6c3c967e4bfa6409af1c759701b3f96dc5f9bc2b7cf",
+                  "qualification_quorum": "FULL_COHORT",
+                  "qualification_route": "established",
+                  "qualification_signature": "strategic_qualification:SECULAR:sh601869:optical,sz300308:optical,sz300502:optical:evidence=established",
+                  "required_confirmation": 2,
+                  "witnesses": [
+                    "sh601869",
+                    "sz300308",
+                    "sz300502"
+                  ]
+                },
+                "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+                "proposal_weight": 0.22816590583245636
+              }
+            },
+            "date": "2025-08-05",
+            "equity": 5282757.279630956,
+            "gross": 0.9606715643680926,
+            "opportunity": "STRONG_TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.1703000983009818
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6825880478950794
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.06494841955957335
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.22956154478117452
+              }
+            },
+            "date": "2025-09-08",
+            "equity": 9071814.279630955,
+            "gross": 0.9770980122358273,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.4827007709905474
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6770936742004272
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.06437502100928975
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.23513446291620316
+              }
+            },
+            "date": "2025-09-09",
+            "equity": 8879941.179630956,
+            "gross": 0.9766031581259201,
+            "opportunity": "STRONG_TREND",
+            "risk": "CAUTION",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.5238555303652916
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6875675144086293
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.06152275005574984
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.230697646260521
+              }
+            },
+            "date": "2025-09-12",
+            "equity": 10279124.379630957,
+            "gross": 0.9797879107249001,
+            "opportunity": "STRONG_TREND",
+            "risk": "CAUTION",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.09168780119899073
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6921080425873551
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.06268606853868491
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.22466057986576424
+              }
+            },
+            "date": "2025-09-22",
+            "equity": 10112409.579630956,
+            "gross": 0.9794546909918044,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.009831699346405218
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6305077931468722,
+                "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+              },
+              "sz300394": {
+                "budget_checks": [
+                  {
+                    "accepted": true,
+                    "cash_room": 0.3144804991653281,
+                    "correlation_cluster": [
+                      "sz300308",
+                      "sz300394",
+                      "sz300502"
+                    ],
+                    "correlation_room": 0.23448049916532832,
+                    "desired_increment": 0.16000000000000003,
+                    "effective_increment_room": 0.23448049916532832,
+                    "funded_increment": 0.16000000000000003,
+                    "gross_room": 0.3144804991653283,
+                    "industry_room": 0.23448049916532832,
+                    "minimum_increment": 0.04,
+                    "phase": "POST_SHOCK_RESTORATION",
+                    "position_slots": 4,
+                    "reserved_for_intent": 0,
+                    "symbol_room": 0.6,
+                    "unreserved_cash": 0.3144804991653281
+                  }
+                ],
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.16000000000000003
+              },
+              "sz300502": {
+                "budget_checks": [
+                  {
+                    "accepted": true,
+                    "cash_room": 0.15448049916532808,
+                    "correlation_cluster": [
+                      "sz300308",
+                      "sz300394",
+                      "sz300502"
+                    ],
+                    "correlation_room": 0.07448049916532828,
+                    "desired_increment": 0.1049882923122005,
+                    "effective_increment_room": 0.07448049916532826,
+                    "funded_increment": 0.07448049916532826,
+                    "gross_room": 0.15448049916532824,
+                    "industry_room": 0.07448049916532826,
+                    "minimum_increment": 0.04,
+                    "phase": "POST_SHOCK_RESTORATION",
+                    "position_slots": 4,
+                    "reserved_for_intent": 0,
+                    "symbol_room": 0.5449882923122005,
+                    "unreserved_cash": 0.15448049916532808
+                  }
+                ],
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.1294922068531278
+              }
+            },
+            "date": "2025-10-21",
+            "equity": 10409784.09995813,
+            "gross": 0.6855195008346718,
+            "opportunity": "STRONG_TREND",
+            "risk": "CAUTION",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "RECOVERY",
+              "transition_damage": 0.16191783022599987
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": true,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "block": "CONFIRMATION_INCOMPLETE",
+                  "confirmations": {
+                    "independent_core": 0
+                  },
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.6591210827624167
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.15040128438179565
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.11119785538468577
+              }
+            },
+            "date": "2025-11-13",
+            "equity": 10850813.58651969,
+            "gross": 0.9207202225288981,
+            "opportunity": "TREND",
+            "risk": "CAUTION",
+            "risk_evidence": {
+              "capital_budget_level": 1,
+              "chronic_level": 0,
+              "freeze_new_risk": true,
+              "reduction_level": 1,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.23984885620915034
+            },
+            "sector_guard": false
+          },
+          {
+            "allocation_freeze": false,
+            "cores": {
+              "sz300308": {
+                "entry": {
+                  "as_of": "2026-01-05",
+                  "block": "READY",
+                  "checks": {
+                    "confidence": {
+                      "as_of": "2026-01-05",
+                      "minimum": 0.7,
+                      "passed": true,
+                      "value": 1
+                    },
+                    "current_data": {
+                      "as_of": "2026-01-05",
+                      "passed": true
+                    },
+                    "history": {
+                      "as_of": "2026-01-05",
+                      "minimum": 121,
+                      "passed": true,
+                      "value": 2751
+                    },
+                    "industry": {
+                      "as_of": "2026-01-05",
+                      "passed": true
+                    },
+                    "liquidity": {
+                      "as_of": "2026-01-05",
+                      "passed": true
+                    },
+                    "structure": {
+                      "as_of": "2026-01-05",
+                      "passed": true
+                    }
+                  },
+                  "confirmations": {
+                    "leader_tenure": 118
+                  },
+                  "qualification_quorum": "ORDINARY_CORE",
+                  "qualification_route": "mature_core",
+                  "required_confirmation": 5
+                },
+                "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+                "proposal_weight": 0.6740811734318024
+              },
+              "sz300394": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.1485094211492786
+              },
+              "sz300502": {
+                "entry": {
+                  "block": "NOT_MATURE",
+                  "required_confirmation": 5
+                },
+                "proposal_weight": 0.1148915139766207
+              }
+            },
+            "date": "2026-01-05",
+            "equity": 13760062.386519691,
+            "gross": 0.9374821085577016,
+            "opportunity": "TREND",
+            "risk": "NORMAL",
+            "risk_evidence": {
+              "capital_budget_level": 0,
+              "chronic_level": 0,
+              "freeze_new_risk": false,
+              "reduction_level": 0,
+              "sector_guard_active": false,
+              "shock_state": "NONE",
+              "transition_damage": 0.032014705882352945
+            },
+            "sector_guard": false
+          }
+        ],
+        "post_september_block_counts": {
+          "('sz300308', 'FAILED_DEPLOYMENT_UNSETTLED', None)": 27,
+          "('sz300308', None, 'RESTORATION_COMPLETED_RETAIN_DRIFT')": 4,
+          "('sz300308', None, None)": 184,
+          "('sz300394', 'FAILED_DEPLOYMENT_UNSETTLED', None)": 10,
+          "('sz300394', None, 'RESTORATION_COMPLETED_RETAIN_DRIFT')": 3,
+          "('sz300394', None, None)": 202,
+          "('sz300502', 'FAILED_DEPLOYMENT_UNSETTLED', None)": 17,
+          "('sz300502', None, 'RESTORATION_COMPLETED_RETAIN_DRIFT')": 3,
+          "('sz300502', None, None)": 195
+        }
+      }
+    },
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.11.33 (x86_64-unknown-linux-gnu)"
+    }
+  }
+}

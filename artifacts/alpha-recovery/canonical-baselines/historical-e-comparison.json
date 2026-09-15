@@ -1,0 +1,73 @@
+{
+  "metadata": {
+    "arm": "historical",
+    "git_blob_sha": "54464c63f82bce2fec4c3a15f2027df2af0199ed",
+    "pool": "e",
+    "sha256": "e4dde17d4e12f7bad410267b208fb48ff3172658c3ef54da4241ecfe926045cd",
+    "size": 471737
+  },
+  "summary": {
+    "arm": "historical",
+    "baseline_commit": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+    "baseline_metrics": {
+      "account_orders": 12,
+      "annual_turnover": 13.449323299304188,
+      "final_wealth": 14.994171560450225,
+      "gross_turnover": 21.2299235551,
+      "max_drawdown": 0.1786694955488326
+    },
+    "candidate_commit": "1abcdc6eef2a2f92bd7c0c05233504b67d7fffcd",
+    "candidate_metrics": {
+      "account_orders": 37,
+      "annual_turnover": 5.48930286258534,
+      "final_wealth": 1.8976716616758222,
+      "gross_turnover": 8.6649326178,
+      "max_drawdown": 0.2003465518039731
+    },
+    "candidate_only_config": [
+      "risk_sentinel_causal_confirmation_enabled",
+      "risk_sentinel_confirm_days",
+      "risk_sentinel_min_confidence",
+      "risk_sentinel_mode",
+      "risk_sentinel_repair_days",
+      "risk_sentinel_severe_direct_enabled"
+    ],
+    "configuration_shared_values_equal": true,
+    "frozen_inputs_equal": true,
+    "historical_only_config": [
+      "adaptive_broad_universe_compatibility_enabled",
+      "adaptive_broad_universe_min_size",
+      "evidence_family_voting_enabled",
+      "group_balanced_reference_enabled",
+      "hierarchical_industry_shrinkage_enabled",
+      "leader_cycle_confirm_days",
+      "leader_cycle_impulse_breadth",
+      "leader_cycle_impulse_index_return",
+      "leader_cycle_impulse_min_market_ret120",
+      "leader_cycle_impulse_return",
+      "leader_cycle_min_market_ret120",
+      "leader_cycle_min_mature",
+      "leader_cycle_min_score",
+      "same_day_leader_pipeline_enabled",
+      "strategic_cohort_symbols",
+      "strategic_epoch_cooldown_sessions",
+      "strategic_epoch_min_symbol_change",
+      "strategic_expansive_universe_min_size",
+      "strategic_partial_universe_max_size",
+      "strategic_persistent_confirm_days",
+      "strategic_reversal_confirm_days",
+      "strategic_reversal_max_tech_ret120",
+      "transition_confirm_days",
+      "transition_overlay_enabled",
+      "transition_repair_days"
+    ],
+    "old_runtime_bridge_metrics_equal": true,
+    "pool": "e",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.11.33 (x86_64-unknown-linux-gnu)"
+    }
+  }
+}

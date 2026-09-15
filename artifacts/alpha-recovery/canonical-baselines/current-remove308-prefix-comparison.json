@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "arm": "current",
+    "git_blob_sha": "a14ed7d766f7f40ebf091a9b4b2aebe681a11b24",
+    "pool": "remove308-prefix",
+    "sha256": "bebf72900054276fde827bb93e324b9dbca3d50afab3a08095f22909cc790fb8",
+    "size": 297583
+  },
+  "summary": {
+    "arm": "current",
+    "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+    "baseline_equity": 2219163.36163238,
+    "candidate_commit": "1abcdc6eef2a2f92bd7c0c05233504b67d7fffcd",
+    "candidate_equity": 2986029.6573927803,
+    "frozen_inputs_equal": true,
+    "pool": "remove308-prefix",
+    "runtime": {
+      "numpy_version": "2.5.1",
+      "pandas_version": "3.0.5",
+      "python_full_version": "3.12.13",
+      "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+      "uv_version": "0.11.33"
+    }
+  }
+}

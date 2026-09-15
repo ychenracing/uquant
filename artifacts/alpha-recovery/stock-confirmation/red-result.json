@@ -1,0 +1,12 @@
+{
+  "status": "RED_REPRODUCED",
+  "commit": "227c3e010fb5a04f7e7746860b086416000a4c17",
+  "workflow_run": 34938471626,
+  "job": 104281472128,
+  "failed": 1,
+  "passed": 6,
+  "failure": "test_own_confirmed_leader_does_not_wait_for_market_cycle: CONFIRMATION_INCOMPLETE on fifth distinct current observation",
+  "artifact_id": 10384197104,
+  "artifact_reported_sha256": "1758026e4faad5bac3ebb8c387993e4d7a122cfda3c933000a3d47e6c60b7f13",
+  "raw_archive_download_verified": false
+}

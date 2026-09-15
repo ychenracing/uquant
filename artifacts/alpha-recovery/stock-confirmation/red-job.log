@@ -1,0 +1,461 @@
+﻿2026-09-15T06:46:42.2627510Z Current runner version: '2.337.0'
+2026-09-15T06:46:42.2648989Z ##[group]Runner Image Provisioner
+2026-09-15T06:46:42.2650101Z Hosted Compute Agent
+2026-09-15T06:46:42.2650610Z Version: 20260828.587
+2026-09-15T06:46:42.2651802Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-15T06:46:42.2653376Z Build Date: 2026-08-28T16:44:25Z
+2026-09-15T06:46:42.2654086Z Worker ID: {25cdff4b-22a1-420f-ae4a-9193518d9fa1}
+2026-09-15T06:46:42.2654928Z Azure Region: westus3
+2026-09-15T06:46:42.2655412Z ##[endgroup]
+2026-09-15T06:46:42.2657757Z ##[group]Operating System
+2026-09-15T06:46:42.2658517Z Ubuntu
+2026-09-15T06:46:42.2658954Z 24.04.5
+2026-09-15T06:46:42.2659626Z LTS
+2026-09-15T06:46:42.2660129Z ##[endgroup]
+2026-09-15T06:46:42.2660620Z ##[group]Runner Image
+2026-09-15T06:46:42.2661747Z Image: ubuntu-24.04
+2026-09-15T06:46:42.2662224Z Version: 20260907.300.1
+2026-09-15T06:46:42.2663439Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-15T06:46:42.2664745Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+2026-09-15T06:46:42.2665918Z ##[endgroup]
+2026-09-15T06:46:42.2666821Z ##[group]GITHUB_TOKEN Permissions
+2026-09-15T06:46:42.2668610Z Contents: read
+2026-09-15T06:46:42.2669121Z Metadata: read
+2026-09-15T06:46:42.2669557Z ##[endgroup]
+2026-09-15T06:46:42.2671373Z Secret source: Actions
+2026-09-15T06:46:42.2672135Z Cache mode: write
+2026-09-15T06:46:42.2672806Z Prepare workflow directory
+2026-09-15T06:46:42.2984442Z Prepare all required actions
+2026-09-15T06:46:42.3023475Z Getting action download info
+2026-09-15T06:46:42.5874834Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-09-15T06:46:42.8128202Z Download action repository 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-09-15T06:46:42.9427859Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-09-15T06:46:43.3412445Z Complete job name: stock-confirmation
+2026-09-15T06:46:43.4081843Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-15T06:46:43.4088824Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-09-15T06:46:43.4089604Z with:
+2026-09-15T06:46:43.4089969Z   fetch-depth: 0
+2026-09-15T06:46:43.4090370Z   repository: ychenracing/uquant
+2026-09-15T06:46:43.4093955Z   token: ***
+2026-09-15T06:46:43.4094340Z   ssh-strict: true
+2026-09-15T06:46:43.4094715Z   ssh-user: git
+2026-09-15T06:46:43.4095102Z   persist-credentials: true
+2026-09-15T06:46:43.4095532Z   clean: true
+2026-09-15T06:46:43.4095923Z   sparse-checkout-cone-mode: true
+2026-09-15T06:46:43.4096402Z   fetch-tags: false
+2026-09-15T06:46:43.4096788Z   show-progress: true
+2026-09-15T06:46:43.4097237Z   lfs: false
+2026-09-15T06:46:43.4097607Z   submodules: false
+2026-09-15T06:46:43.4097991Z   set-safe-directory: true
+2026-09-15T06:46:43.4098573Z env:
+2026-09-15T06:46:43.4098917Z   PYTHONPATH: tests:.
+2026-09-15T06:46:43.4099310Z ##[endgroup]
+2026-09-15T06:46:43.4918051Z Syncing repository: ychenracing/uquant
+2026-09-15T06:46:43.4920248Z ##[group]Getting Git version info
+2026-09-15T06:46:43.4921186Z Working directory is '/home/runner/work/uquant/uquant'
+2026-09-15T06:46:43.4922650Z [command]/usr/bin/git version
+2026-09-15T06:46:43.4957618Z git version 2.55.0
+2026-09-15T06:46:43.4974526Z ##[endgroup]
+2026-09-15T06:46:43.4988179Z Temporarily overriding HOME='/home/runner/work/_temp/a0bcb209-0c22-4bd8-ad20-8a5576c7f543' before making global git config changes
+2026-09-15T06:46:43.4990223Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-15T06:46:43.4992395Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/uquant/uquant
+2026-09-15T06:46:43.5038844Z Deleting the contents of '/home/runner/work/uquant/uquant'
+2026-09-15T06:46:43.5042493Z ##[group]Initializing the repository
+2026-09-15T06:46:43.5047241Z [command]/usr/bin/git init /home/runner/work/uquant/uquant
+2026-09-15T06:46:43.5132143Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-15T06:46:43.5133836Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-15T06:46:43.5134663Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-15T06:46:43.5135285Z hint: call:
+2026-09-15T06:46:43.5135632Z hint:
+2026-09-15T06:46:43.5136108Z hint: 	git config --global init.defaultBranch <name>
+2026-09-15T06:46:43.5136640Z hint:
+2026-09-15T06:46:43.5137141Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-15T06:46:43.5137952Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-15T06:46:43.5138574Z hint:
+2026-09-15T06:46:43.5138945Z hint: 	git branch -m <name>
+2026-09-15T06:46:43.5139348Z hint:
+2026-09-15T06:46:43.5139887Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-15T06:46:43.5144091Z Initialized empty Git repository in /home/runner/work/uquant/uquant/.git/
+2026-09-15T06:46:43.5154469Z [command]/usr/bin/git remote add origin https://github.com/ychenracing/uquant
+2026-09-15T06:46:43.5192001Z ##[endgroup]
+2026-09-15T06:46:43.5192734Z ##[group]Disabling automatic garbage collection
+2026-09-15T06:46:43.5195602Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-15T06:46:43.5220665Z ##[endgroup]
+2026-09-15T06:46:43.5221301Z ##[group]Setting up auth
+2026-09-15T06:46:43.5227427Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-15T06:46:43.5255791Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-15T06:46:43.5560142Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-15T06:46:43.5591717Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-15T06:46:43.5787965Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-15T06:46:43.5821276Z ##[endgroup]
+2026-09-15T06:46:43.5822189Z ##[group]Fetching the repository
+2026-09-15T06:46:43.5829721Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-09-15T06:46:55.1918523Z From https://github.com/ychenracing/uquant
+2026-09-15T06:46:55.1919790Z  * [new branch]      codex/absolute-generalization-acceptance -> origin/codex/absolute-generalization-acceptance
+2026-09-15T06:46:55.1921591Z  * [new branch]      codex/absolute-generalization-acceptance-wip-recovery-20260831 -> origin/codex/absolute-generalization-acceptance-wip-recovery-20260831
+2026-09-15T06:46:55.1923268Z  * [new branch]      codex/affordable-core-selection-20260911 -> origin/codex/affordable-core-selection-20260911
+2026-09-15T06:46:55.1924750Z  * [new branch]      codex/agent-instruction-conflict-fix-20260912 -> origin/codex/agent-instruction-conflict-fix-20260912
+2026-09-15T06:46:55.1926038Z  * [new branch]      codex/agents-governance-optimization -> origin/codex/agents-governance-optimization
+2026-09-15T06:46:55.1927106Z  * [new branch]      codex/agents-streamline-20260905 -> origin/codex/agents-streamline-20260905
+2026-09-15T06:46:55.1928249Z  * [new branch]      codex/align-project-governance-20260906 -> origin/codex/align-project-governance-20260906
+2026-09-15T06:46:55.1929613Z  * [new branch]      codex/anchor-correctness-cleanup-20260911 -> origin/codex/anchor-correctness-cleanup-20260911
+2026-09-15T06:46:55.1931454Z  * [new branch]      codex/anchor-nomination-20260911 -> origin/codex/anchor-nomination-20260911
+2026-09-15T06:46:55.1932690Z  * [new branch]      codex/behavior-preserving-simplification -> origin/codex/behavior-preserving-simplification
+2026-09-15T06:46:55.1934165Z  * [new branch]      codex/breach-episode-integration-wip-20260910 -> origin/codex/breach-episode-integration-wip-20260910
+2026-09-15T06:46:55.1935644Z  * [new branch]      codex/breach-episode-research-20260910 -> origin/codex/breach-episode-research-20260910
+2026-09-15T06:46:55.1937098Z  * [new branch]      codex/c-source-data-diagnostic-20260909 -> origin/codex/c-source-data-diagnostic-20260909
+2026-09-15T06:46:55.1938285Z  * [new branch]      codex/causal-input-account -> origin/codex/causal-input-account
+2026-09-15T06:46:55.1939424Z  * [new branch]      codex/caution-exception-research-20260910 -> origin/codex/caution-exception-research-20260910
+2026-09-15T06:46:55.1940604Z  * [new branch]      codex/caution-lifecycle-research-20260910 -> origin/codex/caution-lifecycle-research-20260910
+2026-09-15T06:46:55.1941802Z  * [new branch]      codex/checkpoint-cohort-hysteresis-20260810 -> origin/codex/checkpoint-cohort-hysteresis-20260810
+2026-09-15T06:46:55.1943201Z  * [new branch]      codex/checkpoint-stage-a-20260811 -> origin/codex/checkpoint-stage-a-20260811
+2026-09-15T06:46:55.1944493Z  * [new branch]      codex/ci-trusted-execution-closure -> origin/codex/ci-trusted-execution-closure
+2026-09-15T06:46:55.1945603Z  * [new branch]      codex/cohort-paired-execution-20260910 -> origin/codex/cohort-paired-execution-20260910
+2026-09-15T06:46:55.1946755Z  * [new branch]      codex/cohort-simple-control-20260910 -> origin/codex/cohort-simple-control-20260910
+2026-09-15T06:46:55.1947920Z  * [new branch]      codex/config-usability-plain-report -> origin/codex/config-usability-plain-report
+2026-09-15T06:46:55.1948899Z  * [new branch]      codex/continuation-20260911 -> origin/codex/continuation-20260911
+2026-09-15T06:46:55.1950153Z  * [new branch]      codex/crisis-cap-cleanup-20260911 -> origin/codex/crisis-cap-cleanup-20260911
+2026-09-15T06:46:55.1951171Z  * [new branch]      codex/cross-ai-core-strategy-20260905 -> origin/codex/cross-ai-core-strategy-20260905
+2026-09-15T06:46:55.1952322Z  * [new branch]      codex/cross-ai-handoff-recovery-20260905 -> origin/codex/cross-ai-handoff-recovery-20260905
+2026-09-15T06:46:55.1953642Z  * [new branch]      codex/current-acceptance-chain -> origin/codex/current-acceptance-chain
+2026-09-15T06:46:55.1954316Z  * [new branch]      codex/diverse-persistence-20260911 -> origin/codex/diverse-persistence-20260911
+2026-09-15T06:46:55.1955015Z  * [new branch]      codex/economics-first-closure-20260910 -> origin/codex/economics-first-closure-20260910
+2026-09-15T06:46:55.1955964Z  * [new branch]      codex/finalize-recovery-release -> origin/codex/finalize-recovery-release
+2026-09-15T06:46:55.1956951Z  * [new branch]      codex/fix-absolute-generalization-final-ci -> origin/codex/fix-absolute-generalization-final-ci
+2026-09-15T06:46:55.1957965Z  * [new branch]      codex/fix-control-plane-complexity-ci -> origin/codex/fix-control-plane-complexity-ci
+2026-09-15T06:46:55.1958578Z  * [new branch]      codex/fix-full-cohort-grant-validation -> origin/codex/fix-full-cohort-grant-validation
+2026-09-15T06:46:55.1959177Z  * [new branch]      codex/fix-known-actions-20260911 -> origin/codex/fix-known-actions-20260911
+2026-09-15T06:46:55.1959702Z  * [new branch]      codex/fix-public-api-contract-ci -> origin/codex/fix-public-api-contract-ci
+2026-09-15T06:46:55.1960250Z  * [new branch]      codex/full-cohort-lifecycle-ci-fixes -> origin/codex/full-cohort-lifecycle-ci-fixes
+2026-09-15T06:46:55.1960787Z  * [new branch]      codex/full-owner-exit-20260911 -> origin/codex/full-owner-exit-20260911
+2026-09-15T06:46:55.1961350Z  * [new branch]      codex/historical-cohort-replay-20260909 -> origin/codex/historical-cohort-replay-20260909
+2026-09-15T06:46:55.1962208Z  * [new branch]      codex/incremental-generalization-20260911 -> origin/codex/incremental-generalization-20260911
+2026-09-15T06:46:55.1962897Z  * [new branch]      codex/independent-repair-allowance-20260911 -> origin/codex/independent-repair-allowance-20260911
+2026-09-15T06:46:55.1964209Z  * [new branch]      codex/industry-account-diagnostic-20260909 -> origin/codex/industry-account-diagnostic-20260909
+2026-09-15T06:46:55.1965237Z  * [new branch]      codex/industry-allocation-diagnostic-20260909 -> origin/codex/industry-allocation-diagnostic-20260909
+2026-09-15T06:46:55.1966331Z  * [new branch]      codex/industry-main-control-20260909 -> origin/codex/industry-main-control-20260909
+2026-09-15T06:46:55.1967432Z  * [new branch]      codex/long-cycle-engineering-closure-20260910 -> origin/codex/long-cycle-engineering-closure-20260910
+2026-09-15T06:46:55.1968634Z  * [new branch]      codex/long-cycle-lifecycle-integration-20260910 -> origin/codex/long-cycle-lifecycle-integration-20260910
+2026-09-15T06:46:55.1969837Z  * [new branch]      codex/long-cycle-validation-binding-20260910 -> origin/codex/long-cycle-validation-binding-20260910
+2026-09-15T06:46:55.1970511Z  * [new branch]      codex/mature-entry-followup-20260909 -> origin/codex/mature-entry-followup-20260909
+2026-09-15T06:46:55.1971094Z  * [new branch]      codex/mature-impulse-rearm-20260911 -> origin/codex/mature-impulse-rearm-20260911
+2026-09-15T06:46:55.1971657Z  * [new branch]      codex/mature-market-rearm-20260911 -> origin/codex/mature-market-rearm-20260911
+2026-09-15T06:46:55.1972288Z  * [new branch]      codex/old-best-pair-20260911 -> origin/codex/old-best-pair-20260911
+2026-09-15T06:46:55.1972803Z  * [new branch]      codex/old-paired-runner-20260910 -> origin/codex/old-paired-runner-20260910
+2026-09-15T06:46:55.1973502Z  * [new branch]      codex/ordinary-cycle-20260911 -> origin/codex/ordinary-cycle-20260911
+2026-09-15T06:46:55.1974084Z  * [new branch]      codex/ordinary-long-cycle-local-20260910 -> origin/codex/ordinary-long-cycle-local-20260910
+2026-09-15T06:46:55.1974862Z  * [new branch]      codex/ordinary-mature-local-20260910 -> origin/codex/ordinary-mature-local-20260910
+2026-09-15T06:46:55.1975490Z  * [new branch]      codex/ordinary-maturity-budget-20260911 -> origin/codex/ordinary-maturity-budget-20260911
+2026-09-15T06:46:55.1976375Z  * [new branch]      codex/ordinary-recovery-20260909 -> origin/codex/ordinary-recovery-20260909
+2026-09-15T06:46:55.1977139Z  * [new branch]      codex/phase1-ai-era-validation -> origin/codex/phase1-ai-era-validation
+2026-09-15T06:46:55.1977731Z  * [new branch]      codex/phase2-ai-era-generalization -> origin/codex/phase2-ai-era-generalization
+2026-09-15T06:46:55.1978357Z  * [new branch]      codex/post-generalization-trust-closure -> origin/codex/post-generalization-trust-closure
+2026-09-15T06:46:55.1978996Z  * [new branch]      codex/probe-custody-evidence-20260911 -> origin/codex/probe-custody-evidence-20260911
+2026-09-15T06:46:55.1979750Z  * [new branch]      codex/protected-holding-recovery-20260910 -> origin/codex/protected-holding-recovery-20260910
+2026-09-15T06:46:55.1980381Z  * [new branch]      codex/qualified-capital-20260911 -> origin/codex/qualified-capital-20260911
+2026-09-15T06:46:55.1980960Z  * [new branch]      codex/quarter-candidate-20260911 -> origin/codex/quarter-candidate-20260911
+2026-09-15T06:46:55.1981592Z  * [new branch]      codex/recovery-path-reassessment-20260910 -> origin/codex/recovery-path-reassessment-20260910
+2026-09-15T06:46:55.1982289Z  * [new branch]      codex/remote-task-bootstrap-governance -> origin/codex/remote-task-bootstrap-governance
+2026-09-15T06:46:55.1983147Z  * [new branch]      codex/remove-obsolete-superpowers -> origin/codex/remove-obsolete-superpowers
+2026-09-15T06:46:55.1984257Z  * [new branch]      codex/repair-capital-custody-20260911 -> origin/codex/repair-capital-custody-20260911
+2026-09-15T06:46:55.1985250Z  * [new branch]      codex/repair-maturity-20260910 -> origin/codex/repair-maturity-20260910
+2026-09-15T06:46:55.1986084Z  * [new branch]      codex/repair-maturity-confirmation-20260911 -> origin/codex/repair-maturity-confirmation-20260911
+2026-09-15T06:46:55.1986762Z  * [new branch]      codex/repair-maturity-evidence-20260911 -> origin/codex/repair-maturity-evidence-20260911
+2026-09-15T06:46:55.1987384Z  * [new branch]      codex/repair-principal-budget-20260911 -> origin/codex/repair-principal-budget-20260911
+2026-09-15T06:46:55.1987974Z  * [new branch]      codex/repair-probe-custody-20260911 -> origin/codex/repair-probe-custody-20260911
+2026-09-15T06:46:55.1988535Z  * [new branch]      codex/restoration-health-20260911 -> origin/codex/restoration-health-20260911
+2026-09-15T06:46:55.1989176Z  * [new branch]      codex/restoration-priority-research-20260910 -> origin/codex/restoration-priority-research-20260910
+2026-09-15T06:46:55.1989827Z  * [new branch]      codex/risk-retention-research-20260910 -> origin/codex/risk-retention-research-20260910
+2026-09-15T06:46:55.1990460Z  * [new branch]      codex/scoring-role-diagnostic-20260909 -> origin/codex/scoring-role-diagnostic-20260909
+2026-09-15T06:46:55.1991203Z  * [new branch]      codex/settled-guard-repair-20260911 -> origin/codex/settled-guard-repair-20260911
+2026-09-15T06:46:55.1991793Z  * [new branch]      codex/shared-exit-integration-20260910 -> origin/codex/shared-exit-integration-20260910
+2026-09-15T06:46:55.1992361Z  * [new branch]      codex/shared-exit-results-20260910 -> origin/codex/shared-exit-results-20260910
+2026-09-15T06:46:55.1993230Z  * [new branch]      codex/shared-structural-exit-research-20260910 -> origin/codex/shared-structural-exit-research-20260910
+2026-09-15T06:46:55.1993916Z  * [new branch]      codex/simple-caution-integration-20260910 -> origin/codex/simple-caution-integration-20260910
+2026-09-15T06:46:55.1994523Z  * [new branch]      codex/simple-caution-legacy-20260910 -> origin/codex/simple-caution-legacy-20260910
+2026-09-15T06:46:55.1995174Z  * [new branch]      codex/simple-full-lifecycle-integration-20260910 -> origin/codex/simple-full-lifecycle-integration-20260910
+2026-09-15T06:46:55.1996047Z  * [new branch]      codex/simple-lifecycle-acceptance-binding-20260910 -> origin/codex/simple-lifecycle-acceptance-binding-20260910
+2026-09-15T06:46:55.1996755Z  * [new branch]      codex/simple-ordinary-evidence-20260909 -> origin/codex/simple-ordinary-evidence-20260909
+2026-09-15T06:46:55.1997370Z  * [new branch]      codex/simple-policy-data-guard-20260910 -> origin/codex/simple-policy-data-guard-20260910
+2026-09-15T06:46:55.1997965Z  * [new branch]      codex/simple-policy-recheck-20260910 -> origin/codex/simple-policy-recheck-20260910
+2026-09-15T06:46:55.1998554Z  * [new branch]      codex/simple-sector-backdrop-20260910 -> origin/codex/simple-sector-backdrop-20260910
+2026-09-15T06:46:55.1999102Z  * [new branch]      codex/slow-damage-exit-20260910 -> origin/codex/slow-damage-exit-20260910
+2026-09-15T06:46:55.1999711Z  * [new branch]      codex/source-unit-data-diagnostic-20260909 -> origin/codex/source-unit-data-diagnostic-20260909
+2026-09-15T06:46:55.2000351Z  * [new branch]      codex/start-recovery-increment-20260911 -> origin/codex/start-recovery-increment-20260911
+2026-09-15T06:46:55.2000922Z  * [new branch]      codex/strategic-grant-recovery -> origin/codex/strategic-grant-recovery
+2026-09-15T06:46:55.2001450Z  * [new branch]      codex/strategic-owner-continuity -> origin/codex/strategic-owner-continuity
+2026-09-15T06:46:55.2002058Z  * [new branch]      codex/strict-companion-integration-20260910 -> origin/codex/strict-companion-integration-20260910
+2026-09-15T06:46:55.2002667Z  * [new branch]      codex/t-economic-evidence-20260911 -> origin/codex/t-economic-evidence-20260911
+2026-09-15T06:46:55.2003401Z  * [new branch]      codex/tactical-clock-research-20260910 -> origin/codex/tactical-clock-research-20260910
+2026-09-15T06:46:55.2004067Z  * [new branch]      codex/tactical-settled-clock-research-20260910 -> origin/codex/tactical-settled-clock-research-20260910
+2026-09-15T06:46:55.2004721Z  * [new branch]      codex/targeted-generalization-research -> origin/codex/targeted-generalization-research
+2026-09-15T06:46:55.2005498Z  * [new branch]      codex/uquant-current-surface-unification -> origin/codex/uquant-current-surface-unification
+2026-09-15T06:46:55.2006156Z  * [new branch]      codex/uquant-doc-build-governance-20260825 -> origin/codex/uquant-doc-build-governance-20260825
+2026-09-15T06:46:55.2006824Z  * [new branch]      codex/uquant-docs-governance-20260825-f20957f -> origin/codex/uquant-docs-governance-20260825-f20957f
+2026-09-15T06:46:55.2007945Z  * [new branch]      codex/uquant-documentation-consistency-20260825-0c0431a -> origin/codex/uquant-documentation-consistency-20260825-0c0431a
+2026-09-15T06:46:55.2009196Z  * [new branch]      codex/uquant-domain-naming-finalization -> origin/codex/uquant-domain-naming-finalization
+2026-09-15T06:46:55.2010286Z  * [new branch]      codex/uquant-execution-journal-ci-closure -> origin/codex/uquant-execution-journal-ci-closure
+2026-09-15T06:46:55.2011357Z  * [new branch]      codex/uquant-modular-governance-20260822 -> origin/codex/uquant-modular-governance-20260822
+2026-09-15T06:46:55.2012502Z  * [new branch]      codex/uquant-phase-1-current-head-baseline -> origin/codex/uquant-phase-1-current-head-baseline
+2026-09-15T06:46:55.2013678Z  * [new branch]      codex/uquant-phase-2-future-holdout -> origin/codex/uquant-phase-2-future-holdout
+2026-09-15T06:46:55.2014724Z  * [new branch]      codex/uquant-phase-3-shadow-sentinel -> origin/codex/uquant-phase-3-shadow-sentinel
+2026-09-15T06:46:55.2015673Z  * [new branch]      codex/uquant-phase-4-freeze-new-risk -> origin/codex/uquant-phase-4-freeze-new-risk
+2026-09-15T06:46:55.2016334Z  * [new branch]      codex/uquant-phase-5-limited-gross-cap -> origin/codex/uquant-phase-5-limited-gross-cap
+2026-09-15T06:46:55.2017507Z  * [new branch]      codex/uquant-phase-6-sentinel-evidence-timeline -> origin/codex/uquant-phase-6-sentinel-evidence-timeline
+2026-09-15T06:46:55.2018324Z  * [new branch]      codex/uquant-phase-7-sentinel-exclusive-freeze -> origin/codex/uquant-phase-7-sentinel-exclusive-freeze
+2026-09-15T06:46:55.2019236Z  * [new branch]      codex/uquant-phase-8-risk-sentinel-consolidation -> origin/codex/uquant-phase-8-risk-sentinel-consolidation
+2026-09-15T06:46:55.2019951Z  * [new branch]      codex/uquant-production-observation-closure -> origin/codex/uquant-production-observation-closure
+2026-09-15T06:46:55.2020614Z  * [new branch]      codex/uquant-risk-differential-closure -> origin/codex/uquant-risk-differential-closure
+2026-09-15T06:46:55.2021216Z  * [new branch]      codex/uquant-security-differential -> origin/codex/uquant-security-differential
+2026-09-15T06:46:55.2021836Z  * [new branch]      codex/uquant-strategic-evidence-closure -> origin/codex/uquant-strategic-evidence-closure
+2026-09-15T06:46:55.2022541Z  * [new branch]      codex/uquant-strategic-evidence-task6-handoff -> origin/codex/uquant-strategic-evidence-task6-handoff
+2026-09-15T06:46:55.2023595Z  * [new branch]      dependabot/github_actions/actions/cache-6.1.0 -> origin/dependabot/github_actions/actions/cache-6.1.0
+2026-09-15T06:46:55.2024283Z  * [new branch]      dependabot/github_actions/actions/checkout-7.0.1 -> origin/dependabot/github_actions/actions/checkout-7.0.1
+2026-09-15T06:46:55.2025020Z  * [new branch]      dependabot/github_actions/actions/download-artifact-8.0.1 -> origin/dependabot/github_actions/actions/download-artifact-8.0.1
+2026-09-15T06:46:55.2025774Z  * [new branch]      dependabot/github_actions/actions/setup-python-7.0.0 -> origin/dependabot/github_actions/actions/setup-python-7.0.0
+2026-09-15T06:46:55.2026514Z  * [new branch]      dependabot/github_actions/actions/upload-artifact-7.0.1 -> origin/dependabot/github_actions/actions/upload-artifact-7.0.1
+2026-09-15T06:46:55.2027227Z  * [new branch]      dependabot/pip/development-tools-11714860a6 -> origin/dependabot/pip/development-tools-11714860a6
+2026-09-15T06:46:55.2027791Z  * [new branch]      dependabot/pip/numpy-2.5.3 -> origin/dependabot/pip/numpy-2.5.3
+2026-09-15T06:46:55.2028446Z  * [new branch]      docs/activate-project-state-20260907 -> origin/docs/activate-project-state-20260907
+2026-09-15T06:46:55.2029017Z  * [new branch]      docs/chatgpt-context-governance -> origin/docs/chatgpt-context-governance
+2026-09-15T06:46:55.2088193Z  * [new branch]      docs/compress-agents-20260907 -> origin/docs/compress-agents-20260907
+2026-09-15T06:46:55.2089200Z  * [new branch]      docs/project-state-index-20260907 -> origin/docs/project-state-index-20260907
+2026-09-15T06:46:55.2089871Z  * [new branch]      main                       -> origin/main
+2026-09-15T06:46:55.2090424Z  * [new branch]      research/alpha-recovery    -> origin/research/alpha-recovery
+2026-09-15T06:46:55.2091052Z  * [new tag]         pre-risk-sentinel-20260818 -> pre-risk-sentinel-20260818
+2026-09-15T06:46:55.2092658Z [command]/usr/bin/git branch --list --remote origin/research/alpha-recovery
+2026-09-15T06:46:55.2093428Z   origin/research/alpha-recovery
+2026-09-15T06:46:55.2094446Z [command]/usr/bin/git rev-parse refs/remotes/origin/research/alpha-recovery
+2026-09-15T06:46:55.2095064Z 227c3e010fb5a04f7e7746860b086416000a4c17
+2026-09-15T06:46:55.2096106Z ##[endgroup]
+2026-09-15T06:46:55.2096688Z ##[group]Determining the checkout info
+2026-09-15T06:46:55.2097280Z ##[endgroup]
+2026-09-15T06:46:55.2097632Z [command]/usr/bin/git sparse-checkout disable
+2026-09-15T06:46:55.2371591Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-15T06:46:55.3589880Z ##[group]Checking out the ref
+2026-09-15T06:46:55.3596327Z [command]/usr/bin/git checkout --progress --force -B research/alpha-recovery refs/remotes/origin/research/alpha-recovery
+2026-09-15T06:46:55.9307516Z Switched to a new branch 'research/alpha-recovery'
+2026-09-15T06:46:55.9309979Z branch 'research/alpha-recovery' set up to track 'origin/research/alpha-recovery'.
+2026-09-15T06:46:55.9334298Z ##[endgroup]
+2026-09-15T06:46:55.9376408Z [command]/usr/bin/git log -1 --format=%H
+2026-09-15T06:46:55.9399679Z 227c3e010fb5a04f7e7746860b086416000a4c17
+2026-09-15T06:46:55.9614647Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-15T06:46:55.9616084Z ##[group]Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+2026-09-15T06:46:55.9616380Z with:
+2026-09-15T06:46:55.9616553Z   python-version: 3.12.13
+2026-09-15T06:46:55.9616748Z   check-latest: false
+2026-09-15T06:46:55.9619017Z   token: ***
+2026-09-15T06:46:55.9619190Z   update-environment: true
+2026-09-15T06:46:55.9619392Z   allow-prereleases: false
+2026-09-15T06:46:55.9619582Z   freethreaded: false
+2026-09-15T06:46:55.9619750Z env:
+2026-09-15T06:46:55.9619909Z   PYTHONPATH: tests:.
+2026-09-15T06:46:55.9620077Z ##[endgroup]
+2026-09-15T06:46:56.0698387Z ##[group]Installed versions
+2026-09-15T06:46:56.0711429Z Version 3.12.13 was not found in the local cache
+2026-09-15T06:46:56.0799028Z (node:2036) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-15T06:46:56.0799694Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-15T06:46:57.1481233Z Version 3.12.13 is available for downloading
+2026-09-15T06:46:57.1482733Z Download from "https://github.com/actions/python-versions/releases/download/3.12.13-27650778726/python-3.12.13-linux-24.04-x64.tar.gz"
+2026-09-15T06:46:57.8056267Z Extract downloaded archive
+2026-09-15T06:46:57.8148789Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/f831bdc2-cfd9-4e61-9740-ec9e69c42c40 -f /home/runner/work/_temp/18b97e16-a428-4828-8186-e5a5c4e0318b
+2026-09-15T06:46:59.4592342Z Execute installation script
+2026-09-15T06:46:59.4670217Z Check if Python hostedtoolcache folder exist...
+2026-09-15T06:46:59.4670867Z Create Python 3.12.13 folder
+2026-09-15T06:46:59.4681464Z Copy Python binaries to hostedtoolcache folder
+2026-09-15T06:46:59.8475779Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-09-15T06:46:59.8510456Z Upgrading pip...
+2026-09-15T06:47:02.4700777Z Collecting pip
+2026-09-15T06:47:02.4954366Z Downloading pip-26.2.1-py3-none-any.whl.metadata (4.6 kB)
+2026-09-15T06:47:02.5018654Z Downloading pip-26.2.1-py3-none-any.whl (1.8 MB)
+2026-09-15T06:47:02.5703794Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 30.0 MB/s eta 0:00:00
+2026-09-15T06:47:02.5704195Z 
+2026-09-15T06:47:02.5864739Z Installing collected packages: pip
+2026-09-15T06:47:02.5865135Z Attempting uninstall: pip
+2026-09-15T06:47:02.5883456Z Found existing installation: pip 25.0.1
+2026-09-15T06:47:02.6148275Z Uninstalling pip-25.0.1:
+2026-09-15T06:47:02.6193462Z Successfully uninstalled pip-25.0.1
+2026-09-15T06:47:03.3375117Z Successfully installed pip-26.2.1
+2026-09-15T06:47:03.3967190Z Create complete file
+2026-09-15T06:47:03.4000063Z Successfully set up CPython (3.12.13)
+2026-09-15T06:47:03.4001050Z ##[endgroup]
+2026-09-15T06:47:03.4127397Z ##[group]Run python -m pip install --disable-pip-version-check uv==0.11.33
+2026-09-15T06:47:03.4127873Z [36;1mpython -m pip install --disable-pip-version-check uv==0.11.33[0m
+2026-09-15T06:47:03.4128210Z [36;1muv sync --frozen --extra dev[0m
+2026-09-15T06:47:03.4166393Z shell: /usr/bin/bash -e {0}
+2026-09-15T06:47:03.4166610Z env:
+2026-09-15T06:47:03.4166778Z   PYTHONPATH: tests:.
+2026-09-15T06:47:03.4167018Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:03.4167366Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+2026-09-15T06:47:03.4167699Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:03.4167995Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:03.4168289Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:03.4168591Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+2026-09-15T06:47:03.4168874Z ##[endgroup]
+2026-09-15T06:47:04.0022229Z Collecting uv==0.11.33
+2026-09-15T06:47:04.0594785Z   Downloading uv-0.11.33-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (11 kB)
+2026-09-15T06:47:04.3719509Z Downloading uv-0.11.33-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (22.2 MB)
+2026-09-15T06:47:05.0411735Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 22.2/22.2 MB 34.3 MB/s  0:00:00
+2026-09-15T06:47:05.0768520Z Installing collected packages: uv
+2026-09-15T06:47:05.3513928Z Successfully installed uv-0.11.33
+2026-09-15T06:47:05.4453867Z Using CPython 3.12.13 interpreter at: /opt/hostedtoolcache/Python/3.12.13/x64/bin/python3
+2026-09-15T06:47:05.4454512Z Creating virtual environment at: .venv
+2026-09-15T06:47:05.4571286Z    Building uquant @ file:///home/runner/work/uquant/uquant
+2026-09-15T06:47:05.5183210Z Downloading hypothesis (1.1MiB)
+2026-09-15T06:47:05.5183723Z Downloading mypy (14.1MiB)
+2026-09-15T06:47:05.5185884Z Downloading pip (1.7MiB)
+2026-09-15T06:47:05.5189050Z Downloading pandas (10.5MiB)
+2026-09-15T06:47:05.5193330Z Downloading pygments (1.2MiB)
+2026-09-15T06:47:05.5200615Z Downloading numpy (15.9MiB)
+2026-09-15T06:47:05.5202176Z Downloading ruff (10.9MiB)
+2026-09-15T06:47:05.8489134Z  Downloaded hypothesis
+2026-09-15T06:47:06.1559690Z  Downloaded ruff
+2026-09-15T06:47:06.1666344Z  Downloaded pygments
+2026-09-15T06:47:06.1986753Z  Downloaded pip
+2026-09-15T06:47:06.5059795Z  Downloaded numpy
+2026-09-15T06:47:06.5925091Z  Downloaded pandas
+2026-09-15T06:47:06.6226927Z  Downloaded mypy
+2026-09-15T06:47:07.0517998Z       Built uquant @ file:///home/runner/work/uquant/uquant
+2026-09-15T06:47:07.0631982Z Prepared 52 packages in 1.61s
+2026-09-15T06:47:07.3372237Z Installed 52 packages in 273ms
+2026-09-15T06:47:07.3372785Z  + bandit==1.9.4
+2026-09-15T06:47:07.3373193Z  + boolean-py==5.0
+2026-09-15T06:47:07.3373535Z  + build==1.5.0
+2026-09-15T06:47:07.3373806Z  + cachecontrol==0.14.4
+2026-09-15T06:47:07.3374059Z  + certifi==2026.7.22
+2026-09-15T06:47:07.3374598Z  + charset-normalizer==3.4.9
+2026-09-15T06:47:07.3374944Z  + coverage==7.15.4
+2026-09-15T06:47:07.3375254Z  + cyclonedx-python-lib==11.11.0
+2026-09-15T06:47:07.3375643Z  + defusedxml==0.7.1
+2026-09-15T06:47:07.3375950Z  + filelock==3.32.2
+2026-09-15T06:47:07.3376235Z  + hypothesis==6.165.2
+2026-09-15T06:47:07.3376512Z  + idna==3.18
+2026-09-15T06:47:07.3376821Z  + iniconfig==2.3.0
+2026-09-15T06:47:07.3377081Z  + librt==0.15.0
+2026-09-15T06:47:07.3377415Z  + license-expression==30.4.4
+2026-09-15T06:47:07.3377803Z  + markdown-it-py==4.2.0
+2026-09-15T06:47:07.3378233Z  + mdurl==0.1.2
+2026-09-15T06:47:07.3378489Z  + msgpack==1.2.1
+2026-09-15T06:47:07.3378725Z  + mypy==1.20.2
+2026-09-15T06:47:07.3378931Z  + mypy-extensions==1.1.0
+2026-09-15T06:47:07.3379112Z  + numpy==2.5.1
+2026-09-15T06:47:07.3379287Z  + packageurl-python==0.17.6
+2026-09-15T06:47:07.3379483Z  + packaging==26.3
+2026-09-15T06:47:07.3379764Z  + pandas==3.0.5
+2026-09-15T06:47:07.3380020Z  + pandas-stubs==2.3.3.260113
+2026-09-15T06:47:07.3380398Z  + pathspec==1.1.1
+2026-09-15T06:47:07.3380884Z  + pip==26.2.1
+2026-09-15T06:47:07.3381058Z  + pip-api==0.0.34
+2026-09-15T06:47:07.3381337Z  + pip-audit==2.10.1
+2026-09-15T06:47:07.3381668Z  + pip-requirements-parser==32.0.1
+2026-09-15T06:47:07.3382063Z  + platformdirs==4.11.1
+2026-09-15T06:47:07.3382385Z  + pluggy==1.6.0
+2026-09-15T06:47:07.3382650Z  + py-serializable==2.1.0
+2026-09-15T06:47:07.3383121Z  + pygments==2.20.0
+2026-09-15T06:47:07.3383448Z  + pyparsing==3.3.2
+2026-09-15T06:47:07.3383755Z  + pyproject-hooks==1.2.0
+2026-09-15T06:47:07.3384069Z  + pytest==9.1.1
+2026-09-15T06:47:07.3384370Z  + pytest-cov==7.1.0
+2026-09-15T06:47:07.3384706Z  + python-dateutil==2.9.0.post0
+2026-09-15T06:47:07.3385080Z  + pyyaml==6.0.3
+2026-09-15T06:47:07.3385403Z  + requests==2.34.2
+2026-09-15T06:47:07.3385736Z  + rich==15.0.0
+2026-09-15T06:47:07.3385999Z  + ruff==0.16.2
+2026-09-15T06:47:07.3386251Z  + six==1.17.0
+2026-09-15T06:47:07.3386577Z  + sortedcontainers==2.4.0
+2026-09-15T06:47:07.3386943Z  + stevedore==5.9.0
+2026-09-15T06:47:07.3387206Z  + tomli==2.4.1
+2026-09-15T06:47:07.3387516Z  + tomli-w==1.2.0
+2026-09-15T06:47:07.3387809Z  + types-pytz==2026.3.1.20260727
+2026-09-15T06:47:07.3388183Z  + typing-extensions==4.16.0
+2026-09-15T06:47:07.3388633Z  + uquant==1.1.0 (from file:///home/runner/work/uquant/uquant)
+2026-09-15T06:47:07.3389045Z  + urllib3==2.7.0
+2026-09-15T06:47:07.3522691Z ##[group]Run mkdir -p /tmp/alpha-recovery-results
+2026-09-15T06:47:07.3523446Z [36;1mmkdir -p /tmp/alpha-recovery-results[0m
+2026-09-15T06:47:07.3523992Z [36;1muv run --no-sync pytest artifacts/alpha-recovery/stock-confirmation/test_stock_confirmation.py --junitxml=/tmp/alpha-recovery-results/tests.xml[0m
+2026-09-15T06:47:07.3557314Z shell: /usr/bin/bash -e {0}
+2026-09-15T06:47:07.3557525Z env:
+2026-09-15T06:47:07.3557684Z   PYTHONPATH: tests:.
+2026-09-15T06:47:07.3557920Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:07.3558267Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+2026-09-15T06:47:07.3558609Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:07.3558903Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:07.3559193Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:07.3559526Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+2026-09-15T06:47:07.3559799Z ##[endgroup]
+2026-09-15T06:47:11.1215448Z F......                                                                  [100%]
+2026-09-15T06:47:11.1215981Z =================================== FAILURES ===================================
+2026-09-15T06:47:11.1216508Z ___________ test_own_confirmed_leader_does_not_wait_for_market_cycle ___________
+2026-09-15T06:47:11.1216872Z 
+2026-09-15T06:47:11.1217073Z     def test_own_confirmed_leader_does_not_wait_for_market_cycle():
+2026-09-15T06:47:11.1217605Z         p, a, dates, panel, leaders, risk, refs, frames, symbol = _stock_proof()
+2026-09-15T06:47:11.1218485Z         for index, date in enumerate(dates[:5]):
+2026-09-15T06:47:11.1218923Z             market = _observe(p, a, date, panel, leaders, risk, refs, frames)
+2026-09-15T06:47:11.1219399Z             _observe(p, a, date, panel, leaders, risk, refs, frames)
+2026-09-15T06:47:11.1219789Z             proof = ordinary_core_entry(
+2026-09-15T06:47:11.1220238Z                 p, symbol=symbol, score=leaders[symbol], date=date, user_panel=panel,
+2026-09-15T06:47:11.1220735Z                 account=a, confirmation_days=5, market=market,
+2026-09-15T06:47:11.1221083Z             )
+2026-09-15T06:47:11.1221368Z             assert not market["persistent_mature_entry_open"]
+2026-09-15T06:47:11.1222022Z             assert not market["impulse"] and not market["mature_entry_open"]
+2026-09-15T06:47:11.1222572Z >           assert (proof["block"] == "READY") == (index == 4)
+2026-09-15T06:47:11.1223242Z E           AssertionError: assert ('CONFIRMATION_INCOMPLETE' == 'READY'
+2026-09-15T06:47:11.1223635Z E             
+2026-09-15T06:47:11.1223873Z E             - READY
+2026-09-15T06:47:11.1224152Z E             + CONFIRMATION_INCOMPLETE) == (4 == 4)
+2026-09-15T06:47:11.1224380Z 
+2026-09-15T06:47:11.1224701Z artifacts/alpha-recovery/stock-confirmation/test_stock_confirmation.py:31: AssertionError
+2026-09-15T06:47:11.1225287Z =========================== short test summary info ============================
+2026-09-15T06:47:11.1226348Z FAILED artifacts/alpha-recovery/stock-confirmation/test_stock_confirmation.py::test_own_confirmed_leader_does_not_wait_for_market_cycle - AssertionError: assert ('CONFIRMATION_INCOMPLETE' == 'READY'
+2026-09-15T06:47:11.1227290Z   
+2026-09-15T06:47:11.1227487Z   - READY
+2026-09-15T06:47:11.1227753Z   + CONFIRMATION_INCOMPLETE) == (4 == 4)
+2026-09-15T06:47:11.1228078Z 1 failed, 6 passed in 2.49s
+2026-09-15T06:47:11.2195315Z ##[error]Process completed with exit code 1.
+2026-09-15T06:47:11.2275100Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-15T06:47:11.2276175Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-09-15T06:47:11.2276472Z with:
+2026-09-15T06:47:11.2276722Z   name: alpha-recovery-tests-227c3e010fb5a04f7e7746860b086416000a4c17
+2026-09-15T06:47:11.2277040Z   path: /tmp/alpha-recovery-results
+2026-09-15T06:47:11.2277255Z   if-no-files-found: warn
+2026-09-15T06:47:11.2277444Z   compression-level: 6
+2026-09-15T06:47:11.2277631Z   overwrite: false
+2026-09-15T06:47:11.2277811Z   include-hidden-files: false
+2026-09-15T06:47:11.2278010Z env:
+2026-09-15T06:47:11.2278165Z   PYTHONPATH: tests:.
+2026-09-15T06:47:11.2278434Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:11.2278772Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+2026-09-15T06:47:11.2279101Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:11.2279399Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:11.2279689Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-09-15T06:47:11.2279987Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+2026-09-15T06:47:11.2280237Z ##[endgroup]
+2026-09-15T06:47:11.3589130Z (node:2187) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-15T06:47:11.3590016Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-15T06:47:11.3653968Z With the provided path, there will be 1 file uploaded
+2026-09-15T06:47:11.3654458Z Artifact name is valid!
+2026-09-15T06:47:11.3654759Z Root directory input is valid!
+2026-09-15T06:47:11.6868236Z Beginning upload of artifact content to blob storage
+2026-09-15T06:47:11.7004772Z (node:2187) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-09-15T06:47:11.9177932Z Uploaded bytes 898
+2026-09-15T06:47:11.9802447Z Finished uploading artifact content to blob storage!
+2026-09-15T06:47:11.9803453Z SHA256 digest of uploaded artifact zip is 1758026e4faad5bac3ebb8c387993e4d7a122cfda3c933000a3d47e6c60b7f13
+2026-09-15T06:47:11.9804725Z Finalizing artifact upload
+2026-09-15T06:47:12.2484563Z Artifact alpha-recovery-tests-227c3e010fb5a04f7e7746860b086416000a4c17.zip successfully finalized. Artifact ID 10384197104
+2026-09-15T06:47:12.2485958Z Artifact alpha-recovery-tests-227c3e010fb5a04f7e7746860b086416000a4c17 has been successfully uploaded! Final size is 898 bytes. Artifact ID is 10384197104
+2026-09-15T06:47:12.2490784Z Artifact download URL: https://github.com/ychenracing/uquant/actions/runs/34938471626/artifacts/10384197104
+2026-09-15T06:47:12.2646974Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-15T06:47:12.2647935Z Post job cleanup.
+2026-09-15T06:47:12.3330331Z [command]/usr/bin/git version
+2026-09-15T06:47:12.3365092Z git version 2.55.0
+2026-09-15T06:47:12.3394168Z Temporarily overriding HOME='/home/runner/work/_temp/aed9879d-592c-4354-bbe3-a848aa4e636a' before making global git config changes
+2026-09-15T06:47:12.3395206Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-15T06:47:12.3398300Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/uquant/uquant
+2026-09-15T06:47:12.3430550Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-15T06:47:12.3459506Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-15T06:47:12.3670825Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-15T06:47:12.3694543Z http.https://github.com/.extraheader
+2026-09-15T06:47:12.3703418Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-15T06:47:12.3730803Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-15T06:47:12.4064573Z Cleaning up orphan processes
+2026-09-15T06:47:12.4356076Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683, actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

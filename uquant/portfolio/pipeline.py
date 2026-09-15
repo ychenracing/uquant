@@ -695,28 +695,11 @@ def _mature_admission_weights(book: AllocationBook, eligible: list[str],
 def _deferred_core_entries(
     book: AllocationBook, eligible: list[str], market: dict[str, Any],
 ) -> dict[str, str]:
-    """Preserve capital-confirmation and exact-certificate arbitration precedence."""
-    deployed_ordinary = any(
-        weight > 1e-12 and symbol not in book.owned
-        for symbol, weight in book.weights_now.items()
-    )
-    settled_strategic_rotation = (
-        book.account.strategic_epochs_completed > 0
-        and book.account.strategic_last_exit_date == str(book.date.date())
-        and market.get("persistent_mature_entry_open") is True
-    )
-    market["settled_strategic_rotation_open"] = settled_strategic_rotation
-    deployment_pending = {
-        symbol for symbol in eligible
-        if book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
-        and not (deployed_ordinary or settled_strategic_rotation)
-        and market.get("leader_cycle_armed") is not True
-    }
+    """Preserve exact-certificate arbitration; the capital book owns funding."""
     strategic_commitment_deferred = {
         symbol for symbol in eligible if _same_deferred_strategic_certificate(book, symbol)
     }
     blocked = dict.fromkeys(strategic_commitment_deferred, "STRATEGIC_COMMITMENT_EVIDENCE_PENDING")
-    blocked.update(dict.fromkeys(deployment_pending, "DEPLOYMENT_CONFIRMATION_PENDING"))
     return blocked
 
 

@@ -33,10 +33,49 @@ jobs:
         run: |
           mkdir -p /tmp/alpha-recovery-results
           uv run --no-sync pytest artifacts/alpha-recovery/stock-confirmation/test_stock_confirmation.py --junitxml=/tmp/alpha-recovery-results/tests.xml
+      - name: Existing ordinary and repair protections
+        run: uv run --no-sync pytest tests/test_ordinary_persistence.py tests/test_ordinary_trend_budget.py tests/test_ordinary_cash_rearm.py tests/test_entry_price_repair.py --junitxml=/tmp/alpha-recovery-results/protections.xml
       - name: Retain test results even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: alpha-recovery-tests-${{ github.sha }}
+          path: /tmp/alpha-recovery-results
+          if-no-files-found: warn
+
+  economic-diagnostics:
+    needs: stock-confirmation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [a, e, remove308-prefix]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12.13"
+      - name: Install pinned environment
+        run: |
+          python -m pip install --disable-pip-version-check uv==0.11.33
+          uv sync --frozen --extra dev
+      - name: Run fixed diagnostic
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        run: |
+          mkdir -p /tmp/alpha-recovery-results
+          if [ "$SCENARIO" = "remove308-prefix" ]; then
+            uv run --no-sync python artifacts/alpha-recovery/stock-confirmation/native_prefix.py "/tmp/alpha-recovery-results/$SCENARIO.json.gz"
+          else
+            uv run --no-sync python artifacts/alpha-recovery/replay.py --root "$GITHUB_WORKSPACE" --pool "$SCENARIO" --start 2025-01-02 --end 2026-07-31 --output "/tmp/alpha-recovery-results/$SCENARIO.json.gz"
+          fi
+      - name: Preserve diagnostic and failure evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: alpha-recovery-${{ matrix.scenario }}-${{ github.sha }}
           path: /tmp/alpha-recovery-results
           if-no-files-found: warn

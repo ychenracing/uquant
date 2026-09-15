@@ -68,9 +68,11 @@
       "bytes": 1968549,
       "key": "reference-readiness/e.json.gz",
       "manifest": "manifests/reference-readiness/e.json.gz.json",
-      "raw_remote_saved": false,
-      "remote_readback_verified": false,
-      "sha256": "d0934c1086a3925a292a5e916bf1b7e1a3187578f56c48229417f6c374cc8fbd"
+      "raw_remote_saved": true,
+      "remote_readback_verified": true,
+      "sha256": "d0934c1086a3925a292a5e916bf1b7e1a3187578f56c48229417f6c374cc8fbd",
+      "manifest_sha256": "f99a5fa17ae2879fadabe9f0b5914829671292d8f0cc711923f596e5fca30b18",
+      "evidence_commit": "33e1f5e2bd575eb057aa674c4a3527626d9a1f2e"
     },
     {
       "bytes": 600788,

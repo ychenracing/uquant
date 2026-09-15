@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 from test_lifecycle_and_risk import _leader, _trend_frame
 
 from uquant.config import DEFAULT_CONFIG
@@ -87,6 +88,61 @@ def test_decisive_native_two_member_opening_keeps_choppy_permission():
     assert strategic_dominant_symbol(account) == "sz300308"
     assert account.strategic_cohort_targets == {"sz300308": DEFAULT_CONFIG.strategic_dominant_max_weight}
     assert any(target.symbol == "sz300308" and target.weight > 0 for target in targets)
+
+
+@pytest.mark.parametrize("interruption", ("", "candidate", "signature", "qualification"))
+def test_weak_ready_certificate_commits_only_after_distinct_session_persistence(tmp_path, interruption):
+    from hashlib import sha256
+
+    from uquant.account import load_account, save_account
+
+    policy, account, dates, panel, leaders, risk, _ = _native_reversal(
+        decisive=False, opportunity=Opportunity.TREND, ordinary_market_evidence=True,
+    )
+    observed = account.strategic_qualification
+    identity = (observed.candidate_symbol, observed.qualification_signature)
+    evidence = observed.qualification_evidence_sha256
+    assert observed.qualification_streak == DEFAULT_CONFIG.strategic_cohort_confirm_days
+    for _ in range(2):
+        policy.allocate(
+            date=dates[-1], opportunity=Opportunity.TREND, risk=risk,
+            user_panel=panel, leaders=leaders, account=account,
+            prices={s: float(frame.iloc[-1]["close"]) for s, frame in panel.items()},
+        )
+        assert account.strategic_grant is None
+        assert account.strategic_qualification.deployment_blocked
+    if interruption == "candidate":
+        account.strategic_qualification.candidate_symbol = "previous_candidate"
+    elif interruption == "signature":
+        account.strategic_qualification.qualification_signature = "previous_cohort"
+    elif interruption == "qualification":
+        account.strategic_qualification.qualification_ready = False
+    account.data_hash = sha256("".join(
+        symbol + frame.to_csv() for symbol, frame in sorted(panel.items())
+    ).encode()).hexdigest()
+    save_account(account, tmp_path / "ready.json")
+    account = load_account(tmp_path / "ready.json")
+    following = pd.bdate_range(dates[-1], periods=2)[1]
+    extended = {s: pd.concat((frame, pd.DataFrame(
+        [frame.iloc[-1].to_dict()], index=[following],
+    ))) for s, frame in panel.items()}
+    targets = policy.allocate(
+        date=following, opportunity=Opportunity.TREND, risk=risk,
+        user_panel=extended, leaders=leaders, account=account,
+        prices={s: float(frame.iloc[-1]["close"]) for s, frame in extended.items()},
+    )
+    observed = account.strategic_qualification
+    assert observed.qualification_ready
+    assert (observed.candidate_symbol, observed.qualification_signature) == identity
+    assert observed.qualification_evidence_sha256 != evidence  # Hash includes session.
+    if interruption:
+        assert observed.deployment_blocked
+        assert account.strategic_grant is None
+        assert not any(t.weight > 0 for t in targets)
+        return
+    assert not observed.deployment_blocked
+    assert account.strategic_grant is not None
+    assert any(t.symbol == identity[0] and t.weight > 0 for t in targets)
 
 
 def test_native_partial_grant_keeps_identity_after_restart_in_choppy(tmp_path):

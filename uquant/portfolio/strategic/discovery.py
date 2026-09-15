@@ -868,6 +868,19 @@ def _record_ready_strategic_qualification(
         if quorum is not None
         else {}
     )
+    previous = account.strategic_qualification
+    ready_session_key = "strategic_commitment_first_ready_session"
+    if streak < required_days:
+        account.candidate_tenure.pop(ready_session_key, None)
+    elif not (
+        previous.qualification_ready
+        and previous.candidate_symbol == candidate
+        and previous.qualification_signature == signature
+        and previous.qualification_quorum == quorum_route
+    ):
+        account.candidate_tenure[ready_session_key] = date.toordinal()
+    else:
+        account.candidate_tenure.setdefault(ready_session_key, date.toordinal())
     account.strategic_qualification = StrategicQualificationObservation(
         candidate_symbol=candidate,
         qualification_signature=signature,
@@ -1051,10 +1064,14 @@ def _initialize_strategic_cohort(
         and qualified.decisive_reversal_symbol is None
         and evidence.get("MARKET_CONFIRMATION") == "FAILED"
         and evidence.get("OWNER_ABSOLUTE_QUALITY") == "FAILED"
+        and (
+            account.strategic_qualification.qualification_streak <= self.cfg.strategic_cohort_confirm_days
+            or account.candidate_tenure.get("strategic_commitment_first_ready_session", date.toordinal())
+            >= date.toordinal()
+        )
     ):
-        # Keep the synchronized cohort eligible and observable, but do not
-        # create durable ownership when neither the owner nor market confirms
-        # committing capital. A later session is evaluated from fresh evidence.
+        # READY remains unchanged. Observe this candidate and cohort on a later
+        # distinct session before its first discretionary capital commitment.
         account.strategic_qualification.deployment_blocked = True
         account.strategic_qualification.deployment_block_reason = DEFERRED_STRATEGIC_COMMITMENT_REASON
         return

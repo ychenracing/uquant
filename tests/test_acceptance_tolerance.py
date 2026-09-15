@@ -107,7 +107,7 @@ def test_all_performance_continuous_pools_share_exact_revision(pool: str) -> Non
     options = dict(name=f'{pool}/continuous_ai_era', metrics=metrics, gate=gate)
     assert _hard_violations(**options) == []
     assert len(_hard_violations(**options, authorized=False)) == 1
-    metrics['max_drawdown'] += 1e-8
+    metrics['max_drawdown'] += .01 + 1e-8
     assert 'max_drawdown' in _hard_violations(**options)[0]
 
 

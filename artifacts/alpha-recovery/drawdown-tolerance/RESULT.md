@@ -1,0 +1,7 @@
+# Authorized one-percentage-point drawdown margin
+
+The user's 2026-09-15 instruction explicitly accepts drawdown overshoots up to one percentage point after the reported E H2 0.762-point gap. This is an absolute 0.01 increment, not a relative 1% multiplier. E H2 observed maximum drawdown remains 0.09854024217858659; the prior effective champion ceiling is 0.08592480598703311 + 0.005, and the accepted ceiling is that value + 0.01. The observed case is accepted. Original policy, original baseline and original metric are unchanged.
+
+Implementation connects the once-only margin to Promotion hard and champion comparisons for official/protected windows. authorized=False retains the original judgment. The current acceptance basis declares this scope and that other validators are not connected by this patch; it must not be misrepresented as blanket implementation in every runner. The user authorization itself remains available for applicable future integrations. Wealth, acute return, orders, costs and all non-drawdown predicates are unchanged.
+
+Producer 094f4ec (full identity in source.bundle), parent987ef520. 57 affected tests passed, including the observed H2 case, the precise upper boundary and the first representable value above that computed boundary. Existing diagnostic provenance tests were run after committing production source as required. Initial test logs are retained; no economic replay was run for this acceptance-only change. It is not alpha improvement or proof of a new production candidate's economic performance.

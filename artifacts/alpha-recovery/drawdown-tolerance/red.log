@@ -1,0 +1,25 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_________ test_observed_h2_drawdown_uses_explicit_absolute_margin_once _________
+
+    def test_observed_h2_drawdown_uses_explicit_absolute_margin_once():
+        champion = {"final_wealth": 1., "max_drawdown": .08592480598703311, "acute_return": None}
+        metrics = {"final_wealth": 1.8168767799091217, "max_drawdown": .09854024217858659, "acute_return": None}
+        args = dict(name="e/h2_2024", metrics=metrics, champion=champion)
+>       assert not _champion_violations(**args)
+E       AssertionError: assert not ['e/h2_2024: max_drawdown regressed from production champion']
+E        +  where ['e/h2_2024: max_drawdown regressed from production champion'] = _champion_violations(**{'name': 'e/h2_2024', 'metrics': {'final_wealth': 1.8168767799091217, 'max_drawdown': 0.09854024217858659, 'acute_return': None}, 'champion': {'final_wealth': 1.0, 'max_drawdown': 0.08592480598703311, 'acute_return': None}})
+
+tests/test_drawdown_authorization.py:11: AssertionError
+__________ test_hard_drawdown_tolerance_is_one_point_not_one_percent ___________
+
+    def test_hard_drawdown_tolerance_is_one_point_not_one_percent():
+        args = dict(name="e/h2_2024", metrics={"max_drawdown": .11}, gate={"max_drawdown": .1})
+>       assert not _hard_violations(**args)
+E       AssertionError: assert not ['e/h2_2024: max_drawdown above 0.100000']
+E        +  where ['e/h2_2024: max_drawdown above 0.100000'] = _hard_violations(**{'name': 'e/h2_2024', 'metrics': {'max_drawdown': 0.11}, 'gate': {'max_drawdown': 0.1}})
+
+tests/test_drawdown_authorization.py:21: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_drawdown_authorization.py::test_observed_h2_drawdown_uses_explicit_absolute_margin_once
+FAILED tests/test_drawdown_authorization.py::test_hard_drawdown_tolerance_is_one_point_not_one_percent

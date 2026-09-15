@@ -33,10 +33,25 @@ def principal_drawdown_ceiling(original: float, *, case: str, window: str, autho
     return original
 
 
+def promotion_drawdown_ceiling(original: float, *, authorized: bool = True) -> float:
+    """Apply the user's one absolute percentage point once to the base limit."""
+    return min(1.0, original + 0.01) if authorized else original
+
+
 def acceptance_revision() -> dict[str, Any]:
     return {
-        "revision_id": "cross-ai-final-nominal-small-gaps-20260910-v8",
-        "previous_revision_id": "cross-ai-comparable-h2-wealth-20260910-v7",
+        "revision_id": "drawdown-one-percentage-point-20260915",
+        "previous_revision_id": "cross-ai-final-nominal-small-gaps-20260910-v8",
+        "promotion_drawdown_revision": {
+            "authorized_on": "2026-09-15",
+            "authorization": "User explicitly accepts drawdown overshoots within one percentage point after observing the 0.762-point E H2 gap",
+            "user_statement": "1个百分点以内都能接受",
+            "absolute_margin": 0.01,
+            "scope": "Promotion hard and champion drawdown limits, all official and protected windows",
+            "application": "Once from each prior effective limit; champion existing 0.005 buffer remains part of that original limit. Never feed an adjusted limit back into this function",
+            "original_judgment": "authorized=False retains unchanged original policy",
+            "other_validators": "Not connected by this implementation; do not claim broader code coverage",
+        },
         "authorized_after_observing_candidate": True,
         "authorization": "User explicitly permits comparable small gaps while continuing (2026-09-10). After all14 same-source nominal cases, v8 fixes the five remaining scoped gaps once; cumulative revisions are disclosed below. Historical v5-v7 blocks record prior decisions, superseded only where final_nominal_small_gaps says so.",
         "order_authorization": "User explicitly accepts at most 40 total orders (2026-09-10)",

@@ -22,6 +22,7 @@ from uquant.validation.acceptance_tolerance import (
     acceptance_revision,
     order_ceiling,
     principal_wealth_floor,
+    promotion_drawdown_ceiling,
     wealth_floor,
 )
 
@@ -624,6 +625,8 @@ def _hard_violations(*, name: str, metrics: Mapping[str, Any], gate: Mapping[str
         limit = gate[gate_name]
         if metric_name == "account_orders":
             limit = order_ceiling(limit, authorized=authorized)
+        elif metric_name == "max_drawdown":
+            limit = promotion_drawdown_ceiling(limit, authorized=authorized)
         elif metric_name == "final_wealth":
             limit = (principal_wealth_floor(limit, authorized=authorized)
                      if name.endswith("/continuous_ai_era") else wealth_floor(limit, authorized=authorized))
@@ -648,7 +651,7 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
     tolerance = AI_ERA_POLICY["champion_tolerance"]
     failures: list[str] = []
     # Keep the historical policy sealed; apply the declared revision to the
-    # final-wealth comparison, while preserving drawdown and acute-return gates.
+    # wealth and explicitly authorized drawdown comparisons; acute return stays unchanged.
     contract = current_candidate_contract()
     if name.endswith("/continuous_ai_era"):
         adjusted_wealth_floor = principal_wealth_floor(
@@ -661,7 +664,10 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
         )
     if metrics["final_wealth"] < adjusted_wealth_floor:
         failures.append(f"{name}: final_wealth regressed from production champion")
-    if metrics["max_drawdown"] > champion["max_drawdown"] + tolerance["drawdown_tolerance"]:
+    drawdown_limit = promotion_drawdown_ceiling(
+        champion["max_drawdown"] + tolerance["drawdown_tolerance"], authorized=authorized,
+    )
+    if metrics["max_drawdown"] > drawdown_limit:
         failures.append(f"{name}: max_drawdown regressed from production champion")
     if (
         champion["acute_return"] is not None

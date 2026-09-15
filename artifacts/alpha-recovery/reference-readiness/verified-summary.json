@@ -1,0 +1,179 @@
+{
+  "results": {
+    "a": {
+      "bytes": 522878,
+      "control_wealth": 11.87065858669219,
+      "local_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/a.json.gz",
+      "metrics": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "fees": 24217.70601562,
+        "final_wealth": 11.87065858669219,
+        "gross_turnover": 18.4081591135,
+        "max_drawdown": 0.16004817592256193,
+        "slippage": 36838.12059999878
+      },
+      "producer": {
+        "changed_source_files_vs_control": [
+          "uquant/risk/assessment.py"
+        ],
+        "head": "9e988979a2942938b6d5d10cf71e6abe32a4e4a6"
+      },
+      "raw_remote_saved": false,
+      "runtime": {
+        "numpy": "2.5.1",
+        "pandas": "3.0.5",
+        "python": "3.12.13",
+        "uv": "uv 0.11.33 (x86_64-unknown-linux-gnu)"
+      },
+      "sessions": 382,
+      "sha256": "12251c6039c4b5f42c1c2fb458594ab22eaffef6fbfbed39e599ab996858fd1a",
+      "status": "COMPLETE_MATCHED_DIAGNOSTIC",
+      "wealth_ratio": 1.0
+    },
+    "e": {
+      "bytes": 1968549,
+      "control_wealth": 13.821022723557565,
+      "local_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/e.json.gz",
+      "metrics": {
+        "account_orders": 13,
+        "annual_turnover": 11.676899188185864,
+        "fees": 25217.588484869997,
+        "final_wealth": 13.821022723557565,
+        "gross_turnover": 18.432130123500002,
+        "max_drawdown": 0.17253036736852323,
+        "slippage": 36889.96439999884
+      },
+      "producer": {
+        "changed_source_files_vs_control": [
+          "uquant/risk/assessment.py"
+        ],
+        "head": "9e988979a2942938b6d5d10cf71e6abe32a4e4a6"
+      },
+      "raw_remote_saved": false,
+      "runtime": {
+        "numpy": "2.5.1",
+        "pandas": "3.0.5",
+        "python": "3.12.13",
+        "uv": "uv 0.11.33 (x86_64-unknown-linux-gnu)"
+      },
+      "sessions": 382,
+      "sha256": "d0934c1086a3925a292a5e916bf1b7e1a3187578f56c48229417f6c374cc8fbd",
+      "status": "COMPLETE_MATCHED_DIAGNOSTIC",
+      "wealth_ratio": 1.0
+    },
+    "e-h2": {
+      "bytes": 600788,
+      "control_wealth": 1.8168767799091217,
+      "local_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/e-h2.json.gz",
+      "metrics": {
+        "account_orders": 7,
+        "annual_turnover": 5.246110817314401,
+        "fees": 2265.691881758,
+        "final_wealth": 1.8168767799091217,
+        "gross_turnover": 2.70976798415,
+        "max_drawdown": 0.09854024217858659,
+        "slippage": 5417.548299999431
+      },
+      "producer": {
+        "changed_source_files_vs_control": [
+          "uquant/risk/assessment.py"
+        ],
+        "head": "9e988979a2942938b6d5d10cf71e6abe32a4e4a6"
+      },
+      "raw_remote_saved": false,
+      "runtime": {
+        "numpy": "2.5.1",
+        "pandas": "3.0.5",
+        "python": "3.12.13",
+        "uv": "uv 0.11.33 (x86_64-unknown-linux-gnu)"
+      },
+      "sessions": 125,
+      "sha256": "6fa0efb55a628f58bdc3d629cf775b99dc8b226669be9c3c3c98e2d8a790a0c8",
+      "status": "COMPLETE_MATCHED_DIAGNOSTIC",
+      "wealth_ratio": 1.0
+    },
+    "remove308": {
+      "benchmark_gap": 4.199544066328388,
+      "bytes": 2561980,
+      "control_wealth": 2.3254337685199613,
+      "local_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/remove308.json.gz",
+      "metrics": {
+        "account_orders": 68,
+        "actual_strategic_epoch_count": 1,
+        "annual_turnover": 5.208970578816455,
+        "distinct_owner_count": 1,
+        "fees": 20009.65731699,
+        "final_wealth": 2.8512326015915064,
+        "gross_turnover": 18.704939805749998,
+        "max_drawdown": 0.2288891949758597,
+        "slippage": 37413.63949999803
+      },
+      "minimum_benchmark_wealth": 7.050776667919894,
+      "passive_drawdown": 0.41011022931202434,
+      "passive_wealth": 7.834196297688772,
+      "passive_wealth_ratio": 0.36394704616128537,
+      "producer": {
+        "economic_decision_sha256": "389ec660a2dfbe6498ffbb0236dce895cee6511abfba9179b6bfe91f81de7d40",
+        "full_package_sha256": "07998c5dbaf7fac4f0d6c0d5a3cb98d678f3111e0f4aa3ff5002c43008c5971e",
+        "head": "9e988979a2942938b6d5d10cf71e6abe32a4e4a6",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "production_source_sha256": "389ec660a2dfbe6498ffbb0236dce895cee6511abfba9179b6bfe91f81de7d40"
+      },
+      "raw_remote_saved": false,
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "sessions": 869,
+      "sha256": "8d2c1386486a7dfc029b41041afdeea5e5b0938ab9af57b98d249355b65c65df",
+      "status": "COMPLETE_MATCHED_DIAGNOSTIC",
+      "wealth_ratio": 1.226107851442354
+    },
+    "remove502": {
+      "benchmark_gap": 0,
+      "bytes": 2558813,
+      "control_wealth": 13.129020082935812,
+      "local_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/remove502.json.gz",
+      "metrics": {
+        "account_orders": 54,
+        "actual_strategic_epoch_count": 1,
+        "annual_turnover": 10.17461712042405,
+        "distinct_owner_count": 1,
+        "fees": 43984.49069306,
+        "final_wealth": 14.413293907703471,
+        "gross_turnover": 36.53612511425,
+        "max_drawdown": 0.2765516809430656,
+        "slippage": 73099.19389999838
+      },
+      "minimum_benchmark_wealth": 7.0075894786112,
+      "passive_drawdown": 0.4008126114256544,
+      "passive_wealth": 7.786210531790222,
+      "passive_wealth_ratio": 1.8511307713624763,
+      "producer": {
+        "economic_decision_sha256": "389ec660a2dfbe6498ffbb0236dce895cee6511abfba9179b6bfe91f81de7d40",
+        "full_package_sha256": "07998c5dbaf7fac4f0d6c0d5a3cb98d678f3111e0f4aa3ff5002c43008c5971e",
+        "head": "9e988979a2942938b6d5d10cf71e6abe32a4e4a6",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "production_source_sha256": "389ec660a2dfbe6498ffbb0236dce895cee6511abfba9179b6bfe91f81de7d40"
+      },
+      "raw_remote_saved": false,
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "sessions": 869,
+      "sha256": "ceea4295c02174f0582f45dfe8c4125c2b7eeede1ba8686984e843c8108a0771",
+      "status": "COMPLETE_MATCHED_DIAGNOSTIC",
+      "wealth_ratio": 1.0978194729427575
+    }
+  },
+  "status": "DIAGNOSTIC_NOT_FINAL_ACCEPTANCE",
+  "verifier_sha256": "d22e803f8a51c7ea6abbbc3aced634c5a74d6d67f7e194bfce7897ad30335b2f"
+}

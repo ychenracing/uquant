@@ -1,0 +1,18 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_underwater_capital_tiers_repair_only_on_distinct_healthy_sessions ____
+
+    def test_underwater_capital_tiers_repair_only_on_distinct_healthy_sessions():
+        a=AccountState.empty(2000000); a.capital_budget_level=3; a.capital_peak=2600000
+        dates=pd.bdate_range('2025-01-02',periods=15)
+        for i in range(4):
+            for _ in range(3): apply(a,dates,i)
+            assert a.capital_budget_level==3
+        apply(a,dates,4)
+>       assert a.capital_budget_level==2
+E       AssertionError: assert 3 == 2
+E        +  where 3 = AccountState(initial_cash=2000000, cash=2000000, schema_version=8, positions={}, pending_orders=[], order_ledger=[], n...MAL', last_shock_date='', last_successful_run='', data_hash='', data_hash_as_of='', data_hash_symbols=[], code_hash='').capital_budget_level
+
+tests/test_capital_normalization.py:24: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_capital_normalization.py::test_underwater_capital_tiers_repair_only_on_distinct_healthy_sessions

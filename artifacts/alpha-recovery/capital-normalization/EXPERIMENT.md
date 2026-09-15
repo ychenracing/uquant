@@ -1,0 +1,7 @@
+# Capital tier normalization — third and final structural design this round
+
+Parent 9e988979a2942938b6d5d10cf71e6abe32a4e4a6, whose reference-readiness removals improve to2.8512326015915064/14.413293907703471 but remain research-only (68/54 orders;308 far below passive7.8341963). Holding-only rejected and not stacked.
+
+Observed: 2025-07-10 remove308 has READY sz300502, cash18.21%, target81.79%, persisted tier2 cap82%; requested20% but only0.21% gross room, so CAPITAL_LIMIT rejects. Historical-cap repair requires making back the historical loss before restoring capital, even after independent current repair. This can impede recovery with a permanent reduced budget. This does not prove all missing passive gains are recoverable.
+
+Change: maintain measured capital_peak and capital drawdown; allow persistent tier to step down at most one tier per existing five distinct consecutive healthy sessions when complete current inputs, no independent/strategic/chronic damage, observed tier0 and current repair signals hold. Preserve old drawdown-repair route; enforce session-idempotence for tier repair and immediate worsening even on same-day rescans. Independent risk caps remain authoritative. Existing parameters only. Expected gains from earlier budget deployment; possible larger drawdowns and churn. Fixed ACCEPTANCE.md unchanged. Reject if benchmark/removal/order gaps remain or protection loss dominates. No fourth structure or adjacent parameter sweep.

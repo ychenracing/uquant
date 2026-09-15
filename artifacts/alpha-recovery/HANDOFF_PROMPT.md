@@ -1,3 +1,13 @@
+# New risk research authorization — 2026-09-15
+
+The user subsequently said: “是否应该取消冻结风险条件？如果你觉得是，那就不要冻结风险条件，可以适当改造。按照你说的直接实施吧”. We accepted suitable redesign of risk mechanism implementation, preserving economic thresholds, data/seed, execution safety, current rights/obligations and honest history. Old statements that risk conditions may never change are superseded within this explicit scope. Do not ask again for this authorization.
+
+Read artifacts/alpha-recovery/risk-repair/EXPERIMENT.md. A bounded rolling-cohort-return repair hypothesis was implemented in exact producer 0080f419a35b7c8067a5d4c337fe86ff11533ddf, source.bundle prerequisite 987ef52098e8246afe76f5eafcdfeee955dee922. 56 focused tests passed. Three canonical screens plus matched candidate/current E H2 were started; at this source checkpoint results remain pending. Check existing files/processes before any scheduling. The existing executable-cohort candidate already passed E H2/acute in older-runtime diagnostics; do not repeat stale H8 failure claims. Full current joint acceptance and stronger removal economics remain unestablished.
+
+Workspace /workspace/scratch/73b9104c478a/uquant-risk-repair, branch research/alpha-risk-repair. Only tests import ordering was corrected after producer commit; production inputs remain unchanged. The original exact producer bundle is retained. Prior failures below remain rejected and must not be repeated. No candidate has been promoted; main/PR67 untouched. Continue from the new risk evidence, not the obsolete pending-component instructions.
+
+---
+
 # Latest continuation checkpoint — 2026-09-15
 
 This section supersedes the obsolete pending-deployment instructions below. Original authorization and constraints remain in force. Joint acceptance remains NOT_MET; no accepted alpha candidate or main merge exists.

@@ -1,0 +1,29 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_repair_survives_a_small_pullback_without_counting_repeat_scans ______
+
+    def test_repair_survives_a_small_pullback_without_counting_repeat_scans():
+        dates = pd.bdate_range("2024-01-02", periods=10)
+        prices = [100, 90, 91, 93, 94, 93.8, 95, 94.8, 96, 95.8]
+        panel = {s: pd.DataFrame({"close": prices}, index=dates) for s in ("one", "two")}
+        cfg = policy_inputs(sector_recovery_ma=3, sector_guard_min_sessions=2)
+        account = AccountState.empty(100)
+        account.sector_guard_active = True
+        account.sector_guard_started = str(dates[0].date())
+        account.sector_guard_symbols = ["one", "two"]
+    
+        def observe(i):
+            return update_sector_guard(date=dates[i], calendar=dates, panel=panel,
+                account=account, leadership_divergence=0.0, cfg=cfg)
+    
+        for i in range(6):
+            assert not observe(i).recovered
+        for _ in range(4):
+            assert not observe(5).recovered
+>       assert account.sector_recovery_streak == 2
+E       AssertionError: assert 0 == 2
+E        +  where 0 = AccountState(initial_cash=100, cash=100, schema_version=8, positions={}, pending_orders=[], order_ledger=[], next_orde...MAL', last_shock_date='', last_successful_run='', data_hash='', data_hash_as_of='', data_hash_symbols=[], code_hash='').sector_recovery_streak
+
+tests/test_sector_repair_trend.py:27: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_sector_repair_trend.py::test_repair_survives_a_small_pullback_without_counting_repeat_scans

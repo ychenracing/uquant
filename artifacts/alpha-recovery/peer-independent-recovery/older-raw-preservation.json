@@ -1,0 +1,299 @@
+{
+  "status": "SAVED_AND_INDEPENDENTLY_HASH_VERIFIED",
+  "files": [
+    {
+      "key": "holding-basis/a.json.gz",
+      "original_path": "/workspace/scratch/c24820a73481/uquant-candidate/artifacts/alpha-recovery/holding-basis/a.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-holding-basis-a.json.gz",
+      "bytes": 522845,
+      "sha256": "7e3f3971c0e74fd4f9d84705e30c2f1f0dd2c517ee2506f43d67f0e38e1fc015",
+      "file_id": "file_00000000c20481f5973800eb1fbb2276",
+      "library_file_id": "libfile_525d002dc5548191a5a4272f91a89169",
+      "file_name": "uquant-holding-basis-a.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "holding-basis/e.json.gz",
+      "original_path": "/workspace/scratch/c24820a73481/uquant-candidate/artifacts/alpha-recovery/holding-basis/e.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-holding-basis-e.json.gz",
+      "bytes": 1967082,
+      "sha256": "593bfbef307c0078c9df84f84da122d22c4f1cdc78d179381527e5d8c171665b",
+      "file_id": "file_0000000066ac820cb2c503397c530d5b",
+      "library_file_id": "libfile_750c5b0e22e08191840ab894684b3660",
+      "file_name": "uquant-holding-basis-e.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "holding-basis/e-h2.json.gz",
+      "original_path": "/workspace/scratch/c24820a73481/uquant-candidate/artifacts/alpha-recovery/holding-basis/e-h2.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-holding-basis-e-h2.json.gz",
+      "bytes": 599577,
+      "sha256": "1699e8ae17cc53d97bf9acf4bf53a81165b42c491ef1dec0a2ffc3d3567c6933",
+      "file_id": "file_00000000e6d081fd83eeba16b9562a81",
+      "library_file_id": "libfile_64e182b1352c8191ba14292d264ea7c9",
+      "file_name": "uquant-holding-basis-e-h2.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "holding-basis/passive.json",
+      "original_path": "/workspace/scratch/c24820a73481/uquant-candidate/artifacts/alpha-recovery/holding-basis/passive.json",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-holding-basis-passive.json",
+      "bytes": 192194,
+      "sha256": "d1bf7077e20904c76fe66ff661d7fd1f4aa57e93f785b186992a2ec6cb1581ba",
+      "file_id": "file_000000008b8881fd958b2e865fd0eff4",
+      "library_file_id": "libfile_e31468d09f5c8191abe117284417e67b",
+      "file_name": "uquant-holding-basis-passive.json",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "reference-readiness/e-h2.json.gz",
+      "original_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/e-h2.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-reference-readiness-e-h2.json.gz",
+      "bytes": 600788,
+      "sha256": "6fa0efb55a628f58bdc3d629cf775b99dc8b226669be9c3c3c98e2d8a790a0c8",
+      "file_id": "file_00000000fde4820a8b6de8e82d96f7f2",
+      "library_file_id": "libfile_8bb6088236f881919e3b90e6c3725eaa",
+      "file_name": "uquant-reference-readiness-e-h2.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "reference-readiness/remove308.json.gz",
+      "original_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/remove308.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-reference-readiness-remove308.json.gz",
+      "bytes": 2561980,
+      "sha256": "8d2c1386486a7dfc029b41041afdeea5e5b0938ab9af57b98d249355b65c65df",
+      "file_id": "file_00000000e43081f89ac381ed9e9ca4d1",
+      "library_file_id": "libfile_98cf52940de48191889a0be679f5a4f0",
+      "file_name": "uquant-reference-readiness-remove308.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "reference-readiness/remove502.json.gz",
+      "original_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/remove502.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-reference-readiness-remove502.json.gz",
+      "bytes": 2558813,
+      "sha256": "ceea4295c02174f0582f45dfe8c4125c2b7eeede1ba8686984e843c8108a0771",
+      "file_id": "file_0000000028f481f4b1c994a234dacfe5",
+      "library_file_id": "libfile_ec5dc3d55a208191a2d0d1b549f1dd09",
+      "file_name": "uquant-reference-readiness-remove502.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "capital-normalization/a.json.gz",
+      "original_path": "/workspace/scratch/14f51f0acedb/uquant-normalization/artifacts/alpha-recovery/capital-normalization/a.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-capital-normalization-a.json.gz",
+      "bytes": 522587,
+      "sha256": "5d5e9e3bf5c621dd17155679e1b55b01920d43a9ffd33624650061f9668584bd",
+      "file_id": "file_00000000e19081f59e713a76451c25b6",
+      "library_file_id": "libfile_dd932643cc608191b9ccdd51a400c144",
+      "file_name": "uquant-capital-normalization-a.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "capital-normalization/e.json.gz",
+      "original_path": "/workspace/scratch/14f51f0acedb/uquant-normalization/artifacts/alpha-recovery/capital-normalization/e.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-capital-normalization-e.json.gz",
+      "bytes": 1968768,
+      "sha256": "3975753c2767ef19807af0a8990e21f6f132e2286ef162f9289853ce2f091157",
+      "file_id": "file_00000000189c81f6ad5c6c44805318d3",
+      "library_file_id": "libfile_a27905b640ac8191b364b0a4905cc1d4",
+      "file_name": "uquant-capital-normalization-e.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "capital-normalization/e-h2.json.gz",
+      "original_path": "/workspace/scratch/14f51f0acedb/uquant-normalization/artifacts/alpha-recovery/capital-normalization/e-h2.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-capital-normalization-e-h2.json.gz",
+      "bytes": 600720,
+      "sha256": "79e8ffad7caf4a6850a2cc12269c215b1fd3be47d932ca5cfdf8b2116facd8e2",
+      "file_id": "file_0000000080f88211b634c959ef563e59",
+      "library_file_id": "libfile_670fb17abfe4819196291a86b82ee3ce",
+      "file_name": "uquant-capital-normalization-e-h2.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "capital-normalization/remove308.json.gz",
+      "original_path": "/workspace/scratch/14f51f0acedb/uquant-normalization/artifacts/alpha-recovery/capital-normalization/remove308.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-capital-normalization-remove308.json.gz",
+      "bytes": 2810811,
+      "sha256": "ce22bc5141e74d2b732abe590d647dce358f80f7ac4320e54c7c886f1feb9967",
+      "file_id": "file_00000000a74481f986fa7c3475686ca2",
+      "library_file_id": "libfile_7ac4bc42dedc819194515d2da3497d56",
+      "file_name": "uquant-capital-normalization-remove308.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    },
+    {
+      "key": "capital-normalization/remove502.json.gz",
+      "original_path": "/workspace/scratch/14f51f0acedb/uquant-normalization/artifacts/alpha-recovery/capital-normalization/remove502.json.gz",
+      "local_path": "/workspace/scratch/d48feaec25fd/evidence-originals/uquant-capital-normalization-remove502.json.gz",
+      "bytes": 3030930,
+      "sha256": "e2743d554993ac875cd39feb0ac98cec887318c645d72fa7867861d66958b839",
+      "file_id": "file_00000000a1c482118427c72d29fc0c27",
+      "library_file_id": "libfile_d23cf8299f5c81919224b9c855dc33b9",
+      "file_name": "uquant-capital-normalization-remove502.json.gz",
+      "current_version_number": 0,
+      "raw_remote_saved": true,
+      "remote_readback_verified": true
+    }
+  ],
+  "previous_git_verified": [
+    {
+      "bytes": 522845,
+      "key": "holding-basis/a.json.gz",
+      "manifest": "manifests/holding-basis/a.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "7e3f3971c0e74fd4f9d84705e30c2f1f0dd2c517ee2506f43d67f0e38e1fc015"
+    },
+    {
+      "bytes": 1967082,
+      "key": "holding-basis/e.json.gz",
+      "manifest": "manifests/holding-basis/e.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "593bfbef307c0078c9df84f84da122d22c4f1cdc78d179381527e5d8c171665b"
+    },
+    {
+      "bytes": 599577,
+      "key": "holding-basis/e-h2.json.gz",
+      "manifest": "manifests/holding-basis/e-h2.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "1699e8ae17cc53d97bf9acf4bf53a81165b42c491ef1dec0a2ffc3d3567c6933"
+    },
+    {
+      "bytes": 2908179,
+      "evidence_commit": "1523edb52ae764d048111eb7ba24a99c592bb9bf",
+      "key": "holding-basis/remove308.json.gz",
+      "manifest": "manifests/holding-basis/remove308.json.gz.json",
+      "manifest_sha256": "cc1a02653a76f143904d01b34599168f6732d30f77537d6a4dff6761b3681e3a",
+      "raw_remote_saved": true,
+      "remote_readback_verified": true,
+      "sha256": "bcec56221fdc63fb24c9d02ecea9f0b9c668ba54da916780cb9d2607b882c049"
+    },
+    {
+      "bytes": 2659266,
+      "evidence_commit": "64a4942f922a01769d3e85170e36ef4a80bd4318",
+      "key": "holding-basis/remove502.json.gz",
+      "manifest": "manifests/holding-basis/remove502.json.gz.json",
+      "manifest_sha256": "3e6e75fd5decbbabdd8d6f7b95d0de960d33297aa3cd900877dadecb5d1d4cf5",
+      "raw_remote_saved": true,
+      "remote_readback_verified": true,
+      "sha256": "dace936cac43c583709b2c373a68f3289cb059efc6e4031beba938e05f27f5ef"
+    },
+    {
+      "bytes": 192194,
+      "key": "holding-basis/passive.json",
+      "manifest": "manifests/holding-basis/passive.json.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "d1bf7077e20904c76fe66ff661d7fd1f4aa57e93f785b186992a2ec6cb1581ba"
+    },
+    {
+      "bytes": 522878,
+      "evidence_commit": "e6b55fb5b96069ce98315673f3053c1676206f1f",
+      "key": "reference-readiness/a.json.gz",
+      "manifest": "manifests/reference-readiness/a.json.gz.json",
+      "manifest_sha256": "227b979c39c91651fce1ab2f5f9d8096a2c0e3604364f5e9a0c5059f4d80067e",
+      "raw_remote_saved": true,
+      "remote_readback_verified": true,
+      "sha256": "12251c6039c4b5f42c1c2fb458594ab22eaffef6fbfbed39e599ab996858fd1a"
+    },
+    {
+      "bytes": 1968549,
+      "evidence_commit": "33e1f5e2bd575eb057aa674c4a3527626d9a1f2e",
+      "key": "reference-readiness/e.json.gz",
+      "manifest": "manifests/reference-readiness/e.json.gz.json",
+      "manifest_sha256": "f99a5fa17ae2879fadabe9f0b5914829671292d8f0cc711923f596e5fca30b18",
+      "raw_remote_saved": true,
+      "remote_readback_verified": true,
+      "sha256": "d0934c1086a3925a292a5e916bf1b7e1a3187578f56c48229417f6c374cc8fbd"
+    },
+    {
+      "bytes": 600788,
+      "key": "reference-readiness/e-h2.json.gz",
+      "manifest": "manifests/reference-readiness/e-h2.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "6fa0efb55a628f58bdc3d629cf775b99dc8b226669be9c3c3c98e2d8a790a0c8"
+    },
+    {
+      "bytes": 2561980,
+      "key": "reference-readiness/remove308.json.gz",
+      "manifest": "manifests/reference-readiness/remove308.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "8d2c1386486a7dfc029b41041afdeea5e5b0938ab9af57b98d249355b65c65df"
+    },
+    {
+      "bytes": 2558813,
+      "key": "reference-readiness/remove502.json.gz",
+      "manifest": "manifests/reference-readiness/remove502.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "ceea4295c02174f0582f45dfe8c4125c2b7eeede1ba8686984e843c8108a0771"
+    },
+    {
+      "bytes": 522587,
+      "key": "capital-normalization/a.json.gz",
+      "manifest": "manifests/capital-normalization/a.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "5d5e9e3bf5c621dd17155679e1b55b01920d43a9ffd33624650061f9668584bd"
+    },
+    {
+      "bytes": 1968768,
+      "key": "capital-normalization/e.json.gz",
+      "manifest": "manifests/capital-normalization/e.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "3975753c2767ef19807af0a8990e21f6f132e2286ef162f9289853ce2f091157"
+    },
+    {
+      "bytes": 600720,
+      "key": "capital-normalization/e-h2.json.gz",
+      "manifest": "manifests/capital-normalization/e-h2.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "79e8ffad7caf4a6850a2cc12269c215b1fd3be47d932ca5cfdf8b2116facd8e2"
+    },
+    {
+      "bytes": 2810811,
+      "key": "capital-normalization/remove308.json.gz",
+      "manifest": "manifests/capital-normalization/remove308.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "ce22bc5141e74d2b732abe590d647dce358f80f7ac4320e54c7c886f1feb9967"
+    },
+    {
+      "bytes": 3030930,
+      "key": "capital-normalization/remove502.json.gz",
+      "manifest": "manifests/capital-normalization/remove502.json.gz.json",
+      "raw_remote_saved": false,
+      "remote_readback_verified": false,
+      "sha256": "e2743d554993ac875cd39feb0ac98cec887318c645d72fa7867861d66958b839"
+    }
+  ]
+}

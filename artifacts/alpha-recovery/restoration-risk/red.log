@@ -1,0 +1,30 @@
+F....                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_resolved_recovery_uses_existing_rights_and_cap_despite_raw_votes[None] __
+
+block = None
+
+    @pytest.mark.parametrize("block", [None, "sentinel", "damage", "crisis", "unconfirmed"])
+    def test_resolved_recovery_uses_existing_rights_and_cap_despite_raw_votes(block):
+        fixture = _restorable()
+        _, account, dates, panel, _, risk = fixture
+        risk = replace(risk, votes=4)
+        if block == "sentinel":
+            risk.evidence["sentinel_freeze_new_risk"] = True
+        elif block == "damage":
+            risk.evidence["transition_damage"] = .9
+        elif block == "crisis":
+            risk = replace(risk, state=Risk.CRISIS)
+        elif block == "unconfirmed":
+            account.capital_budget_repair_streak = 0
+        rights = dict(account.protected_weights)
+        targets = _allocate(fixture, dates[0], risk=risk)
+        orders = _submit(account, dates[0], targets)
+        buys = [order for order in orders if order.side == "BUY"]
+>       assert bool(buys) is (block is None)
+E       assert False is (None is None)
+E        +  where False = bool([])
+
+tests/test_resolved_recovery_permission.py:29: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_resolved_recovery_permission.py::test_resolved_recovery_uses_existing_rights_and_cap_despite_raw_votes[None]

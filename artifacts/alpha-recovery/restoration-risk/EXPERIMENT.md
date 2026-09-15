@@ -1,0 +1,7 @@
+# Resolved recovery permission
+
+Parent 987ef52098e8246afe76f5eafcdfeee955dee922, original current producer inputs; no other failed alpha component is stacked. Latest user authorization permits core strategy and risk mechanism redesign without further confirmation. Retain the current outcome targets, economic accounting, frozen data and execution integrity for honest comparison.
+
+Hypothesis: once Base Risk resolves CAUTION with RECOVERY/ROTATION_RECOVERY/FAST_V_RECOVERY and a limited cap, the ordinary restoration layer should use that resolved state rather than independently veto solely on the original vote count. Keep restoration rights, continuity, confirmation streaks, transition damage, Sentinel freeze, reduction level, cash, concentration and target cap. This changes restoration of existing holdings only. High votes without resolved recovery still block. No parameter added. The earlier high-vote negative test now explicitly uses unresolved shock state; the new test covers resolved and unresolved permission plus six safety blocks.
+
+Prior RED is retained in red.log. 70 targeted tests passed. Run unchanged canonical A/E bull observer, native remove308 prefix observer, and E H2; compare current matched inputs and existing controls. Reject zero effect or material degradation; do not broaden such an arm to a full matrix. Positive screens still require same-candidate full removal and cross-window verification. This is a diagnostic candidate, not acceptance.

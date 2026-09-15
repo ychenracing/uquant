@@ -1,0 +1,11 @@
+# Peer-independent recovery admission
+
+Continuation authorized on 2026-09-15 after the prior conversation exhausted its length. Prior three designs stay rejected; this is the next distinct causal hypothesis, not a fourth result retroactively inserted into that closed round. Apply the unchanged revised economic table in holding-basis/ACCEPTANCE.md from evidence bcb177d419bb7b2783aad24327e1f6fd4ea178d8. No acceptance threshold changes.
+
+Base producer: 9e988979a2942938b6d5d10cf71e6abe32a4e4a6 (reference-readiness). Existing native remove308 and remove502 replays balance symbol cash flows plus terminal marks to total net P&L within 1e-8. Mean gross in 2023/2024 is 16.23%/15.18% for remove308 and 32.17%/26.56% for remove502. The 2025-05-08 recovery opportunity is open in both. The remaining remove308 pool has one deep recovering stock (sz300394 ret120 -0.4304), with sh600487 -0.1539 and sz300502 -0.1555; existing candidate-count-dependent rule rejects both shallower peers. With sz300308 present (-0.3291), two deep peers switch admission depth from -0.30 to -0.15, creating a full cohort. The same individual proof changes eligibility when a different stock is removed.
+
+Single change: remove peer-count-conditioned admission depth and apply the existing -0.15 recovery depth to each otherwise eligible current breakout. Keep original MA20/10-session breakout, liquidity, weak-market checks, confirmation counts, freeze, actual ownership, execution and capital bounds. Keep deep_count for the existing deeply-qualified CAUTION special case. No dates, symbols, universe-specific code or new parameters. This intentionally broadens economic admission; it is not claimed to be a neutral correctness repair.
+
+Before observing candidate returns: run the same complete native 869-session remove308/remove502 scenarios first. Reject if either fails the unchanged revised wealth/DD/order screens; no near-neighbor threshold search. If promising, execute main/full, fixed windows, LOO and costs/start/tail on the same candidate. Preserve failures. Old results are diagnostics with their exact identity, not canonical evidence.
+
+Regression proof: two new synthetic tests failed on unchanged base for the expected missing peer-independent eligibility. Then apply minimal implementation and validate original recovery execution and money protections.

@@ -1,0 +1,700 @@
+{
+  "kind": "RECONCILED_HISTORICAL_DIAGNOSTIC_NOT_COUNTERFACTUAL_ALPHA",
+  "results": [
+    {
+      "annual": {
+        "2023": {
+          "frozen_sessions": 175,
+          "mean_gross": 0.16225144181312534,
+          "net_wealth": 1.10958168081619,
+          "sessions": 242
+        },
+        "2024": {
+          "frozen_sessions": 194,
+          "mean_gross": 0.15182690880748234,
+          "net_wealth": 1.1602817082933226,
+          "sessions": 242
+        },
+        "2025": {
+          "frozen_sessions": 166,
+          "mean_gross": 0.489969851046362,
+          "net_wealth": 1.5034109723047144,
+          "sessions": 243
+        },
+        "2026": {
+          "frozen_sessions": 92,
+          "mean_gross": 0.5546928403849597,
+          "net_wealth": 1.473099930608283,
+          "sessions": 142
+        }
+      },
+      "exit_reasons": {
+        "capital budget gross cap; level-1 risk freeze; retain existing exposure": 1,
+        "leader lifecycle exit: confirmed structural deterioration": 25,
+        "portfolio crisis gross cap; level-1 risk freeze; retain existing exposure": 6,
+        "sector guard gross cap; level-1 risk freeze; retain existing exposure": 4
+      },
+      "input_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/remove308.json.gz",
+      "input_sha256": "8d2c1386486a7dfc029b41041afdeea5e5b0938ab9af57b98d249355b65c65df",
+      "metrics": {
+        "account_orders": 68,
+        "actual_strategic_epoch_count": 1,
+        "annual_turnover": 5.208970578816455,
+        "cash_drag": 0.6848837537524542,
+        "distinct_owner_count": 1,
+        "epochs": [
+          {
+            "active_session": "2023-01-20",
+            "authorization_id": "",
+            "authorization_session": "",
+            "close_reason": "owner_exit",
+            "closed_session": "2023-03-28",
+            "epoch_id": "epoch_959dddcf59c5b4a182bcac0b485d6ca90c5846bc357558d9a961c64098130f79",
+            "fill_session": "2023-01-20",
+            "grant_id": "grant_fa518abb2a901b7efc748b9617a0f3b07bacc38f7afddafd4ca55b5d70c1e8f0",
+            "grant_session": "2023-01-19",
+            "order_session": "2023-01-19",
+            "owner_symbol": "sz300223",
+            "previous_epoch_id": "",
+            "previous_grant_id": "",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification_route": "reversal_industry",
+            "qualification_session": "2023-01-19",
+            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sh688072:equipment,sh688120:equipment,sz300223:equipment:evidence=reversal_industry",
+            "realized_status": "CLOSED",
+            "target_session": "2023-01-19"
+          }
+        ],
+        "expected_but_unavailable_symbols": [
+          "sh688012",
+          "sh688037",
+          "sh688041",
+          "sh688072",
+          "sh688110",
+          "sh688146",
+          "sh688347",
+          "sh688766",
+          "sz000636",
+          "sz300666"
+        ],
+        "failed_grant_retry_healthy_sessions": 0,
+        "fill_count": 69,
+        "final_equity": 5702465.203183013,
+        "final_wealth": 2.8512326015915064,
+        "first_actual_strategic_epoch_session": "2023-01-20",
+        "first_positive_strategic_target_session": "2023-01-19",
+        "first_positive_total_target_session": "2023-01-19",
+        "first_qualification_session": "2023-01-17",
+        "first_strategic_fill_session": "2023-01-20",
+        "first_strategic_grant_session": "2023-01-19",
+        "first_strategic_order_session": "2023-01-19",
+        "gross_turnover": 18.704939805749998,
+        "initial_cash": 2000000.0,
+        "intentional_role_absent_symbols": [
+          "sz300308"
+        ],
+        "longest_healthy_zero_strategic_target_streak": 18,
+        "longest_healthy_zero_total_target_streak": 2,
+        "max_drawdown": 0.2288891949758597,
+        "open_pnl": 0.0,
+        "owner_symbols": [
+          "sz300223"
+        ],
+        "pnl_hhi": 0.14220647448330825,
+        "positive_strategic_target_sessions": 41,
+        "positive_total_target_sessions": 548,
+        "qualification_coverage": 0.9889082531578077,
+        "qualification_ready_sessions": 132,
+        "realized_pnl": 3702465.203183012,
+        "repair_episode_count": 5,
+        "repairs": [
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 1,
+            "first_observed_session": "2023-04-13",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_04d9ba803aff4242786cb759708a4204074f1ff9f02e97e66452ff69273efecf",
+            "repair_target_level": 0,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "status": "RESET"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 3,
+            "first_observed_session": "2023-06-29",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_142436aa5bb4590f719d75e4a3ca40c059ce72393ca40a717262c9104e3b33b2",
+            "repair_target_level": 2,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 60,
+            "reset_reason": "CAPITAL_BUDGET_WORSENED",
+            "status": "BLOCKED"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 3,
+            "first_observed_session": "2024-01-02",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_509949b0a8b831f27a317b6ec08f6d56efb7264671cbdc2f18757ab1efb4c083",
+            "repair_target_level": 2,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 60,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "status": "RESET"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 3,
+            "first_observed_session": "2024-08-07",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_901e90e91330eaeae129219627e6b3face719116c7d63b3a138912151174474b",
+            "repair_target_level": 2,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 60,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "status": "RESET"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 2,
+            "first_observed_session": "2025-02-07",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_dcec570d19414b3f3f00d456c9f4e05c451f34615e43d57c785c85b079ea1017",
+            "repair_target_level": 1,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 40,
+            "reset_reason": "CAPITAL_BUDGET_CLEARED",
+            "status": "RESET"
+          }
+        ],
+        "risk_coverage": 0.9895682951494228,
+        "role_identity_consistent": true,
+        "role_witness_sessions": 869,
+        "strategic_fill_count": 4,
+        "strategic_grant_count": 1,
+        "strategic_order_count": 4,
+        "terminal_zero_strategic_target_state_sessions": 0,
+        "top1_concentration": 0.0,
+        "top3_concentration": 0.0,
+        "total_return": 1.8512326015915064,
+        "tradable_coverage": 0.9889082531578077
+      },
+      "reconciliation_residual": -4.656612873077393e-10,
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "scenario": {
+        "cell_id": "remove-sz300308",
+        "contract_sha256": "c0942cf1a1be3f8c8f91be10f2b6ed29621838090c27d543cf4e6329dade33b0",
+        "is_critical": true,
+        "is_witness": false,
+        "removed_symbol": "sz300308",
+        "shard": "loo-f",
+        "window_end": "2026-08-05",
+        "window_start": "2023-01-03"
+      },
+      "source": {
+        "economic_decision_sha256": "389ec660a2dfbe6498ffbb0236dce895cee6511abfba9179b6bfe91f81de7d40",
+        "full_package_sha256": "07998c5dbaf7fac4f0d6c0d5a3cb98d678f3111e0f4aa3ff5002c43008c5971e",
+        "head": "9e988979a2942938b6d5d10cf71e6abe32a4e4a6",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "production_source_sha256": "389ec660a2dfbe6498ffbb0236dce895cee6511abfba9179b6bfe91f81de7d40"
+      },
+      "symbol_pnl": {
+        "sh600487": {
+          "fills": 2,
+          "net_pnl": 958867.2643500722
+        },
+        "sh601869": {
+          "fills": 5,
+          "net_pnl": 571821.3680469842
+        },
+        "sh603688": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh603986": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688008": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688012": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688019": {
+          "fills": 2,
+          "net_pnl": 32743.32194687413
+        },
+        "sh688037": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688041": {
+          "fills": 7,
+          "net_pnl": 8296.324568730208
+        },
+        "sh688072": {
+          "fills": 2,
+          "net_pnl": -999.1664080199139
+        },
+        "sh688082": {
+          "fills": 2,
+          "net_pnl": 7316.686853783994
+        },
+        "sh688110": {
+          "fills": 6,
+          "net_pnl": -110371.4551783797
+        },
+        "sh688120": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688146": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688200": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688233": {
+          "fills": 5,
+          "net_pnl": 654184.9492645505
+        },
+        "sh688256": {
+          "fills": 4,
+          "net_pnl": 207478.73508595218
+        },
+        "sh688268": {
+          "fills": 2,
+          "net_pnl": -163952.95030884
+        },
+        "sh688300": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688347": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688361": {
+          "fills": 2,
+          "net_pnl": 38148.021216359986
+        },
+        "sh688498": {
+          "fills": 2,
+          "net_pnl": 924776.470468224
+        },
+        "sh688766": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz000636": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz002281": {
+          "fills": 4,
+          "net_pnl": -130456.3705790399
+        },
+        "sz002371": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz002409": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz300054": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz300223": {
+          "fills": 4,
+          "net_pnl": -58549.1995816198
+        },
+        "sz300394": {
+          "fills": 8,
+          "net_pnl": 47388.23504474435
+        },
+        "sz300502": {
+          "fills": 8,
+          "net_pnl": 805471.8273670858
+        },
+        "sz300604": {
+          "fills": 2,
+          "net_pnl": -66982.69214999992
+        },
+        "sz300666": {
+          "fills": 2,
+          "net_pnl": -22716.16682444989
+        }
+      }
+    },
+    {
+      "annual": {
+        "2023": {
+          "frozen_sessions": 176,
+          "mean_gross": 0.32166051166276116,
+          "net_wealth": 1.8781361552121403,
+          "sessions": 242
+        },
+        "2024": {
+          "frozen_sessions": 197,
+          "mean_gross": 0.2656475452110325,
+          "net_wealth": 1.1590131500442236,
+          "sessions": 242
+        },
+        "2025": {
+          "frozen_sessions": 154,
+          "mean_gross": 0.6781096632640815,
+          "net_wealth": 3.130997210636676,
+          "sessions": 243
+        },
+        "2026": {
+          "frozen_sessions": 95,
+          "mean_gross": 0.7248460922032273,
+          "net_wealth": 2.114779662728786,
+          "sessions": 142
+        }
+      },
+      "exit_reasons": {
+        "capital budget gross cap; level-1 risk freeze; retain existing exposure": 1,
+        "leader lifecycle exit: confirmed structural deterioration": 13,
+        "portfolio crisis gross cap; level-1 risk freeze; retain existing exposure": 8,
+        "portfolio crisis gross cap; mature anchored leader": 2,
+        "portfolio risk-off gross cap; level-1 risk freeze; retain existing exposure": 1,
+        "sector guard gross cap; level-1 risk freeze; retain existing exposure": 3
+      },
+      "input_path": "/workspace/scratch/14f51f0acedb/uquant-readiness/artifacts/alpha-recovery/reference-readiness/remove502.json.gz",
+      "input_sha256": "ceea4295c02174f0582f45dfe8c4125c2b7eeede1ba8686984e843c8108a0771",
+      "metrics": {
+        "account_orders": 54,
+        "actual_strategic_epoch_count": 1,
+        "annual_turnover": 10.17461712042405,
+        "cash_drag": 0.5283805028429366,
+        "distinct_owner_count": 1,
+        "epochs": [
+          {
+            "active_session": "2023-01-20",
+            "authorization_id": "",
+            "authorization_session": "",
+            "close_reason": "owner_exit",
+            "closed_session": "2023-03-28",
+            "epoch_id": "epoch_44342a535f098e8a54854b45e9d0e4160c1cb15da729c0474cb81127d1e51691",
+            "fill_session": "2023-01-20",
+            "grant_id": "grant_81a10db07cb80c8a28fe068126cde2c1da40b8e027911d42a5867099354b2bc7",
+            "grant_session": "2023-01-19",
+            "order_session": "2023-01-19",
+            "owner_symbol": "sz300223",
+            "previous_epoch_id": "",
+            "previous_grant_id": "",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification_route": "reversal_industry",
+            "qualification_session": "2023-01-19",
+            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sh688072:equipment,sh688120:equipment,sz300223:equipment:evidence=reversal_industry",
+            "realized_status": "CLOSED",
+            "target_session": "2023-01-19"
+          }
+        ],
+        "expected_but_unavailable_symbols": [
+          "sh688012",
+          "sh688037",
+          "sh688041",
+          "sh688072",
+          "sh688110",
+          "sh688146",
+          "sh688347",
+          "sh688766",
+          "sz000636",
+          "sz300666"
+        ],
+        "failed_grant_retry_healthy_sessions": 0,
+        "fill_count": 54,
+        "final_equity": 28826587.81540694,
+        "final_wealth": 14.413293907703471,
+        "first_actual_strategic_epoch_session": "2023-01-20",
+        "first_positive_strategic_target_session": "2023-01-19",
+        "first_positive_total_target_session": "2023-01-19",
+        "first_qualification_session": "2023-01-17",
+        "first_strategic_fill_session": "2023-01-20",
+        "first_strategic_grant_session": "2023-01-19",
+        "first_strategic_order_session": "2023-01-19",
+        "gross_turnover": 36.53612511425,
+        "initial_cash": 2000000.0,
+        "intentional_role_absent_symbols": [
+          "sz300502"
+        ],
+        "longest_healthy_zero_strategic_target_streak": 11,
+        "longest_healthy_zero_total_target_streak": 2,
+        "max_drawdown": 0.2765516809430656,
+        "open_pnl": 0.0,
+        "owner_symbols": [
+          "sz300223"
+        ],
+        "pnl_hhi": 0.3903412124095352,
+        "positive_strategic_target_sessions": 41,
+        "positive_total_target_sessions": 570,
+        "qualification_coverage": 0.9889082531578077,
+        "qualification_ready_sessions": 123,
+        "realized_pnl": 26826587.81540694,
+        "repair_episode_count": 6,
+        "repairs": [
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 3,
+            "first_observed_session": "2023-07-24",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_0ea89c66c973ea57d4aa7d491b2eea73fb448b8b3dbcdaf43de2f459e9ef7059",
+            "repair_target_level": 2,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 60,
+            "reset_reason": "CAPITAL_BUDGET_WORSENED",
+            "status": "BLOCKED"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 1,
+            "first_observed_session": "2023-04-13",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_601a26a12baac3b35d1e28fddddb5bbe5919f1fcb7f750233976d4b2a7915b26",
+            "repair_target_level": 0,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "status": "RESET"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 3,
+            "first_observed_session": "2024-01-02",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_a738c1db504906bdecb139003e385db457a5d278daf452bc33ceaef10d76ddd7",
+            "repair_target_level": 2,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 60,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "status": "RESET"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 2,
+            "first_observed_session": "2024-08-09",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_a7b55df86523914c985af7fa3aa992f59008592fbb41ef3128ea76ac0ceab81a",
+            "repair_target_level": 1,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 40,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "status": "RESET"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 1,
+            "first_observed_session": "2025-02-07",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_b46984e2fc17594b527453af25e720d4bbef6df2d43bd8bd44511a59960c8b6a",
+            "repair_target_level": 0,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "CAPITAL_BUDGET_CLEARED",
+            "status": "RESET"
+          },
+          {
+            "actual_healthy_sessions_to_ready": 0,
+            "capital_budget_level": 1,
+            "first_observed_session": "2026-07-02",
+            "last_ready_session": "",
+            "repair_episode_id": "repair_bc71aeea2dbbb0b45e35804c4373e5ebf45c0fe694bb5a125768ee67352b76c4",
+            "repair_target_level": 0,
+            "reported_healthy_sessions": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "",
+            "status": "BLOCKED"
+          }
+        ],
+        "risk_coverage": 0.9895682951494228,
+        "role_identity_consistent": true,
+        "role_witness_sessions": 869,
+        "strategic_fill_count": 4,
+        "strategic_grant_count": 1,
+        "strategic_order_count": 4,
+        "terminal_zero_strategic_target_state_sessions": 0,
+        "top1_concentration": 0.0,
+        "top3_concentration": 0.0,
+        "total_return": 13.413293907703471,
+        "tradable_coverage": 0.9889082531578077
+      },
+      "reconciliation_residual": 0.0,
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "scenario": {
+        "cell_id": "remove-sz300502",
+        "contract_sha256": "c0942cf1a1be3f8c8f91be10f2b6ed29621838090c27d543cf4e6329dade33b0",
+        "is_critical": true,
+        "is_witness": false,
+        "removed_symbol": "sz300502",
+        "shard": "loo-b",
+        "window_end": "2026-08-05",
+        "window_start": "2023-01-03"
+      },
+      "source": {
+        "economic_decision_sha256": "389ec660a2dfbe6498ffbb0236dce895cee6511abfba9179b6bfe91f81de7d40",
+        "full_package_sha256": "07998c5dbaf7fac4f0d6c0d5a3cb98d678f3111e0f4aa3ff5002c43008c5971e",
+        "head": "9e988979a2942938b6d5d10cf71e6abe32a4e4a6",
+        "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "production_source_sha256": "389ec660a2dfbe6498ffbb0236dce895cee6511abfba9179b6bfe91f81de7d40"
+      },
+      "symbol_pnl": {
+        "sh600487": {
+          "fills": 7,
+          "net_pnl": 4609940.030953488
+        },
+        "sh601869": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh603688": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh603986": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688008": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688012": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688019": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688037": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688041": {
+          "fills": 5,
+          "net_pnl": -34470.57507398998
+        },
+        "sh688072": {
+          "fills": 2,
+          "net_pnl": -999.1664080199139
+        },
+        "sh688082": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688110": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688120": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688146": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688200": {
+          "fills": 2,
+          "net_pnl": -12839.272993799994
+        },
+        "sh688233": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688256": {
+          "fills": 9,
+          "net_pnl": 958293.3697872484
+        },
+        "sh688268": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688300": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688347": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688361": {
+          "fills": 2,
+          "net_pnl": -48290.17608359996
+        },
+        "sh688498": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sh688766": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz000636": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz002281": {
+          "fills": 4,
+          "net_pnl": -177542.73256895982
+        },
+        "sz002371": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz002409": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz300054": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz300223": {
+          "fills": 2,
+          "net_pnl": -18905.135039999874
+        },
+        "sz300308": {
+          "fills": 11,
+          "net_pnl": 6366221.404391772
+        },
+        "sz300394": {
+          "fills": 10,
+          "net_pnl": 15185180.068442801
+        },
+        "sz300604": {
+          "fills": 0,
+          "net_pnl": 0.0
+        },
+        "sz300666": {
+          "fills": 0,
+          "net_pnl": 0.0
+        }
+      }
+    }
+  ],
+  "runner_sha256": "604e40676d54aa9e04c111432fb01ed6639d6615fc515cec184e2a1e832be5a8"
+}

@@ -1,0 +1,65 @@
+diff --git a/tests/test_recovery_peer_independence.py b/tests/test_recovery_peer_independence.py
+new file mode 100644
+index 0000000..2c65419
+--- /dev/null
++++ b/tests/test_recovery_peer_independence.py
+@@ -0,0 +1,42 @@
++"""A peer's removal must not change an otherwise identical recovery proof."""
++from dataclasses import replace
++
++from test_unified_core_book import _inputs
++
++from uquant.config import DEFAULT_CONFIG
++from uquant.portfolio import PortfolioAllocator
++from uquant.portfolio.recovery.cohort_admission import _filter_recovery_candidates
++from uquant.types import AccountState
++
++
++def test_recovery_depth_eligibility_is_independent_of_deep_peer_count():
++    date, panel, leaders, risk = _inputs()
++    names = list(leaders)
++    depth = dict(zip(names, (-.18, -.35, -.40), strict=True))
++    policy = PortfolioAllocator(DEFAULT_CONFIG)
++    for selected in (names, names[:2], names[:1]):
++        eligible, _, _, _ = _filter_recovery_candidates(
++            policy, date=date, risk=risk, user_panel=panel,
++            account=AccountState.empty(DEFAULT_CONFIG.initial_cash),
++            candidates=[leaders[s] for s in selected],
++            crash_depth={s: depth[s] for s in selected},
++            level1_recovery_repair=False, risk_neutral_recovery_transfer=False,
++            weak_secular_market=False,
++        )
++        assert names[0] in {s.symbol for s in eligible}
++
++
++def test_independent_recovery_depth_keeps_continuous_freeze_and_shallow_exclusion():
++    date, panel, leaders, risk = _inputs()
++    names = list(leaders)
++    for frozen in (False, True):
++        eligible, _, _, _ = _filter_recovery_candidates(
++            PortfolioAllocator(DEFAULT_CONFIG), date=date,
++            risk=replace(risk, evidence={**risk.evidence, 'freeze_new_risk': frozen}),
++            user_panel=panel, account=AccountState.empty(DEFAULT_CONFIG.initial_cash),
++            candidates=list(leaders.values()),
++            crash_depth=dict(zip(names, (-.18, -.10, -.05), strict=True)),
++            level1_recovery_repair=False, risk_neutral_recovery_transfer=False,
++            weak_secular_market=False,
++        )
++        assert {s.symbol for s in eligible} == (set() if frozen else {names[0]})
+diff --git a/uquant/portfolio/recovery/cohort_admission.py b/uquant/portfolio/recovery/cohort_admission.py
+index 4475e2d..3c370a2 100644
+--- a/uquant/portfolio/recovery/cohort_admission.py
++++ b/uquant/portfolio/recovery/cohort_admission.py
+@@ -140,9 +140,9 @@ def _filter_recovery_candidates(
+ ) -> tuple[list[LeaderScore], int, int, float]:
+     recovery_elapsed = 0
+     deep_count = sum(value <= -0.30 for value in crash_depth.values())
+-    admission_depth = (
+-        -0.15 if deep_count >= 2 or (deep_count >= 1 and bool(account.anchor_weights)) else -0.30
+-    )
++    # The same current breakout proof cannot lose eligibility merely because
++    # another deep-recovery stock is absent from the tradable universe.
++    admission_depth = -0.15
+     candidates = [item for item in candidates if crash_depth.get(item.symbol, 0.0) <= admission_depth]
+     if (
+         weak_secular_market

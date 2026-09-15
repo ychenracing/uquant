@@ -1,0 +1,28 @@
+name: Alpha diagnostic readback
+on:
+  push:
+    branches: [research/alpha-recovery]
+    paths: ['.github/workflows/alpha-diagnostic-readback.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [a, e, remove308-prefix]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          github-token: ${{ github.token }}
+          run-id: 34938683986
+          name: alpha-recovery-${{ matrix.scenario }}-1abcdc6eef2a2f92bd7c0c05233504b67d7fffcd
+          path: /tmp/alpha-candidate
+      - name: Verify fixed comparison and read exact diagnostic
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        run: python3 artifacts/alpha-recovery/stock-confirmation/readback.py "$SCENARIO"

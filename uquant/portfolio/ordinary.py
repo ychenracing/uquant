@@ -140,10 +140,7 @@ def _mature_core_eligible(self: PortfolioAllocator, *, score: LeaderScore, tenur
     return (score.mature and tenure >= self.cfg.leader_tenure_days
             and not account.candidate_tenure.get("ordinary_market_rearm_required", 0)
             and market is not None and market.get("as_of") == str(date.date())
-            and (market.get("impulse") is True or local_open
-                 or (not market.get("missing_market_fields")
-                     and account.replacement_tenure.get("ordinary_repair_maturity:" + symbol, 0)
-                     >= self.cfg.leader_tenure_days))
+            and (market.get("impulse") is True or local_open)
             and symbol in market.get("credible_symbols", ()))
 
 
@@ -198,7 +195,7 @@ def ordinary_core_entry(
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
             "required_confirmation": self.cfg.leader_tenure_days,
-            "confirmations": {"leader_tenure": tenure, "credible_maturity": credible}, "as_of": str(date.date()),
+            "confirmations": {"leader_tenure": tenure}, "as_of": str(date.date()),
         }
         if persistent_only:
             certificate["confirmations"].update(credible_maturity=credible,

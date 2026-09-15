@@ -1,13 +1,7 @@
 name: Alpha recovery research
 
 on:
-  push:
-    branches: [research/alpha-recovery]
-    paths:
-      - '.github/workflows/alpha-recovery-research.yml'
-      - 'artifacts/alpha-recovery/stock-confirmation/**'
-      - 'uquant/portfolio/ordinary.py'
-      - 'uquant/portfolio/pipeline.py'
+  workflow_dispatch: {}
 
 permissions:
   contents: read

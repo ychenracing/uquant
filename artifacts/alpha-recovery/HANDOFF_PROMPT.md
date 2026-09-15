@@ -1,3 +1,19 @@
+# Active continuation and expanded authorization — 2026-09-15
+
+The user explicitly authorizes core strategy and risk mechanism redesign without further confirmation, then clarified that drawdown overshoots up to 1 percentage point are acceptable. Exact latest clarification: “完整回撤要求仍差 0.762 个百分点”，1个百分点以内都能接受啊，你不要这么死脑筋啊. Apply a once-only absolute 0.01 tolerance to the previously effective drawdown limit; keep original measurements and judgments traceable. E H2 observed DD 0.09854024217858659 versus prior effective 0.09092480598703311 is ACCEPTED under this instruction and must not be reported as a remaining blocker. Wealth/acute were already met. Do not rewrite historical raw evidence. No extra approval is needed for implementation, preservation, or normal integration after applicable acceptance.
+
+The prior sector rolling-return candidate 0080f419 completed all five raw runs: four matched A/E/native-prefix/H2 comparisons show exactly unchanged daily equity and metrics. All originals, compare.py, comparison.json and RESULT.md are now preserved here. 56 targeted tests previously passed. Reject as zero-alpha and do not tune further.
+
+The pending restoration-permission experiment is now complete: exact source 01b324491f13ed63209954279b5b7ece1ce165a9, 70 targeted tests pass; A/E/native-prefix/E H2 all economic paths unchanged. Its source.bundle and all originals currently exist at /workspace/scratch/73b9104c478a/uquant-restoration-risk/artifacts/alpha-recovery/restoration-risk/; remote attachment is the next preservation action, so verify its presence rather than assume this commit includes it. Do not rerun these comparisons.
+
+Next independent mechanism being implemented: separate historical capital-loss exposure caps from indefinite new-risk freeze after observed market repair. Worktree /workspace/scratch/73b9104c478a/uquant-capital-reentry, local branch research/alpha-capital-reentry, parent987ef520. Source modifications and focused tests are in progress; verify status before any replay. Retain capital_peak, measured drawdown, capital tiers and their caps; use five existing healthy trading sessions for repair, no new parameter. Data completeness, same-day idempotence, new damage and independent global risks still bind. No failed prior alpha components are stacked.
+
+Two canonical native controls have completed in /workspace/scratch/73b9104c478a/uquant-current-control/artifacts/alpha-recovery/capital-reentry/ using the extended observational run_native_detailed.py. They exactly reproduce prior 51c230 native wealth 1.1190839397190302 / 2.3851418754251106, and add daily rows for causal diagnosis. First complete-coverage, NORMAL, repaired-risk/READY-but-unfunded date is 2024-02-27 in both removals; 46/35 such flat sessions meet the extracted screen. Earlier 2023 periods also had market/reference blocks, so do not attribute all missed trades to capital freeze alone. Next run the same observer on the committed capital-reentry candidate; then matched A/E/H2. Control originals still require remote attachment after the candidate/source milestone. No full final matrix was launched.
+
+Main remains df45b4d7d9ea290ae953115afbb73140270537c2. PR67 open Draft at8aaebd20be09ba5d5cdf17f91c18fdf2c01a5d33 is historical context. No accepted alpha candidate or main merge yet. Continue actual authorized work; this is a checkpoint, not a request to pause or ask for another continue.
+
+---
+
 # New risk research authorization — 2026-09-15
 
 The user subsequently said: “是否应该取消冻结风险条件？如果你觉得是，那就不要冻结风险条件，可以适当改造。按照你说的直接实施吧”. We accepted suitable redesign of risk mechanism implementation, preserving economic thresholds, data/seed, execution safety, current rights/obligations and honest history. Old statements that risk conditions may never change are superseded within this explicit scope. Do not ask again for this authorization.

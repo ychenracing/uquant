@@ -1,0 +1,354 @@
+{
+  "comparisons": {
+    "a": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_elapsed_seconds": 177.432219615,
+      "baseline_metrics": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "final_wealth": 11.87065858669219,
+        "gross_turnover": 18.4081591135,
+        "max_drawdown": 0.16004817592256193
+      },
+      "baseline_path": "canonical-baselines/current-a.json.gz",
+      "baseline_sha256": "a18b83cefb61d413d0d0e2c6cac3b624fddce18b4a3ad790b13820829f8af518",
+      "baseline_status": "DIAGNOSTIC_ONLY",
+      "candidate_commit": "0080f419a35b7c8067a5d4c337fe86ff11533ddf",
+      "candidate_elapsed_seconds": 110.37387317600223,
+      "candidate_metrics": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "final_wealth": 11.87065858669219,
+        "gross_turnover": 18.4081591135,
+        "max_drawdown": 0.16004817592256193
+      },
+      "candidate_path": "risk-repair/a.json.gz",
+      "candidate_sha256": "b6e00e75f0ed16b50a3fc1b7a15dbdd7f68d32c9b0874caa25a7e60ab1da3dac",
+      "candidate_status": "DIAGNOSTIC_ONLY",
+      "changed_source_bytes_verified_at_producer_commits": true,
+      "changed_source_files": [
+        "uquant/risk/assessment.py",
+        "uquant/risk/transitions.py",
+        "uquant/risk_sector.py"
+      ],
+      "changed_source_hashes": {
+        "uquant/risk/assessment.py": {
+          "baseline": "496c0f9207e9bfdd0b6c97bc972c66e51f87785a52e4e152fea8795b4c9de1de",
+          "candidate": "574969f1f2eb21c41d5a62acc9a8b4dff754e9ad24ca6e1418f5e3a67612243f"
+        },
+        "uquant/risk/transitions.py": {
+          "baseline": "a64d65938dd5e6e20c58e3fa3f39d7d02e42480733f242c8be5997610c7dc7e2",
+          "candidate": "6ca6fa8f2da38cf02070314d3187dd52a5a59faca2d1a2fbd0a0c400d45bc5a9"
+        },
+        "uquant/risk_sector.py": {
+          "baseline": "fd4fde719659b1a755b16f2e982d1301b89417a226054b8be736beaeef96a51a",
+          "candidate": "ac0ca81a1bc77c48b581f4db216ba550176b178ce22693922accafbbac3aa944"
+        }
+      },
+      "daily_fill_economics_identical": true,
+      "equity_differences": [],
+      "fill_identity_fields_excluded_from_economic_comparison": [
+        "epoch_id",
+        "grant_id"
+      ],
+      "interval": {
+        "end": "2026-07-31",
+        "start": "2025-01-02"
+      },
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "environment",
+        "symbols",
+        "adapter_sha256",
+        "runner_sha256"
+      ],
+      "raw_trace_changed_leaf_path_counts": {
+        "/risk_evidence/decision_input_identity/code_hash": 382,
+        "/risk_evidence/flat_book_capital_repair/account_identity": 218,
+        "/risk_evidence/flat_book_capital_repair/repair_episode_id": 218,
+        "/risk_evidence/sector_guard_recovery_breadth": 378,
+        "/risk_evidence/sector_guard_recovery_return": 378,
+        "/risk_evidence/strategic_cash_rearm/predicate_results/*/authoritative_state/repair_episode_id": 13,
+        "/risk_evidence/strategic_cash_rearm/repair_episode_id": 13
+      },
+      "runtime": {
+        "numpy": "2.5.1",
+        "pandas": "3.0.5",
+        "python": "3.12.13",
+        "uv": "uv 0.11.33 (x86_64-unknown-linux-gnu)"
+      },
+      "sessions": 382
+    },
+    "e": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_elapsed_seconds": 200.70316296299998,
+      "baseline_metrics": {
+        "account_orders": 13,
+        "annual_turnover": 11.676899188185864,
+        "final_wealth": 13.821022723557565,
+        "gross_turnover": 18.432130123500002,
+        "max_drawdown": 0.17253036736852323
+      },
+      "baseline_path": "canonical-baselines/current-e.json.gz",
+      "baseline_sha256": "769b1092dc3ad76cc252a26249850f5f0c945a68b0fe278fd6f4fec25de6bf5a",
+      "baseline_status": "DIAGNOSTIC_ONLY",
+      "candidate_commit": "0080f419a35b7c8067a5d4c337fe86ff11533ddf",
+      "candidate_elapsed_seconds": 125.631078169994,
+      "candidate_metrics": {
+        "account_orders": 13,
+        "annual_turnover": 11.676899188185864,
+        "final_wealth": 13.821022723557565,
+        "gross_turnover": 18.432130123500002,
+        "max_drawdown": 0.17253036736852323
+      },
+      "candidate_path": "risk-repair/e.json.gz",
+      "candidate_sha256": "d380cd574fcb0f74b06fb2ad8292c218f1cde0984d1b71cf51d7704ed16da294",
+      "candidate_status": "DIAGNOSTIC_ONLY",
+      "changed_source_bytes_verified_at_producer_commits": true,
+      "changed_source_files": [
+        "uquant/risk/assessment.py",
+        "uquant/risk/transitions.py",
+        "uquant/risk_sector.py"
+      ],
+      "changed_source_hashes": {
+        "uquant/risk/assessment.py": {
+          "baseline": "496c0f9207e9bfdd0b6c97bc972c66e51f87785a52e4e152fea8795b4c9de1de",
+          "candidate": "574969f1f2eb21c41d5a62acc9a8b4dff754e9ad24ca6e1418f5e3a67612243f"
+        },
+        "uquant/risk/transitions.py": {
+          "baseline": "a64d65938dd5e6e20c58e3fa3f39d7d02e42480733f242c8be5997610c7dc7e2",
+          "candidate": "6ca6fa8f2da38cf02070314d3187dd52a5a59faca2d1a2fbd0a0c400d45bc5a9"
+        },
+        "uquant/risk_sector.py": {
+          "baseline": "fd4fde719659b1a755b16f2e982d1301b89417a226054b8be736beaeef96a51a",
+          "candidate": "ac0ca81a1bc77c48b581f4db216ba550176b178ce22693922accafbbac3aa944"
+        }
+      },
+      "daily_fill_economics_identical": true,
+      "equity_differences": [],
+      "fill_identity_fields_excluded_from_economic_comparison": [
+        "epoch_id",
+        "grant_id"
+      ],
+      "interval": {
+        "end": "2026-07-31",
+        "start": "2025-01-02"
+      },
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "environment",
+        "symbols",
+        "adapter_sha256",
+        "runner_sha256"
+      ],
+      "raw_trace_changed_leaf_path_counts": {
+        "/risk_evidence/decision_input_identity/code_hash": 382,
+        "/risk_evidence/flat_book_capital_repair/account_identity": 218,
+        "/risk_evidence/flat_book_capital_repair/repair_episode_id": 218,
+        "/risk_evidence/sector_guard_recovery_breadth": 378,
+        "/risk_evidence/sector_guard_recovery_return": 378,
+        "/risk_evidence/strategic_cash_rearm/predicate_results/*/authoritative_state/repair_episode_id": 13,
+        "/risk_evidence/strategic_cash_rearm/repair_episode_id": 13
+      },
+      "runtime": {
+        "numpy": "2.5.1",
+        "pandas": "3.0.5",
+        "python": "3.12.13",
+        "uv": "uv 0.11.33 (x86_64-unknown-linux-gnu)"
+      },
+      "sessions": 382
+    },
+    "e-h2": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_elapsed_seconds": 33.47103125300055,
+      "baseline_metrics": {
+        "account_orders": 7,
+        "annual_turnover": 5.246110817314401,
+        "final_wealth": 1.8168767799091217,
+        "gross_turnover": 2.70976798415,
+        "max_drawdown": 0.09854024217858659
+      },
+      "baseline_path": "risk-repair/current-e-h2.json.gz",
+      "baseline_sha256": "68b7d2330f35653883135a92831a3c79641a2f68aa853a6991c271d2f1f2d962",
+      "baseline_status": "DIAGNOSTIC_ONLY",
+      "candidate_commit": "0080f419a35b7c8067a5d4c337fe86ff11533ddf",
+      "candidate_elapsed_seconds": 55.97592124199582,
+      "candidate_metrics": {
+        "account_orders": 7,
+        "annual_turnover": 5.246110817314401,
+        "final_wealth": 1.8168767799091217,
+        "gross_turnover": 2.70976798415,
+        "max_drawdown": 0.09854024217858659
+      },
+      "candidate_path": "risk-repair/candidate-e-h2.json.gz",
+      "candidate_sha256": "d0d7dfa6c716c7ab0df1cc12df0b06393438deb03dda9bc7eb9ff27cc823e521",
+      "candidate_status": "DIAGNOSTIC_ONLY",
+      "changed_source_bytes_verified_at_producer_commits": true,
+      "changed_source_files": [
+        "uquant/risk/assessment.py",
+        "uquant/risk/transitions.py",
+        "uquant/risk_sector.py"
+      ],
+      "changed_source_hashes": {
+        "uquant/risk/assessment.py": {
+          "baseline": "496c0f9207e9bfdd0b6c97bc972c66e51f87785a52e4e152fea8795b4c9de1de",
+          "candidate": "574969f1f2eb21c41d5a62acc9a8b4dff754e9ad24ca6e1418f5e3a67612243f"
+        },
+        "uquant/risk/transitions.py": {
+          "baseline": "a64d65938dd5e6e20c58e3fa3f39d7d02e42480733f242c8be5997610c7dc7e2",
+          "candidate": "6ca6fa8f2da38cf02070314d3187dd52a5a59faca2d1a2fbd0a0c400d45bc5a9"
+        },
+        "uquant/risk_sector.py": {
+          "baseline": "fd4fde719659b1a755b16f2e982d1301b89417a226054b8be736beaeef96a51a",
+          "candidate": "ac0ca81a1bc77c48b581f4db216ba550176b178ce22693922accafbbac3aa944"
+        }
+      },
+      "daily_fill_economics_identical": true,
+      "equity_differences": [],
+      "fill_identity_fields_excluded_from_economic_comparison": [
+        "epoch_id",
+        "grant_id"
+      ],
+      "interval": {
+        "end": "2024-12-31",
+        "start": "2024-07-01"
+      },
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "environment",
+        "symbols",
+        "adapter_sha256",
+        "runner_sha256"
+      ],
+      "raw_trace_changed_leaf_path_counts": {
+        "/risk_evidence/decision_input_identity/code_hash": 125,
+        "/risk_evidence/flat_book_capital_repair/account_identity": 55,
+        "/risk_evidence/flat_book_capital_repair/repair_episode_id": 55,
+        "/risk_evidence/sector_guard_recovery_breadth": 125,
+        "/risk_evidence/sector_guard_recovery_return": 125
+      },
+      "runtime": {
+        "numpy": "2.5.1",
+        "pandas": "3.0.5",
+        "python": "3.12.13",
+        "uv": "uv 0.11.33 (x86_64-unknown-linux-gnu)"
+      },
+      "sessions": 125
+    },
+    "remove308-prefix": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_equity": 2219163.36163238,
+      "baseline_path": "canonical-baselines/current-remove308-prefix.json.gz",
+      "baseline_sha256": "bebf72900054276fde827bb93e324b9dbca3d50afab3a08095f22909cc790fb8",
+      "baseline_source_fingerprint": "51c230d8ed5e0a8e0f99ce7dcee15987aec9b8aaf2513490bf8208301cda0037",
+      "baseline_status": "PREFIX_DIAGNOSTIC_ONLY",
+      "candidate_commit": "0080f419a35b7c8067a5d4c337fe86ff11533ddf",
+      "candidate_equity": 2219163.36163238,
+      "candidate_path": "risk-repair/remove308-prefix.json.gz",
+      "candidate_sha256": "c032eac992586c765173fc96843f9b244b270f0a6a2954edce74f6fdd575cbc5",
+      "candidate_source_fingerprint": "e56139fe31898539a685003424d4177d00fa41dc6c13fa154da5029cb8291d93",
+      "candidate_status": "PREFIX_DIAGNOSTIC_ONLY",
+      "changed_source_bytes_verified_at_producer_commits": true,
+      "changed_source_files": [
+        "uquant/risk/assessment.py",
+        "uquant/risk/transitions.py",
+        "uquant/risk_sector.py"
+      ],
+      "changed_source_hashes": {
+        "uquant/risk/assessment.py": {
+          "baseline": "496c0f9207e9bfdd0b6c97bc972c66e51f87785a52e4e152fea8795b4c9de1de",
+          "candidate": "574969f1f2eb21c41d5a62acc9a8b4dff754e9ad24ca6e1418f5e3a67612243f"
+        },
+        "uquant/risk/transitions.py": {
+          "baseline": "a64d65938dd5e6e20c58e3fa3f39d7d02e42480733f242c8be5997610c7dc7e2",
+          "candidate": "6ca6fa8f2da38cf02070314d3187dd52a5a59faca2d1a2fbd0a0c400d45bc5a9"
+        },
+        "uquant/risk_sector.py": {
+          "baseline": "fd4fde719659b1a755b16f2e982d1301b89417a226054b8be736beaeef96a51a",
+          "candidate": "ac0ca81a1bc77c48b581f4db216ba550176b178ce22693922accafbbac3aa944"
+        }
+      },
+      "daily_fill_economics_identical": true,
+      "equity_differences": [],
+      "fill_identity_fields_excluded_from_economic_comparison": [
+        "epoch_id",
+        "grant_id"
+      ],
+      "interval": {
+        "end": "2023-06-30",
+        "start": "2023-01-03"
+      },
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "runtime",
+        "contract_sha256",
+        "removed_symbol"
+      ],
+      "raw_final_account_changed_leaf_path_counts": {
+        "/account_identity": 1,
+        "/code_hash": 1,
+        "/fills/*/epoch_id": 4,
+        "/fills/*/grant_id": 2,
+        "/fills/*/sold_tranches/*/epoch_id": 2,
+        "/fills/*/sold_tranches/*/grant_id": 1,
+        "/flat_book_capital_repair/account_identity": 1,
+        "/flat_book_capital_repair/repair_episode_id": 1,
+        "/order_ledger/*/epoch_id": 4,
+        "/order_ledger/*/grant_id": 2,
+        "/strategic_epochs/*/account_identity": 1,
+        "/strategic_epochs/*/epoch_id": 1,
+        "/strategic_epochs/*/grant_id": 1,
+        "/strategic_epochs/*/source_identity": 1,
+        "/strategic_grant/account_identity": 1,
+        "/strategic_grant/epoch_id": 1,
+        "/strategic_grant/grant_id": 1,
+        "/strategic_grant/production_source_identity": 1
+      },
+      "raw_trace_changed_leaf_path_counts": {
+        "/decision/decision_digest": 42,
+        "/decision/pending_orders/*/epoch_id": 4,
+        "/decision/pending_orders/*/grant_id": 2,
+        "/decision/risk_summary/active_strategic_epoch_id": 42,
+        "/decision/risk_summary/decision_input_identity/code_hash": 118,
+        "/decision/risk_summary/flat_book_capital_repair/account_identity": 52,
+        "/decision/risk_summary/flat_book_capital_repair/repair_episode_id": 52,
+        "/decision/risk_summary/sector_guard_recovery_breadth": 97,
+        "/decision/risk_summary/sector_guard_recovery_return": 97,
+        "/decision/risk_summary/strategic_epochs/delta_chain_sha256": 106,
+        "/decision/risk_summary/strategic_grant/account_identity": 106,
+        "/decision/risk_summary/strategic_grant/epoch_id": 106,
+        "/decision/risk_summary/strategic_grant/grant_id": 106,
+        "/decision/risk_summary/strategic_grant/production_source_identity": 106,
+        "/decision/targets/*/epoch_id": 61,
+        "/decision/targets/*/grant_id": 19,
+        "/fills/*/epoch_id": 4,
+        "/fills/*/grant_id": 2,
+        "/fills/*/sold_tranches/*/epoch_id": 2,
+        "/fills/*/sold_tranches/*/grant_id": 1
+      },
+      "runner_bridge": {
+        "baseline_sha256": "b10c853090a8d37868409faab7a03e8d9b1d99b18839cba89d8f8cf69c172df8",
+        "candidate_sha256": "412e99efa4941b2247a61fd11f00a4e43fdc952c155017ea1fd4fe4ebf7bd59b",
+        "verification": "Exact scripts differ only in root/output argument resolution; replay and observation bytes are identical."
+      },
+      "runtime": {
+        "numpy_version": "2.5.1",
+        "pandas_version": "3.0.5",
+        "python_full_version": "3.12.13",
+        "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        "uv_version": "0.11.33"
+      },
+      "sessions": 118
+    }
+  },
+  "conclusion": "REJECT_ZERO_ECONOMIC_IMPROVEMENT_NO_PARAMETER_SWEEP",
+  "status": "DIAGNOSTIC_ONLY_NOT_JOINT_ACCEPTANCE"
+}

@@ -24,3 +24,10 @@
 ## Documentation boundary
 
 `README.md`, current `docs/` guides and accepted ADRs describe the current system. Frozen `artifacts/**` evidence remains historical and must not be rewritten as current results.
+
+## GitHub transfer fallback
+
+- If an API or native Git lacks write authentication or permission, switch autonomously to the already authorized GitHub connector. Do not repeat a confirmed failed route or ask the user to repeat existing authorization. Never extract or expose connector credentials or bypass repository protection.
+- Preserve required large originals. Prefer authorized native Git or programmatic transfer directly between disk and the service. Uploads and downloads must not route full large bodies, Base64, JSON or archives through model-visible output or giant tool arguments.
+- When only a string connector is available, use bounded, recoverable requests. If independent evidence parts are necessary, record order, byte lengths and checksums, verify reconstruction, and never concatenate them into a giant request or treat separate blobs as file append operations.
+- After interruption, inspect committed refs and the existing transfer ledger before resuming missing work. Keep operation status distinct from verified preservation. A cancellation alone does not establish a file-size, permissions or platform-throttling cause.

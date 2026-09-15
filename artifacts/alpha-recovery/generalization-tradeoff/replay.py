@@ -65,7 +65,8 @@ def main() -> None:
                                          ('commission_rate', 'min_commission', 'stamp_duty', 'transfer_fee', 'slippage')})
     evidence = {'schema_version': 1, 'method': 'native_public_backtest', 'case': args.case,
                 'source_head': git('rev-parse', 'HEAD'), 'source_tree': git('rev-parse', 'HEAD:uquant'),
-                'inputs': before, 'runtime': runtime, 'config': dataclasses.asdict(cfg),
+                'inputs': before, 'runtime': runtime,
+                'config': cfg.to_dict() if hasattr(cfg, 'to_dict') else dataclasses.asdict(cfg),
                 'contract_sha256': digest(contract.read_bytes()), 'runner_sha256': digest(Path(__file__).read_bytes()),
                 'symbols': sorted(args.symbols.split(',')), 'start': args.start, 'end': args.end,
                 'cost_multiplier': args.cost_multiplier, 'completed': False}

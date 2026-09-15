@@ -1,0 +1,8 @@
+{
+  "archive": "uquant-tradeoff-screen-originals-20260915.tar",
+  "bytes": 2058240,
+  "sha256": "4aeb61de19473184304c79780a04b62aa1d4814f5b169111a96fb8db6bfe9e30",
+  "file_id": "file_00000000ae1481fabfd4f002a3d68e30",
+  "library_file_id": "libfile_b08b9851a8908191b4f9fe3cf668aa7c",
+  "contents": "35 original run/log files and exact per-file hash manifest; historical/protected/readiness as of screening checkpoint. Archive reconstructed and every inner original bytehash verified before save."
+}

@@ -39,8 +39,10 @@ elif a.stage=='loo':
             rows.append((role,f'loo-{symbol}',[s for s in universe if s!=symbol],c['window']['start'],c['window']['end'],1))
 else:
     import pandas as pd
-    frame=pd.read_csv(root/'data/frozen/sh000300.csv')
-    dates=[str(x)[:10] for x in frame['date'] if c['window']['start']<=str(x)[:10]<=c['window']['end']]
+    calendars=[set(pd.read_csv(root/f'data/frozen/{symbol}.csv')['date'].str[:10])
+               for symbol in ('sh000300','sh000682')]
+    dates=sorted(day for day in calendars[0]&calendars[1]
+                 if c['window']['start']<=day<=c['window']['end'])
     for scenario,removed in [('full',None),('remove308','sz300308'),('remove502','sz300502')]:
         symbols=[s for s in universe if s!=removed]
         for offset in c['stress']['start_session_offsets']:

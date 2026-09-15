@@ -178,7 +178,16 @@
       "remove_all_three",
       "no_optical"
     ],
-    "cross_industry_rule": "Both full-window public cases must remain profitable and retain at least 75% of historical wealth; their aggregate geometric wealth must retain at least 85%. These cases are not included in the 34-LOO lower-quartile metric."
+    "cross_industry_rule": "Both full-window public cases must remain profitable and retain at least 75% of historical wealth; their aggregate geometric wealth must retain at least 85%. These cases are not included in the 34-LOO lower-quartile metric.",
+    "wealth_quantile_probability": 0.1,
+    "drawdown_quantile_probability": 0.9,
+    "lower_quartile_count": 9,
+    "primary_wealth_improvement_ratio": 1.1,
+    "primary_drawdown_tolerance": 0.01,
+    "alternative_drawdown_improvement": 0.02,
+    "alternative_minimum_wealth_retention": 0.9,
+    "cross_industry_minimum_cell_wealth_retention": 0.75,
+    "cross_industry_minimum_geometric_wealth_retention": 0.85
   },
   "native_absolute": {
     "all_34_all_role_removals_required": true,
@@ -236,5 +245,6 @@
     "main": "Full 34-stock public production account over canonical 869-session window. Also disclose each A-E continuous account.",
     "stress": "Each of full, remove308, remove502 uses public production backtest; 2x each of commission_rate,min_commission,stamp_duty,transfer_fee,slippage against same-source standard-cost offset0. Offset5/10 starts on the 6th/11th actual common index session after canonical start; same fixed end, own initial cash, causal warmup. Median and minimum retention are computed for each scenario separately vs its offset0 account; all three scenarios must satisfy bounds.",
     "comparison_config": "Each checkout uses its committed default config; shared economic cost/cash fields must match before standard comparisons. Schema/strategy differences are recorded, never patched into historical implementation."
-  }
+  },
+  "original_contract_sha256": "97b698b73307b607ce8924c70f673c90b90056cd88bfc05731d91ad3dfafc66d"
 }

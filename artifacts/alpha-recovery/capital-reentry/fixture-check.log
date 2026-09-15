@@ -1,0 +1,30 @@
+.....F.................................................................. [ 62%]
+............................................                             [100%]
+=================================== FAILURES ===================================
+_ test_interrupted_or_damaged_repair_keeps_new_capital_frozen[chronic-damage] __
+
+failure = 'chronic-damage'
+
+    @pytest.mark.parametrize("failure", ["skipped-session", "reference-coverage", "nonfinite-input", "chronic-damage"])
+    def test_interrupted_or_damaged_repair_keeps_new_capital_frozen(failure):
+        inputs = _inputs()
+        _, account, dates, _, _, market, *_ = inputs
+        for date in dates[:4]:
+            assert _risk(inputs, date).freeze_new_risk
+        if failure == "skipped-session":
+            risk = _risk(inputs, dates[5])
+        elif failure == "reference-coverage":
+            risk = _risk(inputs, dates[4], context_change={"coverage": .5})
+        elif failure == "nonfinite-input":
+            market.loc[dates[4], "ret60"] = float("nan")
+            risk = _risk(inputs, dates[4])
+        else:
+            account.chronic_level = 2
+            risk = _risk(inputs, dates[4])
+>       assert risk.freeze_new_risk
+E       AssertionError: assert False
+E        +  where False = RiskAssessment(state=<Risk.NORMAL: 'NORMAL'>, target_gross_cap=0.5, votes=1, evidence={'breadth20': 1.0, 'breadth60': ...n shock', 'portfolio capital damage'), shock_state='NONE', freeze_new_risk=False, reduction_level=2, severity='NORMAL').freeze_new_risk
+
+tests/test_capital_reentry.py:90: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_capital_reentry.py::test_interrupted_or_damaged_repair_keeps_new_capital_frozen[chronic-damage]

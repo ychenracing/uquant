@@ -1,0 +1,21 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_five_healthy_sessions_reopen_cash_without_erasing_loss_or_capital_cap __
+
+    def test_five_healthy_sessions_reopen_cash_without_erasing_loss_or_capital_cap():
+        inputs = _inputs()
+        policy, account, dates, panel, leaders, *_ = inputs
+        peak, cash = account.capital_peak, account.cash
+        for date in dates[:4]:
+            risk = _risk(inputs, date)
+            assert risk.freeze_new_risk
+            assert not _decide(policy, account, date, panel, leaders, risk)
+        risk = _risk(inputs, dates[4])
+        assert risk.state is Risk.NORMAL
+>       assert not risk.freeze_new_risk
+E       AssertionError: assert not True
+E        +  where True = RiskAssessment(state=<Risk.NORMAL: 'NORMAL'>, target_gross_cap=0.5, votes=1, evidence={'breadth20': 1.0, 'breadth60': ...on shock', 'portfolio capital damage'), shock_state='NONE', freeze_new_risk=True, reduction_level=2, severity='NORMAL').freeze_new_risk
+
+tests/test_capital_reentry.py:47: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_capital_reentry.py::test_five_healthy_sessions_reopen_cash_without_erasing_loss_or_capital_cap

@@ -886,3 +886,23 @@ def test_global_lifecycle_priority_dominates_a_sparser_fragile_plan() -> None:
     )
     satellite = next(target for target in capped if target.symbol == "fragile_satellite")
     assert satellite.reduction_policy == ReductionPolicy.RISK_PRIORITY.value
+
+
+def test_sector_recovery_counts_distinct_sessions_after_repeated_scan() -> None:
+    dates = pd.bdate_range("2026-06-01", periods=11)
+    panel, account = _panel(dates), _account()
+    cfg = policy_inputs(sector_recovery_ma=3, sector_guard_min_sessions=2,
+                        sector_recovery_confirmations=2)
+    for date in dates[:9]:
+        update_sector_guard(date=date, calendar=dates, panel=panel, account=account,
+                            leadership_divergence=0.60, cfg=cfg)
+    assert account.sector_guard_active
+    assert account.sector_recovery_streak == 1
+    for _ in range(2):
+        repeated = update_sector_guard(date=dates[8], calendar=dates, panel=panel,
+                                       account=account, leadership_divergence=0.60, cfg=cfg)
+        assert repeated.active and not repeated.recovered
+        assert account.sector_recovery_streak == 1
+    recovered = update_sector_guard(date=dates[9], calendar=dates, panel=panel,
+                                    account=account, leadership_divergence=0.60, cfg=cfg)
+    assert recovered.recovered and not account.sector_guard_active

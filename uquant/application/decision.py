@@ -796,6 +796,7 @@ def _finalize_decision_result(
                 {
                     "symbol": item.symbol,
                     "score": item.score,
+                    "confidence": item.confidence,
                     "industry": item.industry,
                     "mature": item.mature,
                     "emerging": item.emerging,

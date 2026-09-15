@@ -1,0 +1,25 @@
+{
+  "producer": "f0c6913ae5fc6d7c21a902e704b50c19df0eba1f",
+  "remote_preservation": "c0d409ae4a82fd2a4692ae674c55da08832a6ccd",
+  "tree": "352ef678997cb89fcb7fad918f1f1c5bed19beb3",
+  "status": "FOUR_SCREENS_PASS_NOT_ACCEPTED",
+  "remove308": {
+    "wealth": 1.1190839397190302,
+    "orders": 16,
+    "epochs": 2,
+    "owners": 2
+  },
+  "remove502": {
+    "wealth": 2.3851418754251106,
+    "orders": 20,
+    "epochs": 2,
+    "owners": 2
+  },
+  "sha256": {
+    "executable-sz300308.json.gz": "1dba065cb63684bdd88c41c535fa4b03a3e44200f5e43ddf91b7f7b63593033e",
+    "executable-sz300502.json.gz": "fef993dc4477794af216075328612598829657c02bb6534b03436251470815f2"
+  },
+  "finding": "Both native 869-session removal paths match protected H8 wealth, order counts, drawdowns and 2/2 realized lifecycle. Jan 19 grant and Jan 20 fill restored. E acute and H2 also pass on this same production tree.",
+  "test_count_correction": "84 focused tests plus 8 API/architecture tests passed; earlier 17-test combined run included nine overlapping behavior tests.",
+  "remaining": "A/D/E bull running. no_optical/remove_all_three and all full formal requirements not yet verified. Three pre-existing stale behavior assertions remain to reconcile with authorized changes. Pinned Python3.12.13/uv0.11.33 now prepared for formal work. PR stays Draft."
+}

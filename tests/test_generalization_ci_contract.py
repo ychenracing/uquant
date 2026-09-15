@@ -20,6 +20,8 @@ OFFICIAL_WINDOWS = (
 )
 PINNED_ACTIONS = {
     "actions/cache": "5a3ec84eff668545956fd18022155c47e93e2684",
+    "actions/cache/restore": "5a3ec84eff668545956fd18022155c47e93e2684",
+    "actions/cache/save": "5a3ec84eff668545956fd18022155c47e93e2684",
     "actions/checkout": "11bd71901bbe5b1630ceea73d27597364c9af683",
     "actions/setup-python": "a26af69be951a213d495a4c3e4e4022e16d87065",
     "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02",
@@ -345,7 +347,7 @@ def test_action_pins_keep_readable_verified_version_comments() -> None:
     ):
         source = (WORKFLOWS / name).read_text(encoding="utf-8")
         for repository, sha in PINNED_ACTIONS.items():
-            if repository not in source:
+            if not re.search(rf"uses:\s+{re.escape(repository)}@", source):
                 continue
             assert re.search(
                 rf"uses:\s+{re.escape(repository)}@{sha}\s+#\s+v\d+\.\d+\.\d+",

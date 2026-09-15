@@ -46,6 +46,7 @@ addopts = "-q --strict-config --strict-markers"
 [tool.ruff]
 line-length = 110
 target-version = "py312"
+extend-exclude = ["artifacts/research-20260914/joint-allocation"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "PERF", "RUF"]

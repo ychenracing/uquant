@@ -42,13 +42,13 @@ def test_settled_repair_book_does_not_limit_a_new_account_admission():
 def test_current_full_certificate_can_use_free_capital_beside_repair_holding(lose_proof):
     import pandas as pd
     from test_lifecycle_and_risk import _leader, _strategic_frame
-    from test_mature_cash_rearm import _mature_repair
     from test_ordinary_cash_rearm import _decide as repair_decide
+    from test_ordinary_cash_rearm import _scenario as _independent_repair
     from test_shared_core_qualification import CHALLENGER, WITNESSES
     from test_strategic_universe_quorum import _risk
 
     from uquant.models.strategic_universe import build_strategic_universe_roles
-    policy,account,dates,panel,base,risk=_mature_repair()
+    policy,account,dates,panel,base,risk=_independent_repair()
     high=next(iter(base))
     assert repair_decide(policy,account,dates[0],panel,base,risk)
     assert ExecutionPlanner(policy.cfg).execute_open(date=dates[1],account=account,panel=panel)
@@ -106,17 +106,19 @@ def test_current_full_certificate_can_use_free_capital_beside_repair_holding(los
 def test_repair_origin_drift_and_restart_do_not_consume_independent_allowance():
     from types import SimpleNamespace
 
-    from test_mature_cash_rearm import _mature_repair
     from test_ordinary_cash_rearm import _decide as repair_decide
+    from test_ordinary_cash_rearm import _scenario as _independent_repair
 
     from uquant.portfolio.pipeline import _ordinary_admission_budget
     from uquant.portfolio_core import current_weights
     from uquant.types import StrategicCashRearmState
-    policy,account,dates,panel,leaders,risk=_mature_repair()
+    policy,account,dates,panel,leaders,risk=_independent_repair()
     assert repair_decide(policy,account,dates[0],panel,leaders,risk)
     assert ExecutionPlanner(policy.cfg).execute_open(date=dates[1],account=account,panel=panel)
     account=account_from_dict(asdict(account))
     account.strategic_cash_rearm=StrategicCashRearmState()
+    # A current positive market opens an independent allowance; it does not reset repair origin.
+    risk=replace(risk,evidence={**risk.evidence,"tech_ret120":.50})
     prices={s:float(panel[s].loc[dates[1],'close'])*3 for s in account.positions}
     weights,_=current_weights(account,prices)
     assert sum(weights.values())>policy.cfg.core_admission_weight

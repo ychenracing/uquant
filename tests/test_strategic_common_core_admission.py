@@ -1,6 +1,8 @@
 """Native qualification plus initial-funding seams; not economic acceptance."""
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pandas as pd
 import pytest
 from test_lifecycle_and_risk import _leader, _strategic_frame
@@ -51,7 +53,12 @@ def test_nonmature_owner_uses_real_shared_certificate_without_independent_days()
     assert score.mature is False
     assert candidates.strategic_candidate_confirmation(
         account=account, symbol=owner, route="independent_core") < DEFAULT_CONFIG.leader_tenure_days
+    before = deepcopy((account, certificates))
     entry = _entry(policy, account, date, panel, score, certificates[owner])
+    assert (account, certificates) == before
+    assert entry is not certificates[owner]
+    assert set(entry) == set(certificates[owner]) | {"checks"}
+    assert {key: entry[key] for key in certificates[owner]} == certificates[owner]
     assert entry["block"] == "READY"
     assert entry["qualification_evidence_sha256"] == certificates[owner]["qualification_evidence_sha256"]
     assert entry["required_confirmation"] == certificates[owner]["required_confirmation"]
@@ -74,6 +81,9 @@ def test_real_certificate_does_not_override_current_stock_structure():
     panel[owner].loc[date, "close"] = panel[owner].loc[date, "ma60"] * .5
     entry = _entry(policy, account, date, panel, leaders[owner], certificates[owner])
     assert entry["block"] == "STRUCTURE_NOT_REPAIRED"
+    assert list(entry["checks"]) == ["confidence", "industry", "current_data", "history", "structure"]
+    assert entry["checks"]["structure"] == {"passed": False, "as_of": str(date.date())}
+    assert certificates[owner]["block"] == "READY"
     assert entry["qualification_evidence_sha256"] == certificates[owner]["qualification_evidence_sha256"]
 
 

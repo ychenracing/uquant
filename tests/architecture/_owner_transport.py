@@ -48,6 +48,7 @@ _ECONOMIC_ADDITIONS = frozenset(
         "uquant/portfolio/recovery/current_cohort.py",
         "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/recovery/cohort_admission.py",
+        "uquant/portfolio/leaders/cycle.py",
         "uquant/portfolio/recovery/tactical_admission.py",
         "uquant/portfolio/strategic/authority.py",
         "uquant/portfolio/strategic/grant_lifecycle.py",
@@ -885,6 +886,7 @@ _RISK_MARKET_CALL_GRAPH: Mapping[str, tuple[str, ...]] = {
     "assess_market_and_book_evidence": (
         "_present_reference_symbols",
         "_market_context",
+        "_holding_return_context",
         "_disabled_overlay_assessment",
         "_collect_reference_observations",
         "_breadth_metrics",
@@ -896,6 +898,7 @@ _RISK_MARKET_CALL_GRAPH: Mapping[str, tuple[str, ...]] = {
         "_held_book_state",
         "_apply_live_book_votes",
     ),
+    "_holding_return_context": (),
 }
 _RISK_STAGE_TRANSPORT_CALLS: Mapping[str, tuple[str, ...]] = {
     "_assess_dynamic_anchors": (

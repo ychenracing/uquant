@@ -342,6 +342,26 @@ def _multi_secondary_weights(
     return {symbol: member_weight for symbol in selection.selected}
 
 
+def _entry_leadership_weights(
+    selection: RecoverySelection,
+    proposed: dict[str, float],
+) -> dict[str, float]:
+    """Size a real cohort expansion without rewriting its restoration rights."""
+    secondaries = selection.secondaries
+    if not selection.previous_members or len(secondaries) < 2:
+        return proposed
+    current_scores = {candidate.symbol: candidate.score for candidate in selection.candidates}
+    scores = [current_scores.get(symbol, math.nan) for symbol in secondaries]
+    if not all(math.isfinite(score) and score > 0 for score in scores):
+        return proposed
+    secondary_budget = sum(proposed.get(symbol, 0.0) for symbol in secondaries)
+    total = sum(scores)
+    entry = dict(proposed)
+    entry.update({symbol: secondary_budget * score / total
+                  for symbol, score in zip(secondaries, scores, strict=True)})
+    return entry
+
+
 def _late_pair_weights(
     self: RecoveryPortfolioPolicy,
     *,
@@ -536,6 +556,8 @@ def cohort_admission_targets(
             risk_neutral_recovery_handoff=risk_neutral_recovery_handoff,
             risk_neutral_recovery_transfer=risk_neutral_recovery_transfer,
         )
+        if not risk_neutral_recovery_handoff and not risk_neutral_recovery_transfer:
+            proposed = _entry_leadership_weights(selection, proposed)
         cohort_changed = _commit_recovery_cohort(
             self,
             date=date,

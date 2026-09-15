@@ -292,6 +292,50 @@ def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
     )
 
 
+def _market_check_alias(path: tuple[str | int, ...]) -> tuple[str | int, ...]:
+    if (len(path) == 12 and path[:2] == ("failed_grant_recovery", "transitions")
+            and isinstance(path[2], int)
+            and path[3:6] == ("runtime_state", "risk", "evidence")):
+        return ("replay_evidence", "observations", path[2],
+                "decision_payload", "value", "risk_summary", *path[6:])
+    return path
+
+
+def _is_core_market_check_path(path: tuple[str | int, ...]) -> bool:
+    path = _market_check_alias(path)
+    if (len(path) >= 6 and path[-3:-1] == ("authoritative_state", "checks")
+            and path[-6] == "strategic_cash_rearm"
+            and _is_production_predicate_path(path[:-3])):
+        return True
+    if len(path) in {14, 15} and path[0] == "cells" and isinstance(path[1], int):
+        path = path[2:]
+    if (len(path) == 13 and path[:2] == ("replay_evidence", "observations")
+            and isinstance(path[2], int)
+            and path[3:7] == ("decision_runtime_payload", "value", "risk_assessment", "evidence")):
+        path = (*path[:3], "decision_payload", "value", "risk_summary", *path[7:])
+    return (len(path) == 12 and path[:2] == ("replay_evidence", "observations")
+            and isinstance(path[2], int)
+            and path[3:8] == ("decision_payload", "value", "risk_summary", "core_allocation", "symbols")
+            and isinstance(path[8], str) and bool(path[8])
+            and path[9] in {"entry", "pending_entry", "repair_entry"} and path[10] == "checks")
+
+
+def _is_core_market_check_fact(value: Mapping[object, object], path: tuple[str | int, ...]) -> bool:
+    """Accept only the production entry-check DTO at its owned decision path."""
+    if not _is_core_market_check_path(path):
+        return False
+    check = path[-1]
+    if check not in {"confidence", "industry", "current_data", "history", "structure", "liquidity"}:
+        return False
+    numeric = {"value", "minimum"} if check in {"confidence", "history"} else set()
+    return (set(value) == {"as_of", "passed"} | numeric
+            and type(value.get("passed")) is bool
+            and isinstance(value.get("as_of"), str)
+            and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(value["as_of"])) is not None
+            and all(isinstance(value[key], (int, float)) and not isinstance(value[key], bool)
+                    and math.isfinite(cast(float, value[key])) for key in numeric))
+
+
 def reject_self_assertion_claims(
     value: object,
     *,
@@ -299,6 +343,8 @@ def reject_self_assertion_claims(
     path: tuple[str | int, ...] = (),
 ) -> None:
     if isinstance(value, Mapping):
+        if _is_production_predicate_path(path) and not _is_production_predicate_fact(value):
+            raise ValueError(f"absolute generalization {label} contains a self-asserted pass or malformed production predicate")
         forbidden = {
             key
             for key in value
@@ -309,8 +355,10 @@ def reject_self_assertion_claims(
             )
         }
         if forbidden and not (
-            forbidden == {"passed"} and _is_production_predicate_fact(value)
-            and _is_production_predicate_path(path)
+            forbidden == {"passed"} and (
+                (_is_production_predicate_fact(value) and _is_production_predicate_path(path))
+                or _is_core_market_check_fact(value, path)
+            )
         ):
             raise ValueError(
                 f"absolute generalization {label} contains a self-asserted pass"

@@ -81,8 +81,10 @@ def _leader_lifecycle_exit_confirmed(
     user_panel: dict[str, pd.DataFrame],
     leaders: dict[str, LeaderScore],
     account: AccountState,
+    reference_return: float = math.nan,
+    holding_return: float | None = None,
 ) -> bool:
-    """Confirm lost holding structure without a pre-entry-return velocity veto."""
+    """Confirm holding-specific deterioration with causal session evidence."""
     position = account.positions.get(symbol)
     frame = user_panel.get(symbol)
     leader = leaders.get(symbol)
@@ -101,6 +103,12 @@ def _leader_lifecycle_exit_confirmed(
             f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
         )
     )
+    if holding_return is None:
+        holding_return = scalar(row, f"ret{self.cfg.trend_medium}", math.nan)
+    if not protected_winner and math.isfinite(holding_return) and math.isfinite(reference_return):
+        # Relative resilience protects an unproven holding from common market
+        # damage. Proven winners already use the slower medium-trend exit.
+        broken = broken and holding_return < reference_return
     clock = f"lifecycle_exit_session:{symbol}"
     session = date.toordinal()
     previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0

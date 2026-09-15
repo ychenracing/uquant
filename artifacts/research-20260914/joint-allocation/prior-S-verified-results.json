@@ -1,0 +1,144 @@
+{
+  "head_local": "b5eb59764b84cc5960886f6fcdabd45f662b6080",
+  "head_remote": "bbaf58d3c403f79bd96f20bddc1ff849d5c7f960",
+  "tree": "6f859acb8904d358e052110faebb30dca6df85d8",
+  "checked": [
+    "a/bull_crash_2025_2026",
+    "d/bull_crash_2025_2026",
+    "e/bull_crash_2025_2026",
+    "e/h2_2024",
+    "screen/cache/d0a207602b82d0cb87caa60228606de78afbcb01cfc3fb4a52efbef499f6542f.json",
+    "screen/cache/2ddf8c869a2cb9a005c9fc0345a82c092d5042a557d66515248902842f03d64e.json",
+    "screen/cache/0d5c7d6fe8cb08b13f176732d614f50bf8c8cb6d07d23d00a2d6088b6b28e3a7.json",
+    "screen/cache/9df68fabe0d772d78b3bc95ff7d26f8e5bb483865d046987b10f7a5430c141d8.json",
+    "remove308",
+    "remove502",
+    "no_optical",
+    "remove_all_three"
+  ],
+  "rows": {
+    "a/bull_crash_2025_2026": {
+      "final_wealth": 11.655466908159205,
+      "max_drawdown": 0.15999500872658612,
+      "account_orders": 12,
+      "acute_return": 0.0,
+      "fees": 23784.747781590002,
+      "slippage_cost": 36199.935899998825,
+      "annual_turnover": 11.459702520318062,
+      "gross_turnover": 18.08928249075,
+      "passed": false,
+      "failures": [
+        "a/bull_crash_2025_2026: final_wealth regressed from production champion"
+      ],
+      "equal_to_I_metrics": true
+    },
+    "d/bull_crash_2025_2026": {
+      "final_wealth": 9.534319881630598,
+      "max_drawdown": 0.24260450185471227,
+      "account_orders": 18,
+      "acute_return": 0.0,
+      "fees": 19534.274838803998,
+      "slippage_cost": 29943.061900000004,
+      "annual_turnover": 9.47916020348403,
+      "gross_turnover": 14.96297189145,
+      "passed": true,
+      "failures": [],
+      "equal_to_I_metrics": true
+    },
+    "e/bull_crash_2025_2026": {
+      "final_wealth": 2.0787587597870383,
+      "max_drawdown": 0.18523439864176305,
+      "account_orders": 34,
+      "acute_return": 0.0,
+      "fees": 8756.901725924,
+      "slippage_cost": 16110.678699999262,
+      "annual_turnover": 5.102429461002355,
+      "gross_turnover": 8.05424815745,
+      "passed": false,
+      "failures": [
+        "e/bull_crash_2025_2026: final_wealth below 7.200000",
+        "e/bull_crash_2025_2026: final_wealth regressed from production champion",
+        "e/bull_crash_2025_2026: max_drawdown regressed from production champion"
+      ],
+      "equal_to_I_metrics": true
+    },
+    "e/h2_2024": {
+      "final_wealth": 1.3955925424255622,
+      "max_drawdown": 0.0884926952290751,
+      "account_orders": 10,
+      "acute_return": -0.028553764161304507,
+      "fees": 1580.172348876,
+      "slippage_cost": 3924.2427999996225,
+      "annual_turnover": 3.8002974111167998,
+      "gross_turnover": 1.9629635387999997,
+      "passed": false,
+      "failures": [
+        "e/h2_2024: final_wealth regressed from production champion",
+        "e/h2_2024: acute_return regressed from production champion"
+      ],
+      "equal_to_I_metrics": true
+    },
+    "remove308": {
+      "final_wealth": 1.1550544605071111,
+      "max_drawdown": 0.22534197856844296,
+      "account_orders": 16,
+      "acute_return": null,
+      "fees": 3508.088185778,
+      "slippage_cost": 6725.19079999957,
+      "annual_turnover": 0.9363743675417722,
+      "gross_turnover": 3.3624352289,
+      "actual_strategic_epoch_count": 2,
+      "distinct_owners": [
+        "sh688019",
+        "sz300223"
+      ],
+      "status": "PASS",
+      "accounting_reconciled": true
+    },
+    "remove502": {
+      "final_wealth": 2.3851418754251106,
+      "max_drawdown": 0.23812423499266522,
+      "account_orders": 20,
+      "acute_return": null,
+      "fees": 6567.16374978,
+      "slippage_cost": 11516.085399999434,
+      "annual_turnover": 1.6031173083924053,
+      "gross_turnover": 5.7566485165,
+      "actual_strategic_epoch_count": 2,
+      "distinct_owners": [
+        "sh688233",
+        "sz300223"
+      ],
+      "status": "PASS",
+      "accounting_reconciled": true
+    },
+    "no_optical": {
+      "final_wealth": 4.1754902650867,
+      "max_drawdown": 0.26691848291210774,
+      "account_orders": 29,
+      "acute_return": null,
+      "fees": 13563.2832266,
+      "slippage_cost": 23481.186599998673,
+      "annual_turnover": 3.2686428395569616,
+      "gross_turnover": 11.737399287499999,
+      "sessions": 869,
+      "status": "COMPLETE",
+      "equal_to_I_metrics": true
+    },
+    "remove_all_three": {
+      "final_wealth": 3.765300547049921,
+      "max_drawdown": 0.23396241094537085,
+      "account_orders": 37,
+      "acute_return": null,
+      "fees": 16067.122900159999,
+      "slippage_cost": 28790.782999998635,
+      "annual_turnover": 4.008066872797468,
+      "gross_turnover": 14.3926037705,
+      "sessions": 869,
+      "status": "COMPLETE",
+      "equal_to_I_metrics": true
+    }
+  },
+  "joint_economic_acceptance": false,
+  "original_eight_metrics_preserved": true
+}

@@ -1,0 +1,16 @@
+{
+  "producer": "f0c6913ae5fc6d7c21a902e704b50c19df0eba1f",
+  "remote_preservation": "c0d409ae4a82fd2a4692ae674c55da08832a6ccd",
+  "tree": "352ef678997cb89fcb7fad918f1f1c5bed19beb3",
+  "status": "PARTIAL_SCREEN_ONLY",
+  "acute_return_pct": 4.61081079360002,
+  "h2_wealth": 1.8168767799091217,
+  "h2_mdd": 0.09854024217858659,
+  "h2_orders": 7,
+  "sha256": {
+    "executable-e-acute.json.gz": "14ade7e0456b0e652503b6a37dcbec13099ab8a5df22cb59b9bcb56550c7ef65",
+    "executable-e-h2.json.gz": "f929c6b83b5b8516dae82c5199f5a4d3270e2afd7f24f97bc56b000b26ef0af1"
+  },
+  "tests": "84 focused tests and 17 API/architecture tests passed; targeted Ruff/mypy/diff check passed",
+  "remaining": "native removals running; A/D/E bull, other protections and all final requirements unverified. PR remains Draft; no merge."
+}

@@ -13,7 +13,7 @@ from uquant.types import AccountState, Opportunity, Risk, RiskAssessment
 
 
 def _native_reversal(*, decisive: bool, opportunity: Opportunity,
-                     ordinary_market_evidence: bool = False):
+                     ordinary_market_evidence: bool = False, executable_peer: bool = True):
     # Reuse the native decisive-opening price construction; changing relative
     # evidence creates a real nondecisive quorum, never an injected certificate.
     dates = pd.bdate_range("2023-01-02", periods=251)
@@ -23,6 +23,8 @@ def _native_reversal(*, decisive: bool, opportunity: Opportunity,
         close[-61:-5] = np.linspace(base, .68, 56)
         panel[symbol] = _trend_frame(dates, close=close, ma20=.70, ma60=.72, ret20=.08, ret60=.07)
         panel[symbol]["atr"] = .02
+        if not executable_peer and symbol != "sz300308":
+            panel[symbol]["ma60"] = .80
     leaders = {s: _leader(s, score, industry="optical", mature=False)
                for s, score in (("sz300308", .70), ("sz300394", .60 if decisive else .69), ("sz300502", .20))}
     if decisive:
@@ -63,6 +65,7 @@ def test_nondecisive_synchronized_full_does_not_create_grant_in_choppy():
 def test_nondecisive_full_defers_commitment_without_owner_or_market_confirmation():
     _, account, _, _, _, risk, targets = _native_reversal(
         decisive=False, opportunity=Opportunity.TREND, ordinary_market_evidence=True,
+        executable_peer=False,
     )
     observed = account.strategic_qualification
     assert observed.qualification_ready
@@ -90,14 +93,36 @@ def test_decisive_native_two_member_opening_keeps_choppy_permission():
     assert any(target.symbol == "sz300308" and target.weight > 0 for target in targets)
 
 
-@pytest.mark.parametrize("interruption", ("", "candidate", "signature", "qualification"))
-def test_weak_ready_certificate_commits_only_after_distinct_session_persistence(tmp_path, interruption):
+@pytest.mark.parametrize("executable_peer", (False, True))
+def test_weak_full_cohort_commitment_needs_executable_member_beside_owner(executable_peer):
+    _, account, _, _, _, risk, targets = _native_reversal(
+        decisive=False, opportunity=Opportunity.TREND, ordinary_market_evidence=True,
+        executable_peer=executable_peer,
+    )
+    observed = account.strategic_qualification
+    assert observed.qualification_ready
+    assert observed.evidence_family_status["MARKET_CONFIRMATION"] == "FAILED"
+    assert observed.evidence_family_status["OWNER_ABSOLUTE_QUALITY"] == "FAILED"
+    assert (account.strategic_grant is not None) is executable_peer
+    assert observed.deployment_blocked is not executable_peer
+    if executable_peer:
+        assert any(t.symbol != observed.candidate_symbol and t.weight > 0 for t in targets)
+    else:
+        assert not any(t.weight > 0 for t in targets)
+        assert risk.evidence["core_allocation"]["symbols"][observed.candidate_symbol]["entry_gate"] == (
+            "STRATEGIC_COMMITMENT_EVIDENCE_PENDING"
+        )
+
+
+@pytest.mark.parametrize("peer_repaired", (False, True))
+def test_weak_lone_owner_waits_for_executable_peer_across_sessions_and_restart(tmp_path, peer_repaired):
     from hashlib import sha256
 
     from uquant.account import load_account, save_account
 
     policy, account, dates, panel, leaders, risk, _ = _native_reversal(
         decisive=False, opportunity=Opportunity.TREND, ordinary_market_evidence=True,
+        executable_peer=False,
     )
     observed = account.strategic_qualification
     identity = (observed.candidate_symbol, observed.qualification_signature)
@@ -111,12 +136,6 @@ def test_weak_ready_certificate_commits_only_after_distinct_session_persistence(
         )
         assert account.strategic_grant is None
         assert account.strategic_qualification.deployment_blocked
-    if interruption == "candidate":
-        account.strategic_qualification.candidate_symbol = "previous_candidate"
-    elif interruption == "signature":
-        account.strategic_qualification.qualification_signature = "previous_cohort"
-    elif interruption == "qualification":
-        account.strategic_qualification.qualification_ready = False
     account.data_hash = sha256("".join(
         symbol + frame.to_csv() for symbol, frame in sorted(panel.items())
     ).encode()).hexdigest()
@@ -126,6 +145,8 @@ def test_weak_ready_certificate_commits_only_after_distinct_session_persistence(
     extended = {s: pd.concat((frame, pd.DataFrame(
         [frame.iloc[-1].to_dict()], index=[following],
     ))) for s, frame in panel.items()}
+    if peer_repaired:
+        extended["sz300394"].loc[following, "ma60"] = .72
     targets = policy.allocate(
         date=following, opportunity=Opportunity.TREND, risk=risk,
         user_panel=extended, leaders=leaders, account=account,
@@ -135,7 +156,7 @@ def test_weak_ready_certificate_commits_only_after_distinct_session_persistence(
     assert observed.qualification_ready
     assert (observed.candidate_symbol, observed.qualification_signature) == identity
     assert observed.qualification_evidence_sha256 != evidence  # Hash includes session.
-    if interruption:
+    if not peer_repaired:
         assert observed.deployment_blocked
         assert account.strategic_grant is None
         assert not any(t.weight > 0 for t in targets)
@@ -145,7 +166,8 @@ def test_weak_ready_certificate_commits_only_after_distinct_session_persistence(
     assert any(t.symbol == identity[0] and t.weight > 0 for t in targets)
 
 
-def test_native_partial_grant_keeps_identity_after_restart_in_choppy(tmp_path):
+@pytest.mark.parametrize("decisive", (False, True))
+def test_native_partial_grant_keeps_identity_after_restart_in_choppy(tmp_path, decisive):
     from hashlib import sha256
 
     from uquant.account import load_account, save_account
@@ -154,7 +176,7 @@ def test_native_partial_grant_keeps_identity_after_restart_in_choppy(tmp_path):
     from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
     policy, account, dates, panel, leaders, risk, targets = _native_reversal(
-        decisive=True, opportunity=Opportunity.TREND,
+        decisive=decisive, opportunity=Opportunity.TREND,
     )
     grant = account.strategic_grant
     assert grant is not None

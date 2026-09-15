@@ -48,7 +48,7 @@ from .ordinary import (
 from .recovery.current_cohort import allocate_confirmed_recovery
 from .recovery.tactical_admission import tactical_admission_targets
 from .strategic.authority import assess_strategic_capital_authority
-from .strategic.discovery import DEFERRED_STRATEGIC_COMMITMENT_REASON, current_core_qualification
+from .strategic.discovery import current_core_qualification
 from .strategic.grant_lifecycle import completed_strategic_cohort_entry
 from .strategic.grant_lifecycle import completed_strategic_core_entry as _completed_strategic_core_entry
 from .strategic.qualification_candidates import (
@@ -622,7 +622,7 @@ def _same_deferred_strategic_certificate(book: AllocationBook, symbol: str) -> b
         observed.candidate_symbol == symbol
         and observed.qualification_ready
         and observed.deployment_blocked
-        and observed.deployment_block_reason == DEFERRED_STRATEGIC_COMMITMENT_REASON
+        and observed.deployment_block_reason == "strategic_commitment_evidence_not_confirmed"
         and observed.qualification_last_observed_session == str(book.date.date())
         and entry.get("qualification_quorum") == observed.qualification_quorum == "FULL_COHORT"
         and entry.get("qualification_signature") == observed.qualification_signature
@@ -692,20 +692,10 @@ def _mature_admission_weights(book: AllocationBook, eligible: list[str],
     return mature_cycle_weights(book, symbols, opportunity)
 
 
-def _admit_new_cores(
-    book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
-) -> None:
-    if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
-        block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
-        for symbol in candidates:
-            book.record(symbol)["entry_gate"] = block
-        return
-    budget = _ordinary_admission_budget(book)
-    if budget is None:
-        for symbol in candidates:
-            book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
-        return
-    occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+def _deferred_core_entries(
+    book: AllocationBook, eligible: list[str], market: dict[str, Any],
+) -> dict[str, str]:
+    """Preserve capital-confirmation and exact-certificate arbitration precedence."""
     deployed_ordinary = any(
         weight > 1e-12 and symbol not in book.owned
         for symbol, weight in book.weights_now.items()
@@ -725,22 +715,36 @@ def _admit_new_cores(
     strategic_commitment_deferred = {
         symbol for symbol in eligible if _same_deferred_strategic_certificate(book, symbol)
     }
-    eligible = [symbol for symbol in eligible
-                if symbol not in deployment_pending and symbol not in strategic_commitment_deferred]
+    blocked = dict.fromkeys(strategic_commitment_deferred, "STRATEGIC_COMMITMENT_EVIDENCE_PENDING")
+    blocked.update(dict.fromkeys(deployment_pending, "DEPLOYMENT_CONFIRMATION_PENDING"))
+    return blocked
+
+
+def _admit_new_cores(
+    book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
+) -> None:
+    if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
+        block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
+        for symbol in candidates:
+            book.record(symbol)["entry_gate"] = block
+        return
+    budget = _ordinary_admission_budget(book)
+    if budget is None:
+        for symbol in candidates:
+            book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
+        return
+    occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+    blocked = _deferred_core_entries(book, eligible, market)
+    eligible = [symbol for symbol in eligible if symbol not in blocked]
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
     cycle_weights = _mature_admission_weights(book, eligible, opportunity)
     # Maturity sizes an already eligible request; an absent mature target
     # leaves the ordinary initial tier subject to the same slots and cash.
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
+    blocked.update(dict.fromkeys(occupied, "EXISTING_HOLDING_OR_COMMITMENT"))
     for symbol in candidates:
-        if symbol in occupied:
-            book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
-            continue
-        if symbol in deployment_pending:
-            book.record(symbol)["entry_gate"] = "DEPLOYMENT_CONFIRMATION_PENDING"
-            continue
-        if symbol in strategic_commitment_deferred:
-            book.record(symbol)["entry_gate"] = "STRATEGIC_COMMITMENT_EVIDENCE_PENDING"
+        if symbol in blocked:
+            book.record(symbol)["entry_gate"] = blocked[symbol]
             continue
         if symbol not in eligible:
             book.record(symbol)["entry_gate"] = (

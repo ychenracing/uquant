@@ -57,8 +57,6 @@ from .rearm import (
     strategic_cash_rearm_grant_open,
 )
 
-DEFERRED_STRATEGIC_COMMITMENT_REASON = "strategic_commitment_evidence_not_confirmed"
-
 
 class StrategicPortfolioPolicy(PortfolioCore):
     """Discover, protect, trail, and retire a causal strategic cohort."""
@@ -868,19 +866,6 @@ def _record_ready_strategic_qualification(
         if quorum is not None
         else {}
     )
-    previous = account.strategic_qualification
-    ready_session_key = "strategic_commitment_first_ready_session"
-    if streak < required_days:
-        account.candidate_tenure.pop(ready_session_key, None)
-    elif not (
-        previous.qualification_ready
-        and previous.candidate_symbol == candidate
-        and previous.qualification_signature == signature
-        and previous.qualification_quorum == quorum_route
-    ):
-        account.candidate_tenure[ready_session_key] = date.toordinal()
-    else:
-        account.candidate_tenure.setdefault(ready_session_key, date.toordinal())
     account.strategic_qualification = StrategicQualificationObservation(
         candidate_symbol=candidate,
         qualification_signature=signature,
@@ -1058,23 +1043,13 @@ def _initialize_strategic_cohort(
     if qualified is None or account.strategic_qualification.deployment_blocked:
         return
     evidence = account.strategic_qualification.evidence_family_status
-    if (
+    weak_formation = (
         qualified.route == "reversal_industry"
         and qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value
         and qualified.decisive_reversal_symbol is None
         and evidence.get("MARKET_CONFIRMATION") == "FAILED"
         and evidence.get("OWNER_ABSOLUTE_QUALITY") == "FAILED"
-        and (
-            account.strategic_qualification.qualification_streak <= self.cfg.strategic_cohort_confirm_days
-            or account.candidate_tenure.get("strategic_commitment_first_ready_session", date.toordinal())
-            >= date.toordinal()
-        )
-    ):
-        # READY remains unchanged. Observe this candidate and cohort on a later
-        # distinct session before its first discretionary capital commitment.
-        account.strategic_qualification.deployment_blocked = True
-        account.strategic_qualification.deployment_block_reason = DEFERRED_STRATEGIC_COMMITMENT_REASON
-        return
+    )
     if not qualified.cash_rearm_authorized and not _new_strategic_formation_open(
         self, route=route, snapshots=snapshots, quorum_route=qualified.quorum_route,
         admission_open=admission_open,
@@ -1102,6 +1077,19 @@ def _initialize_strategic_cohort(
         self, qualified=qualified, entries=entry_eligibility, snapshots=snapshots,
         leaders=resolved_leaders, account=account, risk=risk, date=date, user_panel=user_panel,
     )
+    observed = account.strategic_qualification
+    if weak_formation and not any(
+        symbol != observed.candidate_symbol
+        and entry.get("block") == "READY"
+        and entry.get("qualification_signature") == observed.qualification_signature
+        and entry.get("qualification_evidence_sha256") == observed.qualification_evidence_sha256
+        for symbol, entry in entry_eligibility.items()
+    ):
+        # A weak full-cohort certificate alone does not justify funding a lone
+        # executable owner. Preserve eligibility while waiting for a real peer.
+        observed.deployment_blocked = True
+        observed.deployment_block_reason = "strategic_commitment_evidence_not_confirmed"
+        return
     activate_strategic_cohort(
         self,
         entry_eligibility=entry_eligibility,

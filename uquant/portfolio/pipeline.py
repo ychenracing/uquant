@@ -129,7 +129,7 @@ def _available_transfer_incumbent(
             or str(date.date()) in account.rotation_dates or not self._rotation_allowed(account, date, user_panel)):
         return None
     held = [s for s, weight in weights_now.items() if weight > 0 and s in leaders and s in user_panel]
-    if not held or len(held) >= self.cfg.max_positions:
+    if not held:
         return None
     return min(held, key=lambda s: (self._retention_score(s, leaders, account), s))
 
@@ -740,7 +740,10 @@ def _admit_new_cores(
     cycle_weights = _mature_admission_weights(book, eligible, opportunity)
     # Maturity sizes an already eligible request; an absent mature target
     # leaves the ordinary initial tier subject to the same slots and cash.
-    selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
+    # A full book can still evaluate its highest-ranked challenger for a sale
+    # that frees a slot. Funding checks the actual committed position count;
+    # transfer feasibility checks the count after the proposed incumbent sale.
+    selected = eligible[:max(1, book.policy.cfg.max_positions - len(occupied))]
     blocked.update(dict.fromkeys(occupied, "EXISTING_HOLDING_OR_COMMITMENT"))
     for symbol in candidates:
         if symbol in blocked:

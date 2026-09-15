@@ -1,0 +1,37 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+____ test_deployment_arbitrates_only_the_same_strategic_certificate[False] _____
+
+deferred = False
+
+    @pytest.mark.parametrize("deferred", [False, True])
+    def test_deployment_arbitrates_only_the_same_strategic_certificate(deferred):
+        account = AccountState.empty(2_000_000.0)
+        symbol = "sh688766"
+        date = pd.Timestamp("2025-01-02")
+        entry = {"block": "READY", "qualification_quorum": "ORDINARY_CORE"}
+        if deferred:
+            entry.update(qualification_quorum="FULL_COHORT", qualification_signature="proof",
+                         qualification_evidence_sha256="digest")
+            observed = account.strategic_qualification
+            observed.candidate_symbol = symbol
+            observed.qualification_ready = True
+            observed.deployment_blocked = True
+            observed.deployment_block_reason = "strategic_commitment_evidence_not_confirmed"
+            observed.qualification_last_observed_session = str(date.date())
+            observed.qualification_quorum = "FULL_COHORT"
+            observed.qualification_signature = "proof"
+            observed.qualification_evidence_sha256 = "digest"
+        book = SimpleNamespace(account=account, date=date, owned=set(), weights_now={},
+                               record=lambda symbol: {"entry": entry})
+        blocked = _deferred_core_entries(book, [symbol], {"leader_cycle_armed": False})
+>       assert blocked == ({symbol: "STRATEGIC_COMMITMENT_EVIDENCE_PENDING"} if deferred else {})
+E       AssertionError: assert {'sh688766': ...TION_PENDING'} == {}
+E         
+E         Left contains 1 more item:
+E         {'sh688766': 'DEPLOYMENT_CONFIRMATION_PENDING'}
+E         Use -v to get more diff
+
+tests/test_ordinary_deployment_ablation.py:32: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ordinary_deployment_ablation.py::test_deployment_arbitrates_only_the_same_strategic_certificate[False]

@@ -1,0 +1,2038 @@
+{
+  "baseline": [
+    {
+      "date": "2025-02-05",
+      "equity": 2197772.75318636,
+      "risk": "NORMAL",
+      "gross": 0.0,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.34781318082788676
+      },
+      "ordinary_market": {
+        "as_of": "2025-02-05",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh603986",
+          "sh688766"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh603986",
+            "sh688766"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "settled_strategic_rotation_open": false,
+        "tech_ret120": 0.4358556632143804
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-02-07",
+      "equity": 2197772.75318636,
+      "risk": "NORMAL",
+      "gross": 0.0,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.1782361111111111
+      },
+      "ordinary_market": {
+        "as_of": "2025-02-07",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh601869",
+          "sh603986",
+          "sh688110",
+          "sh688766"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": true,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 2,
+          "required": 5,
+          "witnesses": [
+            "sh601869",
+            "sh603986",
+            "sh688110",
+            "sh688766"
+          ]
+        },
+        "repair_mature_entry_open": true,
+        "settled_strategic_rotation_open": false,
+        "tech_ret120": 0.5888632397599918
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "as_of": "2025-02-07",
+            "block": "READY",
+            "checks": {
+              "confidence": {
+                "as_of": "2025-02-07",
+                "minimum": 0.7,
+                "passed": true,
+                "value": 1.0
+              },
+              "current_data": {
+                "as_of": "2025-02-07",
+                "passed": true
+              },
+              "history": {
+                "as_of": "2025-02-07",
+                "minimum": 121,
+                "passed": true,
+                "value": 1848
+              },
+              "industry": {
+                "as_of": "2025-02-07",
+                "passed": true
+              },
+              "liquidity": {
+                "as_of": "2025-02-07",
+                "passed": true
+              },
+              "structure": {
+                "as_of": "2025-02-07",
+                "passed": true
+              }
+            },
+            "confirmations": {
+              "leader_tenure": 21
+            },
+            "qualification_quorum": "ORDINARY_CORE",
+            "qualification_route": "mature_core",
+            "required_confirmation": 5
+          },
+          "entry_gate": "DEPLOYMENT_CONFIRMATION_PENDING",
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-02-28",
+      "equity": 2197772.75318636,
+      "risk": "NORMAL",
+      "gross": 0.0,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.452763099349891
+      },
+      "ordinary_market": {
+        "as_of": "2025-02-28",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh603986",
+          "sh688041",
+          "sh688110",
+          "sh688200",
+          "sh688256",
+          "sh688766"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": true,
+        "persistent_maturity": {
+          "observed": 5,
+          "required": 5,
+          "witnesses": [
+            "sh603986",
+            "sh688041",
+            "sh688110",
+            "sh688200",
+            "sh688256",
+            "sh688766"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "settled_strategic_rotation_open": false,
+        "tech_ret120": 0.7128699180034117
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-03-03",
+      "equity": 2197772.75318636,
+      "risk": "NORMAL",
+      "gross": 0.0,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.5104328085459808
+      },
+      "ordinary_market": {
+        "as_of": "2025-03-03",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh603986",
+          "sh688110",
+          "sh688200"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh603986",
+            "sh688110",
+            "sh688200"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "settled_strategic_rotation_open": false,
+        "tech_ret120": 0.7063574381986333
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-04-03",
+      "equity": 2197772.75318636,
+      "risk": "CAUTION",
+      "gross": 0.0,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 1,
+        "shock_state": "NONE",
+        "transition_damage": 0.6126478758169934
+      },
+      "ordinary_market": {
+        "as_of": "2025-04-03",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688110"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688110"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.049095198028592524
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.6,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-05-08",
+      "equity": 2471469.07400876,
+      "risk": "NORMAL",
+      "gross": 0.6429827573858476,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.16219161640911758
+      },
+      "ordinary_market": {
+        "as_of": "2025-05-08",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688019",
+          "sh688037",
+          "sh688110",
+          "sh688233"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688019",
+            "sh688037",
+            "sh688110",
+            "sh688233"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.07095918453668704
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.6,
+          "held_weight": 0.6429827573858476
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.07312549008165777,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.20389175253249459,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-06-24",
+      "equity": 3232030.479630956,
+      "risk": "NORMAL",
+      "gross": 0.9357176298489985,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.09128022875816993
+      },
+      "ordinary_market": {
+        "as_of": "2025-06-24",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688019",
+          "sh688233",
+          "sh688498",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688019",
+            "sh688233",
+            "sh688498",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": -0.024170890553094737
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.6,
+          "held_weight": 0.6437686813639143
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.07468147392829066,
+          "held_weight": 0.07468147392829066
+        },
+        "sz300502": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.21726747455679357,
+          "held_weight": 0.21726747455679357
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-07-09",
+      "equity": 3802551.2796309562,
+      "risk": "NORMAL",
+      "gross": 0.9453623200970692,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.20909008397737963
+      },
+      "ordinary_market": {
+        "as_of": "2025-07-09",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688233",
+          "sh688498",
+          "sz300308",
+          "sz300394",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 1,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 4,
+          "required": 5,
+          "witnesses": [
+            "sh688233",
+            "sh688498",
+            "sz300308",
+            "sz300394",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.025762427456842207
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "as_of": "2025-07-09",
+            "block": "READY",
+            "checks": {
+              "confidence": {
+                "as_of": "2025-07-09",
+                "minimum": 0.7,
+                "passed": true,
+                "value": 1.0
+              },
+              "current_data": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "history": {
+                "as_of": "2025-07-09",
+                "minimum": 121,
+                "passed": true,
+                "value": 2631
+              },
+              "industry": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "liquidity": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "structure": {
+                "as_of": "2025-07-09",
+                "passed": true
+              }
+            },
+            "confirmations": {
+              "transition": 2
+            },
+            "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification_route": "transition",
+            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+            "required_confirmation": 2,
+            "witnesses": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ]
+          },
+          "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+          "final_target_weight": 0.6,
+          "held_weight": 0.6357626294088069
+        },
+        "sz300394": {
+          "entry": {
+            "as_of": "2025-07-09",
+            "block": "READY",
+            "checks": {
+              "confidence": {
+                "as_of": "2025-07-09",
+                "minimum": 0.7,
+                "passed": true,
+                "value": 1.0
+              },
+              "current_data": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "history": {
+                "as_of": "2025-07-09",
+                "minimum": 121,
+                "passed": true,
+                "value": 2511
+              },
+              "industry": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "liquidity": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "structure": {
+                "as_of": "2025-07-09",
+                "passed": true
+              }
+            },
+            "confirmations": {
+              "transition": 2
+            },
+            "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification_route": "transition",
+            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+            "required_confirmation": 2,
+            "witnesses": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ]
+          },
+          "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+          "final_target_weight": 0.07454826487639414,
+          "held_weight": 0.07454826487639414
+        },
+        "sz300502": {
+          "entry": {
+            "as_of": "2025-07-09",
+            "block": "READY",
+            "checks": {
+              "confidence": {
+                "as_of": "2025-07-09",
+                "minimum": 0.7,
+                "passed": true,
+                "value": 1.0
+              },
+              "current_data": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "history": {
+                "as_of": "2025-07-09",
+                "minimum": 121,
+                "passed": true,
+                "value": 2271
+              },
+              "industry": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "liquidity": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "structure": {
+                "as_of": "2025-07-09",
+                "passed": true
+              }
+            },
+            "confirmations": {
+              "transition": 2
+            },
+            "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification_route": "transition",
+            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+            "required_confirmation": 2,
+            "witnesses": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ]
+          },
+          "entry_gate": "FAILED_DEPLOYMENT_UNSETTLED",
+          "final_target_weight": 0.23505142581186814,
+          "held_weight": 0.23505142581186814
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-10-16",
+      "equity": 9235392.499958128,
+      "risk": "CAUTION",
+      "gross": 0.6455295105245423,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 1,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 1,
+        "shock_state": "RECOVERY",
+        "transition_damage": 0.3534444272069165
+      },
+      "ordinary_market": {
+        "as_of": "2025-10-16",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.46209355249899464
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.5904408502426641,
+          "held_weight": 0.5904408502426641
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.055088660281878296,
+          "held_weight": 0.055088660281878296
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-10-21",
+      "equity": 10409784.09995813,
+      "risk": "CAUTION",
+      "gross": 0.6855195008346718,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 1,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 1,
+        "shock_state": "RECOVERY",
+        "transition_damage": 0.16191783022599987
+      },
+      "ordinary_market": {
+        "as_of": "2025-10-21",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688498",
+          "sz300308",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688498",
+            "sz300308",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4597156739168531
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.6,
+          "held_weight": 0.6305077931468722,
+          "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.16000000000000003,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.1294922068531278,
+          "held_weight": 0.05501170768779954
+        }
+      },
+      "fills": []
+    }
+  ],
+  "deployment": [
+    {
+      "date": "2025-02-05",
+      "equity": 2197772.75318636,
+      "risk": "NORMAL",
+      "gross": 0.0,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.34781318082788676
+      },
+      "ordinary_market": {
+        "as_of": "2025-02-05",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh603986",
+          "sh688766"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh603986",
+            "sh688766"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4358556632143804
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-02-07",
+      "equity": 2197772.75318636,
+      "risk": "NORMAL",
+      "gross": 0.0,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.1782361111111111
+      },
+      "ordinary_market": {
+        "as_of": "2025-02-07",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh601869",
+          "sh603986",
+          "sh688110",
+          "sh688766"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": true,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 2,
+          "required": 5,
+          "witnesses": [
+            "sh601869",
+            "sh603986",
+            "sh688110",
+            "sh688766"
+          ]
+        },
+        "repair_mature_entry_open": true,
+        "tech_ret120": 0.5888632397599918
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "as_of": "2025-02-07",
+            "block": "READY",
+            "checks": {
+              "confidence": {
+                "as_of": "2025-02-07",
+                "minimum": 0.7,
+                "passed": true,
+                "value": 1.0
+              },
+              "current_data": {
+                "as_of": "2025-02-07",
+                "passed": true
+              },
+              "history": {
+                "as_of": "2025-02-07",
+                "minimum": 121,
+                "passed": true,
+                "value": 1848
+              },
+              "industry": {
+                "as_of": "2025-02-07",
+                "passed": true
+              },
+              "liquidity": {
+                "as_of": "2025-02-07",
+                "passed": true
+              },
+              "structure": {
+                "as_of": "2025-02-07",
+                "passed": true
+              }
+            },
+            "confirmations": {
+              "leader_tenure": 21
+            },
+            "qualification_quorum": "ORDINARY_CORE",
+            "qualification_route": "mature_core",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.2,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-02-28",
+      "equity": 2209508.3897479125,
+      "risk": "RISK_OFF",
+      "gross": 0.9607646704804759,
+      "sector_guard": true,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 3,
+        "shock_state": "SECTOR_GUARD",
+        "transition_damage": 0.452763099349891
+      },
+      "ordinary_market": {
+        "as_of": "2025-02-28",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh603986",
+          "sh688041",
+          "sh688110",
+          "sh688200",
+          "sh688256",
+          "sh688766"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "mature_rearm_confirmation": {
+          "observed": 0,
+          "required": 5
+        },
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh603986",
+            "sh688041",
+            "sh688110",
+            "sh688200",
+            "sh688256",
+            "sh688766"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.7128699180034117
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.18343175426740102
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-03-03",
+      "equity": 2208095.5524728964,
+      "risk": "RISK_OFF",
+      "gross": 0.0,
+      "sector_guard": true,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 2,
+        "shock_state": "SECTOR_GUARD",
+        "transition_damage": 0.5104328085459808
+      },
+      "ordinary_market": {
+        "as_of": "2025-03-03",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh603986",
+          "sh688110",
+          "sh688200"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "mature_rearm_confirmation": {
+          "observed": 0,
+          "required": 5
+        },
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh603986",
+            "sh688110",
+            "sh688200"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.7063574381986333
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": [
+        {
+          "mechanism": "SECTOR_GUARD",
+          "price": 36.325638000000005,
+          "reason": "sector guard gross cap; level-1 risk freeze; retain existing exposure",
+          "shares": 11100,
+          "side": "SELL",
+          "symbol": "sh601869"
+        },
+        {
+          "mechanism": "SECTOR_GUARD",
+          "price": 133.77609,
+          "reason": "sector guard gross cap; level-1 risk freeze; retain existing exposure",
+          "shares": 3100,
+          "side": "SELL",
+          "symbol": "sh603986"
+        },
+        {
+          "mechanism": "SECTOR_GUARD",
+          "price": 481.732785,
+          "reason": "sector guard gross cap; level-1 risk freeze; retain existing exposure",
+          "shares": 900,
+          "side": "SELL",
+          "symbol": "sh688256"
+        },
+        {
+          "mechanism": "SECTOR_GUARD",
+          "price": 84.534381,
+          "reason": "sector guard gross cap; level-1 risk freeze; retain existing exposure",
+          "shares": 5300,
+          "side": "SELL",
+          "symbol": "sh688766"
+        },
+        {
+          "mechanism": "SECTOR_GUARD",
+          "price": 54.29565,
+          "reason": "sector guard gross cap; level-1 risk freeze; retain existing exposure",
+          "shares": 7800,
+          "side": "SELL",
+          "symbol": "sz002281"
+        }
+      ]
+    },
+    {
+      "date": "2025-04-03",
+      "equity": 2208095.5524728964,
+      "risk": "RISK_OFF",
+      "gross": 0.0,
+      "sector_guard": true,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 2,
+        "shock_state": "SECTOR_GUARD",
+        "transition_damage": 0.6126478758169934
+      },
+      "ordinary_market": {
+        "as_of": "2025-04-03",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688110"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "mature_rearm_confirmation": {
+          "observed": 0,
+          "required": 5
+        },
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688110"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.049095198028592524
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-05-08",
+      "equity": 2208095.5524728964,
+      "risk": "RISK_OFF",
+      "gross": 0.0,
+      "sector_guard": true,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 2,
+        "shock_state": "SECTOR_GUARD",
+        "transition_damage": 0.16219161640911758
+      },
+      "ordinary_market": {
+        "as_of": "2025-05-08",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688019",
+          "sh688037",
+          "sh688110",
+          "sh688233"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "mature_rearm_confirmation": {
+          "observed": 0,
+          "required": 5
+        },
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688019",
+            "sh688037",
+            "sh688110",
+            "sh688233"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.07095918453668704
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-06-24",
+      "equity": 2208095.5524728964,
+      "risk": "NORMAL",
+      "gross": 0.0,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.09128022875816993
+      },
+      "ordinary_market": {
+        "as_of": "2025-06-24",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688019",
+          "sh688233",
+          "sh688498",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "mature_rearm_confirmation": {
+          "observed": 0,
+          "required": 5
+        },
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688019",
+            "sh688233",
+            "sh688498",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": -0.024170890553094737
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0,
+          "restore_block": "NEW_ENTRY_REQUIRES_QUALIFICATION"
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-07-09",
+      "equity": 2218102.9108512243,
+      "risk": "NORMAL",
+      "gross": 0.7940338527052827,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 0,
+        "chronic_level": 0,
+        "freeze_new_risk": false,
+        "reduction_level": 0,
+        "shock_state": "NONE",
+        "transition_damage": 0.20909008397737963
+      },
+      "ordinary_market": {
+        "as_of": "2025-07-09",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688233",
+          "sh688498",
+          "sz300308",
+          "sz300394",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 1,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "mature_rearm_confirmation": {
+          "observed": 0,
+          "required": 5
+        },
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 4,
+          "required": 5,
+          "witnesses": [
+            "sh688233",
+            "sh688498",
+            "sz300308",
+            "sz300394",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.025762427456842207
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0,
+          "restore_block": "NEW_ENTRY_REQUIRES_QUALIFICATION"
+        },
+        "sz300308": {
+          "entry": {
+            "as_of": "2025-07-09",
+            "block": "READY",
+            "checks": {
+              "confidence": {
+                "as_of": "2025-07-09",
+                "minimum": 0.7,
+                "passed": true,
+                "value": 1.0
+              },
+              "current_data": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "history": {
+                "as_of": "2025-07-09",
+                "minimum": 121,
+                "passed": true,
+                "value": 2631
+              },
+              "industry": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "liquidity": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "structure": {
+                "as_of": "2025-07-09",
+                "passed": true
+              }
+            },
+            "confirmations": {
+              "transition": 2
+            },
+            "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification_route": "transition",
+            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+            "required_confirmation": 2,
+            "witnesses": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ]
+          },
+          "entry_gate": "POSITION_SLOTS_EXHAUSTED",
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300394": {
+          "entry": {
+            "as_of": "2025-07-09",
+            "block": "READY",
+            "checks": {
+              "confidence": {
+                "as_of": "2025-07-09",
+                "minimum": 0.7,
+                "passed": true,
+                "value": 1.0
+              },
+              "current_data": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "history": {
+                "as_of": "2025-07-09",
+                "minimum": 121,
+                "passed": true,
+                "value": 2511
+              },
+              "industry": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "liquidity": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "structure": {
+                "as_of": "2025-07-09",
+                "passed": true
+              }
+            },
+            "confirmations": {
+              "transition": 2
+            },
+            "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification_route": "transition",
+            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+            "required_confirmation": 2,
+            "witnesses": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ]
+          },
+          "entry_gate": "POSITION_SLOTS_EXHAUSTED",
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "as_of": "2025-07-09",
+            "block": "READY",
+            "checks": {
+              "confidence": {
+                "as_of": "2025-07-09",
+                "minimum": 0.7,
+                "passed": true,
+                "value": 1.0
+              },
+              "current_data": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "history": {
+                "as_of": "2025-07-09",
+                "minimum": 121,
+                "passed": true,
+                "value": 2271
+              },
+              "industry": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "liquidity": {
+                "as_of": "2025-07-09",
+                "passed": true
+              },
+              "structure": {
+                "as_of": "2025-07-09",
+                "passed": true
+              }
+            },
+            "confirmations": {
+              "transition": 2
+            },
+            "qualification_evidence_sha256": "962990791e47c85587682bbd39561fb32a5203cfd7af52d706e68101d846bcf4",
+            "qualification_quorum": "FULL_COHORT",
+            "qualification_route": "transition",
+            "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical,sz300502:optical:evidence=transition",
+            "required_confirmation": 2,
+            "witnesses": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ]
+          },
+          "final_target_weight": 0.2059661472947173,
+          "held_weight": 0.0
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-10-16",
+      "equity": 4195866.001695661,
+      "risk": "CAUTION",
+      "gross": 0.5049621935361509,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 1,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 1,
+        "shock_state": "NONE",
+        "transition_damage": 0.3534444272069165
+      },
+      "ordinary_market": {
+        "as_of": "2025-10-16",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.46209355249899464
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.06105509563376697,
+          "held_weight": 0.06105509563376697
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.17085786336129016,
+          "held_weight": 0.17085786336129016
+        }
+      },
+      "fills": []
+    },
+    {
+      "date": "2025-10-21",
+      "equity": 4284950.301695661,
+      "risk": "CAUTION",
+      "gross": 0.515254050700729,
+      "sector_guard": false,
+      "risk_state": {
+        "capital_budget_level": 1,
+        "chronic_level": 0,
+        "freeze_new_risk": true,
+        "reduction_level": 1,
+        "shock_state": "NONE",
+        "transition_damage": 0.16191783022599987
+      },
+      "ordinary_market": {
+        "as_of": "2025-10-21",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688498",
+          "sz300308",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688498",
+            "sz300308",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4597156739168531
+      },
+      "cores": {
+        "sh603986": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300308": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.07196116134135284,
+          "held_weight": 0.07196116134135284
+        },
+        "sz300394": {
+          "entry": {
+            "block": "NOT_MATURE",
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.0,
+          "held_weight": 0.0
+        },
+        "sz300502": {
+          "entry": {
+            "block": "CONFIRMATION_INCOMPLETE",
+            "confirmations": {
+              "independent_core": 0
+            },
+            "required_confirmation": 5
+          },
+          "final_target_weight": 0.1883172366504876,
+          "held_weight": 0.1883172366504876
+        }
+      },
+      "fills": []
+    }
+  ]
+}

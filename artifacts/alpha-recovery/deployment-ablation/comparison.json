@@ -1,0 +1,2217 @@
+{
+  "comparisons": {
+    "a": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_metrics": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "final_wealth": 11.87065858669219,
+        "gross_turnover": 18.4081591135,
+        "max_drawdown": 0.16004817592256193
+      },
+      "baseline_sha256": "a18b83cefb61d413d0d0e2c6cac3b624fddce18b4a3ad790b13820829f8af518",
+      "candidate_commit": "7b000bc9170e6c9233dd82fd38bc34613be0fafd",
+      "candidate_metrics": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "final_wealth": 11.87065858669219,
+        "gross_turnover": 18.4081591135,
+        "max_drawdown": 0.16004817592256193
+      },
+      "candidate_sha256": "141fd44e8e21c65cd8aed4803e209932e5ac2989ab418e8d91f2eca9a937797c",
+      "changed_source_files": [
+        "uquant/portfolio/pipeline.py"
+      ],
+      "equity_differences": [],
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "environment",
+        "symbols",
+        "adapter_sha256",
+        "runner_sha256"
+      ],
+      "sessions": 382
+    },
+    "e": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_metrics": {
+        "account_orders": 13,
+        "annual_turnover": 11.676899188185864,
+        "final_wealth": 13.821022723557565,
+        "gross_turnover": 18.432130123500002,
+        "max_drawdown": 0.17253036736852323
+      },
+      "baseline_sha256": "769b1092dc3ad76cc252a26249850f5f0c945a68b0fe278fd6f4fec25de6bf5a",
+      "candidate_commit": "7b000bc9170e6c9233dd82fd38bc34613be0fafd",
+      "candidate_metrics": {
+        "account_orders": 34,
+        "annual_turnover": 5.102429461002355,
+        "final_wealth": 2.0787587597870383,
+        "gross_turnover": 8.05424815745,
+        "max_drawdown": 0.18523439864176305
+      },
+      "candidate_sha256": "0d7b202d871c3769aa1a0ea1a3f798d1d21c75ba7c3df8debc62997a4da43b31",
+      "changed_source_files": [
+        "uquant/portfolio/pipeline.py"
+      ],
+      "equity_differences": [
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2183264.08522153,
+          "date": "2025-02-10"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2160064.0047445125,
+          "date": "2025-02-11"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2167273.704744512,
+          "date": "2025-02-12"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2093530.9047445124,
+          "date": "2025-02-13"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2090166.2047445122,
+          "date": "2025-02-14"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2116821.3047445123,
+          "date": "2025-02-17"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2048614.8897479125,
+          "date": "2025-02-18"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2091697.9897479122,
+          "date": "2025-02-19"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2093313.2897479124,
+          "date": "2025-02-20"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2267739.9897479126,
+          "date": "2025-02-21"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2382665.6897479123,
+          "date": "2025-02-24"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2362625.0897479123,
+          "date": "2025-02-25"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2387443.1897479123,
+          "date": "2025-02-26"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2333415.6897479123,
+          "date": "2025-02-27"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2209508.3897479125,
+          "date": "2025-02-28"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-03"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-04"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-05"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-06"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-07"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-10"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-11"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-12"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-13"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-14"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-17"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-18"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-19"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-20"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-21"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-24"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-25"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-26"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-27"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-28"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-03-31"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-01"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-02"
+        },
+        {
+          "baseline_equity": 2197772.75318636,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-03"
+        },
+        {
+          "baseline_equity": 2112117.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-07"
+        },
+        {
+          "baseline_equity": 2064741.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-08"
+        },
+        {
+          "baseline_equity": 2059869.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-09"
+        },
+        {
+          "baseline_equity": 2152269.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-10"
+        },
+        {
+          "baseline_equity": 2167053.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-11"
+        },
+        {
+          "baseline_equity": 2220309.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-14"
+        },
+        {
+          "baseline_equity": 2197293.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-15"
+        },
+        {
+          "baseline_equity": 2160669.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-16"
+        },
+        {
+          "baseline_equity": 2154285.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-17"
+        },
+        {
+          "baseline_equity": 2179989.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-18"
+        },
+        {
+          "baseline_equity": 2214429.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-21"
+        },
+        {
+          "baseline_equity": 2195613.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-22"
+        },
+        {
+          "baseline_equity": 2253573.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-23"
+        },
+        {
+          "baseline_equity": 2216781.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-24"
+        },
+        {
+          "baseline_equity": 2282973.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-25"
+        },
+        {
+          "baseline_equity": 2251389.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-28"
+        },
+        {
+          "baseline_equity": 2246349.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-29"
+        },
+        {
+          "baseline_equity": 2253069.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-04-30"
+        },
+        {
+          "baseline_equity": 2306157.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-06"
+        },
+        {
+          "baseline_equity": 2306157.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-07"
+        },
+        {
+          "baseline_equity": 2471469.07400876,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-08"
+        },
+        {
+          "baseline_equity": 2454078.579630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-09"
+        },
+        {
+          "baseline_equity": 2518332.579630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-12"
+        },
+        {
+          "baseline_equity": 2516907.2796309562,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-13"
+        },
+        {
+          "baseline_equity": 2565542.3796309563,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-14"
+        },
+        {
+          "baseline_equity": 2472265.7796309562,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-15"
+        },
+        {
+          "baseline_equity": 2549947.179630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-16"
+        },
+        {
+          "baseline_equity": 2490175.179630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-19"
+        },
+        {
+          "baseline_equity": 2511182.379630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-20"
+        },
+        {
+          "baseline_equity": 2515471.7796309562,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-21"
+        },
+        {
+          "baseline_equity": 2494445.079630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-22"
+        },
+        {
+          "baseline_equity": 2436614.979630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-23"
+        },
+        {
+          "baseline_equity": 2445775.479630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-26"
+        },
+        {
+          "baseline_equity": 2389705.479630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-27"
+        },
+        {
+          "baseline_equity": 2472114.2796309562,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-28"
+        },
+        {
+          "baseline_equity": 2539053.2796309562,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-29"
+        },
+        {
+          "baseline_equity": 2521948.179630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-05-30"
+        },
+        {
+          "baseline_equity": 2479363.7796309562,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-03"
+        },
+        {
+          "baseline_equity": 2621879.079630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-04"
+        },
+        {
+          "baseline_equity": 2751079.7796309562,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-05"
+        },
+        {
+          "baseline_equity": 2785997.979630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-06"
+        },
+        {
+          "baseline_equity": 2899480.179630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-09"
+        },
+        {
+          "baseline_equity": 2872901.079630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-10"
+        },
+        {
+          "baseline_equity": 2865549.2796309562,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-11"
+        },
+        {
+          "baseline_equity": 3039974.679630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-12"
+        },
+        {
+          "baseline_equity": 3041318.379630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-13"
+        },
+        {
+          "baseline_equity": 3157968.579630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-16"
+        },
+        {
+          "baseline_equity": 3134944.179630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-17"
+        },
+        {
+          "baseline_equity": 3274150.479630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-18"
+        },
+        {
+          "baseline_equity": 3340482.579630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-19"
+        },
+        {
+          "baseline_equity": 3334878.579630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-20"
+        },
+        {
+          "baseline_equity": 3265695.579630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-23"
+        },
+        {
+          "baseline_equity": 3232030.479630956,
+          "candidate_equity": 2208095.5524728964,
+          "date": "2025-06-24"
+        },
+        {
+          "baseline_equity": 3267009.2796309562,
+          "candidate_equity": 2209350.344514462,
+          "date": "2025-06-25"
+        },
+        {
+          "baseline_equity": 3379335.579630956,
+          "candidate_equity": 2186258.1525700344,
+          "date": "2025-06-26"
+        },
+        {
+          "baseline_equity": 3574331.3796309563,
+          "candidate_equity": 2209640.5108512244,
+          "date": "2025-06-27"
+        },
+        {
+          "baseline_equity": 3741446.379630956,
+          "candidate_equity": 2249398.9108512243,
+          "date": "2025-06-30"
+        },
+        {
+          "baseline_equity": 3729772.479630956,
+          "candidate_equity": 2263654.710851224,
+          "date": "2025-07-01"
+        },
+        {
+          "baseline_equity": 3593846.679630956,
+          "candidate_equity": 2222680.010851225,
+          "date": "2025-07-02"
+        },
+        {
+          "baseline_equity": 3692467.7796309562,
+          "candidate_equity": 2226432.9108512243,
+          "date": "2025-07-03"
+        },
+        {
+          "baseline_equity": 3627986.979630956,
+          "candidate_equity": 2222032.1108512245,
+          "date": "2025-07-04"
+        },
+        {
+          "baseline_equity": 3534790.179630956,
+          "candidate_equity": 2224903.2108512246,
+          "date": "2025-07-07"
+        },
+        {
+          "baseline_equity": 3786396.579630956,
+          "candidate_equity": 2235889.010851225,
+          "date": "2025-07-08"
+        },
+        {
+          "baseline_equity": 3802551.2796309562,
+          "candidate_equity": 2218102.9108512243,
+          "date": "2025-07-09"
+        },
+        {
+          "baseline_equity": 3820001.979630956,
+          "candidate_equity": 2196416.4755421686,
+          "date": "2025-07-10"
+        },
+        {
+          "baseline_equity": 3775325.379630956,
+          "candidate_equity": 2195316.175542169,
+          "date": "2025-07-11"
+        },
+        {
+          "baseline_equity": 3851408.379630956,
+          "candidate_equity": 2182785.4755421686,
+          "date": "2025-07-14"
+        },
+        {
+          "baseline_equity": 4480017.579630956,
+          "candidate_equity": 2253778.4755421686,
+          "date": "2025-07-15"
+        },
+        {
+          "baseline_equity": 4479542.979630956,
+          "candidate_equity": 2307014.8755421685,
+          "date": "2025-07-16"
+        },
+        {
+          "baseline_equity": 4681629.879630956,
+          "candidate_equity": 2363506.7925911285,
+          "date": "2025-07-17"
+        },
+        {
+          "baseline_equity": 4731025.179630957,
+          "candidate_equity": 2372531.8925911286,
+          "date": "2025-07-18"
+        },
+        {
+          "baseline_equity": 4820205.579630956,
+          "candidate_equity": 2368526.7925911285,
+          "date": "2025-07-21"
+        },
+        {
+          "baseline_equity": 4753169.679630956,
+          "candidate_equity": 2389309.5925911283,
+          "date": "2025-07-22"
+        },
+        {
+          "baseline_equity": 4767992.379630956,
+          "candidate_equity": 2401679.1111805886,
+          "date": "2025-07-23"
+        },
+        {
+          "baseline_equity": 4730909.979630956,
+          "candidate_equity": 2404691.4111805884,
+          "date": "2025-07-24"
+        },
+        {
+          "baseline_equity": 4729706.979630956,
+          "candidate_equity": 2427379.4111805884,
+          "date": "2025-07-25"
+        },
+        {
+          "baseline_equity": 4882463.979630956,
+          "candidate_equity": 2444405.6111805886,
+          "date": "2025-07-28"
+        },
+        {
+          "baseline_equity": 5331537.579630956,
+          "candidate_equity": 2594400.6879203487,
+          "date": "2025-07-29"
+        },
+        {
+          "baseline_equity": 5324686.779630956,
+          "candidate_equity": 2656301.787920349,
+          "date": "2025-07-30"
+        },
+        {
+          "baseline_equity": 5448391.779630956,
+          "candidate_equity": 2728927.387920349,
+          "date": "2025-07-31"
+        },
+        {
+          "baseline_equity": 5298386.379630956,
+          "candidate_equity": 2642609.887920349,
+          "date": "2025-08-01"
+        },
+        {
+          "baseline_equity": 5258701.779630956,
+          "candidate_equity": 2739531.887920349,
+          "date": "2025-08-04"
+        },
+        {
+          "baseline_equity": 5282757.279630956,
+          "candidate_equity": 2697176.847235169,
+          "date": "2025-08-05"
+        },
+        {
+          "baseline_equity": 5301701.079630956,
+          "candidate_equity": 2688493.9264487484,
+          "date": "2025-08-06"
+        },
+        {
+          "baseline_equity": 5245090.479630956,
+          "candidate_equity": 2751209.3264487484,
+          "date": "2025-08-07"
+        },
+        {
+          "baseline_equity": 5245502.379630956,
+          "candidate_equity": 2723861.1264487486,
+          "date": "2025-08-08"
+        },
+        {
+          "baseline_equity": 5417857.779630956,
+          "candidate_equity": 2843670.9264487484,
+          "date": "2025-08-11"
+        },
+        {
+          "baseline_equity": 5692373.679630956,
+          "candidate_equity": 2920448.7345039486,
+          "date": "2025-08-12"
+        },
+        {
+          "baseline_equity": 6380346.279630956,
+          "candidate_equity": 3090438.223896276,
+          "date": "2025-08-13"
+        },
+        {
+          "baseline_equity": 6109278.279630956,
+          "candidate_equity": 3056861.4238962764,
+          "date": "2025-08-14"
+        },
+        {
+          "baseline_equity": 6091679.079630956,
+          "candidate_equity": 3104239.223896276,
+          "date": "2025-08-15"
+        },
+        {
+          "baseline_equity": 6545153.679630956,
+          "candidate_equity": 3233324.4238962764,
+          "date": "2025-08-18"
+        },
+        {
+          "baseline_equity": 6925923.279630956,
+          "candidate_equity": 3310320.223896276,
+          "date": "2025-08-19"
+        },
+        {
+          "baseline_equity": 6797233.479630956,
+          "candidate_equity": 3286463.4238962764,
+          "date": "2025-08-20"
+        },
+        {
+          "baseline_equity": 6752615.379630956,
+          "candidate_equity": 3168051.223896276,
+          "date": "2025-08-21"
+        },
+        {
+          "baseline_equity": 7099256.979630956,
+          "candidate_equity": 3348302.1930277967,
+          "date": "2025-08-22"
+        },
+        {
+          "baseline_equity": 7960055.379630956,
+          "candidate_equity": 3596397.793027797,
+          "date": "2025-08-25"
+        },
+        {
+          "baseline_equity": 7818626.079630956,
+          "candidate_equity": 3676016.793027797,
+          "date": "2025-08-26"
+        },
+        {
+          "baseline_equity": 8197683.579630956,
+          "candidate_equity": 3859281.1930277967,
+          "date": "2025-08-27"
+        },
+        {
+          "baseline_equity": 9180256.779630955,
+          "candidate_equity": 4439913.193027796,
+          "date": "2025-08-28"
+        },
+        {
+          "baseline_equity": 9182998.779630955,
+          "candidate_equity": 4608274.393027796,
+          "date": "2025-08-29"
+        },
+        {
+          "baseline_equity": 10338411.579630956,
+          "candidate_equity": 4933610.593027797,
+          "date": "2025-09-01"
+        },
+        {
+          "baseline_equity": 9687059.679630956,
+          "candidate_equity": 4577339.793027797,
+          "date": "2025-09-02"
+        },
+        {
+          "baseline_equity": 10493326.179630956,
+          "candidate_equity": 4751734.393027796,
+          "date": "2025-09-03"
+        },
+        {
+          "baseline_equity": 9043677.579630956,
+          "candidate_equity": 4083480.3930277964,
+          "date": "2025-09-04"
+        },
+        {
+          "baseline_equity": 9971563.179630956,
+          "candidate_equity": 4234972.301695661,
+          "date": "2025-09-05"
+        },
+        {
+          "baseline_equity": 9071814.279630955,
+          "candidate_equity": 4019736.2016956606,
+          "date": "2025-09-08"
+        },
+        {
+          "baseline_equity": 8879941.179630956,
+          "candidate_equity": 4045693.7016956606,
+          "date": "2025-09-09"
+        },
+        {
+          "baseline_equity": 9466206.579630956,
+          "candidate_equity": 4106440.901695661,
+          "date": "2025-09-10"
+        },
+        {
+          "baseline_equity": 10769518.479630956,
+          "candidate_equity": 4346627.6016956605,
+          "date": "2025-09-11"
+        },
+        {
+          "baseline_equity": 10279124.379630957,
+          "candidate_equity": 4348145.901695661,
+          "date": "2025-09-12"
+        },
+        {
+          "baseline_equity": 9975955.779630955,
+          "candidate_equity": 4367985.301695661,
+          "date": "2025-09-15"
+        },
+        {
+          "baseline_equity": 9993423.579630956,
+          "candidate_equity": 4399844.301695661,
+          "date": "2025-09-16"
+        },
+        {
+          "baseline_equity": 9931339.179630956,
+          "candidate_equity": 4476327.70169566,
+          "date": "2025-09-17"
+        },
+        {
+          "baseline_equity": 9963316.479630956,
+          "candidate_equity": 4440872.20169566,
+          "date": "2025-09-18"
+        },
+        {
+          "baseline_equity": 10225907.979630956,
+          "candidate_equity": 4463230.901695661,
+          "date": "2025-09-19"
+        },
+        {
+          "baseline_equity": 10112409.579630956,
+          "candidate_equity": 4509194.901695661,
+          "date": "2025-09-22"
+        },
+        {
+          "baseline_equity": 10466949.879630957,
+          "candidate_equity": 4497834.20169566,
+          "date": "2025-09-23"
+        },
+        {
+          "baseline_equity": 10271569.779630955,
+          "candidate_equity": 4452212.301695661,
+          "date": "2025-09-24"
+        },
+        {
+          "baseline_equity": 10599565.479630956,
+          "candidate_equity": 4466701.001695661,
+          "date": "2025-09-25"
+        },
+        {
+          "baseline_equity": 10205851.479630956,
+          "candidate_equity": 4390440.20169566,
+          "date": "2025-09-26"
+        },
+        {
+          "baseline_equity": 10359631.479630956,
+          "candidate_equity": 4477156.20169566,
+          "date": "2025-09-29"
+        },
+        {
+          "baseline_equity": 9962095.179630956,
+          "candidate_equity": 4372129.301695661,
+          "date": "2025-09-30"
+        },
+        {
+          "baseline_equity": 9770132.079630956,
+          "candidate_equity": 4343433.001695661,
+          "date": "2025-10-09"
+        },
+        {
+          "baseline_equity": 9569362.179630956,
+          "candidate_equity": 4195102.501695661,
+          "date": "2025-10-10"
+        },
+        {
+          "baseline_equity": 9368927.979630956,
+          "candidate_equity": 4199191.901695661,
+          "date": "2025-10-13"
+        },
+        {
+          "baseline_equity": 8911449.499958128,
+          "candidate_equity": 4111011.001695661,
+          "date": "2025-10-14"
+        },
+        {
+          "baseline_equity": 9040517.499958128,
+          "candidate_equity": 4191487.001695661,
+          "date": "2025-10-15"
+        },
+        {
+          "baseline_equity": 9235392.499958128,
+          "candidate_equity": 4195866.001695661,
+          "date": "2025-10-16"
+        },
+        {
+          "baseline_equity": 9320902.499958128,
+          "candidate_equity": 4122896.501695661,
+          "date": "2025-10-17"
+        },
+        {
+          "baseline_equity": 9779279.499958128,
+          "candidate_equity": 4146048.001695661,
+          "date": "2025-10-20"
+        },
+        {
+          "baseline_equity": 10409784.09995813,
+          "candidate_equity": 4284950.301695661,
+          "date": "2025-10-21"
+        },
+        {
+          "baseline_equity": 10600567.68651969,
+          "candidate_equity": 4298978.301695661,
+          "date": "2025-10-22"
+        },
+        {
+          "baseline_equity": 10379328.18651969,
+          "candidate_equity": 4222742.901695661,
+          "date": "2025-10-23"
+        },
+        {
+          "baseline_equity": 11373219.98651969,
+          "candidate_equity": 4372391.6016956605,
+          "date": "2025-10-24"
+        },
+        {
+          "baseline_equity": 11832354.18651969,
+          "candidate_equity": 4512408.501695661,
+          "date": "2025-10-27"
+        },
+        {
+          "baseline_equity": 11908061.18651969,
+          "candidate_equity": 4471781.901695661,
+          "date": "2025-10-28"
+        },
+        {
+          "baseline_equity": 12060583.386519691,
+          "candidate_equity": 4462779.001695661,
+          "date": "2025-10-29"
+        },
+        {
+          "baseline_equity": 11625852.08651969,
+          "candidate_equity": 4342578.20169566,
+          "date": "2025-10-30"
+        },
+        {
+          "baseline_equity": 10752685.886519691,
+          "candidate_equity": 4209378.501695661,
+          "date": "2025-10-31"
+        },
+        {
+          "baseline_equity": 10836228.18651969,
+          "candidate_equity": 4216331.501695661,
+          "date": "2025-11-03"
+        },
+        {
+          "baseline_equity": 10796920.98651969,
+          "candidate_equity": 4187508.901695661,
+          "date": "2025-11-04"
+        },
+        {
+          "baseline_equity": 10753874.08651969,
+          "candidate_equity": 4158535.047938861,
+          "date": "2025-11-05"
+        },
+        {
+          "baseline_equity": 11127319.18651969,
+          "candidate_equity": 4205493.947938861,
+          "date": "2025-11-06"
+        },
+        {
+          "baseline_equity": 11198052.28651969,
+          "candidate_equity": 4180147.042986861,
+          "date": "2025-11-07"
+        },
+        {
+          "baseline_equity": 11196452.48651969,
+          "candidate_equity": 4149577.042986861,
+          "date": "2025-11-10"
+        },
+        {
+          "baseline_equity": 10687023.886519691,
+          "candidate_equity": 4112068.7429868607,
+          "date": "2025-11-11"
+        },
+        {
+          "baseline_equity": 11035747.78651969,
+          "candidate_equity": 4135522.142986861,
+          "date": "2025-11-12"
+        },
+        {
+          "baseline_equity": 10850813.58651969,
+          "candidate_equity": 4120802.042986861,
+          "date": "2025-11-13"
+        },
+        {
+          "baseline_equity": 10449993.886519691,
+          "candidate_equity": 4089481.141654077,
+          "date": "2025-11-14"
+        },
+        {
+          "baseline_equity": 10711793.48651969,
+          "candidate_equity": 4103747.141654077,
+          "date": "2025-11-17"
+        },
+        {
+          "baseline_equity": 10594751.886519691,
+          "candidate_equity": 4096544.141654077,
+          "date": "2025-11-18"
+        },
+        {
+          "baseline_equity": 10855262.08651969,
+          "candidate_equity": 4107527.141654077,
+          "date": "2025-11-19"
+        },
+        {
+          "baseline_equity": 10994943.58651969,
+          "candidate_equity": 4109907.141654077,
+          "date": "2025-11-20"
+        },
+        {
+          "baseline_equity": 10356518.48651969,
+          "candidate_equity": 4090314.141654077,
+          "date": "2025-11-21"
+        },
+        {
+          "baseline_equity": 10181593.18651969,
+          "candidate_equity": 4085267.141654077,
+          "date": "2025-11-24"
+        },
+        {
+          "baseline_equity": 10601197.886519691,
+          "candidate_equity": 4101269.141654077,
+          "date": "2025-11-25"
+        },
+        {
+          "baseline_equity": 11739146.78651969,
+          "candidate_equity": 4145761.141654077,
+          "date": "2025-11-26"
+        },
+        {
+          "baseline_equity": 11469996.78651969,
+          "candidate_equity": 4132307.141654077,
+          "date": "2025-11-27"
+        },
+        {
+          "baseline_equity": 11383746.58651969,
+          "candidate_equity": 4125657.141654077,
+          "date": "2025-11-28"
+        },
+        {
+          "baseline_equity": 11766136.28651969,
+          "candidate_equity": 4142107.141654077,
+          "date": "2025-12-01"
+        },
+        {
+          "baseline_equity": 11897470.08651969,
+          "candidate_equity": 4144907.141654077,
+          "date": "2025-12-02"
+        },
+        {
+          "baseline_equity": 11770964.78651969,
+          "candidate_equity": 4132118.141654077,
+          "date": "2025-12-03"
+        },
+        {
+          "baseline_equity": 12088170.18651969,
+          "candidate_equity": 4140357.141654077,
+          "date": "2025-12-04"
+        },
+        {
+          "baseline_equity": 12240504.68651969,
+          "candidate_equity": 4141442.141654077,
+          "date": "2025-12-05"
+        },
+        {
+          "baseline_equity": 13216008.28651969,
+          "candidate_equity": 4164507.141654077,
+          "date": "2025-12-08"
+        },
+        {
+          "baseline_equity": 13839410.48651969,
+          "candidate_equity": 4189707.141654077,
+          "date": "2025-12-09"
+        },
+        {
+          "baseline_equity": 13988931.08651969,
+          "candidate_equity": 4196707.141654077,
+          "date": "2025-12-10"
+        },
+        {
+          "baseline_equity": 13337580.08651969,
+          "candidate_equity": 4176274.141654077,
+          "date": "2025-12-11"
+        },
+        {
+          "baseline_equity": 13263072.68651969,
+          "candidate_equity": 4172907.141654077,
+          "date": "2025-12-12"
+        },
+        {
+          "baseline_equity": 13036872.98651969,
+          "candidate_equity": 4165109.141654077,
+          "date": "2025-12-15"
+        },
+        {
+          "baseline_equity": 12575948.38651969,
+          "candidate_equity": 4151760.141654077,
+          "date": "2025-12-16"
+        },
+        {
+          "baseline_equity": 13475586.58651969,
+          "candidate_equity": 4178493.141654077,
+          "date": "2025-12-17"
+        },
+        {
+          "baseline_equity": 13129624.18651969,
+          "candidate_equity": 4165347.141654077,
+          "date": "2025-12-18"
+        },
+        {
+          "baseline_equity": 13121623.98651969,
+          "candidate_equity": 4165697.141654077,
+          "date": "2025-12-19"
+        },
+        {
+          "baseline_equity": 14000946.28651969,
+          "candidate_equity": 4197757.141654077,
+          "date": "2025-12-22"
+        },
+        {
+          "baseline_equity": 14027316.08651969,
+          "candidate_equity": 4200207.141654077,
+          "date": "2025-12-23"
+        },
+        {
+          "baseline_equity": 14218252.08651969,
+          "candidate_equity": 4209587.141654077,
+          "date": "2025-12-24"
+        },
+        {
+          "baseline_equity": 14194919.78651969,
+          "candidate_equity": 4213367.141654077,
+          "date": "2025-12-25"
+        },
+        {
+          "baseline_equity": 13979188.886519691,
+          "candidate_equity": 4204407.141654077,
+          "date": "2025-12-26"
+        },
+        {
+          "baseline_equity": 13836691.18651969,
+          "candidate_equity": 4198107.141654077,
+          "date": "2025-12-29"
+        },
+        {
+          "baseline_equity": 14047828.886519691,
+          "candidate_equity": 4207907.141654077,
+          "date": "2025-12-30"
+        },
+        {
+          "baseline_equity": 13568806.68651969,
+          "candidate_equity": 4192507.141654077,
+          "date": "2025-12-31"
+        },
+        {
+          "baseline_equity": 13760062.386519691,
+          "candidate_equity": 4201964.141654077,
+          "date": "2026-01-05"
+        },
+        {
+          "baseline_equity": 13435719.68651969,
+          "candidate_equity": 4189182.141654077,
+          "date": "2026-01-06"
+        },
+        {
+          "baseline_equity": 13663977.48651969,
+          "candidate_equity": 4199227.141654077,
+          "date": "2026-01-07"
+        },
+        {
+          "baseline_equity": 13197354.68651969,
+          "candidate_equity": 4182322.141654077,
+          "date": "2026-01-08"
+        },
+        {
+          "baseline_equity": 13007587.18651969,
+          "candidate_equity": 4173747.141654077,
+          "date": "2026-01-09"
+        },
+        {
+          "baseline_equity": 13147091.386519691,
+          "candidate_equity": 4179886.141654077,
+          "date": "2026-01-12"
+        },
+        {
+          "baseline_equity": 12899291.48651969,
+          "candidate_equity": 4175539.141654077,
+          "date": "2026-01-13"
+        },
+        {
+          "baseline_equity": 13025142.68651969,
+          "candidate_equity": 4180607.141654077,
+          "date": "2026-01-14"
+        },
+        {
+          "baseline_equity": 13583734.386519691,
+          "candidate_equity": 4203021.141654077,
+          "date": "2026-01-15"
+        },
+        {
+          "baseline_equity": 13497312.58651969,
+          "candidate_equity": 4197407.141654077,
+          "date": "2026-01-16"
+        },
+        {
+          "baseline_equity": 13300061.886519691,
+          "candidate_equity": 4189357.141654077,
+          "date": "2026-01-19"
+        },
+        {
+          "baseline_equity": 12831207.386519691,
+          "candidate_equity": 4175007.141654077,
+          "date": "2026-01-20"
+        },
+        {
+          "baseline_equity": 12872075.98651969,
+          "candidate_equity": 4172837.141654077,
+          "date": "2026-01-21"
+        },
+        {
+          "baseline_equity": 13623317.18651969,
+          "candidate_equity": 4200207.141654077,
+          "date": "2026-01-22"
+        },
+        {
+          "baseline_equity": 12878841.886519691,
+          "candidate_equity": 4175007.141654077,
+          "date": "2026-01-23"
+        },
+        {
+          "baseline_equity": 13039583.28651969,
+          "candidate_equity": 4178367.141654077,
+          "date": "2026-01-26"
+        },
+        {
+          "baseline_equity": 13605522.78651969,
+          "candidate_equity": 4196427.141654077,
+          "date": "2026-01-27"
+        },
+        {
+          "baseline_equity": 13863074.886519691,
+          "candidate_equity": 4205107.141654077,
+          "date": "2026-01-28"
+        },
+        {
+          "baseline_equity": 13696665.08651969,
+          "candidate_equity": 4195202.141654077,
+          "date": "2026-01-29"
+        },
+        {
+          "baseline_equity": 14564839.48651969,
+          "candidate_equity": 4219807.141654077,
+          "date": "2026-01-30"
+        },
+        {
+          "baseline_equity": 13672991.48651969,
+          "candidate_equity": 4179207.141654077,
+          "date": "2026-02-02"
+        },
+        {
+          "baseline_equity": 13934200.98651969,
+          "candidate_equity": 4178297.141654077,
+          "date": "2026-02-03"
+        },
+        {
+          "baseline_equity": 13346986.08651969,
+          "candidate_equity": 4157507.141654077,
+          "date": "2026-02-04"
+        },
+        {
+          "baseline_equity": 13167806.386519691,
+          "candidate_equity": 4158900.141654077,
+          "date": "2026-02-05"
+        },
+        {
+          "baseline_equity": 12780731.18651969,
+          "candidate_equity": 4143514.141654077,
+          "date": "2026-02-06"
+        },
+        {
+          "baseline_equity": 13717246.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-09"
+        },
+        {
+          "baseline_equity": 13474060.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-10"
+        },
+        {
+          "baseline_equity": 13046110.68651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-11"
+        },
+        {
+          "baseline_equity": 13375845.08651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-12"
+        },
+        {
+          "baseline_equity": 13244377.386519691,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-13"
+        },
+        {
+          "baseline_equity": 14006303.886519691,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-24"
+        },
+        {
+          "baseline_equity": 14127384.28651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-25"
+        },
+        {
+          "baseline_equity": 14440071.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-26"
+        },
+        {
+          "baseline_equity": 13841144.58651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-02-27"
+        },
+        {
+          "baseline_equity": 14276372.886519691,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-02"
+        },
+        {
+          "baseline_equity": 14024312.486519689,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-03"
+        },
+        {
+          "baseline_equity": 13617207.08651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-04"
+        },
+        {
+          "baseline_equity": 13996123.58651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-05"
+        },
+        {
+          "baseline_equity": 13707251.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-06"
+        },
+        {
+          "baseline_equity": 13189649.18651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-09"
+        },
+        {
+          "baseline_equity": 13889803.68651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-10"
+        },
+        {
+          "baseline_equity": 13893533.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-11"
+        },
+        {
+          "baseline_equity": 13574227.28651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-12"
+        },
+        {
+          "baseline_equity": 13647441.58651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-13"
+        },
+        {
+          "baseline_equity": 13872692.486519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-16"
+        },
+        {
+          "baseline_equity": 13191370.886519691,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-17"
+        },
+        {
+          "baseline_equity": 14131740.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-18"
+        },
+        {
+          "baseline_equity": 14142737.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-19"
+        },
+        {
+          "baseline_equity": 14867570.98651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-20"
+        },
+        {
+          "baseline_equity": 14485351.18651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-23"
+        },
+        {
+          "baseline_equity": 14568837.886519691,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-24"
+        },
+        {
+          "baseline_equity": 15170208.28651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-25"
+        },
+        {
+          "baseline_equity": 14956809.18651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-26"
+        },
+        {
+          "baseline_equity": 14605276.58651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-27"
+        },
+        {
+          "baseline_equity": 14505163.386519691,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-30"
+        },
+        {
+          "baseline_equity": 14001177.98651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-03-31"
+        },
+        {
+          "baseline_equity": 14870361.58651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-01"
+        },
+        {
+          "baseline_equity": 14419559.68651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-02"
+        },
+        {
+          "baseline_equity": 14925303.28651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-03"
+        },
+        {
+          "baseline_equity": 14965600.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-07"
+        },
+        {
+          "baseline_equity": 16344653.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-08"
+        },
+        {
+          "baseline_equity": 16474367.886519691,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-09"
+        },
+        {
+          "baseline_equity": 17336218.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-10"
+        },
+        {
+          "baseline_equity": 17270240.28651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-13"
+        },
+        {
+          "baseline_equity": 17766821.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-14"
+        },
+        {
+          "baseline_equity": 17632439.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-15"
+        },
+        {
+          "baseline_equity": 18475305.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-16"
+        },
+        {
+          "baseline_equity": 19522087.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-17"
+        },
+        {
+          "baseline_equity": 19436768.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-20"
+        },
+        {
+          "baseline_equity": 19424930.386519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-21"
+        },
+        {
+          "baseline_equity": 20139063.886519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-22"
+        },
+        {
+          "baseline_equity": 19985116.886519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-23"
+        },
+        {
+          "baseline_equity": 19308148.686519694,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-24"
+        },
+        {
+          "baseline_equity": 18848145.386519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-27"
+        },
+        {
+          "baseline_equity": 18236069.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-28"
+        },
+        {
+          "baseline_equity": 18567675.186519694,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-29"
+        },
+        {
+          "baseline_equity": 18676136.386519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-04-30"
+        },
+        {
+          "baseline_equity": 18728716.186519694,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-06"
+        },
+        {
+          "baseline_equity": 19321632.886519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-07"
+        },
+        {
+          "baseline_equity": 19386262.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-08"
+        },
+        {
+          "baseline_equity": 20294080.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-11"
+        },
+        {
+          "baseline_equity": 21667287.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-12"
+        },
+        {
+          "baseline_equity": 22627735.686519694,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-13"
+        },
+        {
+          "baseline_equity": 23154743.686519694,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-14"
+        },
+        {
+          "baseline_equity": 22786918.98651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-15"
+        },
+        {
+          "baseline_equity": 22525252.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-18"
+        },
+        {
+          "baseline_equity": 21978845.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-19"
+        },
+        {
+          "baseline_equity": 22100228.28651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-20"
+        },
+        {
+          "baseline_equity": 21148722.886519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-21"
+        },
+        {
+          "baseline_equity": 22320720.886519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-22"
+        },
+        {
+          "baseline_equity": 23578777.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-25"
+        },
+        {
+          "baseline_equity": 23980843.586519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-26"
+        },
+        {
+          "baseline_equity": 24307046.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-27"
+        },
+        {
+          "baseline_equity": 25875230.886519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-28"
+        },
+        {
+          "baseline_equity": 25359243.98651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-05-29"
+        },
+        {
+          "baseline_equity": 24530970.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-01"
+        },
+        {
+          "baseline_equity": 25984674.386519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-02"
+        },
+        {
+          "baseline_equity": 27761822.48651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-03"
+        },
+        {
+          "baseline_equity": 27642374.78651969,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-04"
+        },
+        {
+          "baseline_equity": 25812274.386519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-05"
+        },
+        {
+          "baseline_equity": 25033159.686519694,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-08"
+        },
+        {
+          "baseline_equity": 25820827.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-09"
+        },
+        {
+          "baseline_equity": 24949243.386519693,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-10"
+        },
+        {
+          "baseline_equity": 24488450.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-11"
+        },
+        {
+          "baseline_equity": 24575337.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-12"
+        },
+        {
+          "baseline_equity": 26522362.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-15"
+        },
+        {
+          "baseline_equity": 26890002.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-16"
+        },
+        {
+          "baseline_equity": 27418818.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-17"
+        },
+        {
+          "baseline_equity": 29011418.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-18"
+        },
+        {
+          "baseline_equity": 29071103.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-22"
+        },
+        {
+          "baseline_equity": 27635745.086519692,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-23"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-24"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-25"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-26"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-29"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-06-30"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-01"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-02"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-03"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-06"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-07"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-08"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-09"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-10"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-13"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-14"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-15"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-16"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-17"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-20"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-21"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-22"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-23"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-24"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-27"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-28"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-29"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-30"
+        },
+        {
+          "baseline_equity": 27642045.44711513,
+          "candidate_equity": 4157517.519574077,
+          "date": "2026-07-31"
+        }
+      ],
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "environment",
+        "symbols",
+        "adapter_sha256",
+        "runner_sha256"
+      ],
+      "sessions": 382
+    },
+    "remove308-prefix": {
+      "baseline_commit": "6f8de5c02ff1161b78ef42e63e91f36d35c6bfc0",
+      "baseline_equity": 2219163.36163238,
+      "baseline_sha256": "bebf72900054276fde827bb93e324b9dbca3d50afab3a08095f22909cc790fb8",
+      "candidate_commit": "7b000bc9170e6c9233dd82fd38bc34613be0fafd",
+      "candidate_equity": 2290629.2902634004,
+      "candidate_sha256": "42ee251476276d7bc9f2de9979b4633884336e1623532b21b24e01b0d209405b",
+      "changed_source_files": [
+        "uquant/portfolio/pipeline.py"
+      ],
+      "equity_differences": [
+        {
+          "baseline_equity": 1980095.6985519798,
+          "candidate_equity": 1934344.75862226,
+          "date": "2023-03-28"
+        },
+        {
+          "baseline_equity": 2011448.1619054598,
+          "candidate_equity": 1989811.028534,
+          "date": "2023-03-29"
+        },
+        {
+          "baseline_equity": 2014118.1619054598,
+          "candidate_equity": 1987761.028534,
+          "date": "2023-03-30"
+        },
+        {
+          "baseline_equity": 2073036.1619054598,
+          "candidate_equity": 2076886.028534,
+          "date": "2023-03-31"
+        },
+        {
+          "baseline_equity": 2258586.16190546,
+          "candidate_equity": 2339854.0285340003,
+          "date": "2023-04-03"
+        },
+        {
+          "baseline_equity": 2302162.16190546,
+          "candidate_equity": 2389503.0285340003,
+          "date": "2023-04-04"
+        },
+        {
+          "baseline_equity": 2393221.68537818,
+          "candidate_equity": 2465123.4672879605,
+          "date": "2023-04-06"
+        },
+        {
+          "baseline_equity": 2482541.68537818,
+          "candidate_equity": 2553575.4672879605,
+          "date": "2023-04-07"
+        },
+        {
+          "baseline_equity": 2367938.68537818,
+          "candidate_equity": 2429679.4672879605,
+          "date": "2023-04-10"
+        },
+        {
+          "baseline_equity": 2349628.68537818,
+          "candidate_equity": 2412818.4672879605,
+          "date": "2023-04-11"
+        },
+        {
+          "baseline_equity": 2399157.68537818,
+          "candidate_equity": 2467877.4672879605,
+          "date": "2023-04-12"
+        },
+        {
+          "baseline_equity": 2226138.68537818,
+          "candidate_equity": 2288472.4672879605,
+          "date": "2023-04-13"
+        },
+        {
+          "baseline_equity": 2309102.68537818,
+          "candidate_equity": 2370822.4672879605,
+          "date": "2023-04-14"
+        },
+        {
+          "baseline_equity": 2275217.68537818,
+          "candidate_equity": 2338667.4672879605,
+          "date": "2023-04-17"
+        },
+        {
+          "baseline_equity": 2475686.68537818,
+          "candidate_equity": 2546703.4672879605,
+          "date": "2023-04-18"
+        },
+        {
+          "baseline_equity": 2556187.68537818,
+          "candidate_equity": 2630133.4672879605,
+          "date": "2023-04-19"
+        },
+        {
+          "baseline_equity": 2819750.68537818,
+          "candidate_equity": 2900795.4672879605,
+          "date": "2023-04-20"
+        },
+        {
+          "baseline_equity": 2596797.68537818,
+          "candidate_equity": 2669836.4672879605,
+          "date": "2023-04-21"
+        },
+        {
+          "baseline_equity": 2627313.68537818,
+          "candidate_equity": 2699522.4672879605,
+          "date": "2023-04-24"
+        },
+        {
+          "baseline_equity": 2576593.68537818,
+          "candidate_equity": 2653989.4672879605,
+          "date": "2023-04-25"
+        },
+        {
+          "baseline_equity": 2453897.68537818,
+          "candidate_equity": 2529058.4672879605,
+          "date": "2023-04-26"
+        },
+        {
+          "baseline_equity": 2278108.68537818,
+          "candidate_equity": 2349366.4672879605,
+          "date": "2023-04-27"
+        },
+        {
+          "baseline_equity": 2328360.22096934,
+          "candidate_equity": 2396614.4772669203,
+          "date": "2023-04-28"
+        },
+        {
+          "baseline_equity": 2290246.22096934,
+          "candidate_equity": 2359621.4772669203,
+          "date": "2023-05-04"
+        },
+        {
+          "baseline_equity": 2233636.2209693403,
+          "candidate_equity": 2304676.4772669203,
+          "date": "2023-05-05"
+        },
+        {
+          "baseline_equity": 2234554.22096934,
+          "candidate_equity": 2305567.4772669203,
+          "date": "2023-05-08"
+        },
+        {
+          "baseline_equity": 2241422.22096934,
+          "candidate_equity": 2312233.4772669203,
+          "date": "2023-05-09"
+        },
+        {
+          "baseline_equity": 2213304.22096934,
+          "candidate_equity": 2284942.4772669203,
+          "date": "2023-05-10"
+        },
+        {
+          "baseline_equity": 2206334.2209693403,
+          "candidate_equity": 2278177.4772669203,
+          "date": "2023-05-11"
+        },
+        {
+          "baseline_equity": 2206300.22096934,
+          "candidate_equity": 2278144.4772669203,
+          "date": "2023-05-12"
+        },
+        {
+          "baseline_equity": 2189062.22096934,
+          "candidate_equity": 2261413.4772669203,
+          "date": "2023-05-15"
+        },
+        {
+          "baseline_equity": 2180086.22096934,
+          "candidate_equity": 2252701.4772669203,
+          "date": "2023-05-16"
+        },
+        {
+          "baseline_equity": 2186988.22096934,
+          "candidate_equity": 2259400.4772669203,
+          "date": "2023-05-17"
+        },
+        {
+          "baseline_equity": 2208136.2209693403,
+          "candidate_equity": 2279926.4772669203,
+          "date": "2023-05-18"
+        },
+        {
+          "baseline_equity": 2204702.22096934,
+          "candidate_equity": 2276593.4772669203,
+          "date": "2023-05-19"
+        },
+        {
+          "baseline_equity": 2189504.22096934,
+          "candidate_equity": 2261842.4772669203,
+          "date": "2023-05-22"
+        },
+        {
+          "baseline_equity": 2179168.22096934,
+          "candidate_equity": 2251810.4772669203,
+          "date": "2023-05-23"
+        },
+        {
+          "baseline_equity": 2174340.22096934,
+          "candidate_equity": 2247124.4772669203,
+          "date": "2023-05-24"
+        },
+        {
+          "baseline_equity": 2202866.22096934,
+          "candidate_equity": 2274811.4772669203,
+          "date": "2023-05-25"
+        },
+        {
+          "baseline_equity": 2270186.2209693403,
+          "candidate_equity": 2340151.4772669203,
+          "date": "2023-05-26"
+        },
+        {
+          "baseline_equity": 2260156.22096934,
+          "candidate_equity": 2330416.4772669203,
+          "date": "2023-05-29"
+        },
+        {
+          "baseline_equity": 2294836.22096934,
+          "candidate_equity": 2364076.4772669203,
+          "date": "2023-05-30"
+        },
+        {
+          "baseline_equity": 2339070.22096934,
+          "candidate_equity": 2407009.4772669203,
+          "date": "2023-05-31"
+        },
+        {
+          "baseline_equity": 2299868.22096934,
+          "candidate_equity": 2368960.4772669203,
+          "date": "2023-06-01"
+        },
+        {
+          "baseline_equity": 2280896.22096934,
+          "candidate_equity": 2350546.4772669203,
+          "date": "2023-06-02"
+        },
+        {
+          "baseline_equity": 2284602.22096934,
+          "candidate_equity": 2354143.4772669203,
+          "date": "2023-06-05"
+        },
+        {
+          "baseline_equity": 2268486.2209693403,
+          "candidate_equity": 2338501.4772669203,
+          "date": "2023-06-06"
+        },
+        {
+          "baseline_equity": 2263794.22096934,
+          "candidate_equity": 2333947.4772669203,
+          "date": "2023-06-07"
+        },
+        {
+          "baseline_equity": 2263352.22096934,
+          "candidate_equity": 2333518.4772669203,
+          "date": "2023-06-08"
+        },
+        {
+          "baseline_equity": 2276510.22096934,
+          "candidate_equity": 2346289.4772669203,
+          "date": "2023-06-09"
+        },
+        {
+          "baseline_equity": 2261550.22096934,
+          "candidate_equity": 2331769.4772669203,
+          "date": "2023-06-12"
+        },
+        {
+          "baseline_equity": 2290484.22096934,
+          "candidate_equity": 2359852.4772669203,
+          "date": "2023-06-13"
+        },
+        {
+          "baseline_equity": 2272022.22096934,
+          "candidate_equity": 2341933.4772669203,
+          "date": "2023-06-14"
+        },
+        {
+          "baseline_equity": 2240504.22096934,
+          "candidate_equity": 2311342.4772669203,
+          "date": "2023-06-15"
+        },
+        {
+          "baseline_equity": 2267568.22096934,
+          "candidate_equity": 2337610.4772669203,
+          "date": "2023-06-16"
+        },
+        {
+          "baseline_equity": 2304628.22096934,
+          "candidate_equity": 2373580.4772669203,
+          "date": "2023-06-19"
+        },
+        {
+          "baseline_equity": 2368310.22096934,
+          "candidate_equity": 2435389.4772669203,
+          "date": "2023-06-20"
+        },
+        {
+          "baseline_equity": 2286098.22096934,
+          "candidate_equity": 2355595.4772669203,
+          "date": "2023-06-21"
+        },
+        {
+          "baseline_equity": 2221124.22096934,
+          "candidate_equity": 2292532.4772669203,
+          "date": "2023-06-26"
+        },
+        {
+          "baseline_equity": 2207864.22096934,
+          "candidate_equity": 2279662.4772669203,
+          "date": "2023-06-27"
+        },
+        {
+          "baseline_equity": 2222144.22096934,
+          "candidate_equity": 2293522.4772669203,
+          "date": "2023-06-28"
+        },
+        {
+          "baseline_equity": 2219163.36163238,
+          "candidate_equity": 2290629.2902634004,
+          "date": "2023-06-29"
+        },
+        {
+          "baseline_equity": 2219163.36163238,
+          "candidate_equity": 2290629.2902634004,
+          "date": "2023-06-30"
+        }
+      ],
+      "matched_identity_fields": [
+        "config",
+        "interval",
+        "seed",
+        "runtime",
+        "contract_sha256",
+        "removed_symbol"
+      ],
+      "runner_bridge": "Verified exact scripts differ only in root/output argument resolution; replay and observation code identical. Original hashes retained.",
+      "sessions": 118
+    }
+  },
+  "status": "DIAGNOSTIC_ONLY_NOT_JOINT_ACCEPTANCE"
+}

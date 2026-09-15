@@ -1,0 +1,20 @@
+# Revised economic acceptance — fixed before missing holding replays
+
+Authority: user's 2026-09-15 explicit instruction supersedes conflicting historical policy. This table is fixed for this bounded round (at most three structurally distinct designs). Preserve original contracts/results; never change data, causal execution, accounting or evidence identity. Historical windows are selection data, not out-of-sample evidence.
+
+| Item | Previous rule | This round's decision rule |
+|---|---|---|
+| Long account | historical champion 23.2841787x; later authorized 15x | Prefer >=15x net wealth for champion and full universe. 13.5–15x may qualify only if BOTH critical removals meet benchmark rule, critical-removal geometric wealth improves >=20% against capital-reentry control, and main drawdown improves >=2 absolute points against matched current production. Below 13.5x is research only. |
+| Orders | <=40 after prior authorizations | Prefer <=40; <=44 accepted with all costs and turnover reported. Above 44 remains comparable research, not a production winner this round. Applies main and two critical removals. |
+| Drawdown | original effective ceilings vary by case | Report original ceiling and ceiling+0.01 once. Main/critical-removal maximum <=31%; short-window +0.01 tolerance retained. Larger risk is research only this round, with economic compensation shown. |
+| Critical removals | profitability/relative preservation plus 2 epochs/owners | Both complete native 869-session removals must reach >=90% of net equal-weight buy-and-hold wealth in the same remaining pool and dates, and >=90% of capital-reentry control wealth. Geometric wealth across the two >= capital-reentry control. No hindsight winner weighting. |
+| Structural counts | >=2 epochs and >=2 owners | Diagnostic only; retain true identities and counts. |
+| Bull/bear windows | all historical cells pass independently | A/D/E bull, A 2024-H1 and E 2024-H2: geometric mean of wealth/control >=0.95, no cell <0.80; disclose all individual old failures. Drawdown overshoots beyond once-only 1pp need explicit comparison and stay research only if main/critical caps fail. |
+| Breadth/tail | complete historical gate conjunction | Final 34 LOO: positive fraction >=90%, p10 wealth >=1, p90 drawdown <=31%, worst <=35%. Counts no veto. Retain all failure cells. |
+| Costs/start dates | historical contracts | Final candidate: native cost stress at 2x fees/slippage retains >=90% standard net wealth for main and critical removals; use existing registered start-date and tail scenarios, median matched wealth ratio >=0.95, minimum >=0.80, worst drawdown <=35%. Retain original failures. |
+| Physical correctness | no relaxation | No lookahead, no leverage/shorting, T+1 execution, funds/positions conservation, real executable orders, duplicate-scan and recovery invariants; exact source/config/data/runtime/runner identities. |
+| Integration | repository protection | Same production candidate completes this table and affected engineering; satisfy actual branch protection. No patched together winners, no evidence relabeling. |
+
+Benchmark: allocate initial cash equally across the entire same remaining pool using information at window start; reserve unavailable allocations as cash until first executable listing session (never redistribute using future returns). Decision on first session, next-session buy, actual lot/fees/slippage/corporate-action constraints and same final mark as strategy; no rebalancing or hindsight exclusions. Report both terminal wealth and drawdown and precise availability convention. If a repository native equivalent exists, reuse it. Costs on both arms, no forced liquidation unless both arms do so.
+
+Selection: evaluate existing medium-horizon holding design first. Its preregistration is EXPERIMENT.md. Reject if critical wealth losses cannot be compensated under the fixed table. A second/third mechanism requires a distinct causal attribution and preregistration, never a near-neighbor threshold search. Completed E bull/H2 are reused after source/runtime identity checks. No final acceptance is claimed yet.

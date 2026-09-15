@@ -1,0 +1,117 @@
+{
+  "comparisons": {
+    "a": {
+      "baseline": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "final_wealth": 11.87065858669219,
+        "max_drawdown": 0.16004817592256193
+      },
+      "baseline_sha256": "a18b83cefb61d413d0d0e2c6cac3b624fddce18b4a3ad790b13820829f8af518",
+      "candidate": {
+        "account_orders": 12,
+        "annual_turnover": 11.661713365096857,
+        "final_wealth": 11.87065858669219,
+        "max_drawdown": 0.16004817592256193
+      },
+      "candidate_sha256": "67876153631c43dd1c5d5f7265cd5d89c141d903082267027023c1bc5f24fe1e",
+      "changed_equity_sessions": 0,
+      "first_equity_difference": null,
+      "sessions": 382
+    },
+    "e": {
+      "baseline": {
+        "account_orders": 13,
+        "annual_turnover": 11.676899188185864,
+        "final_wealth": 13.821022723557565,
+        "max_drawdown": 0.17253036736852323
+      },
+      "baseline_sha256": "769b1092dc3ad76cc252a26249850f5f0c945a68b0fe278fd6f4fec25de6bf5a",
+      "candidate": {
+        "account_orders": 13,
+        "annual_turnover": 11.676899188185864,
+        "final_wealth": 13.821022723557565,
+        "max_drawdown": 0.17253036736852323
+      },
+      "candidate_sha256": "9c820662eae829c580722d8d526b370328a9b195522a264830dd201549604cdd",
+      "changed_equity_sessions": 0,
+      "first_equity_difference": null,
+      "sessions": 382
+    },
+    "e-h2": {
+      "baseline": {
+        "account_orders": 7,
+        "annual_turnover": 5.246110817314401,
+        "final_wealth": 1.8168767799091217,
+        "max_drawdown": 0.09854024217858659
+      },
+      "baseline_sha256": "68b7d2330f35653883135a92831a3c79641a2f68aa853a6991c271d2f1f2d962",
+      "candidate": {
+        "account_orders": 7,
+        "annual_turnover": 5.246110817314401,
+        "final_wealth": 1.8168767799091217,
+        "max_drawdown": 0.09854024217858659
+      },
+      "candidate_sha256": "83c7b3cb8932ddb3dfa725061c9ad77706819a45868f635c0de54c986f2d5e27",
+      "changed_equity_sessions": 0,
+      "first_equity_difference": null,
+      "sessions": 125
+    },
+    "remove308": {
+      "baseline": {
+        "account_orders": 16,
+        "actual_strategic_epoch_count": 2,
+        "annual_turnover": 0.9223503855569619,
+        "distinct_owner_count": 2,
+        "final_wealth": 1.1190839397190302,
+        "max_drawdown": 0.2288891949758597
+      },
+      "baseline_sha256": "bca7be23ff1a392cd8840c622dc554a756ac125d596dc810c431d9e12b6a83fb",
+      "candidate": {
+        "account_orders": 64,
+        "actual_strategic_epoch_count": 1,
+        "annual_turnover": 4.452681071272152,
+        "distinct_owner_count": 1,
+        "final_wealth": 2.3254337685199613,
+        "max_drawdown": 0.27342108432575707
+      },
+      "candidate_sha256": "63383763af1cd04bc262438a321fcdbc1bb2bd72568eec4fd62c3b3e9829c256",
+      "changed_equity_sessions": 494,
+      "first_equity_difference": {
+        "baseline": 2219163.36163238,
+        "candidate": 2173441.9609650304,
+        "session": "2024-07-23"
+      },
+      "sessions": 869
+    },
+    "remove502": {
+      "baseline": {
+        "account_orders": 20,
+        "actual_strategic_epoch_count": 2,
+        "annual_turnover": 1.603117308392405,
+        "distinct_owner_count": 2,
+        "final_wealth": 2.3851418754251106,
+        "max_drawdown": 0.23812423499266522
+      },
+      "baseline_sha256": "1c85e834794544193ba57e60cdb8d8624513147ce7d85d14f4f9486ab1d1b384",
+      "candidate": {
+        "account_orders": 42,
+        "actual_strategic_epoch_count": 1,
+        "annual_turnover": 8.062741921244303,
+        "distinct_owner_count": 1,
+        "final_wealth": 13.129020082935812,
+        "max_drawdown": 0.2634129870410902
+      },
+      "candidate_sha256": "b0c26ba6aa34dff45c0fe974aa7af562faac499fe5f0aa77f727b4002fee45bf",
+      "changed_equity_sessions": 494,
+      "first_equity_difference": {
+        "baseline": 3756272.3104242804,
+        "candidate": 3694317.232569918,
+        "session": "2024-07-23"
+      },
+      "sessions": 869
+    }
+  },
+  "producer": "1aaf83d12117d341626d82a87a87d9d9e263bbc9",
+  "status": "MATCHED_DIAGNOSTICS_NOT_JOINT_ACCEPTANCE"
+}

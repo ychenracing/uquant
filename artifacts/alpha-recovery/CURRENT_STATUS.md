@@ -1,7 +1,11 @@
-# Active bounded recovery round
+# 本轮已结束：三个方案均未满足验收，PR #67 未合并
 
-User now prohibits large uploads, bundles, archives and chunk-reassembled giant payloads. Save small code patches, verification receipts, hashes and recovery state only. Do not upload local raw replays. Existing already-published historical evidence remains. This policy supersedes earlier upload plans.
+最新结论：FINAL_RESULT.md。固定验收：holding-basis/ACCEPTANCE.md。不要沿用旧HANDOFF或本轮中途状态中的“仍在运行”判断；本轮所有已登记关键回放已完成，没有待运行的第四方案。
 
-PR67 head8aaebd20be09ba5d5cdf17f91c18fdf2c01a5d33, main df45b4d7d9ea290ae953115afbb73140270537c2 remain unchanged, Draft/unmerged. Revised holding-basis/ACCEPTANCE.md fixed before new results. Holding complete and rejected (502 wealth3.7324 vs13.1290 control); reference-readiness9e988979a2942938b6d5d10cf71e6abe32a4e4a6 complete A/E/H2/removals, 3082.8512/50214.4133 but68/54 orders and308 benchmark shortfall remain. Complete small verified-summary.json files include actual fees/slippage/turnover, provenance and local raw SHA256. Raw_remote_saved=false is intentional and truthful. No holdings raw replay has been published as a completed branch commit in this round.
+资金再入场原始完整证据已在2ef6a4397347a409b109f2a4c8a47250b5602d6d完成远端保存。新方案1/2/3的大型原件只在对应verified-summary.json的local_path，raw_remote_saved=false。最新用户禁止大文件、bundle、分块重组上传；仅保存小型代码补丁、摘要、校验与状态，不再继续旧blob上传计划。
 
-Third/final structure: capital-normalization source6e3bdc9 (resolve full local SHA), based on9e98897, economic surface0691726d90255027b6983371a6e8aa6eaf96b0c5df59b1eefd6d4556df7f7628. Small source.patch reconstructs code/tests on exact1aaf83d12117d341626d82a87a87d9d9e263bbc9; no bundle upload. 37 targeted tests pass; native308/502 and E bull running. Local workspace/work branch: /workspace/scratch/14f51f0acedb/uquant-normalization, research/alpha-capital-normalization. Sessions70417/90352/49603. Do not mutate its production inputs during runs. Same canonical runtime available at /workspace/scratch/c24820a73481/canonical-venv/bin/python with PATH prefix /root/.cache/uv/archive-v0/QHAPFXmUc4qpZm4J/uv-0.11.33.data/scripts. Both full-package/economic preflight fingerprints verified. This is active checkpoint, not acceptance or handoff. No fourth structure or near-neighbor tuning.
+方案1移除308/502：2.902770x/3.732422x；方案2：2.851233x/14.413294x（68/54单）；方案3：2.463916x/14.194485x（78/47单）。均未达到关键308净持有基准90%（7.050777x）及本轮订单条件。方案2是后续研究起点，不是生产候选验收通过。主账户、最终完整矩阵未执行；不挪用旧主账户结果。
+
+方案3回放producer6e3bdc944bacc772ffcdfed676f1c0dbdc828b6f，经济指纹0691726d90255027b6983371a6e8aa6eaf96b0c5df59b1eefd6d4556df7f7628；本地/work分支/workspace/scratch/14f51f0acedb/uquant-normalization，research/alpha-capital-normalization。source.patch以1aaf83d12117d341626d82a87a87d9d9e263bbc9为base恢复生产源码和最终测试；46项受影响测试通过。测试/记录提交不改变producer身份。
+
+PR head8aaebd20be09ba5d5cdf17f91c18fdf2c01a5d33、main df45b4d7d9ea290ae953115afbb73140270537c2保持原状，PR仍Draft/open。未尝试合并，未宣称保护要求或最终验证通过。后续首先读本状态、FINAL_RESULT及各verified-summary，不重做已失败的容量/确认/部署或本轮三个机制。

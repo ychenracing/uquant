@@ -1,0 +1,88 @@
+diff --git a/tests/test_reentry_reference_history.py b/tests/test_reentry_reference_history.py
+new file mode 100644
+index 0000000..ee906d0
+--- /dev/null
++++ b/tests/test_reentry_reference_history.py
+@@ -0,0 +1,43 @@
++"""Undefined young-reference horizons are distinct from damaged mature data."""
++import pytest
++from test_capital_reentry import _inputs
++from uquant.risk.assessment import _capital_reentry_inputs_complete
++
++
++def check(inputs):
++    policy, account, dates, panel, _, market, reference, *_ = inputs
++    return _capital_reentry_inputs_complete(date=dates[4], broad=market, tech=market,
++        reference_panel=reference, user_panel=panel, account=account, cfg=policy.cfg, reference_context=None)
++
++
++def young_reference():
++    inputs = _inputs()
++    date = inputs[2][4]
++    reference = inputs[6]
++    symbol = next(iter(reference))
++    frame = reference[symbol].loc[:date].tail(35).copy()
++    frame[['ma60','ret60','ret120']] = float('nan')
++    reference[symbol] = frame
++    return inputs, symbol
++
++
++def test_young_reference_does_not_invent_missing_long_history_or_freeze_other_names():
++    inputs, symbol = young_reference()
++    assert check(inputs)
++    assert inputs[6][symbol]['ret120'].isna().all()
++
++
++@pytest.mark.parametrize('failure', ['missing-current','nan-fast','too-young'])
++def test_current_or_recent_reference_data_remain_required(failure):
++    inputs, symbol = young_reference()
++    date = inputs[2][4]
++    if failure == 'missing-current': inputs[6][symbol] = inputs[6][symbol].drop(date)
++    if failure == 'nan-fast': inputs[6][symbol].loc[date,'ret20'] = float('nan')
++    if failure == 'too-young': inputs[6][symbol] = inputs[6][symbol].tail(10)
++    assert not check(inputs)
++
++
++def test_mature_reference_missing_medium_data_still_blocks():
++    inputs = _inputs()
++    inputs[6][next(iter(inputs[6]))].loc[inputs[2][4],'ret60'] = float('nan')
++    assert not check(inputs)
+diff --git a/uquant/risk/assessment.py b/uquant/risk/assessment.py
+index 4c64ac5..1cd697f 100644
+--- a/uquant/risk/assessment.py
++++ b/uquant/risk/assessment.py
+@@ -509,7 +509,22 @@ def _capital_reentry_inputs_complete(
+     for symbol in expected:
+         if symbol not in reference_panel:
+             return False
+-        frames.append(reference_panel[symbol])
++        frame = reference_panel[symbol]
++        history = frame.loc[:date]
++        if date not in frame.index or len(history) <= cfg.trend_fast:
++            return False
++        # A newly listed reference has no long horizon yet. Require every
++        # horizon that is defined by its actual past observations; never
++        # excuse missing current data or a nonfinite mature feature.
++        required = ["close", f"ma{cfg.trend_fast}", "ret5", f"ret{cfg.trend_fast}"]
++        if len(history) >= cfg.trend_medium:
++            required.append(f"ma{cfg.trend_medium}")
++        if len(history) > cfg.trend_medium:
++            required.append(f"ret{cfg.trend_medium}")
++        if len(history) > cfg.trend_slow:
++            required.append(f"ret{cfg.trend_slow}")
++        if not all(isfinite(scalar(frame.loc[date], field)) for field in required):
++            return False
+     for symbol, position in account.positions.items():
+         if position.shares > 0:
+             if symbol not in user_panel:
+@@ -595,6 +610,10 @@ def _assess_base_risk(
+         capital=capital,
+         reference_context=reference_context,
+     )
++    continuous["capital_reentry_warmup_symbols"] = [
++        symbol for symbol, frame in reference_panel.items()
++        if 0 < len(frame.loc[:date]) <= cfg.trend_slow
++    ]
+     ctx = _BaseRiskContext(
+         date=date,
+         broad=broad,

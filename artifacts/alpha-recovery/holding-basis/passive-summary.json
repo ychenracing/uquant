@@ -1,0 +1,59 @@
+{
+  "convention": "Equal reserved initial sleeves across registered remaining universe; prior-session membership and observation; next-open buys; native fees, lot/capacity and limit assumptions; no rebalancing; no final liquidation. Frozen QFQ price convention matches strategy; does not independently audit unadjusted shares, dividends or taxes.",
+  "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+  "kind": "MATCHED_FROZEN_QFQ_DIAGNOSTIC",
+  "results": {
+    "sz300308": {
+      "config": {
+        "commission_rate": 0.00025,
+        "initial_cash": 2000000.0,
+        "max_gross": 1.0,
+        "max_positions": 6,
+        "max_symbol_weight": 0.6,
+        "max_volume_participation": 0.005,
+        "min_commission": 5.0,
+        "min_trade_value": 20000.0,
+        "minimum_median_amount": 20000000.0,
+        "risk_sentinel_mode": "FREEZE_ONLY",
+        "slippage": 0.001,
+        "stamp_duty": 0.0005,
+        "transfer_fee": 1e-05
+      },
+      "fees": 549.9469224549999,
+      "final_wealth": 7.834196297688772,
+      "gross_turnover": 0.94939619775,
+      "max_drawdown": 0.41011022931202434,
+      "removed": "sz300308",
+      "sessions": 869,
+      "slippage": 1896.895499999783
+    },
+    "sz300502": {
+      "config": {
+        "commission_rate": 0.00025,
+        "initial_cash": 2000000.0,
+        "max_gross": 1.0,
+        "max_positions": 6,
+        "max_symbol_weight": 0.6,
+        "max_volume_participation": 0.005,
+        "min_commission": 5.0,
+        "min_trade_value": 20000.0,
+        "minimum_median_amount": 20000000.0,
+        "risk_sentinel_mode": "FREEZE_ONLY",
+        "slippage": 0.001,
+        "stamp_duty": 0.0005,
+        "transfer_fee": 1e-05
+      },
+      "fees": 549.643719555,
+      "final_wealth": 7.786210531790222,
+      "gross_turnover": 0.9488131152499999,
+      "max_drawdown": 0.4008126114256544,
+      "removed": "sz300502",
+      "sessions": 869,
+      "slippage": 1895.7304999997798
+    }
+  },
+  "runner_sha256": "a9b21328b1984b783dd0bdf8efe2e52aa40f8a9ec198da418eeab4fcf94cf886",
+  "raw_sha256": "d1bf7077e20904c76fe66ff661d7fd1f4aa57e93f785b186992a2ec6cb1581ba",
+  "raw_local_path": "/workspace/scratch/c24820a73481/uquant-candidate/artifacts/alpha-recovery/holding-basis/passive.json",
+  "raw_remote_saved": false
+}

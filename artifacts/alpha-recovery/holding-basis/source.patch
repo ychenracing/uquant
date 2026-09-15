@@ -1,0 +1,151 @@
+diff --git a/tests/test_holding_return_horizon.py b/tests/test_holding_return_horizon.py
+index d97cd1a..f4941c6 100644
+--- a/tests/test_holding_return_horizon.py
++++ b/tests/test_holding_return_horizon.py
+@@ -29,6 +29,7 @@ def test_aligned_post_entry_loss_overrides_positive_pre_entry_return():
+     from test_slow_structural_exit import setup_case
+ 
+     policy, account, symbol, frame, leader = setup_case()
++    frame["ma60"] = 100.
+     frame["ret60"] = .5
+     outcomes = [policy._leader_lifecycle_exit_confirmed(
+         symbol=symbol, date=date, user_panel={symbol: frame}, leaders={symbol: leader},
+diff --git a/tests/test_ordinary_holding_basis.py b/tests/test_ordinary_holding_basis.py
+new file mode 100644
+index 0000000..ec9d05a
+--- /dev/null
++++ b/tests/test_ordinary_holding_basis.py
+@@ -0,0 +1,70 @@
++"""An ordinary trend holding keeps its entry horizon before proving a profit."""
++
++from copy import deepcopy
++
++import pandas as pd
++import pytest
++
++from uquant.config import DEFAULT_CONFIG
++from uquant.portfolio import PortfolioAllocator
++from uquant.types import AccountState, LeaderScore, Position
++
++
++def holding_case():
++    dates = pd.bdate_range("2020-01-02", periods=120)
++    close = pd.Series([80.] * 96 + [110.] * 7 + [90.] * 17, index=dates)
++    frame = pd.DataFrame({"close": close, "ma20": close.rolling(20).mean(),
++                          "ma60": close.rolling(60).mean()})
++    symbol = "sh688018"
++    account = AccountState(initial_cash=2000000, cash=1800000)
++    account.positions[symbol] = Position(symbol=symbol, shares=1000, avg_cost=110.,
++                                        highest_close=110., entry_date=str(dates[102].date()))
++    leader = LeaderScore(symbol=symbol, score=.5, confidence=1., mature=False,
++                         emerging=False, industry="design", components={})
++    return PortfolioAllocator(DEFAULT_CONFIG), account, symbol, frame, leader
++
++
++def observe(case, *, own=-.20, reference=.05):
++    policy, account, symbol, frame, leader = case
++    outcomes = []
++    for date in frame.index[-3:]:
++        account = deepcopy(account)
++        outcomes.append(policy._leader_lifecycle_exit_confirmed(
++            symbol=symbol, date=date, user_panel={symbol: frame},
++            leaders={symbol: leader}, account=account,
++            holding_return=own, reference_return=reference,
++        ))
++    return outcomes, account
++
++
++@pytest.mark.parametrize("highest_close", [110., 140.])
++def test_medium_trend_survives_short_pullback_before_and_after_profit(highest_close):
++    case = holding_case()
++    _, account, symbol, frame, _ = case
++    account.positions[symbol].highest_close = highest_close
++    last = frame.iloc[-3:]
++    assert (last.ma20 > last.close).all()
++    assert (last.close > last.ma60).all()
++    assert observe(case)[0] == [False, False, False]
++
++
++@pytest.mark.parametrize("own,reference,expected", [(-.20, .05, True), (-.05, -.20, False)])
++def test_medium_damage_still_requires_causal_confirmation_and_relative_damage(own, reference, expected):
++    case = holding_case()
++    case[3]["ma60"] = 100.
++    assert observe(case, own=own, reference=reference)[0] == [False, False, expected]
++
++
++@pytest.mark.parametrize("medium", [float("nan"), float("inf"), 0., -1.])
++def test_unavailable_medium_observation_preserves_existing_fast_fallback(medium):
++    case = holding_case()
++    case[3]["ma60"] = medium
++    assert observe(case)[0] == [False, False, True]
++
++
++def test_valid_medium_recovery_resets_the_exit_streak():
++    case = holding_case()
++    case[3].loc[case[3].index[-3:-1], "ma60"] = 100.
++    outcomes, account = observe(case)
++    assert outcomes == [False, False, False]
++    assert account.replacement_tenure[f"lifecycle_exit:{case[2]}"] == 0
+diff --git a/tests/test_relative_holding_exit.py b/tests/test_relative_holding_exit.py
+index 2c3d074..9a769dc 100644
+--- a/tests/test_relative_holding_exit.py
++++ b/tests/test_relative_holding_exit.py
+@@ -11,6 +11,7 @@ from test_slow_structural_exit import setup_case
+ ])
+ def test_unproven_holding_damage_requires_relative_underperformance(own, reference, expected):
+     policy, account, symbol, frame, leader = setup_case()
++    frame["ma60"] = 100.
+     frame["ret60"] = own
+     outcomes = []
+     for date in frame.index[-3:]:
+@@ -35,6 +36,7 @@ def test_proven_winner_retains_its_medium_trend_exit_clock():
+ 
+ def test_relative_recovery_resets_the_same_confirmation_clock():
+     policy, account, symbol, frame, leader = setup_case()
++    frame["ma60"] = 100.
+     frame["ret60"] = -.10
+     outcomes = []
+     for date, reference in zip(frame.index[-5:], [.05, .05, -.20, .05, .05], strict=True):
+diff --git a/tests/test_slow_structural_exit.py b/tests/test_slow_structural_exit.py
+index aacf2a3..76e0dca 100644
+--- a/tests/test_slow_structural_exit.py
++++ b/tests/test_slow_structural_exit.py
+@@ -32,6 +32,7 @@ def observe(policy, account, symbol, frame, leader, date):
+ 
+ def test_confirmed_structure_loss_exits_despite_pre_entry_rally():
+     policy, account, symbol, frame, leader = setup_case()
++    frame["ma60"] = 100.  # Loss of the shared medium holding basis.
+     assert frame.iloc[-1].ret20 > 0
+     assert frame.iloc[-1].close < account.positions[symbol].avg_cost
+     outcomes = [observe(policy, account, symbol, frame, leader, date) for date in frame.index[-3:]]
+diff --git a/uquant/portfolio/leaders/lifecycle.py b/uquant/portfolio/leaders/lifecycle.py
+index c901a01..583fe9d 100644
+--- a/uquant/portfolio/leaders/lifecycle.py
++++ b/uquant/portfolio/leaders/lifecycle.py
+@@ -95,19 +95,20 @@ def _leader_lifecycle_exit_confirmed(
+     row = frame.loc[date]
+     peak_mfe = position.highest_close / max(position.avg_cost, 1e-12) - 1.0
+     protected_winner = peak_mfe >= 0.20
++    # A valid medium trend is the holding basis even before the first profit.
++    # Preserve the existing unproven-holding fallback when it is unavailable.
++    basis = scalar(row, f"ma{self.cfg.trend_medium}", math.nan)
++    if not protected_winner and (not math.isfinite(basis) or basis <= 0):
++        basis = scalar(row, f"ma{self.cfg.trend_fast}")
+     broken = bool(
+         not leader.mature
+-        and scalar(row, "close")
+-        < scalar(
+-            row,
+-            f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
+-        )
++        and scalar(row, "close") < basis
+     )
+     if holding_return is None:
+         holding_return = scalar(row, f"ret{self.cfg.trend_medium}", math.nan)
+     if not protected_winner and math.isfinite(holding_return) and math.isfinite(reference_return):
+         # Relative resilience protects an unproven holding from common market
+-        # damage. Proven winners already use the slower medium-trend exit.
++        # damage. Proven winners keep their unconditional structural exit.
+         broken = broken and holding_return < reference_return
+     clock = f"lifecycle_exit_session:{symbol}"
+     session = date.toordinal()

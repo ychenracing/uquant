@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "status": "IN_PROGRESS",
+  "authority": "Latest user clarification authorizes preserving large originals through bounded parts; do not assemble a giant upload request. Supersedes older no-parts instructions for this task.",
+  "bytes": 25995967,
+  "files": [
+    {
+      "key": "holding-basis/a.json.gz",
+      "bytes": 522845,
+      "sha256": "7e3f3971c0e74fd4f9d84705e30c2f1f0dd2c517ee2506f43d67f0e38e1fc015",
+      "manifest": "manifests/holding-basis/a.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "holding-basis/e.json.gz",
+      "bytes": 1967082,
+      "sha256": "593bfbef307c0078c9df84f84da122d22c4f1cdc78d179381527e5d8c171665b",
+      "manifest": "manifests/holding-basis/e.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "holding-basis/e-h2.json.gz",
+      "bytes": 599577,
+      "sha256": "1699e8ae17cc53d97bf9acf4bf53a81165b42c491ef1dec0a2ffc3d3567c6933",
+      "manifest": "manifests/holding-basis/e-h2.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "holding-basis/remove308.json.gz",
+      "bytes": 2908179,
+      "sha256": "bcec56221fdc63fb24c9d02ecea9f0b9c668ba54da916780cb9d2607b882c049",
+      "manifest": "manifests/holding-basis/remove308.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "holding-basis/remove502.json.gz",
+      "bytes": 2659266,
+      "sha256": "dace936cac43c583709b2c373a68f3289cb059efc6e4031beba938e05f27f5ef",
+      "manifest": "manifests/holding-basis/remove502.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "holding-basis/passive.json",
+      "bytes": 192194,
+      "sha256": "d1bf7077e20904c76fe66ff661d7fd1f4aa57e93f785b186992a2ec6cb1581ba",
+      "manifest": "manifests/holding-basis/passive.json.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "reference-readiness/a.json.gz",
+      "bytes": 522878,
+      "sha256": "12251c6039c4b5f42c1c2fb458594ab22eaffef6fbfbed39e599ab996858fd1a",
+      "manifest": "manifests/reference-readiness/a.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "reference-readiness/e.json.gz",
+      "bytes": 1968549,
+      "sha256": "d0934c1086a3925a292a5e916bf1b7e1a3187578f56c48229417f6c374cc8fbd",
+      "manifest": "manifests/reference-readiness/e.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "reference-readiness/e-h2.json.gz",
+      "bytes": 600788,
+      "sha256": "6fa0efb55a628f58bdc3d629cf775b99dc8b226669be9c3c3c98e2d8a790a0c8",
+      "manifest": "manifests/reference-readiness/e-h2.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "reference-readiness/remove308.json.gz",
+      "bytes": 2561980,
+      "sha256": "8d2c1386486a7dfc029b41041afdeea5e5b0938ab9af57b98d249355b65c65df",
+      "manifest": "manifests/reference-readiness/remove308.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "reference-readiness/remove502.json.gz",
+      "bytes": 2558813,
+      "sha256": "ceea4295c02174f0582f45dfe8c4125c2b7eeede1ba8686984e843c8108a0771",
+      "manifest": "manifests/reference-readiness/remove502.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "capital-normalization/a.json.gz",
+      "bytes": 522587,
+      "sha256": "5d5e9e3bf5c621dd17155679e1b55b01920d43a9ffd33624650061f9668584bd",
+      "manifest": "manifests/capital-normalization/a.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "capital-normalization/e.json.gz",
+      "bytes": 1968768,
+      "sha256": "3975753c2767ef19807af0a8990e21f6f132e2286ef162f9289853ce2f091157",
+      "manifest": "manifests/capital-normalization/e.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "capital-normalization/e-h2.json.gz",
+      "bytes": 600720,
+      "sha256": "79e8ffad7caf4a6850a2cc12269c215b1fd3be47d932ca5cfdf8b2116facd8e2",
+      "manifest": "manifests/capital-normalization/e-h2.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "capital-normalization/remove308.json.gz",
+      "bytes": 2810811,
+      "sha256": "ce22bc5141e74d2b732abe590d647dce358f80f7ac4320e54c7c886f1feb9967",
+      "manifest": "manifests/capital-normalization/remove308.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    },
+    {
+      "key": "capital-normalization/remove502.json.gz",
+      "bytes": 3030930,
+      "sha256": "e2743d554993ac875cd39feb0ac98cec887318c645d72fa7867861d66958b839",
+      "manifest": "manifests/capital-normalization/remove502.json.gz.json",
+      "remote_readback_verified": false,
+      "raw_remote_saved": false
+    }
+  ]
+}

@@ -173,7 +173,21 @@
     "maximum_p90_drawdown": 0.31,
     "maximum_worst_drawdown": 0.35,
     "primary_improvement": "lower-quartile geometric wealth >=1.10 times historical, with p90 drawdown no more than historical+0.01; OR p90 drawdown improves >=0.02 with lower-quartile geometric wealth >=0.90 times historical",
-    "minimum_geometric_wealth_retention": 0.85
+    "minimum_geometric_wealth_retention": 0.85,
+    "cross_industry_required": [
+      "remove_all_three",
+      "no_optical"
+    ],
+    "cross_industry_rule": "Both full-window public cases must remain profitable and retain at least 75% of historical wealth; their aggregate geometric wealth must retain at least 85%. These cases are not included in the 34-LOO lower-quartile metric.",
+    "wealth_quantile_probability": 0.1,
+    "drawdown_quantile_probability": 0.9,
+    "lower_quartile_count": 9,
+    "primary_wealth_improvement_ratio": 1.1,
+    "primary_drawdown_tolerance": 0.01,
+    "alternative_drawdown_improvement": 0.02,
+    "alternative_minimum_wealth_retention": 0.9,
+    "cross_industry_minimum_cell_wealth_retention": 0.75,
+    "cross_industry_minimum_geometric_wealth_retention": 0.85
   },
   "native_absolute": {
     "all_34_all_role_removals_required": true,
@@ -219,5 +233,18 @@
     "generalization": "Require an economically material 10% lower-tail improvement, or 2 percentage-point tail drawdown improvement with bounded wealth sacrifice. These are alternatives, not a demand that all metrics dominate.",
     "orders": "Preserve the actual nominal manual-operation budget. Stress portfolios are hypothetical alternative deployments, so their counts remain explicit review evidence rather than 34 simultaneous operation obligations."
   },
-  "prior_policy_sha256": "7c5d8b41bd8ec4c1e6e08009f7d201fa46cc938ca744b50d62b1971e21bac869"
+  "prior_policy_sha256": "7c5d8b41bd8ec4c1e6e08009f7d201fa46cc938ca744b50d62b1971e21bac869",
+  "definitions": {
+    "wealth_retention": "candidate net terminal wealth / historical net terminal wealth in the identical cell",
+    "performance_cells": "Cartesian product of five frozen pools and all nine performance_windows; each of 45 cells has equal log-wealth weight. Overlapping windows are disclosed and are not independent samples.",
+    "intervals": "Both endpoints inclusive; retain original July-1 overlap exactly.",
+    "percentiles": "Linear interpolation at (n-1)*p of ascending finite values, matching numpy.percentile(method=linear).",
+    "lower_quartile": "Geometric mean of the 9 lowest terminal wealth values among the 34 public tradable-only LOO cases, computed separately for historical and candidate; no case selection after results.",
+    "positive": "net terminal wealth strictly greater than 1.0",
+    "nonfinite": "Nonfinite, nonpositive wealth or invalid account/source/date/data/runtime is INVALID. Missing required evidence is INCOMPLETE. Neither can PASS.",
+    "main": "Full 34-stock public production account over canonical 869-session window. Also disclose each A-E continuous account.",
+    "stress": "Each of full, remove308, remove502 uses public production backtest; 2x each of commission_rate,min_commission,stamp_duty,transfer_fee,slippage against same-source standard-cost offset0. Offset5/10 starts on the 6th/11th actual common index session after canonical start; same fixed end, own initial cash, causal warmup. Median and minimum retention are computed for each scenario separately vs its offset0 account; all three scenarios must satisfy bounds.",
+    "comparison_config": "Each checkout uses its committed default config; shared economic cost/cash fields must match before standard comparisons. Schema/strategy differences are recorded, never patched into historical implementation."
+  },
+  "original_contract_sha256": "97b698b73307b607ce8924c70f673c90b90056cd88bfc05731d91ad3dfafc66d"
 }

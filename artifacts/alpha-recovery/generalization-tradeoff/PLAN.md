@@ -14,4 +14,4 @@ User authorized revised acceptance and normal merge of original PR67 on success.
 - Historical implementation lacks all-role native replay: comparing its public backtest to modern all-role replay would be invalid. Use paired public paths plus modern all-role stress.
 
 ## Status
-Contract fixed; no new economic comparisons completed yet. No merge.
+Contract fixed. Paired public screens now reject readiness on main drawdown/orders and original PR on no_optical profitability. See SCREEN_STATUS.json for exact source/metrics. Two existing, independent variants are being screened under the revised policy; no new strategy parameters are being searched. Evaluator audit corrections and authentic native raw-artifact integration are in progress. No merge.

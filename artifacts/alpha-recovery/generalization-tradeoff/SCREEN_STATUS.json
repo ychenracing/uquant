@@ -1,0 +1,94 @@
+{
+  "status": "INCOMPLETE_NOT_ACCEPTED",
+  "main_merged": false,
+  "candidate_selection": "No qualifying candidate; readiness main risk/orders fail, protected no_optical profitability fails. Two previously rejected independent variants now screening under unchanged new economics.",
+  "classification": "no_optical follows frozen repository classification, not contemporary business taxonomy.",
+  "observations": {
+    "historical": {
+      "full": {
+        "producer": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+        "source_tree": "bfd301f932f6c2f6dddbe7cd80518936daca579f",
+        "wealth": 24.509661802900865,
+        "drawdown": 0.27146973146234554,
+        "orders": 12,
+        "sha256": "4f189242758287706a48465ca746aaaf5b3af7e01831859b898adea49bc2c9ca"
+      },
+      "remove_all_three": {
+        "producer": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+        "source_tree": "bfd301f932f6c2f6dddbe7cd80518936daca579f",
+        "wealth": 1.20910580087419,
+        "drawdown": 0.11190929608507261,
+        "orders": 6,
+        "sha256": "5ba89aa8202a9d26f8a9959e1671badaf162fab05ebb7afa63249532eb250df1"
+      },
+      "no_optical": {
+        "producer": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+        "source_tree": "bfd301f932f6c2f6dddbe7cd80518936daca579f",
+        "wealth": 1.20910580087419,
+        "drawdown": 0.11190929608507261,
+        "orders": 6,
+        "sha256": "6f0088cc0acf92179afc77172f1d7a659b922c55634f297f422135580f9219df"
+      }
+    },
+    "protected": {
+      "full": {
+        "producer": "cffea663223b4216bff9239d158614f4a732eba8",
+        "source_tree": "81d582f927167a416da589bd0922e265f6fd9780",
+        "wealth": 29.717003593409824,
+        "drawdown": 0.27147361646156465,
+        "orders": 22,
+        "sha256": "6b1806e6f24d7bf4f27c2902c58b941c4e44cbdf48f27ab422098271ee4fe45b"
+      },
+      "remove_all_three": {
+        "producer": "cffea663223b4216bff9239d158614f4a732eba8",
+        "source_tree": "81d582f927167a416da589bd0922e265f6fd9780",
+        "wealth": 1.2535139003270501,
+        "drawdown": 0.20928407343658617,
+        "orders": 12,
+        "sha256": "85fc21150a52415dd886121d2b6c099e1ddb94179fd582d5e1882b08502f6f5f"
+      },
+      "no_optical": {
+        "producer": "cffea663223b4216bff9239d158614f4a732eba8",
+        "source_tree": "81d582f927167a416da589bd0922e265f6fd9780",
+        "wealth": 0.992663640885025,
+        "drawdown": 0.20928407343658617,
+        "orders": 11,
+        "sha256": "54b5b3a914a1fcb6f2f75789ddd695c46abaa84b74a6f49ff3bc192a3d481f50"
+      }
+    },
+    "candidate": {
+      "full": {
+        "producer": "03647bff753fa2c7619d7122344ab6685fdfbc1c",
+        "source_tree": "5177329d7a88bfe8d5a63f157aabf52135fb2414",
+        "wealth": 26.82787759198432,
+        "drawdown": 0.34862142411350505,
+        "orders": 47,
+        "sha256": "c8aa7f2bba8c8529e2661201d144a73a29cc6ec40e4fa39ea2c4d7f81b3ea4df"
+      },
+      "remove_all_three": {
+        "producer": "03647bff753fa2c7619d7122344ab6685fdfbc1c",
+        "source_tree": "5177329d7a88bfe8d5a63f157aabf52135fb2414",
+        "wealth": 2.1779208061616715,
+        "drawdown": 0.24761390942647754,
+        "orders": 49,
+        "sha256": "3106c21cba45e9a945872b4b5a67ba30d43f507eeafe7193fad74c4e47a61eb5"
+      },
+      "no_optical": {
+        "producer": "03647bff753fa2c7619d7122344ab6685fdfbc1c",
+        "source_tree": "5177329d7a88bfe8d5a63f157aabf52135fb2414",
+        "wealth": 0.9967139122292655,
+        "drawdown": 0.29580528501439707,
+        "orders": 33,
+        "sha256": "b349b833fa6c2f7b5c5f8e982f9e690d8befb2f2e8fbc73fa6dfb387d34d813d"
+      }
+    }
+  },
+  "pending": [
+    "confirmation and peer public screens",
+    "paired45 windows",
+    "paired34LOO",
+    "native34 same-candidate validation",
+    "cost/start stress",
+    "engineering and actual PR merge gates"
+  ]
+}

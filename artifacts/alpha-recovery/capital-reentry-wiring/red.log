@@ -1,0 +1,54 @@
+.FFF.....                                                                [100%]
+=================================== FAILURES ===================================
+_ test_five_healthy_sessions_reopen_cash_without_erasing_loss_or_capital_cap[False] _
+
+with_context = False
+
+    @pytest.mark.parametrize("with_context", [True, False])
+    def test_five_healthy_sessions_reopen_cash_without_erasing_loss_or_capital_cap(with_context):
+        inputs = _inputs()
+        policy, account, dates, panel, leaders, *_ = inputs
+        peak, cash = account.capital_peak, account.cash
+        for date in dates[:4]:
+            risk = _risk(inputs, date, with_context=with_context)
+            assert risk.freeze_new_risk
+            assert not _decide(policy, account, date, panel, leaders, risk)
+        risk = _risk(inputs, dates[4], with_context=with_context)
+        assert risk.state is Risk.NORMAL
+>       assert not risk.freeze_new_risk
+E       AssertionError: assert not True
+E        +  where True = RiskAssessment(state=<Risk.NORMAL: 'NORMAL'>, target_gross_cap=0.5, votes=1, evidence={'breadth20': 1.0, 'breadth60': ...on shock', 'portfolio capital damage'), shock_state='NONE', freeze_new_risk=True, reduction_level=2, severity='NORMAL').freeze_new_risk
+
+tests/test_capital_reentry.py:49: AssertionError
+_ test_production_path_without_context_still_requires_current_reference_inputs[missing-session] _
+
+failure = 'missing-session'
+
+    @pytest.mark.parametrize("failure", ["missing-session", "nonfinite-reference"])
+    def test_production_path_without_context_still_requires_current_reference_inputs(failure):
+        inputs = _inputs()
+        _, account, dates, _, _, _, reference, *_ = inputs
+        for date in dates[:4]:
+            _risk(inputs, date, with_context=False)
+>       assert account.risk_streaks["capital_reentry_days"] == 4
+E       assert 0 == 4
+
+tests/test_capital_reentry.py:67: AssertionError
+_ test_production_path_without_context_still_requires_current_reference_inputs[nonfinite-reference] _
+
+failure = 'nonfinite-reference'
+
+    @pytest.mark.parametrize("failure", ["missing-session", "nonfinite-reference"])
+    def test_production_path_without_context_still_requires_current_reference_inputs(failure):
+        inputs = _inputs()
+        _, account, dates, _, _, _, reference, *_ = inputs
+        for date in dates[:4]:
+            _risk(inputs, date, with_context=False)
+>       assert account.risk_streaks["capital_reentry_days"] == 4
+E       assert 0 == 4
+
+tests/test_capital_reentry.py:67: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_capital_reentry.py::test_five_healthy_sessions_reopen_cash_without_erasing_loss_or_capital_cap[False]
+FAILED tests/test_capital_reentry.py::test_production_path_without_context_still_requires_current_reference_inputs[missing-session]
+FAILED tests/test_capital_reentry.py::test_production_path_without_context_still_requires_current_reference_inputs[nonfinite-reference]

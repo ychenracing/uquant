@@ -1,10 +1,22 @@
+# Capital reentry production-path correction — 2026-09-15
+
+The drawdown authorization is implemented in recovery commit 6e1538729ace932d44a4bfa1ce6ca6836fdec27e, with 57 affected tests passing. It applies one absolute percentage point once to previously effective Promotion drawdown ceilings. The E H2 overshoot is accepted. No improvement in actual returns is implied.
+
+Initial capital reentry producer 4c0ecc17bf91e7714306e58f61266f4d94e8f3d6 completed A/E/E H2 and both full native removals. Every equity path is unchanged; the counter is zero on all 869 sessions in each native replay. This is a discovered implementation error: production intentionally supplies reference_context=None, while the new completeness check required it. Do not conclude that the economic hypothesis was exercised or rejected. Initial originals are in capital-reentry/ and are being attached to the remote checkpoint.
+
+Corrected producer 1aaf83d12117d341626d82a87a87d9d9e263bbc9 uses the actual point-in-time risk panel when optional context is absent; it does not change the existing breadth calculation. Three new failing cases reproduce the defect; 119 affected tests pass after correction, with both risk modules passing Ruff/mypy. Exact source bundle and tests are in capital-reentry-wiring/. Five corrected diagnostic replays (A/E/E H2/full native 308 and 502) are running in that directory under canonical runtime. Check existing outputs/processes before scheduling anything. Reuse completed canonical controls. No final matrix or main merge has occurred.
+
+Worktree /workspace/scratch/73b9104c478a/uquant-capital-reentry remains on research/alpha-capital-reentry. Do not modify production inputs while these runs execute. Continue toward the same user's goal and acceptance; no confirmation is needed.
+
+---
+
 # Active continuation and expanded authorization — 2026-09-15
 
 The user explicitly authorizes core strategy and risk mechanism redesign without further confirmation, then clarified that drawdown overshoots up to 1 percentage point are acceptable. Exact latest clarification: “完整回撤要求仍差 0.762 个百分点”，1个百分点以内都能接受啊，你不要这么死脑筋啊. Apply a once-only absolute 0.01 tolerance to the previously effective drawdown limit; keep original measurements and judgments traceable. E H2 observed DD 0.09854024217858659 versus prior effective 0.09092480598703311 is ACCEPTED under this instruction and must not be reported as a remaining blocker. Wealth/acute were already met. Do not rewrite historical raw evidence. No extra approval is needed for implementation, preservation, or normal integration after applicable acceptance.
 
 The prior sector rolling-return candidate 0080f419 completed all five raw runs: four matched A/E/native-prefix/H2 comparisons show exactly unchanged daily equity and metrics. All originals, compare.py, comparison.json and RESULT.md are now preserved here. 56 targeted tests previously passed. Reject as zero-alpha and do not tune further.
 
-The pending restoration-permission experiment is now complete: exact source 01b324491f13ed63209954279b5b7ece1ce165a9, 70 targeted tests pass; A/E/native-prefix/E H2 all economic paths unchanged. Its source.bundle and all originals currently exist at /workspace/scratch/73b9104c478a/uquant-restoration-risk/artifacts/alpha-recovery/restoration-risk/; source.bundle, exact tests, comparison scripts and all four raw results are now attached in this checkpoint. Do not rerun these comparisons.
+The pending restoration-permission experiment is now complete: exact source 01b324491f13ed63209954279b5b7ece1ce165a9, 70 targeted tests pass; A/E/native-prefix/E H2 all economic paths unchanged. Its source.bundle and all originals currently exist at /workspace/scratch/73b9104c478a/uquant-restoration-risk/artifacts/alpha-recovery/restoration-risk/; remote attachment is the next preservation action, so verify its presence rather than assume this commit includes it. Do not rerun these comparisons.
 
 Next independent mechanism being implemented: separate historical capital-loss exposure caps from indefinite new-risk freeze after observed market repair. Worktree /workspace/scratch/73b9104c478a/uquant-capital-reentry, local branch research/alpha-capital-reentry, parent987ef520. Source modifications and focused tests are in progress; verify status before any replay. Retain capital_peak, measured drawdown, capital tiers and their caps; use five existing healthy trading sessions for repair, no new parameter. Data completeness, same-day idempotence, new damage and independent global risks still bind. No failed prior alpha components are stacked.
 

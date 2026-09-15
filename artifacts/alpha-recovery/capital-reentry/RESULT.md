@@ -1,0 +1,7 @@
+# Initial capital reentry implementation: dormant in production
+
+Producer `4c0ecc17bf91e7714306e58f61266f4d94e8f3d6` completed all five diagnostic comparisons. A, E, E H2, full native remove308 and remove502 have exactly the control daily equity paths. Raw producers, runners, inputs and runtime were checked by `compare.py`; `comparison.json` retains the original outcomes. E H2 drawdown remains accepted under the user's one percentage point authorization.
+
+This implementation did not exercise the economic hypothesis. Both 869-session native traces report zero `capital_reentry_healthy_sessions` on every session. Source tracing identifies the cause in `uquant/application/decision.py::assess_decision_risk`: production deliberately supplies `reference_context=None` to preserve the established breadth calculation. The new completeness check incorrectly treated that optional context as mandatory. Earlier tests supplied a context and missed this integration boundary.
+
+The follow-up in `capital-reentry-wiring/` adds a failing production-shaped regression and derives completeness from the actual point-in-time risk panel when the optional context is absent. It does not pass a new context into the existing risk engine or alter its breadth calculation. Preserve these original no-effect results; do not overwrite or reinterpret them as a successful repair or rejection of the capital reentry hypothesis.

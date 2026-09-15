@@ -1,0 +1,12 @@
+{
+  "full_package_v1": "291b7125e32e1a67a0d85d6e0de8271edefba2616e8b4b097e109ec96fde06c4",
+  "economic_decision_v1": "9a5080f660972b31dc41529ac66b505643bf7a389f671e2beb503f2665c57a19",
+  "code_fingerprint": "9a5080f660972b31dc41529ac66b505643bf7a389f671e2beb503f2665c57a19",
+  "runtime": {
+    "python_full_version": "3.12.13",
+    "numpy_version": "2.5.1",
+    "pandas_version": "3.0.5",
+    "uv_version": "0.11.33",
+    "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61"
+  }
+}

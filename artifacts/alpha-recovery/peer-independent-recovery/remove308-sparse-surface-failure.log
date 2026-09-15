@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/d48feaec25fd/uquant/uquant/infrastructure/git_source.py", line 49, in read_worktree_file_bytes
+    descriptor = os.open(path, flags)
+                 ^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/scratch/d48feaec25fd/uquant/research/__init__.py'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/scratch/d48feaec25fd/uquant/artifacts/alpha-recovery/capital-reentry/run_native_detailed.py", line 159, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspace/scratch/d48feaec25fd/uquant/artifacts/alpha-recovery/capital-reentry/run_native_detailed.py", line 122, in main
+    "full_package_sha256": source_surface_fingerprint(root, "full_package_v1"),
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/d48feaec25fd/uquant/uquant/provenance/fingerprints.py", line 57, in source_surface_fingerprint
+    return _fingerprint_entries(_worktree_entries(root, registry.surface(surface_id)))
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/d48feaec25fd/uquant/uquant/provenance/fingerprints.py", line 38, in _worktree_entries
+    return tuple(
+           ^^^^^^
+  File "/workspace/scratch/d48feaec25fd/uquant/uquant/provenance/fingerprints.py", line 41, in <genexpr>
+    read_source_surface_bytes(root, relative, label="source surface member"),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/d48feaec25fd/uquant/uquant/provenance/surfaces.py", line 45, in read_source_surface_bytes
+    return read_worktree_file_bytes(root, relative, label=label)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/d48feaec25fd/uquant/uquant/infrastructure/git_source.py", line 51, in read_worktree_file_bytes
+    raise ValueError(f"{label} is missing or unsafe: {relative}") from exc
+ValueError: source surface member is missing or unsafe: research/__init__.py

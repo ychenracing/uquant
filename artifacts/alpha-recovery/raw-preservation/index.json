@@ -28,13 +28,13 @@
     },
     {
       "bytes": 2908179,
+      "evidence_commit": "1523edb52ae764d048111eb7ba24a99c592bb9bf",
       "key": "holding-basis/remove308.json.gz",
       "manifest": "manifests/holding-basis/remove308.json.gz.json",
+      "manifest_sha256": "cc1a02653a76f143904d01b34599168f6732d30f77537d6a4dff6761b3681e3a",
       "raw_remote_saved": true,
       "remote_readback_verified": true,
-      "sha256": "bcec56221fdc63fb24c9d02ecea9f0b9c668ba54da916780cb9d2607b882c049",
-      "manifest_sha256": "cc1a02653a76f143904d01b34599168f6732d30f77537d6a4dff6761b3681e3a",
-      "evidence_commit": "1523edb52ae764d048111eb7ba24a99c592bb9bf"
+      "sha256": "bcec56221fdc63fb24c9d02ecea9f0b9c668ba54da916780cb9d2607b882c049"
     },
     {
       "bytes": 2659266,

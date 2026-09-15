@@ -1,0 +1,382 @@
+{
+  "key": "holding-basis/remove502.json.gz",
+  "local_path": "/workspace/scratch/c24820a73481/uquant-candidate/artifacts/alpha-recovery/holding-basis/remove502.json.gz",
+  "bytes": 2659266,
+  "sha256": "dace936cac43c583709b2c373a68f3289cb059efc6e4031beba938e05f27f5ef",
+  "git_blob_sha": "c986d7ee12dc87d64d9011bf5bb87de5839b6563",
+  "status": "STORED_REQUIRES_INDEX_READBACK_RECEIPT",
+  "storage": "ordered_base64_parts",
+  "encoding": "base64",
+  "chunk_bytes": 65536,
+  "parts": [
+    {
+      "index": 0,
+      "offset": 0,
+      "bytes": 65536,
+      "sha256": "f37ea6ea7503eb7f54c1ef0becf0db317073b87a188285bf47bf254f9fa1e490",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "28271645c904824afbba7ce12104d0e71aa9c8bd",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00000.b64"
+    },
+    {
+      "index": 1,
+      "offset": 65536,
+      "bytes": 65536,
+      "sha256": "f502c12d1263c82f08766b17c320a0c215f3f3a2cc391da90e971e323eaa7d86",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "62667f15fdac878b80277520ffff11e07c9ed4b5",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00001.b64"
+    },
+    {
+      "index": 2,
+      "offset": 131072,
+      "bytes": 65536,
+      "sha256": "9ff2ef58da0f5c0a8bba4ac8204048b9b2f833202cdaed7df6db3b99b37cdfcc",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "1751d2cd25be161780761dfe8c61e06422c63724",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00002.b64"
+    },
+    {
+      "index": 3,
+      "offset": 196608,
+      "bytes": 65536,
+      "sha256": "81fcde6baf8335f737e9f9d62b42fb913bf8f9691b4f78ed43927c15141b7814",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "50ac5c5279ffe66591308c9b50eda077c8189ca9",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00003.b64"
+    },
+    {
+      "index": 4,
+      "offset": 262144,
+      "bytes": 65536,
+      "sha256": "b019543650acec7500549fd6cea2975b3efd3310fcc0385a16386455c80cf955",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "ee2f20ded6b5fe4f7a83ea3874832a135a91d079",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00004.b64"
+    },
+    {
+      "index": 5,
+      "offset": 327680,
+      "bytes": 65536,
+      "sha256": "f802d06a4a68d42b2d399201ecfe126e0de8bca39da95151e31823ffe9309d4a",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "e13d08bbaa1b37fe44433ce0e5e74787493ce599",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00005.b64"
+    },
+    {
+      "index": 6,
+      "offset": 393216,
+      "bytes": 65536,
+      "sha256": "aab7cdbdbf59dca5cf53ffd1251345a8401783ddfec5bcef25ed6fc8145776c3",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "777438c468184ab3d4764d467a78439863e21193",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00006.b64"
+    },
+    {
+      "index": 7,
+      "offset": 458752,
+      "bytes": 65536,
+      "sha256": "2783cc96f8992280b2d03f7fdb2f907f079bb9530528b464ae756542df2aef61",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "1e3e99885b3a9cee3effb6b1c8cfcfb7b9a509fb",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00007.b64"
+    },
+    {
+      "index": 8,
+      "offset": 524288,
+      "bytes": 65536,
+      "sha256": "60b04fccc61b9cb0df5364e61d316618f7b5420c142ccf475545d342ce8dd274",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "3054a43012bc7410ecbecc399424b1b274db87c2",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00008.b64"
+    },
+    {
+      "index": 9,
+      "offset": 589824,
+      "bytes": 65536,
+      "sha256": "2fd1e60ffed4aeb7d5dd3f505cc2527b7ed46bf90595b52b0a73dadf4b9b84ee",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "7d7684312fdd64a4f6473ac25e9116fb3d0f30b1",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00009.b64"
+    },
+    {
+      "index": 10,
+      "offset": 655360,
+      "bytes": 65536,
+      "sha256": "742db5195f16530878b77e0095e9734437d833eb99171f9cf3d16f42e354589a",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "2539b0887c544f1edfbe5c237b1d8277b1fc984e",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00010.b64"
+    },
+    {
+      "index": 11,
+      "offset": 720896,
+      "bytes": 65536,
+      "sha256": "032f375f197361e9f10736e07cd1c066e4aa8fd45048a764edfd5a00e7d3a6cb",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "abb26f5f764d66791953e4b9774370312a467a73",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00011.b64"
+    },
+    {
+      "index": 12,
+      "offset": 786432,
+      "bytes": 65536,
+      "sha256": "9f9b29fc09d3c46ed4c907db604b088cae3816347371e30024f435d80345f0d8",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "f248c935222a0a446cde20bee7242db5fa76932b",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00012.b64"
+    },
+    {
+      "index": 13,
+      "offset": 851968,
+      "bytes": 65536,
+      "sha256": "8a8669cf271cf9f23828aa844570523d0394fec15073968efcbbe37ba48bbecf",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "050f42d5d62069bfec122b356608a293dd80592e",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00013.b64"
+    },
+    {
+      "index": 14,
+      "offset": 917504,
+      "bytes": 65536,
+      "sha256": "a3f02da793c6b307e1ae92585293f834feddb5e74eb7d97e3fbe09504da17473",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "a1ae73fba7e8b3787dee146bdde037ff243644a0",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00014.b64"
+    },
+    {
+      "index": 15,
+      "offset": 983040,
+      "bytes": 65536,
+      "sha256": "b356967043287fdfc1497ba6147117a3673886e59c5dc4d5d28e6b534d06d5bf",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "21255820345f1e819feb1db249aa92c783a216bf",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00015.b64"
+    },
+    {
+      "index": 16,
+      "offset": 1048576,
+      "bytes": 65536,
+      "sha256": "b1e972056bb8f24ebd73eac54187b4749397b9441ac359ad271c70d1236562cf",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "69c99b6d452fd64700ee95e88012b17a18ec8b34",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00016.b64"
+    },
+    {
+      "index": 17,
+      "offset": 1114112,
+      "bytes": 65536,
+      "sha256": "08fb47b1498201401cf4b852b8137c2537eb71b70fb5c82e0e02ae4fdd816fd6",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "347e8998e897216e3849939869e6b23e24b376fe",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00017.b64"
+    },
+    {
+      "index": 18,
+      "offset": 1179648,
+      "bytes": 65536,
+      "sha256": "1b9f0e915e08ad724369d0152ddad50eed8f23192ef4b1ee1728d5f4588c206f",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "18fa98bb8451f733f1f6ed959f5da47d7bcb9d02",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00018.b64"
+    },
+    {
+      "index": 19,
+      "offset": 1245184,
+      "bytes": 65536,
+      "sha256": "13e1a1f3c21e75fd31e4a6ed3e4437819315c03299355e93ede3eaa754fe5b9b",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "5b0d5039de838549b69c86179f532f9ebca9adc2",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00019.b64"
+    },
+    {
+      "index": 20,
+      "offset": 1310720,
+      "bytes": 65536,
+      "sha256": "e724b62c6c025249153cea8ebb9849068798ab75e44cb8cf2231e3ac49ab1b1c",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "5b381a54cc52e2321ef32a388ff4e3ec7611391c",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00020.b64"
+    },
+    {
+      "index": 21,
+      "offset": 1376256,
+      "bytes": 65536,
+      "sha256": "8c9c4e20ada49d64a7dce8d6d081328b2968c88d98ccec4a72c00fc42e5c7759",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "5aa6e29127e20d4d6f392803e1af69a0c649c192",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00021.b64"
+    },
+    {
+      "index": 22,
+      "offset": 1441792,
+      "bytes": 65536,
+      "sha256": "65fc3876b4503195d9240ab2a052886a9cca8cc9a1e1984b6210bc2ec18ad9d3",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "ad06a44f50102b71f5fe66079cb02c4e9dfbf8d4",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00022.b64"
+    },
+    {
+      "index": 23,
+      "offset": 1507328,
+      "bytes": 65536,
+      "sha256": "3326720c99006e0358984586d6f80561d12ad68999ee90f70598f4f60ad9664f",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "299b36131955bcb0bc5201b262ad905061dcfd4d",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00023.b64"
+    },
+    {
+      "index": 24,
+      "offset": 1572864,
+      "bytes": 65536,
+      "sha256": "6fe2785306e914afc131723d6f85f9af5287fbfa26950ef76fb37d080ee68fd8",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "f5dc22815b10cffb4563837cfb91fc91a675782c",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00024.b64"
+    },
+    {
+      "index": 25,
+      "offset": 1638400,
+      "bytes": 65536,
+      "sha256": "224f8abd743358725cee5bf8d40e5a07822f63d7169b214d27f2333b6f8d0363",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "6847749f01dfc3e0596d34e4e7dbcfc84cbfdf79",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00025.b64"
+    },
+    {
+      "index": 26,
+      "offset": 1703936,
+      "bytes": 65536,
+      "sha256": "25bb3cf47c7aeea0b81f30511ef8c13761de9b38aaa1dedbd1087c2b34bc1bd5",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "b1e5b751d5224afc10e53c34221969948193b811",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00026.b64"
+    },
+    {
+      "index": 27,
+      "offset": 1769472,
+      "bytes": 65536,
+      "sha256": "f93977ff0b66c342ff0d56be03e07efc9894213ea4cd30ce0e313eb4a335db7d",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "eef31fca7672c72596aacc537af068c543c230ad",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00027.b64"
+    },
+    {
+      "index": 28,
+      "offset": 1835008,
+      "bytes": 65536,
+      "sha256": "bc5d0b6a0c92a45ec33b4743d063f530bd631355c7b12644a32e5cf9167961d0",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "6cd55b32151d8c6e182815bb1f4fe7dcfa30a518",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00028.b64"
+    },
+    {
+      "index": 29,
+      "offset": 1900544,
+      "bytes": 65536,
+      "sha256": "f399cad2ca84def240f5a7e36f95458ff6584c06b8e963beb71815918e17e21f",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "72585b957770064a780eef7253582ecf97f9d2d1",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00029.b64"
+    },
+    {
+      "index": 30,
+      "offset": 1966080,
+      "bytes": 65536,
+      "sha256": "14bf80c9b02949330eb737a092c567fc048019c02c0daaaf97b709bb2e4c1700",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "aaad1a2fd1a436b7c0a9d2010c480ef336d300e5",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00030.b64"
+    },
+    {
+      "index": 31,
+      "offset": 2031616,
+      "bytes": 65536,
+      "sha256": "e595e7816ad167b70572141ab2166e17aa8d450f6bd2629b7adab9328efb6bff",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "debfac61a6203383f10526c70befea9d6ff19cbb",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00031.b64"
+    },
+    {
+      "index": 32,
+      "offset": 2097152,
+      "bytes": 65536,
+      "sha256": "cb8631141cb1ae24edf740efc2464c1c3ce236418012a56a64524ab8b96b0f84",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "86c5822b937ea7148d7ba7be674cd22292e97f19",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00032.b64"
+    },
+    {
+      "index": 33,
+      "offset": 2162688,
+      "bytes": 65536,
+      "sha256": "36ea46cead0b0ab04fbeea850cad5ba2be68752dcd94024c88cde20f0a7ac6d5",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "2fd3031c4f054d194d15797e4c1f6d2fcc7587d0",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00033.b64"
+    },
+    {
+      "index": 34,
+      "offset": 2228224,
+      "bytes": 65536,
+      "sha256": "ca93f146b2817748288f0b6c487979510d00d74118e295907774c9d2ba454be7",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "5dff03708a49456b2a4b30d5e6dbbca5ef0113db",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00034.b64"
+    },
+    {
+      "index": 35,
+      "offset": 2293760,
+      "bytes": 65536,
+      "sha256": "7f104fd59967ea604e6272f91aff98b609dc2bf2edfa55981af945f1b12414ad",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "fc842388ad8a1b668395a83942191b6444024013",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00035.b64"
+    },
+    {
+      "index": 36,
+      "offset": 2359296,
+      "bytes": 65536,
+      "sha256": "c2bff0e833bf0023540fefe2612b8e983abaa6972a9a143331a06343e998afc7",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "69b18f340a9bee9209a9bfaf6af7cbf290d46a75",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00036.b64"
+    },
+    {
+      "index": 37,
+      "offset": 2424832,
+      "bytes": 65536,
+      "sha256": "e78ec82eb08ce8b92e6ae1f82c5508f6c470ea85560125372eaab0faa4f8ba24",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "5b6db1ae017f8eb16bb680133c4222d630eda9be",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00037.b64"
+    },
+    {
+      "index": 38,
+      "offset": 2490368,
+      "bytes": 65536,
+      "sha256": "5b766c9e7ee95201eab6fc54ca8c616ce9a3071f1bd752bcfcf31ba1c1bb73cb",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "860e84687339ac83d0f3598ad6f1ddae3ba31679",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00038.b64"
+    },
+    {
+      "index": 39,
+      "offset": 2555904,
+      "bytes": 65536,
+      "sha256": "d17a87a2f0bf57c9413726eee4a64f537049c7e5e4f52c8811af3116806d25d1",
+      "encoded_bytes": 87385,
+      "git_blob_sha": "a1758e8b510b200c7e0e18c765d75830181c5b8d",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00039.b64"
+    },
+    {
+      "index": 40,
+      "offset": 2621440,
+      "bytes": 37826,
+      "sha256": "cf07dd55a9f58deda20b8775abb61051a11746bc86d3dc3c0f18e62edeb13b76",
+      "encoded_bytes": 50437,
+      "git_blob_sha": "896689ddd81ee58b7667779ca5f39b91170188e6",
+      "path": "artifacts/alpha-recovery/raw-preservation/parts/holding-basis/remove502.json.gz/00040.b64"
+    }
+  ]
+}

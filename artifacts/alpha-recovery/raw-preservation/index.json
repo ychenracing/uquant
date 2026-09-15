@@ -56,13 +56,13 @@
     },
     {
       "bytes": 522878,
+      "evidence_commit": "e6b55fb5b96069ce98315673f3053c1676206f1f",
       "key": "reference-readiness/a.json.gz",
       "manifest": "manifests/reference-readiness/a.json.gz.json",
+      "manifest_sha256": "227b979c39c91651fce1ab2f5f9d8096a2c0e3604364f5e9a0c5059f4d80067e",
       "raw_remote_saved": true,
       "remote_readback_verified": true,
-      "sha256": "12251c6039c4b5f42c1c2fb458594ab22eaffef6fbfbed39e599ab996858fd1a",
-      "manifest_sha256": "227b979c39c91651fce1ab2f5f9d8096a2c0e3604364f5e9a0c5059f4d80067e",
-      "evidence_commit": "e6b55fb5b96069ce98315673f3053c1676206f1f"
+      "sha256": "12251c6039c4b5f42c1c2fb458594ab22eaffef6fbfbed39e599ab996858fd1a"
     },
     {
       "bytes": 1968549,

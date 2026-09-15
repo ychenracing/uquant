@@ -1,0 +1,2442 @@
+{
+  "a": {
+    "config": {
+      "concentrated_repair_days": 2,
+      "transition_damage_repair": 0.38
+    },
+    "rows": [
+      {
+        "date": "2025-10-16",
+        "risk": "CAUTION",
+        "evidence": {
+          "capital_budget_level": 1,
+          "chronic_level": 0,
+          "combined_family_vote_count": 5,
+          "family_vote_count": 4,
+          "flat_book_capital_repair": {
+            "account_identity": "account_da894f2aa4cc89bb162227552de5ab8fc1e45a0413269d3843953203f2165af3",
+            "capital_budget_level": 1,
+            "config_identity": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+            "first_observed_session": "2025-09-04",
+            "healthy_session_count": 0,
+            "last_counted_session": "",
+            "last_observed_session": "2025-10-16",
+            "last_ready_session": "",
+            "last_reset_session": "2025-10-16",
+            "predicate_results": [
+              {
+                "authoritative_state": {
+                  "positive_position_symbols": [
+                    "sz300308"
+                  ]
+                },
+                "code": "ALL_CASH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "symbols": []
+                },
+                "code": "PENDING_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "UNSETTLED_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "LATE_FILL_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active_epoch_ids": [],
+                  "active_pointer": ""
+                },
+                "code": "NO_ACTIVE_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "epoch_ids": []
+                },
+                "code": "NO_NONTERMINAL_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "grant_id": ""
+                },
+                "code": "NO_NONTERMINAL_GRANT",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "live_fields": [
+                    "anchor_weights",
+                    "positions",
+                    "protected_weights",
+                    "recovery_conviction_symbol",
+                    "tactical_anchor_symbol"
+                  ]
+                },
+                "code": "NO_LIVE_CAPITAL_AUTHORITY",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "detected_fields": [],
+                  "normalized_fields": []
+                },
+                "code": "ORPHAN_RESIDUE_NORMALIZED",
+                "economic_authority": false,
+                "orphan_residue": true,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "risk": "CAUTION"
+                },
+                "code": "RISK_NORMAL",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "votes": 4
+                },
+                "code": "RISK_VOTES_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "target_gross_cap": 0.92
+                },
+                "code": "TARGET_GROSS_OPEN",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "shock_state": "RECOVERY"
+                },
+                "code": "SHOCK_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "repair_threshold": 0.38,
+                  "transition_damage": 0.3534444272069165
+                },
+                "code": "TRANSITION_DAMAGE_REPAIRED",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SECTOR_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "STRATEGIC_DAMAGE_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "ACUTE_EVACUATION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SENTINEL_FREEZE_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "chronic_level": 0
+                },
+                "code": "CHRONIC_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "opportunity": "TREND"
+                },
+                "code": "OPPORTUNITY_TREND",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "expected_but_unavailable": [],
+                  "expected_symbols": [
+                    "sh000300",
+                    "sh000682",
+                    "sh600487",
+                    "sh601869",
+                    "sh603688",
+                    "sh603986",
+                    "sh688008",
+                    "sh688012",
+                    "sh688019",
+                    "sh688037",
+                    "sh688041",
+                    "sh688072",
+                    "sh688082",
+                    "sh688110",
+                    "sh688120",
+                    "sh688146",
+                    "sh688200",
+                    "sh688233",
+                    "sh688256",
+                    "sh688268",
+                    "sh688300",
+                    "sh688347",
+                    "sh688361",
+                    "sh688498",
+                    "sh688766",
+                    "sz000636",
+                    "sz002281",
+                    "sz002371",
+                    "sz002409",
+                    "sz300054",
+                    "sz300223",
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sz300604",
+                    "sz300666"
+                  ]
+                },
+                "code": "RISK_REFERENCES_AVAILABLE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "reference_coverage": 1.0,
+                  "risk_anchor_group_count": 3
+                },
+                "code": "RISK_REFERENCE_COVERAGE_COMPLETE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "capital_budget_level": 1,
+                  "freeze_new_risk": true
+                },
+                "code": "DEPLOYMENT_BLOCK_REPAIRABLE",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              }
+            ],
+            "rejection_reasons": [
+              "NOT_ALL_CASH",
+              "LIVE_CAPITAL_AUTHORITY",
+              "RISK_CAUTION",
+              "RISK_VOTES",
+              "SHOCK_ACTIVE"
+            ],
+            "repair_episode_id": "repair_d3d18fb442cd6e2c970afaee94d874bd52317324f21c194639207f2d771635f9",
+            "repair_target_level": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "risk_reference_universe_identity": "764a65e9838280570a1c95121a1ce2e893ccd0604b7bb0cf6ed524432ddfc1da",
+            "status": "RESET"
+          },
+          "held_damage_ratio": 1.0,
+          "held_repair_ratio": 1.0,
+          "reduction_level": 1,
+          "sentinel_causal_repair_days": 0,
+          "sentinel_freeze_new_risk": false,
+          "sentinel_repair_days_required": 3,
+          "shock_state": "RECOVERY",
+          "transition_damage": 0.3534444272069165
+        }
+      },
+      {
+        "date": "2025-10-17",
+        "risk": "CAUTION",
+        "evidence": {
+          "capital_budget_level": 1,
+          "chronic_level": 0,
+          "combined_family_vote_count": 5,
+          "family_vote_count": 5,
+          "flat_book_capital_repair": {
+            "account_identity": "account_da894f2aa4cc89bb162227552de5ab8fc1e45a0413269d3843953203f2165af3",
+            "capital_budget_level": 1,
+            "config_identity": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+            "first_observed_session": "2025-09-04",
+            "healthy_session_count": 0,
+            "last_counted_session": "",
+            "last_observed_session": "2025-10-17",
+            "last_ready_session": "",
+            "last_reset_session": "2025-10-17",
+            "predicate_results": [
+              {
+                "authoritative_state": {
+                  "positive_position_symbols": [
+                    "sz300308"
+                  ]
+                },
+                "code": "ALL_CASH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "symbols": []
+                },
+                "code": "PENDING_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "UNSETTLED_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "LATE_FILL_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active_epoch_ids": [],
+                  "active_pointer": ""
+                },
+                "code": "NO_ACTIVE_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "epoch_ids": []
+                },
+                "code": "NO_NONTERMINAL_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "grant_id": ""
+                },
+                "code": "NO_NONTERMINAL_GRANT",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "live_fields": [
+                    "anchor_weights",
+                    "positions",
+                    "protected_weights",
+                    "recovery_conviction_symbol",
+                    "tactical_anchor_symbol"
+                  ]
+                },
+                "code": "NO_LIVE_CAPITAL_AUTHORITY",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "detected_fields": [],
+                  "normalized_fields": []
+                },
+                "code": "ORPHAN_RESIDUE_NORMALIZED",
+                "economic_authority": false,
+                "orphan_residue": true,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "risk": "CAUTION"
+                },
+                "code": "RISK_NORMAL",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "votes": 5
+                },
+                "code": "RISK_VOTES_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "target_gross_cap": 1.0
+                },
+                "code": "TARGET_GROSS_OPEN",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "shock_state": "RECOVERY"
+                },
+                "code": "SHOCK_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "repair_threshold": 0.38,
+                  "transition_damage": 0.5182960470597869
+                },
+                "code": "TRANSITION_DAMAGE_REPAIRED",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SECTOR_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "STRATEGIC_DAMAGE_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "ACUTE_EVACUATION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": true
+                },
+                "code": "SENTINEL_FREEZE_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "chronic_level": 0
+                },
+                "code": "CHRONIC_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "opportunity": "TREND"
+                },
+                "code": "OPPORTUNITY_TREND",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "expected_but_unavailable": [],
+                  "expected_symbols": [
+                    "sh000300",
+                    "sh000682",
+                    "sh600487",
+                    "sh601869",
+                    "sh603688",
+                    "sh603986",
+                    "sh688008",
+                    "sh688012",
+                    "sh688019",
+                    "sh688037",
+                    "sh688041",
+                    "sh688072",
+                    "sh688082",
+                    "sh688110",
+                    "sh688120",
+                    "sh688146",
+                    "sh688200",
+                    "sh688233",
+                    "sh688256",
+                    "sh688268",
+                    "sh688300",
+                    "sh688347",
+                    "sh688361",
+                    "sh688498",
+                    "sh688766",
+                    "sz000636",
+                    "sz002281",
+                    "sz002371",
+                    "sz002409",
+                    "sz300054",
+                    "sz300223",
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sz300604",
+                    "sz300666"
+                  ]
+                },
+                "code": "RISK_REFERENCES_AVAILABLE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "reference_coverage": 1.0,
+                  "risk_anchor_group_count": 3
+                },
+                "code": "RISK_REFERENCE_COVERAGE_COMPLETE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "capital_budget_level": 1,
+                  "freeze_new_risk": true
+                },
+                "code": "DEPLOYMENT_BLOCK_REPAIRABLE",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              }
+            ],
+            "rejection_reasons": [
+              "NOT_ALL_CASH",
+              "LIVE_CAPITAL_AUTHORITY",
+              "RISK_CAUTION",
+              "RISK_VOTES",
+              "SHOCK_ACTIVE",
+              "TRANSITION_DAMAGE_UNREPAIRED",
+              "SENTINEL_FREEZE"
+            ],
+            "repair_episode_id": "repair_d3d18fb442cd6e2c970afaee94d874bd52317324f21c194639207f2d771635f9",
+            "repair_target_level": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "risk_reference_universe_identity": "764a65e9838280570a1c95121a1ce2e893ccd0604b7bb0cf6ed524432ddfc1da",
+            "status": "RESET"
+          },
+          "held_damage_ratio": 0.0,
+          "held_repair_ratio": 1.0,
+          "reduction_level": 1,
+          "sentinel_causal_repair_days": 0,
+          "sentinel_freeze_new_risk": true,
+          "sentinel_repair_days_required": 3,
+          "shock_state": "RECOVERY",
+          "transition_damage": 0.5182960470597869
+        }
+      },
+      {
+        "date": "2025-10-20",
+        "risk": "CAUTION",
+        "evidence": {
+          "capital_budget_level": 1,
+          "chronic_level": 0,
+          "combined_family_vote_count": 3,
+          "family_vote_count": 4,
+          "flat_book_capital_repair": {
+            "account_identity": "account_da894f2aa4cc89bb162227552de5ab8fc1e45a0413269d3843953203f2165af3",
+            "capital_budget_level": 1,
+            "config_identity": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+            "first_observed_session": "2025-09-04",
+            "healthy_session_count": 0,
+            "last_counted_session": "",
+            "last_observed_session": "2025-10-20",
+            "last_ready_session": "",
+            "last_reset_session": "2025-10-20",
+            "predicate_results": [
+              {
+                "authoritative_state": {
+                  "positive_position_symbols": [
+                    "sz300308"
+                  ]
+                },
+                "code": "ALL_CASH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "symbols": []
+                },
+                "code": "PENDING_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "UNSETTLED_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "LATE_FILL_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active_epoch_ids": [],
+                  "active_pointer": ""
+                },
+                "code": "NO_ACTIVE_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "epoch_ids": []
+                },
+                "code": "NO_NONTERMINAL_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "grant_id": ""
+                },
+                "code": "NO_NONTERMINAL_GRANT",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "live_fields": [
+                    "anchor_weights",
+                    "positions",
+                    "protected_weights",
+                    "recovery_conviction_symbol",
+                    "tactical_anchor_symbol"
+                  ]
+                },
+                "code": "NO_LIVE_CAPITAL_AUTHORITY",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "detected_fields": [],
+                  "normalized_fields": []
+                },
+                "code": "ORPHAN_RESIDUE_NORMALIZED",
+                "economic_authority": false,
+                "orphan_residue": true,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "risk": "CAUTION"
+                },
+                "code": "RISK_NORMAL",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "votes": 4
+                },
+                "code": "RISK_VOTES_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "target_gross_cap": 1.0
+                },
+                "code": "TARGET_GROSS_OPEN",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "shock_state": "RECOVERY"
+                },
+                "code": "SHOCK_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "repair_threshold": 0.38,
+                  "transition_damage": 0.2992438752811543
+                },
+                "code": "TRANSITION_DAMAGE_REPAIRED",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SECTOR_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "STRATEGIC_DAMAGE_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "ACUTE_EVACUATION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": true
+                },
+                "code": "SENTINEL_FREEZE_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "chronic_level": 0
+                },
+                "code": "CHRONIC_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "opportunity": "TREND"
+                },
+                "code": "OPPORTUNITY_TREND",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "expected_but_unavailable": [],
+                  "expected_symbols": [
+                    "sh000300",
+                    "sh000682",
+                    "sh600487",
+                    "sh601869",
+                    "sh603688",
+                    "sh603986",
+                    "sh688008",
+                    "sh688012",
+                    "sh688019",
+                    "sh688037",
+                    "sh688041",
+                    "sh688072",
+                    "sh688082",
+                    "sh688110",
+                    "sh688120",
+                    "sh688146",
+                    "sh688200",
+                    "sh688233",
+                    "sh688256",
+                    "sh688268",
+                    "sh688300",
+                    "sh688347",
+                    "sh688361",
+                    "sh688498",
+                    "sh688766",
+                    "sz000636",
+                    "sz002281",
+                    "sz002371",
+                    "sz002409",
+                    "sz300054",
+                    "sz300223",
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sz300604",
+                    "sz300666"
+                  ]
+                },
+                "code": "RISK_REFERENCES_AVAILABLE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "reference_coverage": 1.0,
+                  "risk_anchor_group_count": 3
+                },
+                "code": "RISK_REFERENCE_COVERAGE_COMPLETE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "capital_budget_level": 1,
+                  "freeze_new_risk": true
+                },
+                "code": "DEPLOYMENT_BLOCK_REPAIRABLE",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              }
+            ],
+            "rejection_reasons": [
+              "NOT_ALL_CASH",
+              "LIVE_CAPITAL_AUTHORITY",
+              "RISK_CAUTION",
+              "RISK_VOTES",
+              "SHOCK_ACTIVE",
+              "SENTINEL_FREEZE"
+            ],
+            "repair_episode_id": "repair_d3d18fb442cd6e2c970afaee94d874bd52317324f21c194639207f2d771635f9",
+            "repair_target_level": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "risk_reference_universe_identity": "764a65e9838280570a1c95121a1ce2e893ccd0604b7bb0cf6ed524432ddfc1da",
+            "status": "RESET"
+          },
+          "held_damage_ratio": 0.0,
+          "held_repair_ratio": 1.0,
+          "reduction_level": 1,
+          "sentinel_causal_repair_days": 0,
+          "sentinel_freeze_new_risk": true,
+          "sentinel_repair_days_required": 3,
+          "shock_state": "RECOVERY",
+          "transition_damage": 0.2992438752811543
+        }
+      },
+      {
+        "date": "2025-10-21",
+        "risk": "CAUTION",
+        "evidence": {
+          "capital_budget_level": 1,
+          "chronic_level": 0,
+          "combined_family_vote_count": 1,
+          "family_vote_count": 0,
+          "flat_book_capital_repair": {
+            "account_identity": "account_da894f2aa4cc89bb162227552de5ab8fc1e45a0413269d3843953203f2165af3",
+            "capital_budget_level": 1,
+            "config_identity": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+            "first_observed_session": "2025-09-04",
+            "healthy_session_count": 0,
+            "last_counted_session": "",
+            "last_observed_session": "2025-10-21",
+            "last_ready_session": "",
+            "last_reset_session": "2025-10-21",
+            "predicate_results": [
+              {
+                "authoritative_state": {
+                  "positive_position_symbols": [
+                    "sz300308"
+                  ]
+                },
+                "code": "ALL_CASH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "symbols": []
+                },
+                "code": "PENDING_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "UNSETTLED_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "LATE_FILL_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active_epoch_ids": [],
+                  "active_pointer": ""
+                },
+                "code": "NO_ACTIVE_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "epoch_ids": []
+                },
+                "code": "NO_NONTERMINAL_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "grant_id": ""
+                },
+                "code": "NO_NONTERMINAL_GRANT",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "live_fields": [
+                    "anchor_weights",
+                    "positions",
+                    "protected_weights",
+                    "recovery_conviction_symbol",
+                    "tactical_anchor_symbol"
+                  ]
+                },
+                "code": "NO_LIVE_CAPITAL_AUTHORITY",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "detected_fields": [],
+                  "normalized_fields": []
+                },
+                "code": "ORPHAN_RESIDUE_NORMALIZED",
+                "economic_authority": false,
+                "orphan_residue": true,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "risk": "CAUTION"
+                },
+                "code": "RISK_NORMAL",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "votes": 0
+                },
+                "code": "RISK_VOTES_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "target_gross_cap": 1.0
+                },
+                "code": "TARGET_GROSS_OPEN",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "shock_state": "RECOVERY"
+                },
+                "code": "SHOCK_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "repair_threshold": 0.38,
+                  "transition_damage": 0.16191783022599987
+                },
+                "code": "TRANSITION_DAMAGE_REPAIRED",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SECTOR_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "STRATEGIC_DAMAGE_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "ACUTE_EVACUATION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SENTINEL_FREEZE_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "chronic_level": 0
+                },
+                "code": "CHRONIC_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "opportunity": "STRONG_TREND"
+                },
+                "code": "OPPORTUNITY_TREND",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "expected_but_unavailable": [],
+                  "expected_symbols": [
+                    "sh000300",
+                    "sh000682",
+                    "sh600487",
+                    "sh601869",
+                    "sh603688",
+                    "sh603986",
+                    "sh688008",
+                    "sh688012",
+                    "sh688019",
+                    "sh688037",
+                    "sh688041",
+                    "sh688072",
+                    "sh688082",
+                    "sh688110",
+                    "sh688120",
+                    "sh688146",
+                    "sh688200",
+                    "sh688233",
+                    "sh688256",
+                    "sh688268",
+                    "sh688300",
+                    "sh688347",
+                    "sh688361",
+                    "sh688498",
+                    "sh688766",
+                    "sz000636",
+                    "sz002281",
+                    "sz002371",
+                    "sz002409",
+                    "sz300054",
+                    "sz300223",
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sz300604",
+                    "sz300666"
+                  ]
+                },
+                "code": "RISK_REFERENCES_AVAILABLE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "reference_coverage": 1.0,
+                  "risk_anchor_group_count": 3
+                },
+                "code": "RISK_REFERENCE_COVERAGE_COMPLETE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "capital_budget_level": 1,
+                  "freeze_new_risk": true
+                },
+                "code": "DEPLOYMENT_BLOCK_REPAIRABLE",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              }
+            ],
+            "rejection_reasons": [
+              "NOT_ALL_CASH",
+              "LIVE_CAPITAL_AUTHORITY",
+              "RISK_CAUTION",
+              "SHOCK_ACTIVE"
+            ],
+            "repair_episode_id": "repair_d3d18fb442cd6e2c970afaee94d874bd52317324f21c194639207f2d771635f9",
+            "repair_target_level": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "risk_reference_universe_identity": "764a65e9838280570a1c95121a1ce2e893ccd0604b7bb0cf6ed524432ddfc1da",
+            "status": "RESET"
+          },
+          "held_damage_ratio": 0.0,
+          "held_repair_ratio": 1.0,
+          "reduction_level": 1,
+          "sentinel_causal_repair_days": 1,
+          "sentinel_freeze_new_risk": false,
+          "sentinel_repair_days_required": 3,
+          "shock_state": "RECOVERY",
+          "transition_damage": 0.16191783022599987
+        }
+      }
+    ]
+  },
+  "e": {
+    "config": {
+      "concentrated_repair_days": 2,
+      "transition_damage_repair": 0.38
+    },
+    "rows": [
+      {
+        "date": "2025-10-16",
+        "risk": "CAUTION",
+        "evidence": {
+          "capital_budget_level": 1,
+          "chronic_level": 0,
+          "combined_family_vote_count": 5,
+          "family_vote_count": 4,
+          "flat_book_capital_repair": {
+            "account_identity": "account_da894f2aa4cc89bb162227552de5ab8fc1e45a0413269d3843953203f2165af3",
+            "capital_budget_level": 1,
+            "config_identity": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+            "first_observed_session": "2025-09-04",
+            "healthy_session_count": 0,
+            "last_counted_session": "",
+            "last_observed_session": "2025-10-16",
+            "last_ready_session": "",
+            "last_reset_session": "2025-10-16",
+            "predicate_results": [
+              {
+                "authoritative_state": {
+                  "positive_position_symbols": [
+                    "sz300308",
+                    "sz300502"
+                  ]
+                },
+                "code": "ALL_CASH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "symbols": []
+                },
+                "code": "PENDING_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "UNSETTLED_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "LATE_FILL_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active_epoch_ids": [],
+                  "active_pointer": ""
+                },
+                "code": "NO_ACTIVE_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "epoch_ids": []
+                },
+                "code": "NO_NONTERMINAL_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "grant_id": ""
+                },
+                "code": "NO_NONTERMINAL_GRANT",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "live_fields": [
+                    "anchor_weights",
+                    "positions",
+                    "protected_weights",
+                    "recovery_conviction_symbol",
+                    "tactical_anchor_symbol"
+                  ]
+                },
+                "code": "NO_LIVE_CAPITAL_AUTHORITY",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "detected_fields": [],
+                  "normalized_fields": []
+                },
+                "code": "ORPHAN_RESIDUE_NORMALIZED",
+                "economic_authority": false,
+                "orphan_residue": true,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "risk": "CAUTION"
+                },
+                "code": "RISK_NORMAL",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "votes": 4
+                },
+                "code": "RISK_VOTES_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "target_gross_cap": 0.92
+                },
+                "code": "TARGET_GROSS_OPEN",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "shock_state": "RECOVERY"
+                },
+                "code": "SHOCK_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "repair_threshold": 0.38,
+                  "transition_damage": 0.3534444272069165
+                },
+                "code": "TRANSITION_DAMAGE_REPAIRED",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SECTOR_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "STRATEGIC_DAMAGE_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "ACUTE_EVACUATION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SENTINEL_FREEZE_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "chronic_level": 0
+                },
+                "code": "CHRONIC_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "opportunity": "TREND"
+                },
+                "code": "OPPORTUNITY_TREND",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "expected_but_unavailable": [],
+                  "expected_symbols": [
+                    "sh000300",
+                    "sh000682",
+                    "sh600487",
+                    "sh601869",
+                    "sh603688",
+                    "sh603986",
+                    "sh688008",
+                    "sh688012",
+                    "sh688019",
+                    "sh688037",
+                    "sh688041",
+                    "sh688072",
+                    "sh688082",
+                    "sh688110",
+                    "sh688120",
+                    "sh688146",
+                    "sh688200",
+                    "sh688233",
+                    "sh688256",
+                    "sh688268",
+                    "sh688300",
+                    "sh688347",
+                    "sh688361",
+                    "sh688498",
+                    "sh688766",
+                    "sz000636",
+                    "sz002281",
+                    "sz002371",
+                    "sz002409",
+                    "sz300054",
+                    "sz300223",
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sz300604",
+                    "sz300666"
+                  ]
+                },
+                "code": "RISK_REFERENCES_AVAILABLE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "reference_coverage": 1.0,
+                  "risk_anchor_group_count": 3
+                },
+                "code": "RISK_REFERENCE_COVERAGE_COMPLETE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "capital_budget_level": 1,
+                  "freeze_new_risk": true
+                },
+                "code": "DEPLOYMENT_BLOCK_REPAIRABLE",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              }
+            ],
+            "rejection_reasons": [
+              "NOT_ALL_CASH",
+              "LIVE_CAPITAL_AUTHORITY",
+              "RISK_CAUTION",
+              "RISK_VOTES",
+              "SHOCK_ACTIVE"
+            ],
+            "repair_episode_id": "repair_d3d18fb442cd6e2c970afaee94d874bd52317324f21c194639207f2d771635f9",
+            "repair_target_level": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "risk_reference_universe_identity": "764a65e9838280570a1c95121a1ce2e893ccd0604b7bb0cf6ed524432ddfc1da",
+            "status": "RESET"
+          },
+          "held_damage_ratio": 1.0,
+          "held_repair_ratio": 1.0,
+          "reduction_level": 1,
+          "sentinel_causal_repair_days": 0,
+          "sentinel_freeze_new_risk": false,
+          "sentinel_repair_days_required": 3,
+          "shock_state": "RECOVERY",
+          "transition_damage": 0.3534444272069165
+        }
+      },
+      {
+        "date": "2025-10-17",
+        "risk": "CAUTION",
+        "evidence": {
+          "capital_budget_level": 1,
+          "chronic_level": 0,
+          "combined_family_vote_count": 5,
+          "family_vote_count": 5,
+          "flat_book_capital_repair": {
+            "account_identity": "account_da894f2aa4cc89bb162227552de5ab8fc1e45a0413269d3843953203f2165af3",
+            "capital_budget_level": 1,
+            "config_identity": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+            "first_observed_session": "2025-09-04",
+            "healthy_session_count": 0,
+            "last_counted_session": "",
+            "last_observed_session": "2025-10-17",
+            "last_ready_session": "",
+            "last_reset_session": "2025-10-17",
+            "predicate_results": [
+              {
+                "authoritative_state": {
+                  "positive_position_symbols": [
+                    "sz300308",
+                    "sz300502"
+                  ]
+                },
+                "code": "ALL_CASH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "symbols": []
+                },
+                "code": "PENDING_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "UNSETTLED_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "LATE_FILL_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active_epoch_ids": [],
+                  "active_pointer": ""
+                },
+                "code": "NO_ACTIVE_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "epoch_ids": []
+                },
+                "code": "NO_NONTERMINAL_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "grant_id": ""
+                },
+                "code": "NO_NONTERMINAL_GRANT",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "live_fields": [
+                    "anchor_weights",
+                    "positions",
+                    "protected_weights",
+                    "recovery_conviction_symbol",
+                    "tactical_anchor_symbol"
+                  ]
+                },
+                "code": "NO_LIVE_CAPITAL_AUTHORITY",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "detected_fields": [],
+                  "normalized_fields": []
+                },
+                "code": "ORPHAN_RESIDUE_NORMALIZED",
+                "economic_authority": false,
+                "orphan_residue": true,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "risk": "CAUTION"
+                },
+                "code": "RISK_NORMAL",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "votes": 5
+                },
+                "code": "RISK_VOTES_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "target_gross_cap": 1.0
+                },
+                "code": "TARGET_GROSS_OPEN",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "shock_state": "RECOVERY"
+                },
+                "code": "SHOCK_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "repair_threshold": 0.38,
+                  "transition_damage": 0.5182960470597869
+                },
+                "code": "TRANSITION_DAMAGE_REPAIRED",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SECTOR_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "STRATEGIC_DAMAGE_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "ACUTE_EVACUATION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": true
+                },
+                "code": "SENTINEL_FREEZE_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "chronic_level": 0
+                },
+                "code": "CHRONIC_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "opportunity": "TREND"
+                },
+                "code": "OPPORTUNITY_TREND",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "expected_but_unavailable": [],
+                  "expected_symbols": [
+                    "sh000300",
+                    "sh000682",
+                    "sh600487",
+                    "sh601869",
+                    "sh603688",
+                    "sh603986",
+                    "sh688008",
+                    "sh688012",
+                    "sh688019",
+                    "sh688037",
+                    "sh688041",
+                    "sh688072",
+                    "sh688082",
+                    "sh688110",
+                    "sh688120",
+                    "sh688146",
+                    "sh688200",
+                    "sh688233",
+                    "sh688256",
+                    "sh688268",
+                    "sh688300",
+                    "sh688347",
+                    "sh688361",
+                    "sh688498",
+                    "sh688766",
+                    "sz000636",
+                    "sz002281",
+                    "sz002371",
+                    "sz002409",
+                    "sz300054",
+                    "sz300223",
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sz300604",
+                    "sz300666"
+                  ]
+                },
+                "code": "RISK_REFERENCES_AVAILABLE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "reference_coverage": 1.0,
+                  "risk_anchor_group_count": 3
+                },
+                "code": "RISK_REFERENCE_COVERAGE_COMPLETE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "capital_budget_level": 1,
+                  "freeze_new_risk": true
+                },
+                "code": "DEPLOYMENT_BLOCK_REPAIRABLE",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              }
+            ],
+            "rejection_reasons": [
+              "NOT_ALL_CASH",
+              "LIVE_CAPITAL_AUTHORITY",
+              "RISK_CAUTION",
+              "RISK_VOTES",
+              "SHOCK_ACTIVE",
+              "TRANSITION_DAMAGE_UNREPAIRED",
+              "SENTINEL_FREEZE"
+            ],
+            "repair_episode_id": "repair_d3d18fb442cd6e2c970afaee94d874bd52317324f21c194639207f2d771635f9",
+            "repair_target_level": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "risk_reference_universe_identity": "764a65e9838280570a1c95121a1ce2e893ccd0604b7bb0cf6ed524432ddfc1da",
+            "status": "RESET"
+          },
+          "held_damage_ratio": 0.5,
+          "held_repair_ratio": 0.5,
+          "reduction_level": 1,
+          "sentinel_causal_repair_days": 0,
+          "sentinel_freeze_new_risk": true,
+          "sentinel_repair_days_required": 3,
+          "shock_state": "RECOVERY",
+          "transition_damage": 0.5182960470597869
+        }
+      },
+      {
+        "date": "2025-10-20",
+        "risk": "CAUTION",
+        "evidence": {
+          "capital_budget_level": 1,
+          "chronic_level": 0,
+          "combined_family_vote_count": 3,
+          "family_vote_count": 4,
+          "flat_book_capital_repair": {
+            "account_identity": "account_da894f2aa4cc89bb162227552de5ab8fc1e45a0413269d3843953203f2165af3",
+            "capital_budget_level": 1,
+            "config_identity": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+            "first_observed_session": "2025-09-04",
+            "healthy_session_count": 0,
+            "last_counted_session": "",
+            "last_observed_session": "2025-10-20",
+            "last_ready_session": "",
+            "last_reset_session": "2025-10-20",
+            "predicate_results": [
+              {
+                "authoritative_state": {
+                  "positive_position_symbols": [
+                    "sz300308",
+                    "sz300502"
+                  ]
+                },
+                "code": "ALL_CASH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "symbols": []
+                },
+                "code": "PENDING_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "UNSETTLED_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "LATE_FILL_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active_epoch_ids": [],
+                  "active_pointer": ""
+                },
+                "code": "NO_ACTIVE_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "epoch_ids": []
+                },
+                "code": "NO_NONTERMINAL_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "grant_id": ""
+                },
+                "code": "NO_NONTERMINAL_GRANT",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "live_fields": [
+                    "anchor_weights",
+                    "positions",
+                    "protected_weights",
+                    "recovery_conviction_symbol",
+                    "tactical_anchor_symbol"
+                  ]
+                },
+                "code": "NO_LIVE_CAPITAL_AUTHORITY",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "detected_fields": [],
+                  "normalized_fields": []
+                },
+                "code": "ORPHAN_RESIDUE_NORMALIZED",
+                "economic_authority": false,
+                "orphan_residue": true,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "risk": "CAUTION"
+                },
+                "code": "RISK_NORMAL",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "votes": 4
+                },
+                "code": "RISK_VOTES_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "target_gross_cap": 1.0
+                },
+                "code": "TARGET_GROSS_OPEN",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "shock_state": "RECOVERY"
+                },
+                "code": "SHOCK_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "repair_threshold": 0.38,
+                  "transition_damage": 0.2992438752811543
+                },
+                "code": "TRANSITION_DAMAGE_REPAIRED",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SECTOR_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "STRATEGIC_DAMAGE_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "ACUTE_EVACUATION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": true
+                },
+                "code": "SENTINEL_FREEZE_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "chronic_level": 0
+                },
+                "code": "CHRONIC_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "opportunity": "STRONG_TREND"
+                },
+                "code": "OPPORTUNITY_TREND",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "expected_but_unavailable": [],
+                  "expected_symbols": [
+                    "sh000300",
+                    "sh000682",
+                    "sh600487",
+                    "sh601869",
+                    "sh603688",
+                    "sh603986",
+                    "sh688008",
+                    "sh688012",
+                    "sh688019",
+                    "sh688037",
+                    "sh688041",
+                    "sh688072",
+                    "sh688082",
+                    "sh688110",
+                    "sh688120",
+                    "sh688146",
+                    "sh688200",
+                    "sh688233",
+                    "sh688256",
+                    "sh688268",
+                    "sh688300",
+                    "sh688347",
+                    "sh688361",
+                    "sh688498",
+                    "sh688766",
+                    "sz000636",
+                    "sz002281",
+                    "sz002371",
+                    "sz002409",
+                    "sz300054",
+                    "sz300223",
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sz300604",
+                    "sz300666"
+                  ]
+                },
+                "code": "RISK_REFERENCES_AVAILABLE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "reference_coverage": 1.0,
+                  "risk_anchor_group_count": 3
+                },
+                "code": "RISK_REFERENCE_COVERAGE_COMPLETE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "capital_budget_level": 1,
+                  "freeze_new_risk": true
+                },
+                "code": "DEPLOYMENT_BLOCK_REPAIRABLE",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              }
+            ],
+            "rejection_reasons": [
+              "NOT_ALL_CASH",
+              "LIVE_CAPITAL_AUTHORITY",
+              "RISK_CAUTION",
+              "RISK_VOTES",
+              "SHOCK_ACTIVE",
+              "SENTINEL_FREEZE"
+            ],
+            "repair_episode_id": "repair_d3d18fb442cd6e2c970afaee94d874bd52317324f21c194639207f2d771635f9",
+            "repair_target_level": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "risk_reference_universe_identity": "764a65e9838280570a1c95121a1ce2e893ccd0604b7bb0cf6ed524432ddfc1da",
+            "status": "RESET"
+          },
+          "held_damage_ratio": 0.5,
+          "held_repair_ratio": 1.0,
+          "reduction_level": 1,
+          "sentinel_causal_repair_days": 0,
+          "sentinel_freeze_new_risk": true,
+          "sentinel_repair_days_required": 3,
+          "shock_state": "RECOVERY",
+          "transition_damage": 0.2992438752811543
+        }
+      },
+      {
+        "date": "2025-10-21",
+        "risk": "CAUTION",
+        "evidence": {
+          "capital_budget_level": 1,
+          "chronic_level": 0,
+          "combined_family_vote_count": 0,
+          "family_vote_count": 0,
+          "flat_book_capital_repair": {
+            "account_identity": "account_da894f2aa4cc89bb162227552de5ab8fc1e45a0413269d3843953203f2165af3",
+            "capital_budget_level": 1,
+            "config_identity": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+            "first_observed_session": "2025-09-04",
+            "healthy_session_count": 0,
+            "last_counted_session": "",
+            "last_observed_session": "2025-10-21",
+            "last_ready_session": "",
+            "last_reset_session": "2025-10-21",
+            "predicate_results": [
+              {
+                "authoritative_state": {
+                  "positive_position_symbols": [
+                    "sz300308",
+                    "sz300502"
+                  ]
+                },
+                "code": "ALL_CASH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "symbols": []
+                },
+                "code": "PENDING_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "UNSETTLED_EXECUTION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "order_ids": []
+                },
+                "code": "LATE_FILL_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active_epoch_ids": [],
+                  "active_pointer": ""
+                },
+                "code": "NO_ACTIVE_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "epoch_ids": []
+                },
+                "code": "NO_NONTERMINAL_EPOCH",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "grant_id": ""
+                },
+                "code": "NO_NONTERMINAL_GRANT",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "live_fields": [
+                    "anchor_weights",
+                    "positions",
+                    "protected_weights",
+                    "recovery_conviction_symbol",
+                    "tactical_anchor_symbol"
+                  ]
+                },
+                "code": "NO_LIVE_CAPITAL_AUTHORITY",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "detected_fields": [],
+                  "normalized_fields": []
+                },
+                "code": "ORPHAN_RESIDUE_NORMALIZED",
+                "economic_authority": false,
+                "orphan_residue": true,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "risk": "CAUTION"
+                },
+                "code": "RISK_NORMAL",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "votes": 0
+                },
+                "code": "RISK_VOTES_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "target_gross_cap": 1.0
+                },
+                "code": "TARGET_GROSS_OPEN",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "shock_state": "RECOVERY"
+                },
+                "code": "SHOCK_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": false
+              },
+              {
+                "authoritative_state": {
+                  "repair_threshold": 0.38,
+                  "transition_damage": 0.16191783022599987
+                },
+                "code": "TRANSITION_DAMAGE_REPAIRED",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SECTOR_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "STRATEGIC_DAMAGE_GUARD_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "ACUTE_EVACUATION_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "active": false
+                },
+                "code": "SENTINEL_FREEZE_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "chronic_level": 0
+                },
+                "code": "CHRONIC_CLEAR",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "opportunity": "STRONG_TREND"
+                },
+                "code": "OPPORTUNITY_TREND",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "expected_but_unavailable": [],
+                  "expected_symbols": [
+                    "sh000300",
+                    "sh000682",
+                    "sh600487",
+                    "sh601869",
+                    "sh603688",
+                    "sh603986",
+                    "sh688008",
+                    "sh688012",
+                    "sh688019",
+                    "sh688037",
+                    "sh688041",
+                    "sh688072",
+                    "sh688082",
+                    "sh688110",
+                    "sh688120",
+                    "sh688146",
+                    "sh688200",
+                    "sh688233",
+                    "sh688256",
+                    "sh688268",
+                    "sh688300",
+                    "sh688347",
+                    "sh688361",
+                    "sh688498",
+                    "sh688766",
+                    "sz000636",
+                    "sz002281",
+                    "sz002371",
+                    "sz002409",
+                    "sz300054",
+                    "sz300223",
+                    "sz300308",
+                    "sz300394",
+                    "sz300502",
+                    "sz300604",
+                    "sz300666"
+                  ]
+                },
+                "code": "RISK_REFERENCES_AVAILABLE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "reference_coverage": 1.0,
+                  "risk_anchor_group_count": 3
+                },
+                "code": "RISK_REFERENCE_COVERAGE_COMPLETE",
+                "economic_authority": false,
+                "orphan_residue": false,
+                "passed": true
+              },
+              {
+                "authoritative_state": {
+                  "capital_budget_level": 1,
+                  "freeze_new_risk": true
+                },
+                "code": "DEPLOYMENT_BLOCK_REPAIRABLE",
+                "economic_authority": true,
+                "orphan_residue": false,
+                "passed": true
+              }
+            ],
+            "rejection_reasons": [
+              "NOT_ALL_CASH",
+              "LIVE_CAPITAL_AUTHORITY",
+              "RISK_CAUTION",
+              "SHOCK_ACTIVE"
+            ],
+            "repair_episode_id": "repair_d3d18fb442cd6e2c970afaee94d874bd52317324f21c194639207f2d771635f9",
+            "repair_target_level": 0,
+            "required_healthy_sessions": 20,
+            "reset_reason": "LIVE_CAPITAL_AUTHORITY",
+            "risk_reference_universe_identity": "764a65e9838280570a1c95121a1ce2e893ccd0604b7bb0cf6ed524432ddfc1da",
+            "status": "RESET"
+          },
+          "held_damage_ratio": 0.0,
+          "held_repair_ratio": 1.0,
+          "reduction_level": 1,
+          "sentinel_causal_repair_days": 1,
+          "sentinel_freeze_new_risk": false,
+          "sentinel_repair_days_required": 3,
+          "shock_state": "RECOVERY",
+          "transition_damage": 0.16191783022599987
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,1031 @@
+[
+  {
+    "pool": "a",
+    "date": "2025-10-13",
+    "risk": "CRISIS",
+    "gross": 0.9772037925689134,
+    "allocation": {
+      "as_of": "2025-10-13",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 0.255,
+      "freeze_new_risk": true,
+      "gross_cap": 0.255,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-13",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": []
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.5393833281438276
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.022796207431086582,
+      "unreserved_cash_before": 0.022796207431086582
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.255,
+        "held_weight": 0.6758290423445578
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.056355253512057474
+      },
+      "sz300502": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.24501949671229806
+      }
+    }
+  },
+  {
+    "pool": "a",
+    "date": "2025-10-14",
+    "risk": "CRISIS",
+    "gross": 0.2327630443865367,
+    "allocation": {
+      "as_of": "2025-10-14",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 0.255,
+      "freeze_new_risk": true,
+      "gross_cap": 0.255,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-14",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.47877811887855537
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.7672369556134633,
+      "unreserved_cash_before": 0.7672369556134633
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.23276304438653672,
+        "held_weight": 0.23276304438653672
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      }
+    }
+  },
+  {
+    "pool": "a",
+    "date": "2025-10-15",
+    "risk": "CRISIS",
+    "gross": 0.23689095268014923,
+    "allocation": {
+      "as_of": "2025-10-15",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 0.255,
+      "freeze_new_risk": true,
+      "gross_cap": 0.255,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-15",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.48832740793523643
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.7631090473198507,
+      "unreserved_cash_before": 0.7631090473198507
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.23689095268014923,
+        "held_weight": 0.23689095268014923
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      }
+    }
+  },
+  {
+    "pool": "a",
+    "date": "2025-10-16",
+    "risk": "CAUTION",
+    "gross": 0.24341306276863842,
+    "allocation": {
+      "as_of": "2025-10-16",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 0.92,
+      "freeze_new_risk": true,
+      "gross_cap": 0.92,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-16",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.46209355249899464
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.7565869372313616,
+      "unreserved_cash_before": 0.7565869372313616
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.24341306276863844,
+        "held_weight": 0.24341306276863844
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      }
+    }
+  },
+  {
+    "pool": "a",
+    "date": "2025-10-17",
+    "risk": "CAUTION",
+    "gross": 0.246734758521626,
+    "allocation": {
+      "as_of": "2025-10-17",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 1.0,
+      "freeze_new_risk": true,
+      "gross_cap": 1.0,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-17",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4173490700635034
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.753265241478374,
+      "unreserved_cash_before": 0.753265241478374
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.246734758521626,
+        "held_weight": 0.246734758521626
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      }
+    }
+  },
+  {
+    "pool": "a",
+    "date": "2025-10-20",
+    "risk": "CAUTION",
+    "gross": 0.26111972607745676,
+    "allocation": {
+      "as_of": "2025-10-20",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 1.0,
+      "freeze_new_risk": true,
+      "gross_cap": 1.0,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-20",
+        "confirmed": false,
+        "credible_symbols": [
+          "sz300308"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688498",
+            "sz300308"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4104092995419617
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.7388802739225432,
+      "unreserved_cash_before": 0.7388802739225432
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.26111972607745676,
+        "held_weight": 0.26111972607745676
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      }
+    }
+  },
+  {
+    "pool": "a",
+    "date": "2025-10-21",
+    "risk": "CAUTION",
+    "gross": 0.27914663595073647,
+    "allocation": {
+      "as_of": "2025-10-21",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 1.0,
+      "freeze_new_risk": true,
+      "gross_cap": 1.0,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-21",
+        "confirmed": false,
+        "credible_symbols": [
+          "sz300308",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688498",
+            "sz300308",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4597156739168531
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.0799999999999999,
+      "unreserved_cash_before": 0.7208533640492635
+    },
+    "symbols": {
+      "sz300308": {
+        "allocation_reason": "POST_SHOCK_RESTORATION",
+        "budget_checks": [
+          {
+            "accepted": true,
+            "cash_room": 0.7208533640492635,
+            "correlation_cluster": [
+              "sz300308"
+            ],
+            "correlation_room": 0.6408533640492635,
+            "desired_increment": 0.3208533640492635,
+            "effective_increment_room": 0.3208533640492635,
+            "funded_increment": 0.3208533640492635,
+            "gross_room": 0.7208533640492636,
+            "industry_room": 0.6408533640492635,
+            "minimum_increment": 0.04,
+            "phase": "POST_SHOCK_RESTORATION",
+            "position_slots": 6,
+            "reserved_for_intent": 0.0,
+            "symbol_room": 0.3208533640492635,
+            "unreserved_cash": 0.7208533640492635
+          }
+        ],
+        "final_target_weight": 0.6,
+        "held_weight": 0.27914663595073647
+      },
+      "sz300394": {
+        "allocation_reason": "POST_SHOCK_RESTORATION",
+        "budget_checks": [
+          {
+            "accepted": true,
+            "cash_room": 0.39999999999999997,
+            "correlation_cluster": [
+              "sz300308",
+              "sz300394"
+            ],
+            "correlation_room": 0.32000000000000006,
+            "desired_increment": 0.16000000000000003,
+            "effective_increment_room": 0.32000000000000006,
+            "funded_increment": 0.16000000000000003,
+            "gross_room": 0.4,
+            "industry_room": 0.32000000000000006,
+            "minimum_increment": 0.04,
+            "phase": "POST_SHOCK_RESTORATION",
+            "position_slots": 5,
+            "reserved_for_intent": 0.0,
+            "symbol_room": 0.6,
+            "unreserved_cash": 0.39999999999999997
+          }
+        ],
+        "final_target_weight": 0.16000000000000003,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "allocation_reason": "POST_SHOCK_RESTORATION",
+        "budget_checks": [
+          {
+            "accepted": true,
+            "cash_room": 0.23999999999999994,
+            "correlation_cluster": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ],
+            "correlation_room": 0.16000000000000003,
+            "desired_increment": 0.16000000000000003,
+            "effective_increment_room": 0.16000000000000003,
+            "funded_increment": 0.16000000000000003,
+            "gross_room": 0.24,
+            "industry_room": 0.16000000000000003,
+            "minimum_increment": 0.04,
+            "phase": "POST_SHOCK_RESTORATION",
+            "position_slots": 4,
+            "reserved_for_intent": 0.0,
+            "symbol_room": 0.6,
+            "unreserved_cash": 0.23999999999999994
+          }
+        ],
+        "final_target_weight": 0.16000000000000003,
+        "held_weight": 0.0
+      }
+    }
+  },
+  {
+    "pool": "a",
+    "date": "2025-10-22",
+    "risk": "CAUTION",
+    "gross": 0.9171119576842987,
+    "allocation": {
+      "as_of": "2025-10-22",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 1.0,
+      "freeze_new_risk": true,
+      "gross_cap": 1.0,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-22",
+        "confirmed": false,
+        "credible_symbols": [
+          "sz300308",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688498",
+            "sz300308",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.45954678593469866
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.08288804231570132,
+      "unreserved_cash_before": 0.08288804231570132
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.5927305864982642,
+        "held_weight": 0.5927305864982642,
+        "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+      },
+      "sz300394": {
+        "final_target_weight": 0.16985816103404802,
+        "held_weight": 0.16985816103404802,
+        "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+      },
+      "sz300502": {
+        "final_target_weight": 0.1545232101519865,
+        "held_weight": 0.1545232101519865,
+        "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+      }
+    }
+  },
+  {
+    "pool": "e",
+    "date": "2025-10-13",
+    "risk": "CRISIS",
+    "gross": 0.9778242953641384,
+    "allocation": {
+      "as_of": "2025-10-13",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 0.66,
+      "freeze_new_risk": true,
+      "gross_cap": 0.66,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-13",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": []
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.5393833281438276
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.02217570463586165,
+      "unreserved_cash_before": 0.02217570463586165
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.6,
+        "held_weight": 0.6742107542861924
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.05715420175757316
+      },
+      "sz300502": {
+        "final_target_weight": 0.06000000000000005,
+        "held_weight": 0.2464593393203727
+      }
+    }
+  },
+  {
+    "pool": "e",
+    "date": "2025-10-14",
+    "risk": "CRISIS",
+    "gross": 0.6326440384391439,
+    "allocation": {
+      "as_of": "2025-10-14",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 0.66,
+      "freeze_new_risk": true,
+      "gross_cap": 0.66,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-14",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.47877811887855537
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.3673559615608561,
+      "unreserved_cash_before": 0.3673559615608561
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.5770093855128912,
+        "held_weight": 0.5770093855128912
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.05563465292625286,
+        "held_weight": 0.05563465292625286
+      }
+    }
+  },
+  {
+    "pool": "e",
+    "date": "2025-10-15",
+    "risk": "CRISIS",
+    "gross": 0.6378886385681692,
+    "allocation": {
+      "as_of": "2025-10-15",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 0.66,
+      "freeze_new_risk": true,
+      "gross_cap": 0.66,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-15",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.48832740793523643
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.3621113614318307,
+      "unreserved_cash_before": 0.3621113614318307
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.5819896925175322,
+        "held_weight": 0.5819896925175322
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.0558989460506371,
+        "held_weight": 0.0558989460506371
+      }
+    }
+  },
+  {
+    "pool": "e",
+    "date": "2025-10-16",
+    "risk": "CAUTION",
+    "gross": 0.6455295105245423,
+    "allocation": {
+      "as_of": "2025-10-16",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 0.92,
+      "freeze_new_risk": true,
+      "gross_cap": 0.92,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-16",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.46209355249899464
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.3544704894754577,
+      "unreserved_cash_before": 0.3544704894754577
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.5904408502426641,
+        "held_weight": 0.5904408502426641
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.055088660281878296,
+        "held_weight": 0.055088660281878296
+      }
+    }
+  },
+  {
+    "pool": "e",
+    "date": "2025-10-17",
+    "risk": "CAUTION",
+    "gross": 0.6487814243338739,
+    "allocation": {
+      "as_of": "2025-10-17",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 1.0,
+      "freeze_new_risk": true,
+      "gross_cap": 1.0,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-17",
+        "confirmed": false,
+        "credible_symbols": [],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688347"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4173490700635034
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.3512185756661262,
+      "unreserved_cash_before": 0.3512185756661262
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.5956225805414165,
+        "held_weight": 0.5956225805414165
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.05315884379245742,
+        "held_weight": 0.05315884379245742
+      }
+    }
+  },
+  {
+    "pool": "e",
+    "date": "2025-10-20",
+    "risk": "CAUTION",
+    "gross": 0.6652438351954103,
+    "allocation": {
+      "as_of": "2025-10-20",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 1.0,
+      "freeze_new_risk": true,
+      "gross_cap": 1.0,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-20",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688498",
+          "sz300308"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688498",
+            "sz300308"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4104092995419617
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.3347561648045897,
+      "unreserved_cash_before": 0.3347561648045897
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.6,
+        "held_weight": 0.6124991110056366
+      },
+      "sz300394": {
+        "final_target_weight": 0.0,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "final_target_weight": 0.052744724189773745,
+        "held_weight": 0.052744724189773745
+      }
+    }
+  },
+  {
+    "pool": "e",
+    "date": "2025-10-21",
+    "risk": "CAUTION",
+    "gross": 0.6855195008346718,
+    "allocation": {
+      "as_of": "2025-10-21",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 1.0,
+      "freeze_new_risk": true,
+      "gross_cap": 1.0,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-21",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688498",
+          "sz300308",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688498",
+            "sz300308",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.4597156739168531
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.07999999999999982,
+      "unreserved_cash_before": 0.3144804991653281
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.6,
+        "held_weight": 0.6305077931468722,
+        "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+      },
+      "sz300394": {
+        "allocation_reason": "POST_SHOCK_RESTORATION",
+        "budget_checks": [
+          {
+            "accepted": true,
+            "cash_room": 0.3144804991653281,
+            "correlation_cluster": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ],
+            "correlation_room": 0.23448049916532832,
+            "desired_increment": 0.16000000000000003,
+            "effective_increment_room": 0.23448049916532832,
+            "funded_increment": 0.16000000000000003,
+            "gross_room": 0.3144804991653283,
+            "industry_room": 0.23448049916532832,
+            "minimum_increment": 0.04,
+            "phase": "POST_SHOCK_RESTORATION",
+            "position_slots": 4,
+            "reserved_for_intent": 0.0,
+            "symbol_room": 0.6,
+            "unreserved_cash": 0.3144804991653281
+          }
+        ],
+        "final_target_weight": 0.16000000000000003,
+        "held_weight": 0.0
+      },
+      "sz300502": {
+        "allocation_reason": "POST_SHOCK_RESTORATION",
+        "budget_checks": [
+          {
+            "accepted": true,
+            "cash_room": 0.15448049916532808,
+            "correlation_cluster": [
+              "sz300308",
+              "sz300394",
+              "sz300502"
+            ],
+            "correlation_room": 0.07448049916532828,
+            "desired_increment": 0.1049882923122005,
+            "effective_increment_room": 0.07448049916532826,
+            "funded_increment": 0.07448049916532826,
+            "gross_room": 0.15448049916532824,
+            "industry_room": 0.07448049916532826,
+            "minimum_increment": 0.04,
+            "phase": "POST_SHOCK_RESTORATION",
+            "position_slots": 4,
+            "reserved_for_intent": 0.0,
+            "symbol_room": 0.5449882923122005,
+            "unreserved_cash": 0.15448049916532808
+          }
+        ],
+        "final_target_weight": 0.1294922068531278,
+        "held_weight": 0.05501170768779954
+      }
+    }
+  },
+  {
+    "pool": "e",
+    "date": "2025-10-22",
+    "risk": "CAUTION",
+    "gross": 0.9188486775464265,
+    "allocation": {
+      "as_of": "2025-10-22",
+      "final_freeze_new_risk": true,
+      "final_gross_cap": 1.0,
+      "freeze_new_risk": true,
+      "gross_cap": 1.0,
+      "late_fill_order_ids": [],
+      "ordinary_market": {
+        "as_of": "2025-10-22",
+        "confirmed": false,
+        "credible_symbols": [
+          "sh688498",
+          "sz300308",
+          "sz300502"
+        ],
+        "impulse": false,
+        "leader_cycle_armed": false,
+        "leader_cycle_confirmation": {
+          "observed": 0,
+          "required": 3
+        },
+        "mature_entry_open": false,
+        "missing_market_fields": [],
+        "persistent_mature_entry_open": false,
+        "persistent_maturity": {
+          "observed": 0,
+          "required": 5,
+          "witnesses": [
+            "sh688498",
+            "sz300308",
+            "sz300502"
+          ]
+        },
+        "repair_mature_entry_open": false,
+        "tech_ret120": 0.45954678593469866
+      },
+      "planning_scope": "ALLOCATOR_PROPOSAL",
+      "scope": "FINAL_DECISION",
+      "unreserved_cash_after": 0.08115132245357348,
+      "unreserved_cash_before": 0.08115132245357348
+    },
+    "symbols": {
+      "sz300308": {
+        "final_target_weight": 0.6,
+        "held_weight": 0.6230958751765272,
+        "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+      },
+      "sz300394": {
+        "final_target_weight": 0.1689727996622111,
+        "held_weight": 0.1689727996622111,
+        "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+      },
+      "sz300502": {
+        "final_target_weight": 0.12678000270768836,
+        "held_weight": 0.12678000270768836,
+        "restore_block": "RESTORATION_COMPLETED_RETAIN_DRIFT"
+      }
+    }
+  }
+]

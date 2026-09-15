@@ -1,0 +1,11 @@
+{
+  "bytes": 192194,
+  "git_blob_sha": "17723e02615cf610c5e147d68721719402fd8d55",
+  "key": "holding-basis/passive.json",
+  "local_path": "/workspace/scratch/c24820a73481/uquant-candidate/artifacts/alpha-recovery/holding-basis/passive.json",
+  "raw_remote_saved": false,
+  "remote_path": "artifacts/alpha-recovery/holding-basis/passive.json",
+  "sha256": "d1bf7077e20904c76fe66ff661d7fd1f4aa57e93f785b186992a2ec6cb1581ba",
+  "status": "COMMITTED_PENDING_READBACK",
+  "storage": "existing_blob_reference"
+}

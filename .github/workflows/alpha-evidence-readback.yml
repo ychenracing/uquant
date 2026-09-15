@@ -1,0 +1,33 @@
+name: Alpha evidence readback
+
+on:
+  push:
+    branches: [research/alpha-recovery]
+    paths: ['.github/workflows/alpha-evidence-readback.yml']
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  absolute-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: 34923111917
+          name: absolute-generalization-summary-34923111917-attempt-1
+          path: /tmp/absolute-report
+      - name: Read the actual sealed economic report
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          for path in sorted(Path("/tmp/absolute-report").rglob("*.json")):
+              content = path.read_bytes()
+              payload = json.loads(content)
+              print(json.dumps({"file": path.name, "sha256": hashlib.sha256(content).hexdigest(), "report": payload}, sort_keys=True))
+          PY

@@ -1,0 +1,936 @@
+{
+  "baseline": "5742e7442a9f0a83ebcd1b7277d4417344c0287d",
+  "branches": [
+    {
+      "name": "codex/absolute-generalization-acceptance",
+      "sha": "392f4130c2b532456fbae20fef227602b5ba865e",
+      "ancestor_of_main": false,
+      "unique_commits": 25,
+      "production_tree": "9e65b4e4fa46ebfd90a3668045e1a03d3de761b2"
+    },
+    {
+      "name": "codex/absolute-generalization-acceptance-wip-recovery-20260831",
+      "sha": "292a8a82f2420aa3bf22e91f5e37ac7645d7e1f3",
+      "ancestor_of_main": false,
+      "unique_commits": 18,
+      "production_tree": "3390bccc05a3e6f096b4f8937a6d796835b75b79"
+    },
+    {
+      "name": "codex/affordable-core-selection-20260911",
+      "sha": "d59b908631b18c2eee5d1f828ec5ac84f1f86f51",
+      "ancestor_of_main": false,
+      "unique_commits": 6,
+      "production_tree": "496e1ed7e9fe309e334194943608f16cc9e413a4"
+    },
+    {
+      "name": "codex/agent-instruction-conflict-fix-20260912",
+      "sha": "16d0913b49809d75c86184120b2d7f50ec8e84ca",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a"
+    },
+    {
+      "name": "codex/agents-governance-optimization",
+      "sha": "417ba88123da9cfb72f890dfb38216ad1f9bc5c8",
+      "ancestor_of_main": false,
+      "unique_commits": 3,
+      "production_tree": "ff134fddbeeda04f28a61cf488626ae156af8b0a"
+    },
+    {
+      "name": "codex/agents-streamline-20260905",
+      "sha": "28c2fdd7e5b04f8b5ead61feeb692d809f6c93b4",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "4886cbc0c05de4429aea262fb4ba70942b8d29a9"
+    },
+    {
+      "name": "codex/align-project-governance-20260906",
+      "sha": "3ce508ec347eba4f29a4995cd792311703269033",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "4886cbc0c05de4429aea262fb4ba70942b8d29a9"
+    },
+    {
+      "name": "codex/anchor-correctness-cleanup-20260911",
+      "sha": "0773f72209ac2f6233329d8e87229ff2486a2b3a",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "57276d372ac8f11cf3ea0355824fba0f789979bf"
+    },
+    {
+      "name": "codex/anchor-nomination-20260911",
+      "sha": "e26583d6c6134b7309dc190fd56d65057aa81747",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "ecfae32a9f0ebc42983ba4adfcd77bbdfdc92e22"
+    },
+    {
+      "name": "codex/behavior-preserving-simplification",
+      "sha": "ae167d479ea9c085873f27cd4a5fe468f9eb2bde",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "00742965fe8748bae282082b1478db9cac065dbe"
+    },
+    {
+      "name": "codex/breach-episode-integration-wip-20260910",
+      "sha": "d477fb107fc078243459f593b56bacd6bf20a188",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "9af805d66d0b8d459c4428f370ab991fb6d7727a"
+    },
+    {
+      "name": "codex/breach-episode-research-20260910",
+      "sha": "b2e03221ae7fb5d03968b964a8cf0d9ebb67f40d",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "b2a65c1d233af85e579a71881eb369e71febb18d"
+    },
+    {
+      "name": "codex/c-source-data-diagnostic-20260909",
+      "sha": "744eea29aac896efff4a9df866c4604afd35cd37",
+      "ancestor_of_main": false,
+      "unique_commits": 3,
+      "production_tree": "9c32aa88ce202261b929076e2e517209d3193118"
+    },
+    {
+      "name": "codex/causal-input-account",
+      "sha": "c804d51fae583521d96ba58e20f19880ef61044d",
+      "ancestor_of_main": false,
+      "unique_commits": 3,
+      "production_tree": "8a7f005dbb228ed0f89b6fb27c07e0992d8b2cad"
+    },
+    {
+      "name": "codex/caution-exception-research-20260910",
+      "sha": "37b57f0c3ad1a326853ca595653285a522855537",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "7e277d66dad0232eb761adf2866905b1f681b029"
+    },
+    {
+      "name": "codex/caution-lifecycle-research-20260910",
+      "sha": "cca5723252274516823c19d37e39d637fd7a92b5",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "c2bea5be481452c03580cc91b0c688aa17380aa5"
+    },
+    {
+      "name": "codex/checkpoint-cohort-hysteresis-20260810",
+      "sha": "425191b7e8dbae266014f239f69c5ddc68a109bf",
+      "ancestor_of_main": false,
+      "unique_commits": 20,
+      "production_tree": "8f46c90c79cec9a3bd0755cbbfda7ed9d3b3affe"
+    },
+    {
+      "name": "codex/checkpoint-stage-a-20260811",
+      "sha": "ce678836ce479cd77aac7f063b6b1c17ecd42b5d",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": null
+    },
+    {
+      "name": "codex/ci-trusted-execution-closure",
+      "sha": "fefdb01dd68f184f535a588f0d38aa2cbc5fb8e7",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "bea857fdde947e20d5dd2d6295e63e18c855e869"
+    },
+    {
+      "name": "codex/cohort-paired-execution-20260910",
+      "sha": "1442615535ef198a8219b9bf3e60dd8e5e91a5ee",
+      "ancestor_of_main": false,
+      "unique_commits": 22,
+      "production_tree": "0753d836270167b5bd67882b143c782ec3aa94c5"
+    },
+    {
+      "name": "codex/cohort-simple-control-20260910",
+      "sha": "acabc2bb4abadc7c47e13737ca405ff7fcde74d4",
+      "ancestor_of_main": false,
+      "unique_commits": 23,
+      "production_tree": "412ab8a822e25cc7f6c0b52d18df4d36c229bf57"
+    },
+    {
+      "name": "codex/config-usability-plain-report",
+      "sha": "1c3d726addf97eff26d0c90daebb418279398cea",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a"
+    },
+    {
+      "name": "codex/continuation-20260911",
+      "sha": "d9d85dd23be05b58820b24c87b1243a277f3c4c9",
+      "ancestor_of_main": false,
+      "unique_commits": 4,
+      "production_tree": "c73758be6c823a20bc49eea64cf79c23f904278a"
+    },
+    {
+      "name": "codex/crisis-cap-cleanup-20260911",
+      "sha": "f8bc1ef55eda75655a90df0295118c16c2a6eda5",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "f686aa17ad2c1a349d7b1b3cdbef0d8b080a9028"
+    },
+    {
+      "name": "codex/cross-ai-core-strategy-20260905",
+      "sha": "c419e7d4f6d6d2e357c57f96d1c590659e71a954",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "c332ec865265aa91fbd5fb9cb7a778a118ac6df6"
+    },
+    {
+      "name": "codex/cross-ai-handoff-recovery-20260905",
+      "sha": "0cbd5820dd64cba2dceb5c9937ef9560b4d10af2",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "e76ab915efd7cdc72c90bc6ae44daf51152bfa1e"
+    },
+    {
+      "name": "codex/current-acceptance-chain",
+      "sha": "e4db332bed723c88b11cb86109ad5f38cfdcf10f",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "b7873a73903f402dd968832980e99be47839ba2e"
+    },
+    {
+      "name": "codex/diverse-persistence-20260911",
+      "sha": "67177d93bf165a692dc96ec3b6535618cdba1500",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "47d59c24d3bb8f45b8683d5affa499e49e89d8e8"
+    },
+    {
+      "name": "codex/economics-first-closure-20260910",
+      "sha": "b1bd832aa2abb2ddffd73f67518d367857c53377",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "227c4e909d40f4285ccea4dea10c18d04bd80b48"
+    },
+    {
+      "name": "codex/finalize-recovery-release",
+      "sha": "df293e4fd7613746400228abbabc7db5076c1caa",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "cad1414441957480a93a1c68152101e807c9d6af"
+    },
+    {
+      "name": "codex/fix-absolute-generalization-final-ci",
+      "sha": "18a3f1300317fb5782bdbc21e9f3b40bf299b1f2",
+      "ancestor_of_main": false,
+      "unique_commits": 3,
+      "production_tree": "4886cbc0c05de4429aea262fb4ba70942b8d29a9"
+    },
+    {
+      "name": "codex/fix-control-plane-complexity-ci",
+      "sha": "bccae5ac8283f71c8b8a54aa655773c8d131c66c",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "b696868c2093fc52a2a18ec604a13604efdb7bf1"
+    },
+    {
+      "name": "codex/fix-full-cohort-grant-validation",
+      "sha": "4bb73852661d55445a1dbd8ccc3e3a7f75d04596",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "b09c5ae6f88370976c6d25847e75e7a3e078df1a"
+    },
+    {
+      "name": "codex/fix-known-actions-20260911",
+      "sha": "d788db25254f4e295ad8d5ca7723cea7694fabc9",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "fca09f1ae42a523bb284fdb3ac56084a9f75114b"
+    },
+    {
+      "name": "codex/fix-public-api-contract-ci",
+      "sha": "08b398be21d988aa120c7b8496bf44c75aaed6b3",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "4886cbc0c05de4429aea262fb4ba70942b8d29a9"
+    },
+    {
+      "name": "codex/full-cohort-lifecycle-ci-fixes",
+      "sha": "f8feb27a4bf8e4f2555a7dd41695d0c16fcac8c7",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "f1c2d64ad250d32916ee5bf3cd95597fe9731c40"
+    },
+    {
+      "name": "codex/full-owner-exit-20260911",
+      "sha": "1ee7af9fd4f5dcb9cdf31f2e6449f8a1c746972d",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "2d79ae60cc59a654cde6a14264aa6a896eb37949"
+    },
+    {
+      "name": "codex/historical-cohort-replay-20260909",
+      "sha": "145e2a6d37c5f4fb36ba5bad58e63d563556dd4b",
+      "ancestor_of_main": false,
+      "unique_commits": 21,
+      "production_tree": "97b0f26ef5755a6e6c1b95cab3d91750cfec8564"
+    },
+    {
+      "name": "codex/incremental-generalization-20260911",
+      "sha": "6c0531082d8b6f51bf03e3d6b96a998b4256553a",
+      "ancestor_of_main": false,
+      "unique_commits": 4,
+      "production_tree": "1bff4d982d5c162076db5e6c0916f261d32e3f1c"
+    },
+    {
+      "name": "codex/independent-repair-allowance-20260911",
+      "sha": "ce93b65a441db19ba672fac2abbfd5ec1cd012ae",
+      "ancestor_of_main": false,
+      "unique_commits": 4,
+      "production_tree": "73d8ae2791a7a20d637269717f3d08b25642a059"
+    },
+    {
+      "name": "codex/industry-account-diagnostic-20260909",
+      "sha": "2724f166cbcc3319c5fe1ed8f339363eb34b7caf",
+      "ancestor_of_main": false,
+      "unique_commits": 5,
+      "production_tree": "01a8cbc03e3d6481473175f70b86d607cbf8b029"
+    },
+    {
+      "name": "codex/industry-allocation-diagnostic-20260909",
+      "sha": "f2d49327016df310fb99a03a783d231a5886e301",
+      "ancestor_of_main": false,
+      "unique_commits": 7,
+      "production_tree": "29cc9cb9893b29585c58ae7d3de39e6c41ccbd54"
+    },
+    {
+      "name": "codex/industry-main-control-20260909",
+      "sha": "664b1ec9ea017efebb34f3b8674128986aacc5ad",
+      "ancestor_of_main": false,
+      "unique_commits": 3,
+      "production_tree": "ebaeabb617c7ce15c353edb7d4e08d3a4311fdea"
+    },
+    {
+      "name": "codex/long-cycle-engineering-closure-20260910",
+      "sha": "5fc505403d4c8490759de2296ef95468ba63ed18",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "227c4e909d40f4285ccea4dea10c18d04bd80b48"
+    },
+    {
+      "name": "codex/long-cycle-lifecycle-integration-20260910",
+      "sha": "20559e67bceae3703886042f90f2dfd5b2311c14",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "1511ca314fa349d1052cb24e77b06ab64b6e3a00"
+    },
+    {
+      "name": "codex/long-cycle-validation-binding-20260910",
+      "sha": "a0edddd64ce9ea7d235142bdd40c83f50479107e",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "2ba9bddcfd6c9de7ad12f84b55eae85fc1b48c66"
+    },
+    {
+      "name": "codex/mature-entry-followup-20260909",
+      "sha": "7fce6438d3291c85ab49b7c130980bc5c92f541f",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "c332ec865265aa91fbd5fb9cb7a778a118ac6df6"
+    },
+    {
+      "name": "codex/mature-impulse-rearm-20260911",
+      "sha": "33efc0ecefe2ee7411a84ec74656e505bccebf58",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "c7f1c16753e44a67941ee65c9049773bccbc9bc2"
+    },
+    {
+      "name": "codex/mature-market-rearm-20260911",
+      "sha": "6fa24f9e4ebd87ceb12070d571d62797707361c2",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "bcd987f384978e3c2f81583342972b8e5386c5b2"
+    },
+    {
+      "name": "codex/old-best-pair-20260911",
+      "sha": "d57539d32d0e57fecbb3b38c2fc55da3df6786f4",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "4886cbc0c05de4429aea262fb4ba70942b8d29a9"
+    },
+    {
+      "name": "codex/old-paired-runner-20260910",
+      "sha": "db06a7dc19e34e4eb7e02ac579f10157efbb64bb",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "d401098e46f86b6914e3c3fb8ba4ccd17ab6256d"
+    },
+    {
+      "name": "codex/ordinary-cycle-20260911",
+      "sha": "f4d0a5a534eb0666b2a9a2c619215491cd3b0d47",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "6fa8bfbe47595f5cf103985c182e13e3d3aed013"
+    },
+    {
+      "name": "codex/ordinary-long-cycle-local-20260910",
+      "sha": "b66d96aa3446e14ad7884c3fbae92e2d671248e1",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "968451ad95cde1ab5f0cf007bb91a924a9273851"
+    },
+    {
+      "name": "codex/ordinary-mature-local-20260910",
+      "sha": "d433d20fbdf3b292066c2e855593c52934b6401a",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "d896921813076a24508394fd9b0a9ab17fcbcfa8"
+    },
+    {
+      "name": "codex/ordinary-maturity-budget-20260911",
+      "sha": "b3be12920ecdd197c0af593056a70c3d1a4396d9",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "6805ce1d140e05ef8e738eaf4b03392dcc75ce61"
+    },
+    {
+      "name": "codex/ordinary-recovery-20260909",
+      "sha": "038cce40d46ddeff4714bfae4f738629cc9d529b",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "73d8ae2791a7a20d637269717f3d08b25642a059"
+    },
+    {
+      "name": "codex/phase1-ai-era-validation",
+      "sha": "7de1e3102f4f3302fb50377eb1711781937a5ff7",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "bfd301f932f6c2f6dddbe7cd80518936daca579f"
+    },
+    {
+      "name": "codex/phase2-ai-era-generalization",
+      "sha": "2adddcbafbcd0ab3a581aad18a7e5a05f6d78688",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "b3304f5c9c7994f5bd75f0158a606526aa316db4"
+    },
+    {
+      "name": "codex/post-generalization-trust-closure",
+      "sha": "5e1d36dae74281886e5f9d3eed0ef053c18de8e1",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "c88a067b6f0ef22919d26cb0e355f4bc15b3ef03"
+    },
+    {
+      "name": "codex/probe-custody-evidence-20260911",
+      "sha": "dbc108e26fc947af1c0fc601884d07f50b0acc73",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "54ca9d229af13b06ab9ebb9a130f1df92fd7673a"
+    },
+    {
+      "name": "codex/protected-holding-recovery-20260910",
+      "sha": "ea617153251695703b2c089fedb82a154131ab70",
+      "ancestor_of_main": false,
+      "unique_commits": 6,
+      "production_tree": "ddd66161c7db3798c6cf6f9333b4c96299a1e54e"
+    },
+    {
+      "name": "codex/qualified-capital-20260911",
+      "sha": "f613bb762c8214d68406a5784f19ed9eee5844db",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "cb89767e5ed82c7498cacabfa15bb581cc21e1e8"
+    },
+    {
+      "name": "codex/quarter-candidate-20260911",
+      "sha": "4844d82bedff222d5b6768859ab988ecee75f3b2",
+      "ancestor_of_main": false,
+      "unique_commits": 3,
+      "production_tree": "89c63d376cc4bfb7ff923fb14aa763fab674c536"
+    },
+    {
+      "name": "codex/recovery-path-reassessment-20260910",
+      "sha": "194c79279a2d68ddb0f709c62aeb99403f7e7992",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "794f237d2b99ff4c0761d199530b7a4bc29625fc"
+    },
+    {
+      "name": "codex/remote-task-bootstrap-governance",
+      "sha": "547145215d05cb879bd0f46d3c2cbbb03fcb9e2c",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "ff134fddbeeda04f28a61cf488626ae156af8b0a"
+    },
+    {
+      "name": "codex/remove-obsolete-superpowers",
+      "sha": "0d0be865f4c660da20496ac7e3eb74665f0d4b31",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "c88a067b6f0ef22919d26cb0e355f4bc15b3ef03"
+    },
+    {
+      "name": "codex/repair-capital-custody-20260911",
+      "sha": "5a0ee17d519371f5fac07027850de695b4eaf709",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "f3e8806bc53726cfdec69cced99fb40c5da33564"
+    },
+    {
+      "name": "codex/repair-maturity-20260910",
+      "sha": "10531064b5d0672f7f7a94eee893be64bd7e1a98",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "260111bbd47c25d3b08ab5d3e64d543881217686"
+    },
+    {
+      "name": "codex/repair-maturity-confirmation-20260911",
+      "sha": "bfac2c53fa061b46794849478bee32281c525bf6",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "34a1439e17899ea5a5b19e6fcdfef52e5b64ae2f"
+    },
+    {
+      "name": "codex/repair-maturity-evidence-20260911",
+      "sha": "9021d9f0501b8900c4d333ba0731626581019983",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "260111bbd47c25d3b08ab5d3e64d543881217686"
+    },
+    {
+      "name": "codex/repair-principal-budget-20260911",
+      "sha": "8a5d9f25e4cb1c274d005e60bac1626c5c11fb19",
+      "ancestor_of_main": false,
+      "unique_commits": 5,
+      "production_tree": "37c8936788d7c034e6546a22fc2458ff993c97ed"
+    },
+    {
+      "name": "codex/repair-probe-custody-20260911",
+      "sha": "fc29adba625e2fef1e7020b81a0179c2ae2bf788",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "54ca9d229af13b06ab9ebb9a130f1df92fd7673a"
+    },
+    {
+      "name": "codex/restoration-health-20260911",
+      "sha": "b07d1a7efae850abf3f8b20b1675b151bd9d333c",
+      "ancestor_of_main": false,
+      "unique_commits": 3,
+      "production_tree": "796803b0f323329558cdfb79ab4aa031dec9b2f7"
+    },
+    {
+      "name": "codex/restoration-priority-research-20260910",
+      "sha": "157a2296b11e8a7ece91b36bf3b0fc4b63d95184",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "8112a5699b0b3764d9c67db26ec792f9c07987a9"
+    },
+    {
+      "name": "codex/risk-retention-research-20260910",
+      "sha": "2db881e5619681bb4df363d3a2de6bb42ba263f4",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "bc6d1cd8da347f8db4c64330847b783806e23f87"
+    },
+    {
+      "name": "codex/scoring-role-diagnostic-20260909",
+      "sha": "3afc83b125a3ae3e3e0d1c9de11e2c39598f3577",
+      "ancestor_of_main": false,
+      "unique_commits": 4,
+      "production_tree": "fd34849f7241c1322bca6f6a722a3dd2f2d12943"
+    },
+    {
+      "name": "codex/settled-guard-repair-20260911",
+      "sha": "ae9ef72b6cd6da6c87f54d02620509b93d1d582d",
+      "ancestor_of_main": false,
+      "unique_commits": 5,
+      "production_tree": "914762f967e91115243dd1b714027bd13e1ce0a1"
+    },
+    {
+      "name": "codex/shared-exit-integration-20260910",
+      "sha": "0880dcabc3dcc223f51d2f691c53d77d7c3f7319",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "bf64e6375ac00395ab6e7e759826fcc1e3a02ffa"
+    },
+    {
+      "name": "codex/shared-exit-results-20260910",
+      "sha": "64ce212d6a9517712c0c371ab88a168d658b5033",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "df82c076e1c27f7bef3645380edd46ae34cc4e35"
+    },
+    {
+      "name": "codex/shared-structural-exit-research-20260910",
+      "sha": "ce91b23388cce189929e50fa45ce2dcc19d3fab9",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "bf64e6375ac00395ab6e7e759826fcc1e3a02ffa"
+    },
+    {
+      "name": "codex/simple-caution-integration-20260910",
+      "sha": "a68564f21a8d73f41712f510d89e76df6cbe2783",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "1a981e6463ff77870d821b660f38793ef9a106a1"
+    },
+    {
+      "name": "codex/simple-caution-legacy-20260910",
+      "sha": "b84a9ee11e538f4a057801574e6efc858f0ba862",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "0790314dbb34548842b7f7fd0b5db6947f39e097"
+    },
+    {
+      "name": "codex/simple-full-lifecycle-integration-20260910",
+      "sha": "997b6bc8293a66c8bde164eef6e5a4b2c45892d9",
+      "ancestor_of_main": false,
+      "unique_commits": 4,
+      "production_tree": "60ea9cef1ba5125bcbcf33d556f54f0888fb1d45"
+    },
+    {
+      "name": "codex/simple-lifecycle-acceptance-binding-20260910",
+      "sha": "3b8ed503b363bfcb0195c01b127c0310e073a667",
+      "ancestor_of_main": false,
+      "unique_commits": 5,
+      "production_tree": "4c6d02ec72f9fd576de4ae0cad544dac7600646c"
+    },
+    {
+      "name": "codex/simple-ordinary-evidence-20260909",
+      "sha": "6f977a0ed9f1dbaf35b8d3c1d5dd279037aebf1e",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "c332ec865265aa91fbd5fb9cb7a778a118ac6df6"
+    },
+    {
+      "name": "codex/simple-policy-data-guard-20260910",
+      "sha": "e065b039739e93602ff1a082512fdabfc7f85288",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "a08bc324889246d3837de218b633ff6050c00d69"
+    },
+    {
+      "name": "codex/simple-policy-recheck-20260910",
+      "sha": "0476517df2c35cfaec86481ee1e7c64a6f6deb45",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "644273cb9c95c05d25e0586277096e445568e43d"
+    },
+    {
+      "name": "codex/simple-sector-backdrop-20260910",
+      "sha": "618b8911141ebe98367cc578251fb4d2d9cffc02",
+      "ancestor_of_main": false,
+      "unique_commits": 7,
+      "production_tree": "f29eb63ae9abeb9f52b025a9ddf73d989a6d5c32"
+    },
+    {
+      "name": "codex/slow-damage-exit-20260910",
+      "sha": "52790e4edd77aadfd14340853fda81f3d98b4198",
+      "ancestor_of_main": false,
+      "unique_commits": 23,
+      "production_tree": "d973a9f6163266bac4f9b7d6db8cb3409c11c551"
+    },
+    {
+      "name": "codex/source-unit-data-diagnostic-20260909",
+      "sha": "6b4e6cef94b1f71e9830884302c141fd07d01fcf",
+      "ancestor_of_main": false,
+      "unique_commits": 6,
+      "production_tree": "ebaeabb617c7ce15c353edb7d4e08d3a4311fdea"
+    },
+    {
+      "name": "codex/start-recovery-increment-20260911",
+      "sha": "8205834b1379bf464001c3ce356d4ed944973873",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "fca09f1ae42a523bb284fdb3ac56084a9f75114b"
+    },
+    {
+      "name": "codex/strategic-grant-recovery",
+      "sha": "18ac1148b105b6c2cc547efa70f5df4719570f6e",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "ecfbafec7ae5d3751342c582ba52fe9e6a78caee"
+    },
+    {
+      "name": "codex/strategic-owner-continuity",
+      "sha": "a0d367cddbe42e98d1ae9dad8c8c7ebdadcbd5a0",
+      "ancestor_of_main": false,
+      "unique_commits": 26,
+      "production_tree": "ff134fddbeeda04f28a61cf488626ae156af8b0a"
+    },
+    {
+      "name": "codex/strict-companion-integration-20260910",
+      "sha": "b3f3f15035061e46349265e06a0b7ce9bd36c352",
+      "ancestor_of_main": false,
+      "unique_commits": 3,
+      "production_tree": "bb6fabf869c7a12786e1613c8ae61181b9b5c0db"
+    },
+    {
+      "name": "codex/t-economic-evidence-20260911",
+      "sha": "9bad5dfb010aecec44fc11eb6263d76f8dfb1781",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "73d8ae2791a7a20d637269717f3d08b25642a059"
+    },
+    {
+      "name": "codex/tactical-clock-research-20260910",
+      "sha": "5445c6c480c8dc4dbd9f3ff6f3a1f5ae8d50b16f",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "0c71f60c9e0b5c1518c08cf76cec6678a3375762"
+    },
+    {
+      "name": "codex/tactical-settled-clock-research-20260910",
+      "sha": "ece5fd866e63ea7d43e5b09daeb56084af79fb27",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "3c82527ddf53618d48d266b2e5cc04b15dc26100"
+    },
+    {
+      "name": "codex/targeted-generalization-research",
+      "sha": "9b6fcda4f62c78cff6cdc565e04e3cab203f1861",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "ef0b8abba9f0b694bfd32901cad272893de973e0"
+    },
+    {
+      "name": "codex/uquant-current-surface-unification",
+      "sha": "15f49936ac3fc85254c5c89b368b34369c0afe84",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "a2454c28c87146a3a6ff356340570d5a0119579a"
+    },
+    {
+      "name": "codex/uquant-doc-build-governance-20260825",
+      "sha": "bde09e7191ef4afacee22a1780ddf4aad147c0b1",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "affa3942907e96e94f2862d1342b3077161d6b61"
+    },
+    {
+      "name": "codex/uquant-docs-governance-20260825-f20957f",
+      "sha": "c441d9fc63642cbbf6f97ee43522cda187c3d50b",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "6fdbd65dc6b901b015783911c134a826ce253951"
+    },
+    {
+      "name": "codex/uquant-documentation-consistency-20260825-0c0431a",
+      "sha": "d569827d032c4d3aa7d379589305da3405d9e7fc",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "affa3942907e96e94f2862d1342b3077161d6b61"
+    },
+    {
+      "name": "codex/uquant-domain-naming-finalization",
+      "sha": "0e4a0a56ab6d269434b577b00248653d7acd6570",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "d7e63804601e5d55d9341ff92ebbbc97a95aae1c"
+    },
+    {
+      "name": "codex/uquant-execution-journal-ci-closure",
+      "sha": "4f9f406d006578e249b371f17693f1a6bc35c131",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "fa0e4706d32b2ca0574c2f68fe5f600f17c6e16f"
+    },
+    {
+      "name": "codex/uquant-modular-governance-20260822",
+      "sha": "fe73df03ae446861625c8eec4ad98ef36e6da82d",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "6fdbd65dc6b901b015783911c134a826ce253951"
+    },
+    {
+      "name": "codex/uquant-phase-1-current-head-baseline",
+      "sha": "b9ee014c3d71a16060c5189bbd4b5d3ddee9c5e6",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "f6f597c3af09dcab7332a8d56ddb441fa2dbcc00"
+    },
+    {
+      "name": "codex/uquant-phase-2-future-holdout",
+      "sha": "87f4366683e4531d0744d78380bf5c336fce2f57",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "3da96cc40faf40fb3372ecc6e6d04d52a8deb479"
+    },
+    {
+      "name": "codex/uquant-phase-3-shadow-sentinel",
+      "sha": "4be0ad2e8b2f44bad03042c05ddded0bc1c7a3aa",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "f3517e19421f6a5316eeb94733bcc96f8cac472b"
+    },
+    {
+      "name": "codex/uquant-phase-4-freeze-new-risk",
+      "sha": "b4717a65f1658d9ff2311362d1ad49d490d13a5d",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "d7398e8c4167848493b2bf9cc926fb58c5b899e2"
+    },
+    {
+      "name": "codex/uquant-phase-5-limited-gross-cap",
+      "sha": "9a82143a3079bdd846c995962a246a66c834c1d5",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "cef14d68ba80f3febad092f0c48445089952743d"
+    },
+    {
+      "name": "codex/uquant-phase-6-sentinel-evidence-timeline",
+      "sha": "711af1179aa72ce48ca3a6af58ecddb3a029a7ce",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "b8b8ae52882fa1eb27f189a5d52f098e85ddd6c2"
+    },
+    {
+      "name": "codex/uquant-phase-7-sentinel-exclusive-freeze",
+      "sha": "1441b8f4aa3131bb7c7c0b0e3f0c7fa222a17668",
+      "ancestor_of_main": false,
+      "unique_commits": 8,
+      "production_tree": "f10098edc2e70bc1b0ae51f4a71139c8abe7b83d"
+    },
+    {
+      "name": "codex/uquant-phase-8-risk-sentinel-consolidation",
+      "sha": "0ae54c0a6d2d4ca3dfe9814c75fbe82ae5591ac4",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "fa0e4706d32b2ca0574c2f68fe5f600f17c6e16f"
+    },
+    {
+      "name": "codex/uquant-production-observation-closure",
+      "sha": "fbe7a313bb93abf0a9efd8c57854c3a37deee11b",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "fa0e4706d32b2ca0574c2f68fe5f600f17c6e16f"
+    },
+    {
+      "name": "codex/uquant-risk-differential-closure",
+      "sha": "cf2c95212bef29cb990e9ebe9a0032ddc917b461",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "fa0e4706d32b2ca0574c2f68fe5f600f17c6e16f"
+    },
+    {
+      "name": "codex/uquant-security-differential",
+      "sha": "b3da75363d53bba62c279c13615b7cc640c335ea",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "d7e63804601e5d55d9341ff92ebbbc97a95aae1c"
+    },
+    {
+      "name": "codex/uquant-strategic-evidence-closure",
+      "sha": "4777b71f47832f5f85025d798df0348d1f39f903",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "d7e63804601e5d55d9341ff92ebbbc97a95aae1c"
+    },
+    {
+      "name": "codex/uquant-strategic-evidence-task6-handoff",
+      "sha": "c98a0bc93f9eab06ce42d2b6a8092ba98e30efc9",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "d7e63804601e5d55d9341ff92ebbbc97a95aae1c"
+    },
+    {
+      "name": "dependabot/github_actions/actions/cache-6.1.0",
+      "sha": "a72159c58a35ed625ec29d678401e932b3387e77",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "9e65b4e4fa46ebfd90a3668045e1a03d3de761b2"
+    },
+    {
+      "name": "dependabot/github_actions/actions/checkout-7.0.1",
+      "sha": "ae94692701eb47c5a24b1c89bf55439863edab8b",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "b7873a73903f402dd968832980e99be47839ba2e"
+    },
+    {
+      "name": "dependabot/github_actions/actions/download-artifact-8.0.1",
+      "sha": "569fb498d3c907142c2d229f7dbbbef406ed7d9a",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "b7873a73903f402dd968832980e99be47839ba2e"
+    },
+    {
+      "name": "dependabot/github_actions/actions/setup-python-7.0.0",
+      "sha": "2f258cc845edeb43a83bb02c110e58532b794147",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "b7873a73903f402dd968832980e99be47839ba2e"
+    },
+    {
+      "name": "dependabot/github_actions/actions/upload-artifact-7.0.1",
+      "sha": "a8310bef976e636ffaf5bd131d09d6aaa2a7e3ad",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "b7873a73903f402dd968832980e99be47839ba2e"
+    },
+    {
+      "name": "dependabot/pip/development-tools-11714860a6",
+      "sha": "f5035ba91eababc9b9dbe8a40f993cde9aae32fb",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a"
+    },
+    {
+      "name": "dependabot/pip/numpy-2.5.3",
+      "sha": "3c7a38cc69ff377fbfceec9e641ef61e0346ab8e",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a"
+    },
+    {
+      "name": "docs/activate-project-state-20260907",
+      "sha": "026c225413c5ff4ed5896f3070f02add849439bc",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "4886cbc0c05de4429aea262fb4ba70942b8d29a9"
+    },
+    {
+      "name": "docs/chatgpt-context-governance",
+      "sha": "358be60c4fce41355bf69e533f02ac0301395775",
+      "ancestor_of_main": false,
+      "unique_commits": 2,
+      "production_tree": "f0cce4bcd46e489d635732c8eefdfa8d7e9b6172"
+    },
+    {
+      "name": "docs/chunked-verified-uploads",
+      "sha": "a196b6afa949421951259f3c8defacc399cfc06e",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a"
+    },
+    {
+      "name": "docs/compress-agents-20260907",
+      "sha": "993e7365a6c480e0d5aaab42869c83263cf01b5d",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "4886cbc0c05de4429aea262fb4ba70942b8d29a9"
+    },
+    {
+      "name": "docs/no-large-uploads",
+      "sha": "60885130d2990da2d00945527ea36e468246e10b",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a"
+    },
+    {
+      "name": "docs/project-state-index-20260907",
+      "sha": "fbd5302ee3ddf82181006098d5397c6912f643a5",
+      "ancestor_of_main": false,
+      "unique_commits": 1,
+      "production_tree": "4886cbc0c05de4429aea262fb4ba70942b8d29a9"
+    },
+    {
+      "name": "main",
+      "sha": "5742e7442a9f0a83ebcd1b7277d4417344c0287d",
+      "ancestor_of_main": true,
+      "unique_commits": 0,
+      "production_tree": "ef0b8abba9f0b694bfd32901cad272893de973e0"
+    },
+    {
+      "name": "research/alpha-recovery",
+      "sha": "e473464296ec5b9a396d36def1d78c07e3987ef7",
+      "ancestor_of_main": false,
+      "unique_commits": 55,
+      "production_tree": "d51f4b1050420ed3099f9aa0a29b149494312210"
+    }
+  ]
+}

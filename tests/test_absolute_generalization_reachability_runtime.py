@@ -341,6 +341,23 @@ def test_initial_crowning_preserves_empty_authorization_session() -> None:
     ) == ""
 
 
+@pytest.mark.parametrize("cross", [False, True])
+def test_crowning_producer_preserves_complete_absence_of_epochs(cross: bool) -> None:
+    from dataclasses import replace
+
+    from _absolute_generalization_metrics_fixture import complete_replay, payload
+
+    from uquant.types import AccountState
+
+    account = AccountState.empty(2_000_000.).to_dict()
+    replay = replace(complete_replay(), observations=(), final_account_payload=payload(account))
+    evidence = runtime_module._crowning_payload(
+        replay, (), source_name="remove-sz300308", cross=cross,
+    )
+    assert evidence["chains"] == []
+    assert evidence["final_account"] == account
+
+
 def test_task6_projects_state_claims_from_runtime_objects() -> None:
     original = _observed_trace(1)[0]["state"]
     projected = project_observed_reachability_state(

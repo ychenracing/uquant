@@ -6,11 +6,11 @@ import hashlib
 import json
 import math
 import subprocess
-import sys
-import tempfile
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
+from sys import executable
+from tempfile import TemporaryDirectory
 from typing import Any, cast
 
 from uquant.provenance.fingerprints import (
@@ -162,13 +162,13 @@ def _validate_manifest_at_producer(
 ) -> None:
     """Run the public manifest validator in an exact temporary producer checkout."""
 
-    with tempfile.TemporaryDirectory(prefix="uquant-native-manifest-") as folder:
+    with TemporaryDirectory(prefix="uquant-native-manifest-") as folder:
         checkout = Path(folder) / "producer"
         _git(root, "worktree", "add", "--detach", str(checkout), head)
         try:
             completed = subprocess.run(  # nosec B603
                 [
-                    sys.executable,
+                    executable,
                     "-c",
                     _PUBLIC_MANIFEST_VALIDATOR,
                     str(checkout),

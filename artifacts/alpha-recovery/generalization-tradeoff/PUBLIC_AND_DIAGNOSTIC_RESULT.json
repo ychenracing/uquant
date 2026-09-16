@@ -1,0 +1,141 @@
+{
+  "contract_hash": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+  "status": "INCOMPLETE",
+  "missing": [],
+  "invalid": [],
+  "loo_aggregate": {
+    "candidate_lower_wealth_geomean": 10.142001125342437,
+    "candidate_p10_wealth": 29.069428792953712,
+    "candidate_p90_drawdown": 0.27153945685329894,
+    "candidate_worst_drawdown": 0.27153945685329894,
+    "geometric_wealth_retention": 1.1881437416960299,
+    "historical_lower_wealth_geomean": 9.462980671306406,
+    "historical_p90_drawdown": 0.27146973146234554,
+    "lower_wealth_geomean_ratio": 1.0717554518625356,
+    "p90_drawdown_delta": 6.972539095340125e-05,
+    "positive_fraction": 1.0
+  },
+  "performance_aggregate": {
+    "geometric_wealth_retention": 0.9658994410688052,
+    "minimum_cell_wealth_retention": 0.6140500962567416
+  },
+  "cross_industry": {
+    "definition": "frozen repository classification; no_optical removes the five contract symbols",
+    "geometric_wealth_retention": 1.3957901101816466,
+    "ratios": {
+      "no_optical": 1.9959920989061382,
+      "remove_all_three": 0.9760710138825599
+    }
+  },
+  "stress_aggregates": {
+    "full": {
+      "cost_wealth_retention": 0.27413068305798727,
+      "maximum_drawdown": 0.272241484869271,
+      "median_start_wealth_retention": 0.04075532029930408,
+      "minimum_start_wealth_retention": 0.04075532029930408,
+      "offset_wealth_retention": {
+        "full-offset0": 1.0,
+        "full-offset10": 0.04075532029930408,
+        "full-offset5": 0.04075532029930408
+      }
+    },
+    "remove308": {
+      "cost_wealth_retention": 0.9940993862573466,
+      "maximum_drawdown": 0.16298518872092715,
+      "median_start_wealth_retention": 1.0,
+      "minimum_start_wealth_retention": 1.0,
+      "offset_wealth_retention": {
+        "remove308-offset0": 1.0,
+        "remove308-offset10": 1.0,
+        "remove308-offset5": 1.0
+      }
+    },
+    "remove502": {
+      "cost_wealth_retention": 0.99596812643167,
+      "maximum_drawdown": 0.1438308436681548,
+      "median_start_wealth_retention": 1.0,
+      "minimum_start_wealth_retention": 1.0,
+      "offset_wealth_retention": {
+        "remove502-offset0": 1.0,
+        "remove502-offset10": 1.0,
+        "remove502-offset5": 1.0
+      }
+    }
+  },
+  "violations": [
+    "performance minimum cell wealth retention",
+    "LOO primary improvement",
+    "stress full"
+  ],
+  "native_absolute": {
+    "failures": [
+      "missing --native-shards"
+    ],
+    "passed": false,
+    "status": "INCOMPLETE"
+  },
+  "candidate_uquant_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
+  "public_evidence_complete": true,
+  "acceptance_passed": false,
+  "diagnostics": {
+    "historical-stress": {
+      "full-cost2": {
+        "final_wealth": 24.395647753902942,
+        "max_drawdown": 0.27244679688670104,
+        "account_orders": 12,
+        "source_head": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+        "source_tree": "bfd301f932f6c2f6dddbe7cd80518936daca579f",
+        "raw_sha256": "69a747eb275a2eb1079fc702e49214b6351e0b987f1440a880573ca6b4119ac5"
+      },
+      "full-offset0": {
+        "final_wealth": 24.509661802900865,
+        "max_drawdown": 0.27146973146234554,
+        "account_orders": 12,
+        "source_head": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+        "source_tree": "bfd301f932f6c2f6dddbe7cd80518936daca579f",
+        "raw_sha256": "81dc2323dbce0e7e93f3f69785be2f16cc38c5a8e7937812cf3f6a4e8dc7322e"
+      },
+      "full-offset5": {
+        "final_wealth": 0.8754064273360002,
+        "max_drawdown": 0.23851539613956552,
+        "account_orders": 6,
+        "source_head": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+        "source_tree": "bfd301f932f6c2f6dddbe7cd80518936daca579f",
+        "raw_sha256": "87f92a42f931a205a5c98407e07d20cd0c1c27ee6f8be0ddc9df9b19887f880d"
+      }
+    },
+    "coexistence": {
+      "full-cost2": {
+        "final_wealth": 8.144845160620985,
+        "max_drawdown": 0.272241484869271,
+        "account_orders": 17,
+        "source_head": "e497a8dd096f67af36a4da5cf7d02246143e379f",
+        "source_tree": "2d7f4a64c79120767e5191eca3dc7a5dc23c60cd",
+        "raw_sha256": "173f7e176f2d88a19f885034b68ac77596c3d4630a4db4809558e17c6fb8a567"
+      },
+      "full-offset0": {
+        "final_wealth": 34.74256190515814,
+        "max_drawdown": 0.27153945685329894,
+        "account_orders": 24,
+        "source_head": "e497a8dd096f67af36a4da5cf7d02246143e379f",
+        "source_tree": "2d7f4a64c79120767e5191eca3dc7a5dc23c60cd",
+        "raw_sha256": "d6fce4651a686e22aa03128c8cedaee1567cde4520ae7bba35cf23b908e66234"
+      },
+      "full-offset5": {
+        "final_wealth": 2.602966285467525,
+        "max_drawdown": 0.21642670414309517,
+        "account_orders": 35,
+        "source_head": "e497a8dd096f67af36a4da5cf7d02246143e379f",
+        "source_tree": "2d7f4a64c79120767e5191eca3dc7a5dc23c60cd",
+        "raw_sha256": "160c53753d4aca4bc9b576cfe765e3f5d7de016340efc44d811979e927747119"
+      }
+    }
+  },
+  "conclusions": [
+    "Historical baseline shares severe start fragility but retains 99.535% wealth under doubled costs.",
+    "Coexistence ablation improves delayed start but does not resolve stress failures; do not promote.",
+    "All 34 public leave-one-out pairs valid; lower-nine wealth improvement 7.18% fails the frozen 10% alternative and drawdown does not improve.",
+    "Native all-role result still pending; known public failures prohibit merge regardless of native outcome."
+  ],
+  "raw_preservation": "Public LOO and stress originals in GitHub Actions run 35039272969; local performance and diagnostic originals remain temporary and are not backed up by this summary."
+}

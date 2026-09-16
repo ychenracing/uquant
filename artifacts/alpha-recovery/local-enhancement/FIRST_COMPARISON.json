@@ -1,0 +1,151 @@
+{
+  "main": {
+    "d-continuous_ai_era": {
+      "source_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+      "source_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 14.98112734783729,
+      "drawdown": 0.27146973146234554,
+      "orders": 26,
+      "raw_sha256": "16a6b057935a12217ae73f0c85b6bdff72615b28b2d1b6c28a3756d2e8ec9f5e"
+    },
+    "full-cost2": {
+      "source_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+      "source_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 8.1484048485381,
+      "drawdown": 0.27228092480987354,
+      "orders": 17,
+      "raw_sha256": "43c205e1b843811ebb211212c14fbfc40646d649672fea94ddc03fdc82aaa3a7"
+    },
+    "full-offset5": {
+      "source_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+      "source_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a",
+      "completed": true,
+      "sessions": 864,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 1.8981745263674923,
+      "drawdown": 0.24420616323638922,
+      "orders": 23,
+      "raw_sha256": "eeb90aa879207b4201032ed5e05ffb46122e16b2ac9c4cb493016ef2411cb489"
+    },
+    "full": {
+      "source_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+      "source_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 29.717003593409824,
+      "drawdown": 0.27147361646156465,
+      "orders": 22,
+      "raw_sha256": "6780df37b496769c1af798824b525c7bfd3446e5009da8130c804a9c7c88386f"
+    },
+    "no_optical": {
+      "source_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+      "source_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 1.418640231430432,
+      "drawdown": 0.22224198510180826,
+      "orders": 17,
+      "raw_sha256": "5fdda02ad3695f2e2653f5b67740a0a5862fddf1e3a5c0939eb1c1ed51d431d6"
+    },
+    "remove_all_three": {
+      "source_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+      "source_tree": "50749bbdee0c518ae5aca1c5b06a14b84f25bc3a",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 1.631367035639956,
+      "drawdown": 0.22224198510180826,
+      "orders": 18,
+      "raw_sha256": "10a1285e1dfa561e9b50b9ddef5499eb501cff99be4dc2c78b60cc9b35becd71"
+    }
+  },
+  "selected": {
+    "d-continuous_ai_era": {
+      "source_head": "cd3b424555168f14a27ee29491882db04f574569",
+      "source_tree": "a0651f3f211ff63878b22ef11cac5cd01d5e8ddb",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 15.050160189291459,
+      "drawdown": 0.27146973146234554,
+      "orders": 24,
+      "raw_sha256": "f502071fabdd069bcfae0d63e8861570a2f9548a988c38d89596079945e22d99"
+    },
+    "full-cost2": {
+      "source_head": "cd3b424555168f14a27ee29491882db04f574569",
+      "source_tree": "a0651f3f211ff63878b22ef11cac5cd01d5e8ddb",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 8.144845160620985,
+      "drawdown": 0.272241484869271,
+      "orders": 17,
+      "raw_sha256": "27dc1bf505713382088da51977b57f2742e18d0f12e1d69017aadc1a14ff88f0"
+    },
+    "full-offset5": {
+      "source_head": "cd3b424555168f14a27ee29491882db04f574569",
+      "source_tree": "a0651f3f211ff63878b22ef11cac5cd01d5e8ddb",
+      "completed": true,
+      "sessions": 864,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 0.9732852680190849,
+      "drawdown": 0.1798963963670499,
+      "orders": 19,
+      "raw_sha256": "fa74230e5da7ab1f5185b37317a3f5be1e7431d7771731395258367a81f8140f"
+    },
+    "full": {
+      "source_head": "cd3b424555168f14a27ee29491882db04f574569",
+      "source_tree": "a0651f3f211ff63878b22ef11cac5cd01d5e8ddb",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 29.711541480010446,
+      "drawdown": 0.27153945685329894,
+      "orders": 22,
+      "raw_sha256": "b6d0c84ebb614fda28d96750c2cf6ff257ff9926f6ee66fffdc1d41954cbc9bd"
+    },
+    "no_optical": {
+      "source_head": "cd3b424555168f14a27ee29491882db04f574569",
+      "source_tree": "a0651f3f211ff63878b22ef11cac5cd01d5e8ddb",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 2.1241170838843657,
+      "drawdown": 0.15324053277093608,
+      "orders": 26,
+      "raw_sha256": "67290b9e816eef812e35014b8df6d934fca4def9e6fcafa98c496c2e7f937bb6"
+    },
+    "remove_all_three": {
+      "source_head": "cd3b424555168f14a27ee29491882db04f574569",
+      "source_tree": "a0651f3f211ff63878b22ef11cac5cd01d5e8ddb",
+      "completed": true,
+      "sessions": 869,
+      "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+      "contract_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+      "wealth": 1.0868640123661755,
+      "drawdown": 0.18280511950008305,
+      "orders": 24,
+      "raw_sha256": "d1cca8656e4af7e08bee41ec2b66af1c1707ddc8c803b699ccfc27ad79e68f4b"
+    }
+  },
+  "conclusion": "Selected holding+recovery combination rejected under unchanged preregistered local gate. Recovery-only ablation is running. Old cf8 baseline is NOT current main."
+}

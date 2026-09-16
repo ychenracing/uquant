@@ -95,19 +95,20 @@ def _leader_lifecycle_exit_confirmed(
     row = frame.loc[date]
     peak_mfe = position.highest_close / max(position.avg_cost, 1e-12) - 1.0
     protected_winner = peak_mfe >= 0.20
+    # A valid medium trend is the holding basis even before the first profit.
+    # Preserve the existing unproven-holding fallback when it is unavailable.
+    basis = scalar(row, f"ma{self.cfg.trend_medium}", math.nan)
+    if not protected_winner and (not math.isfinite(basis) or basis <= 0):
+        basis = scalar(row, f"ma{self.cfg.trend_fast}")
     broken = bool(
         not leader.mature
-        and scalar(row, "close")
-        < scalar(
-            row,
-            f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
-        )
+        and scalar(row, "close") < basis
     )
     if holding_return is None:
         holding_return = scalar(row, f"ret{self.cfg.trend_medium}", math.nan)
     if not protected_winner and math.isfinite(holding_return) and math.isfinite(reference_return):
         # Relative resilience protects an unproven holding from common market
-        # damage. Proven winners already use the slower medium-trend exit.
+        # damage. Proven winners keep their unconditional structural exit.
         broken = broken and holding_return < reference_return
     clock = f"lifecycle_exit_session:{symbol}"
     session = date.toordinal()

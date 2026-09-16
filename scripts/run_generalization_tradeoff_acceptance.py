@@ -34,6 +34,10 @@ ECONOMIC_FIELDS = (
 )
 LEGACY_NATIVE_RUNNER_SHA256 = "2e099c863b063d9f59fdd5dc4e34698bc4197eb12b54f75bccc8870fe1bbe2ba"
 FULL_CONFIG_NATIVE_RUNNER_SHA256 = "435e5019ca500da9d8b52891c0c7b7deb61bad2c61ab2eedd2bb02bb97c8fca2"
+AUDITED_NATIVE_RUNNERS = {
+    LEGACY_NATIVE_RUNNER_SHA256: "legacy dataclasses.asdict projection",
+    FULL_CONFIG_NATIVE_RUNNER_SHA256: "complete cfg.to_dict serialization",
+}
 
 
 def _sha(path: Path) -> str:
@@ -63,6 +67,34 @@ def _paired_wealth_ratios(
         / _number(cells["historical"][name]["wealth"], "wealth")
         for name in names
         if name in cells["candidate"] and name in cells["historical"]
+    }
+
+
+def _common_sessions(root: Path) -> list[str]:
+    calendars: list[set[str]] = []
+    for symbol in ("sh000300", "sh000682"):
+        with (root / "data" / "frozen" / f"{symbol}.csv").open(
+            encoding="utf-8", newline=""
+        ) as stream:
+            calendars.append({row["date"][:10] for row in csv.DictReader(stream)})
+    return sorted(calendars[0] & calendars[1])
+
+
+def _runner_compatibility(payloads: Sequence[Mapping[str, Any]]) -> dict[str, object]:
+    native = {str(p["runner_sha256"]) for p in payloads if p["method"] == "native_public_backtest"}
+    unknown = native - AUDITED_NATIVE_RUNNERS.keys()
+    if unknown:
+        raise ValueError(f"unknown native runner identities: {sorted(unknown)}")
+    reuse = [p for p in payloads if p["method"] == "native_public_trace_reuse"]
+    reuse_runners = {str(p["runner_sha256"]) for p in reuse}
+    reuse_adapters = {str(p.get("adapter_sha256")) for p in reuse}
+    if len(reuse_runners) > 1 or len(reuse_adapters) > 1:
+        raise ValueError("mixed trace-reuse runner or adapter identities")
+    return {
+        "native": {digest: AUDITED_NATIVE_RUNNERS[digest] for digest in sorted(native)},
+        "native_equivalent_migration": len(native) > 1,
+        "trace_reuse_runner_sha256": next(iter(reuse_runners), None),
+        "trace_reuse_adapter_sha256": next(iter(reuse_adapters), None),
     }
 
 
@@ -421,9 +453,7 @@ def evaluate(
     config_identities: dict[str, dict[str, dict[str, object]]] = {"candidate": {}, "historical": {}}
     payloads: dict[str, dict[str, Mapping[str, Any]]] = {"candidate": {}, "historical": {}}
     file_hashes: dict[str, str] = {}
-    index_path = root / "data" / "frozen" / "sh000300.csv"
-    with index_path.open(encoding="utf-8", newline="") as stream:
-        all_index_dates = [row["date"][:10] for row in csv.DictReader(stream)]
+    all_index_dates = _common_sessions(root)
     for role, cases in expected.items():
         for case, specification in cases.items():
             path = runs / role / f"{case}.json.gz"
@@ -460,6 +490,7 @@ def evaluate(
             except (OSError, EOFError, json.JSONDecodeError, ValueError, TypeError) as exc:
                 invalid.append(f"{label}: {exc}")
     # Identity checks apply even when other evidence is absent.
+    runner_identities: dict[str, dict[str, object]] = {}
     for role in ("candidate", "historical"):
         ps = list(payloads[role].values())
         if ps:
@@ -474,15 +505,10 @@ def evaluate(
             for identity in ("inputs", "runtime"):
                 if standards and len({json.dumps(p[identity], sort_keys=True) for p in standards}) != 1:
                     invalid.append(f"{role}: mixed {identity}")  # noqa: PERF401
-            for method in {str(p["method"]) for p in standards}:
-                method_cells = [p for p in standards if p["method"] == method]
-                if len({str(p["runner_sha256"]) for p in method_cells}) != 1:
-                    invalid.append(f"{role}: mixed {method} runner_sha256")
-                if (
-                    method == "native_public_trace_reuse"
-                    and len({str(p.get("adapter_sha256")) for p in method_cells}) != 1
-                ):
-                    invalid.append(f"{role}: mixed trace-reuse adapter_sha256")
+            try:
+                runner_identities[role] = _runner_compatibility(standards)
+            except ValueError as exc:
+                invalid.append(f"{role}: {exc}")
             for field in ECONOMIC_FIELDS:
                 if standards and len({_number(p["config"].get(field), field) for p in standards}) != 1:
                     invalid.append(f"{role}: mixed {field}")  # noqa: PERF401
@@ -664,6 +690,7 @@ def evaluate(
         "violations": failures,
         "native_absolute": native,
         "file_hashes": file_hashes,
+        "runner_identities": runner_identities,
         "cells": cells,
         "performance_ratios": performance_ratios,
         "performance_aggregate": performance_aggregate,

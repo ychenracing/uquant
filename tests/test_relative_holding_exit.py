@@ -11,6 +11,7 @@ from test_slow_structural_exit import setup_case
 ])
 def test_unproven_holding_damage_requires_relative_underperformance(own, reference, expected):
     policy, account, symbol, frame, leader = setup_case()
+    frame["ma60"] = 100.
     frame["ret60"] = own
     outcomes = []
     for date in frame.index[-3:]:
@@ -35,6 +36,7 @@ def test_proven_winner_retains_its_medium_trend_exit_clock():
 
 def test_relative_recovery_resets_the_same_confirmation_clock():
     policy, account, symbol, frame, leader = setup_case()
+    frame["ma60"] = 100.
     frame["ret60"] = -.10
     outcomes = []
     for date, reference in zip(frame.index[-5:], [.05, .05, -.20, .05, .05], strict=True):

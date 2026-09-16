@@ -317,3 +317,50 @@ def test_complete_native_shards_enter_shared_gate(monkeypatch: pytest.MonkeyPatc
     result = evaluator._native_evidence(tmp_path, tmp_path / "shards", {"candidate-tree"}, {})
     assert result["status"] == "PASS"
     assert result["passed"] is True
+
+
+def test_frozen_sessions_are_the_two_index_intersection(tmp_path: Path) -> None:
+    frozen = tmp_path / "data" / "frozen"
+    frozen.mkdir(parents=True)
+    (frozen / "sh000300.csv").write_text(
+        "date,close\n2023-01-03,1\n2023-01-04,1\n2023-01-05,1\n"
+    )
+    (frozen / "sh000682.csv").write_text(
+        "date,close\n2023-01-03,1\n2023-01-05,1\n2023-01-06,1\n"
+    )
+    assert evaluator._common_sessions(tmp_path) == ["2023-01-03", "2023-01-05"]
+
+
+def test_only_two_audited_native_runners_are_economically_equivalent() -> None:
+    cells = [
+        {"method": "native_public_backtest", "runner_sha256": digest}
+        for digest in (
+            evaluator.LEGACY_NATIVE_RUNNER_SHA256,
+            evaluator.FULL_CONFIG_NATIVE_RUNNER_SHA256,
+        )
+    ]
+    result = evaluator._runner_compatibility(cells)
+    assert result["native_equivalent_migration"] is True
+    native = result["native"]
+    assert isinstance(native, dict)
+    assert set(native) == {
+        evaluator.LEGACY_NATIVE_RUNNER_SHA256,
+        evaluator.FULL_CONFIG_NATIVE_RUNNER_SHA256,
+    }
+    with pytest.raises(ValueError, match="unknown native runner"):
+        evaluator._runner_compatibility(
+            [*cells, {"method": "native_public_backtest", "runner_sha256": "unknown"}]
+        )
+
+
+def test_trace_reuse_runner_and_adapter_must_remain_uniform() -> None:
+    cells = [
+        {
+            "method": "native_public_trace_reuse",
+            "runner_sha256": "runner",
+            "adapter_sha256": adapter,
+        }
+        for adapter in ("first", "second")
+    ]
+    with pytest.raises(ValueError, match="trace-reuse"):
+        evaluator._runner_compatibility(cells)

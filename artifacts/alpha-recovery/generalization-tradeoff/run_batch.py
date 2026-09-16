@@ -12,6 +12,8 @@ p.add_argument('--stage',choices=['screen','performance','loo','stress'],require
 p.add_argument('--workers',type=int,default=4)
 p.add_argument('--candidate-root',type=Path)
 p.add_argument('--candidate-label',default='candidate')
+p.add_argument('--runs-root',type=Path)
+p.add_argument('--role',choices=['candidate','historical'])
 p.add_argument('--only',help='Comma-separated diagnostic cell names; no final acceptance claim')
 a=p.parse_args()
 root=Path(__file__).resolve().parents[3]
@@ -48,13 +50,14 @@ else:
         for offset in c['stress']['start_session_offsets']:
             rows.append(('candidate',f'{scenario}-offset{offset}',symbols,dates[offset],c['window']['end'],1))
         rows.append(('candidate',f'{scenario}-cost2',symbols,dates[0],c['window']['end'],2))
+if a.role:
+    rows=[row for row in rows if row[0]==a.role]
 if a.only:
     requested=set(a.only.split(','))
     rows=[row for row in rows if row[1] in requested]
     if requested-set(row[1] for row in rows):
         raise ValueError('Unknown requested cell')
 env=dict(os.environ)
-env['PATH']='/root/.cache/uv/archive-v0/QHAPFXmUc4qpZm4J/uv-0.11.33.data/scripts:'+env['PATH']
 env['OPENBLAS_NUM_THREADS']='1'
 env['OMP_NUM_THREADS']='1'
 
@@ -62,8 +65,9 @@ def run(row):
     role,name,symbols,start,end,cost=row
     work=(a.candidate_root.resolve() if a.candidate_root else root) if role=='candidate' else root.parent/'uquant-historical'
     label=a.candidate_label if role=='candidate' else role
-    out=folder/'runs'/label/f'{name}.json.gz'
-    log=folder/'runs'/label/f'{name}.log'
+    runs_root=a.runs_root.resolve() if a.runs_root else folder/'runs'
+    out=runs_root/label/f'{name}.json.gz'
+    log=runs_root/label/f'{name}.log'
     if out.exists():
         return {'case':name,'role':role,'existing':True,'path':str(out)}
     log.parent.mkdir(parents=True,exist_ok=True)

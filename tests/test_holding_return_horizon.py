@@ -29,6 +29,7 @@ def test_aligned_post_entry_loss_overrides_positive_pre_entry_return():
     from test_slow_structural_exit import setup_case
 
     policy, account, symbol, frame, leader = setup_case()
+    frame["ma60"] = 100.
     frame["ret60"] = .5
     outcomes = [policy._leader_lifecycle_exit_confirmed(
         symbol=symbol, date=date, user_panel={symbol: frame}, leaders={symbol: leader},

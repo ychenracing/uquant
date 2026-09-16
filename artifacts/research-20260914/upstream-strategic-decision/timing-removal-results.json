@@ -1,0 +1,22 @@
+{
+  "candidate": "f5bec5080189afa49311fc5f506eb0d39b97ce69",
+  "status": "REJECTED",
+  "remove308": {
+    "wealth": 0.8757181087844413,
+    "epochs": 2,
+    "owners": 2,
+    "status": "FAIL"
+  },
+  "remove502": {
+    "wealth": 2.4588111453732306,
+    "epochs": 2,
+    "owners": 2,
+    "status": "numeric_and_lifecycle_screen_pass"
+  },
+  "sha256": {
+    "timing-sz300308.json.gz": "1dbac5bc55c20f402d919bcc63b7f68096bac9c48aaed4d25ebb0f81f55d2e04",
+    "timing-sz300502.json.gz": "72ebdff228cae2d4d0d4fe8457a1cfd4022ab125d4d9016d21e12541733bc084"
+  },
+  "finding": "First protected grant delayed from Jan 19 to Jan 20; first fill Jan 30. Four candidate eligibility sessions did not mean four selected-certificate sessions. Do not tune persistence count. All four raw replays remain diagnostic, not canonical.",
+  "remaining": "A/D/E bull and full matrices intentionally not run for rejected candidate. Next distinct mechanism must address prospective weak-cohort economic support and capital competition; no proven repair yet."
+}

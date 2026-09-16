@@ -2,13 +2,18 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 
 from ...contracts.strict_json import canonical_json_sha256
 from ...features import scalar
-from ...holding_history import recovery_owner_open, tactical_owner_entry
+from ...holding_history import (
+    protected_weights_for_current_episode,
+    recovery_owner_open,
+    tactical_owner_entry,
+)
 from ...risk.pullback import pullback_book_settled
 from ...types import (
     AccountState,
@@ -107,7 +112,9 @@ def _book_available(book: AllocationBook, members: set[str], restorable: set[str
     live = {symbol for symbol, weight in book.weights_now.items() if weight > 0}
     if book.owned or live - members:
         return False
-    return bool(members or pending or restorable or pullback_book_settled(book.account))
+    # Old ordinary risk snapshots are history, not ownership of fresh cash.
+    current_account = replace(book.account, protected_weights=protected_weights_for_current_episode(book.account))
+    return bool(members or pending or restorable or pullback_book_settled(current_account))
 
 
 def _prune_anchors(book: AllocationBook, known: set[str]) -> None:

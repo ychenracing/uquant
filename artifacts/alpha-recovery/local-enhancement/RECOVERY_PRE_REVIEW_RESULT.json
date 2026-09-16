@@ -1,0 +1,150 @@
+{
+  "status": "ECONOMIC_SCREEN_PASS",
+  "baseline_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+  "candidate_head": "499aa0bc5030481b0320b8eae61f16cbfb04fab4",
+  "candidate_production_tree": "67ddfe4c42c91fdf59b3358a5ee3c2cf85d69541",
+  "cases": [
+    {
+      "case": "full",
+      "main_wealth": 29.717003593409824,
+      "candidate_wealth": 29.717003593409824,
+      "wealth_retention": 1.0,
+      "main_drawdown": 0.27147361646156465,
+      "candidate_drawdown": 0.27147361646156465,
+      "drawdown_change": 0.0,
+      "main_orders": 22,
+      "candidate_orders": 22,
+      "raw": [
+        {
+          "path": "main/full.json.gz",
+          "bytes": 272936,
+          "sha256": "6780df37b496769c1af798824b525c7bfd3446e5009da8130c804a9c7c88386f"
+        },
+        {
+          "path": "recovery/full.json.gz",
+          "bytes": 272933,
+          "sha256": "d1238f219298862dd7266666b1075f44e124ce28631c6c448fe35b0d0910709a"
+        }
+      ]
+    },
+    {
+      "case": "no_optical",
+      "main_wealth": 1.418640231430432,
+      "candidate_wealth": 1.418640231430432,
+      "wealth_retention": 1.0,
+      "main_drawdown": 0.22224198510180826,
+      "candidate_drawdown": 0.22224198510180826,
+      "drawdown_change": 0.0,
+      "main_orders": 17,
+      "candidate_orders": 17,
+      "raw": [
+        {
+          "path": "main/no_optical.json.gz",
+          "bytes": 181182,
+          "sha256": "5fdda02ad3695f2e2653f5b67740a0a5862fddf1e3a5c0939eb1c1ed51d431d6"
+        },
+        {
+          "path": "recovery/no_optical.json.gz",
+          "bytes": 181209,
+          "sha256": "efe7373efcf5b047249f31d83079eac29e98986ce066a58186bb779f9a4c93c4"
+        }
+      ]
+    },
+    {
+      "case": "remove_all_three",
+      "main_wealth": 1.631367035639956,
+      "candidate_wealth": 1.631367035639956,
+      "wealth_retention": 1.0,
+      "main_drawdown": 0.22224198510180826,
+      "candidate_drawdown": 0.22224198510180826,
+      "drawdown_change": 0.0,
+      "main_orders": 18,
+      "candidate_orders": 18,
+      "raw": [
+        {
+          "path": "main/remove_all_three.json.gz",
+          "bytes": 190139,
+          "sha256": "10a1285e1dfa561e9b50b9ddef5499eb501cff99be4dc2c78b60cc9b35becd71"
+        },
+        {
+          "path": "recovery/remove_all_three.json.gz",
+          "bytes": 190170,
+          "sha256": "55c5b5bc959675d83f7bad37601c7d9ef072b5b5ed03e7a1ac203c90395772ab"
+        }
+      ]
+    },
+    {
+      "case": "d-continuous_ai_era",
+      "main_wealth": 14.98112734783729,
+      "candidate_wealth": 14.98112734783729,
+      "wealth_retention": 1.0,
+      "main_drawdown": 0.27146973146234554,
+      "candidate_drawdown": 0.27146973146234554,
+      "drawdown_change": 0.0,
+      "main_orders": 26,
+      "candidate_orders": 26,
+      "raw": [
+        {
+          "path": "main/d-continuous_ai_era.json.gz",
+          "bytes": 273264,
+          "sha256": "16a6b057935a12217ae73f0c85b6bdff72615b28b2d1b6c28a3756d2e8ec9f5e"
+        },
+        {
+          "path": "recovery/d-continuous_ai_era.json.gz",
+          "bytes": 273332,
+          "sha256": "1ec60fe16b2dca73940a45691c26cd1ef7f7b731b193450421525297a4c6be6f"
+        }
+      ]
+    },
+    {
+      "case": "full-cost2",
+      "main_wealth": 8.1484048485381,
+      "candidate_wealth": 8.1484048485381,
+      "wealth_retention": 1.0,
+      "main_drawdown": 0.27228092480987354,
+      "candidate_drawdown": 0.27228092480987354,
+      "drawdown_change": 0.0,
+      "main_orders": 17,
+      "candidate_orders": 17,
+      "raw": [
+        {
+          "path": "main/full-cost2.json.gz",
+          "bytes": 241930,
+          "sha256": "43c205e1b843811ebb211212c14fbfc40646d649672fea94ddc03fdc82aaa3a7"
+        },
+        {
+          "path": "recovery/full-cost2.json.gz",
+          "bytes": 241931,
+          "sha256": "516bf39a2fe364eff61fa3d5542744f6b1cbdd4b981e0a325c1cd11c8a978081"
+        }
+      ]
+    },
+    {
+      "case": "full-offset5",
+      "main_wealth": 1.8981745263674923,
+      "candidate_wealth": 1.8981745263674923,
+      "wealth_retention": 1.0,
+      "main_drawdown": 0.24420616323638922,
+      "candidate_drawdown": 0.24420616323638922,
+      "drawdown_change": 0.0,
+      "main_orders": 23,
+      "candidate_orders": 23,
+      "raw": [
+        {
+          "path": "main/full-offset5.json.gz",
+          "bytes": 192675,
+          "sha256": "eeb90aa879207b4201032ed5e05ffb46122e16b2ac9c4cb493016ef2411cb489"
+        },
+        {
+          "path": "recovery/full-offset5.json.gz",
+          "bytes": 192694,
+          "sha256": "41f99f622c590449f97bf6d3440244cdb2d6bc377668417b0c1930b2086ccbba"
+        }
+      ]
+    }
+  ],
+  "nominal_geometric_wealth_retention": 1.0,
+  "violations": [],
+  "scope": "Six in-sample paired cells; not universal generalization or future profitability proof.",
+  "engineering_and_capability": "Separate evidence required; this report is not merge authorization."
+}

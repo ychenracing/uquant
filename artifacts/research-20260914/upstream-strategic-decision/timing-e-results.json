@@ -1,0 +1,27 @@
+{
+  "candidate": "f5bec5080189afa49311fc5f506eb0d39b97ce69",
+  "tree": "edb51848287bc0b1538adbdcf0c23209f82414cf",
+  "status": "REJECTED_E_H2",
+  "tests": "47 focused passed; targeted Ruff and mypy passed; git diff --check passed",
+  "acute": {
+    "return_pct": 4.61081079360002,
+    "start": "2024-07-01",
+    "measurement": [
+      "2024-08-01",
+      "2024-09-02"
+    ],
+    "status": "PASS"
+  },
+  "h2": {
+    "wealth": 1.5121423856213982,
+    "floor": 1.6930928947,
+    "status": "FAIL"
+  },
+  "sha256": {
+    "timing-e-acute.json.gz": "891f67ac8cdb2d5a1cd6af999fc9ec371a24eb7189740010409cd137e20498db",
+    "timing-e-h2.json.gz": "d0ee0dfb87824f916269bf23d18380ef57fd842b69753853f2a4e56c05c74700"
+  },
+  "first_divergence": "2024-09-27: newly permitted weak strategic sh688200 target 0.2, ordinary sh688041/sh688256 each 0.2 instead of H9 0.4/0.35. Current scores 0.591826 / 0.897058 / 0.836246. Investigate prospective allocation/selection, not confirmation threshold tuning.",
+  "native_removals": "running locally; not yet verified",
+  "merge": "prohibited; PR remains Draft"
+}

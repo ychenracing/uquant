@@ -1,0 +1,250 @@
+{
+  "contract_id": "generalization-tradeoff",
+  "authority": "User explicitly authorized acceptance revision and continued implementation through normal PR67 merge; 2026-09-15 current conversation.",
+  "objective": "Preserve most historical earning capacity while measurably improving cross-AI robustness, holding/recovery and practical simplicity.",
+  "historical_source": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+  "initial_candidate_source": "9e988979a2942938b6d5d10cf71e6abe32a4e4a6",
+  "window": {
+    "end": "2026-08-05",
+    "start": "2023-01-03"
+  },
+  "universe": [
+    "sh600487",
+    "sh601869",
+    "sh603688",
+    "sh603986",
+    "sh688008",
+    "sh688012",
+    "sh688019",
+    "sh688037",
+    "sh688041",
+    "sh688072",
+    "sh688082",
+    "sh688110",
+    "sh688120",
+    "sh688146",
+    "sh688200",
+    "sh688233",
+    "sh688256",
+    "sh688268",
+    "sh688300",
+    "sh688347",
+    "sh688361",
+    "sh688498",
+    "sh688766",
+    "sz000636",
+    "sz002281",
+    "sz002371",
+    "sz002409",
+    "sz300054",
+    "sz300223",
+    "sz300308",
+    "sz300394",
+    "sz300502",
+    "sz300604",
+    "sz300666"
+  ],
+  "pools": {
+    "a": [
+      "sz300308",
+      "sz300502",
+      "sz300394"
+    ],
+    "b": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986"
+    ],
+    "c": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688008",
+      "sh603986",
+      "sz002409",
+      "sh688072",
+      "sh688300",
+      "sz300054"
+    ],
+    "d": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688498",
+      "sh601869",
+      "sh688256",
+      "sh688008",
+      "sh603986",
+      "sh688072",
+      "sh688082",
+      "sh688120",
+      "sh688300",
+      "sz300054",
+      "sh688361",
+      "sz300604"
+    ],
+    "e": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688498",
+      "sz002281",
+      "sh601869",
+      "sh600487",
+      "sh688256",
+      "sh688041",
+      "sh688008",
+      "sh603986",
+      "sz300223",
+      "sh688110",
+      "sh688766",
+      "sz002371",
+      "sh688012",
+      "sh688072",
+      "sh688082",
+      "sh688120",
+      "sh688037",
+      "sh688361",
+      "sz300604",
+      "sh688200",
+      "sh688019",
+      "sz300054",
+      "sz002409",
+      "sz300666",
+      "sh688233",
+      "sh688268",
+      "sh688146",
+      "sh688300",
+      "sh603688"
+    ]
+  },
+  "performance_windows": {
+    "h1_2023": {
+      "start": "2023-01-03",
+      "end": "2023-06-30"
+    },
+    "h2_2023": {
+      "start": "2023-07-03",
+      "end": "2023-12-29"
+    },
+    "h1_2024": {
+      "start": "2024-01-02",
+      "end": "2024-07-01"
+    },
+    "h2_2024": {
+      "start": "2024-07-01",
+      "end": "2024-12-31"
+    },
+    "bull_crash_2025_2026": {
+      "start": "2025-01-02",
+      "end": "2026-07-31"
+    },
+    "continuous_ai_era": {
+      "start": "2023-01-03",
+      "end": "2026-08-05"
+    },
+    "year_2023": {
+      "start": "2023-01-03",
+      "end": "2023-12-29"
+    },
+    "year_2024": {
+      "start": "2024-01-02",
+      "end": "2024-12-31"
+    },
+    "bull": {
+      "start": "2025-04-01",
+      "end": "2026-06-30"
+    }
+  },
+  "performance": {
+    "geometric_mean_wealth_retention": 0.85,
+    "minimum_cell_wealth_retention": 0.75,
+    "main_minimum_wealth": 15.0,
+    "main_maximum_drawdown": 0.31,
+    "main_maximum_orders": 44,
+    "main_preferred_orders": 40
+  },
+  "paired_robustness": {
+    "universe_removal": "tradable-only; historical and current native public backtest retain their own dated reference responsibilities. Never mix with all-role Absolute removals.",
+    "minimum_positive_fraction": 0.9,
+    "minimum_p10_wealth": 1.0,
+    "maximum_p90_drawdown": 0.31,
+    "maximum_worst_drawdown": 0.35,
+    "primary_improvement": "lower-quartile geometric wealth >=1.10 times historical, with p90 drawdown no more than historical+0.01; OR p90 drawdown improves >=0.02 with lower-quartile geometric wealth >=0.90 times historical",
+    "minimum_geometric_wealth_retention": 0.85,
+    "cross_industry_required": [
+      "remove_all_three",
+      "no_optical"
+    ],
+    "cross_industry_rule": "Both full-window public cases must remain profitable and retain at least 75% of historical wealth; their aggregate geometric wealth must retain at least 85%. These cases are not included in the 34-LOO lower-quartile metric.",
+    "wealth_quantile_probability": 0.1,
+    "drawdown_quantile_probability": 0.9,
+    "lower_quartile_count": 9,
+    "primary_wealth_improvement_ratio": 1.1,
+    "primary_drawdown_tolerance": 0.01,
+    "alternative_drawdown_improvement": 0.02,
+    "alternative_minimum_wealth_retention": 0.9,
+    "cross_industry_minimum_cell_wealth_retention": 0.75,
+    "cross_industry_minimum_geometric_wealth_retention": 0.85
+  },
+  "native_absolute": {
+    "all_34_all_role_removals_required": true,
+    "minimum_positive_fraction": 0.9,
+    "minimum_p10_wealth": 1.0,
+    "maximum_p90_drawdown": 0.31,
+    "maximum_worst_drawdown": 0.35,
+    "epoch_owner_counts": "diagnostic only",
+    "passive_wealth_ratio": "diagnostic only"
+  },
+  "stress": {
+    "cost_multiplier": 2.0,
+    "minimum_cost_wealth_retention": 0.9,
+    "start_session_offsets": [
+      0,
+      5,
+      10
+    ],
+    "minimum_median_start_wealth_retention": 0.85,
+    "minimum_start_wealth_retention": 0.75,
+    "maximum_drawdown": 0.35,
+    "scenarios": [
+      "full",
+      "remove308",
+      "remove502"
+    ]
+  },
+  "operations": "44-order maximum applies to deployed nominal main account, not each hypothetical removal. All actual orders, annual turnover, costs and risk exits remain counted and disclosed; stress order outliers reviewed for practical burden, never relabeled.",
+  "correctness": [
+    "causal next-open execution",
+    "no leverage or shorts",
+    "T+1 and lot constraints",
+    "cash/position conservation",
+    "no cost or data changes except registered cost stress",
+    "complete original failures retained",
+    "one candidate source identity",
+    "exact input/runtime/runner provenance",
+    "actual repository protections"
+  ],
+  "interpretation": "All historical windows are selection data; neither repeated historical LOO nor forward backfill is out-of-sample proof. Missing required evidence is INCOMPLETE, never PASS. Frozen old gates remain separately reported.",
+  "rationale": {
+    "wealth_budget": "15% aggregate terminal-wealth sacrifice is about 4.4% per-year growth-factor sacrifice over the 3.59-year full period; 25% cell guard catches concentrated destruction rather than requiring every cell to preserve 90%. Short-window loss remains separately visible. These are economic preferences chosen before the missing comparisons, not a statistical confidence claim.",
+    "generalization": "Require an economically material 10% lower-tail improvement, or 2 percentage-point tail drawdown improvement with bounded wealth sacrifice. These are alternatives, not a demand that all metrics dominate.",
+    "orders": "Preserve the actual nominal manual-operation budget. Stress portfolios are hypothetical alternative deployments, so their counts remain explicit review evidence rather than 34 simultaneous operation obligations."
+  },
+  "prior_policy_sha256": "7c5d8b41bd8ec4c1e6e08009f7d201fa46cc938ca744b50d62b1971e21bac869",
+  "definitions": {
+    "wealth_retention": "candidate net terminal wealth / historical net terminal wealth in the identical cell",
+    "performance_cells": "Cartesian product of five frozen pools and all nine performance_windows; each of 45 cells has equal log-wealth weight. Overlapping windows are disclosed and are not independent samples.",
+    "intervals": "Both endpoints inclusive; retain original July-1 overlap exactly.",
+    "percentiles": "Linear interpolation at (n-1)*p of ascending finite values, matching numpy.percentile(method=linear).",
+    "lower_quartile": "Geometric mean of the 9 lowest terminal wealth values among the 34 public tradable-only LOO cases, computed separately for historical and candidate; no case selection after results.",
+    "positive": "net terminal wealth strictly greater than 1.0",
+    "nonfinite": "Nonfinite, nonpositive wealth or invalid account/source/date/data/runtime is INVALID. Missing required evidence is INCOMPLETE. Neither can PASS.",
+    "main": "Full 34-stock public production account over canonical 869-session window. Also disclose each A-E continuous account.",
+    "stress": "Each of full, remove308, remove502 uses public production backtest; 2x each of commission_rate,min_commission,stamp_duty,transfer_fee,slippage against same-source standard-cost offset0. Offset5/10 starts on the 6th/11th actual common index session after canonical start; same fixed end, own initial cash, causal warmup. Median and minimum retention are computed for each scenario separately vs its offset0 account; all three scenarios must satisfy bounds.",
+    "comparison_config": "Each checkout uses its committed default config; shared economic cost/cash fields must match before standard comparisons. Schema/strategy differences are recorded, never patched into historical implementation."
+  },
+  "original_contract_sha256": "97b698b73307b607ce8924c70f673c90b90056cd88bfc05731d91ad3dfafc66d"
+}

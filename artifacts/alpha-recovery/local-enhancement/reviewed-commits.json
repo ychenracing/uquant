@@ -1,0 +1,4 @@
+{
+  "499aa0bc5030481b0320b8eae61f16cbfb04fab4": "tree 1dec880281dd46b1996bc5e6e1795d475c60d31f\nparent ea695ac87fd2155aef55cd2c6911284f4f3ffaff\nauthor Codex <codex@openai.com> 1789522306 -0600\ncommitter Codex <codex@openai.com> 1789522306 -0600\n\nSelect PR67 recovery reliability improvements on current main\n",
+  "0cca3daffe669f8b967831e58fe547ca734bed34": "tree 391b0b6b6bcea31daccdff5cef4dfa0f9f0b5aba\nparent 499aa0bc5030481b0320b8eae61f16cbfb04fab4\nauthor Codex <codex@openai.com> 1789522633 -0600\ncommitter Codex <codex@openai.com> 1789522633 -0600\n\nRequire actual daily repair for every held position\n"
+}

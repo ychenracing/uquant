@@ -1,0 +1,86 @@
+{
+  "repository": "ychenracing/uquant",
+  "pr": 67,
+  "retained_source_commit": "b713d79c08fb333bedf42df8a5001b68457f4c29",
+  "retained_tree": "7a2dbf0f8926c968dbe3092d4f4f67e074f135f0",
+  "equivalent_native_producer": "c01e2a814be46315165ea1b1a6daef512ea30dd4",
+  "rejected_producer": "f4eb5adc690cc4d7c52aeb17c1b1f1c7f1dcc103",
+  "status": "NOT_ACCEPTED_DRAFT",
+  "files": [
+    {
+      "file_name": "UQUANT_PR67_CONTINUATION_RESULT_20260913.md",
+      "file_id": "file_000000005a4081f6a183570e7cad57b1",
+      "library_file_id": "libfile_2623bf09a8348191955d30fc8bf103cb",
+      "current_version_number": 0,
+      "bytes": 5525,
+      "sha256": "464c783650fd6bd63a8d7a2edc02d64cc41c31420e524bb97d40e9219744ac1b"
+    },
+    {
+      "file_name": "uquant-pr67-continuation-evidence-20260913.tar.gz",
+      "file_id": "file_00000000d3c481f6a09891ff5c4a181b",
+      "library_file_id": "libfile_eb4685a71bfc819188a7e9a2bf93336b",
+      "current_version_number": 0,
+      "bytes": 15073229,
+      "sha256": "9ab2cf66bd1244458086fe14be21461c862498d2a4e357ce52968232b89292c6"
+    }
+  ],
+  "scope": "Original producer identities retained; not complete current-HEAD acceptance",
+  "original_failure": {
+    "commit": "120f42d17d560ad70f817a10a8b9a0c5fa547195",
+    "workflow_run": 34731302326,
+    "artifact_id": 10309972203,
+    "zip_sha256": "f086905d983354b4a92da3551ef4502cf86410af10015d38982bda27b2d83fa6"
+  },
+  "native_results": [
+    {
+      "file": "c01-h1/h1_2024-result.json",
+      "sha256": "f7ba22f1d62f3f5dd47da158cad4137ef7d73363f81cf9fd1d2ff52b3fbdda04",
+      "producer": {
+        "commit": "c01e2a814be46315165ea1b1a6daef512ea30dd4",
+        "repository": "ychenracing/uquant",
+        "source_sha256": "de212ae9dc552790509b8250de7dfeef23ac304253416fe593eda24c93a6d7d0"
+      },
+      "metrics": {
+        "account_orders": 6,
+        "acute_return": -0.08463750366446077,
+        "annual_turnover": 3.918213947552542,
+        "cagr": -0.1658707759227116,
+        "calmar": -1.7320752517440816,
+        "final_wealth": 0.9153624963355392,
+        "gross_turnover": 1.9105340735999998,
+        "max_drawdown": 0.09576418562397393,
+        "sharpe": -1.1197234514296752
+      },
+      "failures": [
+        "a/h1_2024: final_wealth below 1.512000",
+        "a/h1_2024: final_wealth regressed from production champion",
+        "a/h1_2024: acute_return regressed from production champion"
+      ]
+    },
+    {
+      "file": "f4-h1/h1_2024-result.json",
+      "sha256": "46544f034f4d1d137d9011aec4844177dff6d9dfb9dd2daa0920bb9b71af3611",
+      "producer": {
+        "commit": "f4eb5adc690cc4d7c52aeb17c1b1f1c7f1dcc103",
+        "repository": "ychenracing/uquant",
+        "source_sha256": "eff0dac5928c7693c9e4109e618bcf0697734736e75dbc06124f86b61abebaf3"
+      },
+      "metrics": {
+        "account_orders": 8,
+        "acute_return": 0.04487187485345512,
+        "annual_turnover": 4.832249828077118,
+        "cagr": 0.8807594164214909,
+        "calmar": 5.619138825448476,
+        "final_wealth": 1.360710691228657,
+        "gross_turnover": 2.35622099055,
+        "max_drawdown": 0.156742775678121,
+        "sharpe": 1.5277163251340766
+      },
+      "failures": [
+        "a/h1_2024: final_wealth below 1.512000",
+        "a/h1_2024: final_wealth regressed from production champion",
+        "a/h1_2024: acute_return regressed from production champion"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "RESULT.md": {
+    "bytes": 8265,
+    "sha256": "1112dc52c871345b06440bc9712ce872bd43f47430fedd2a73c9739cb43370a3"
+  },
+  "S-a-bull-trace.json.gz": {
+    "bytes": 1254457,
+    "sha256": "85e776a685fd354cfe0841ba7a7a71329bb11363e7e1cbb6b241414323986c7a"
+  },
+  "S-a-bull-trace.log": {
+    "bytes": 192,
+    "sha256": "983180a9557bef77b2f47bc3b1fff576d376f06d01df1bc907bbd1bd2ca87569"
+  },
+  "S-e-bull-trace.json.gz": {
+    "bytes": 3231729,
+    "sha256": "7405241818709dddde6fdded1f4f6529f9ef3bba7141dd8b1df217b47ef2e562"
+  },
+  "S-e-bull-trace.log": {
+    "bytes": 191,
+    "sha256": "b56bdb1db3741a03f1305e7f21d4f81cbe8376b39658ccad017f2175c736755f"
+  },
+  "S-e-h2-acute-prefix.json.gz": {
+    "bytes": 223463,
+    "sha256": "ceeae683b35819cd18c89c2122372aababb621fb5f934862fe766f07bfb1d530"
+  },
+  "S-e-h2-acute-prefix.log": {
+    "bytes": 188,
+    "sha256": "0d75280b1c96fbe399246798929ef747723f9e10e057b29b7ffc54c8258809f2"
+  },
+  "S-e-joint-probe.json.gz": {
+    "bytes": 3242988,
+    "sha256": "49b8f8fddba3a2ca7a11034613bac2ddd80c390a1712f47b89e6366ca3b825a6"
+  },
+  "S-e-joint-probe.log": {
+    "bytes": 177,
+    "sha256": "a002506175278232a7f0d521154dfc18abae114d269240b179c4e2dbe041a5f0"
+  },
+  "authorization.md": {
+    "bytes": 15198,
+    "sha256": "08e3c55caca9ac75fcc110e92564e021eb11e00dccbe8d01c3ae0bfb89fa3477"
+  },
+  "prior-S-a-bull_crash_2025_2026.json": {
+    "bytes": 1513,
+    "sha256": "050b9b8cfb96db59a8a7f71ae5b8ed55903f12986c1634a87c14aa20ca950eb4"
+  },
+  "prior-S-d-bull_crash_2025_2026.json": {
+    "bytes": 1428,
+    "sha256": "a393898f40623a59623cada6e5de01c5e5c71e6fea1af38e64bf44278e142b0d"
+  },
+  "prior-S-e-bull_crash_2025_2026.json": {
+    "bytes": 1648,
+    "sha256": "a8bd68335f32279b3f7cadf103f26e8dec837722c7dab689501f76ef95feaeb1"
+  },
+  "prior-S-e-h2_2024.json": {
+    "bytes": 1572,
+    "sha256": "f132c899b0cf79dd3f73e22d913559370cc5e69cdfbaf9212b7e3a2aae0f8e57"
+  },
+  "prior-S-summary.json": {
+    "bytes": 6517,
+    "sha256": "1f3bd2e00afbbff13397acdef2364572fbf3ddf27882b800422f54b20b9a5ed3"
+  },
+  "prior-S-verified-results.json": {
+    "bytes": 4800,
+    "sha256": "ae4f971b13fc536373386cab424b9988169664fbe27d11cde4ebcee01d321f7e"
+  },
+  "probe_joint_allocation.py": {
+    "bytes": 4171,
+    "sha256": "ef2519d2e89bd11577e88d1c8cdee3fb833fc5ae397be09e2dbc7144642e3db0"
+  },
+  "run_trace.py": {
+    "bytes": 825,
+    "sha256": "8c173b46966b1d0f876bd0f5d58cf40bd1b2ba97d4c63bc8eaba6bf0d8ac7ab4"
+  },
+  "verified-findings.json": {
+    "bytes": 8243,
+    "sha256": "b896870d95ad1263aba5e3d583dce44e60adc1eabb96e6d23fd17590ca07c129"
+  },
+  "verify.py": {
+    "bytes": 4106,
+    "sha256": "ba977b5956cfefea94381b795ed9c1092f94af964f21a88c2c1fe5c5143a2009"
+  }
+}

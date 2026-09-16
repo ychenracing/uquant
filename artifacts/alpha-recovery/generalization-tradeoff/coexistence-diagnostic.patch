@@ -1,0 +1,25 @@
+diff --git a/uquant/portfolio/ordinary.py b/uquant/portfolio/ordinary.py
+index 72aecd3..f5b7d1a 100644
+--- a/uquant/portfolio/ordinary.py
++++ b/uquant/portfolio/ordinary.py
+@@ -46,11 +46,6 @@ def rearm_ordinary_market(*, account: AccountState, date: pd.Timestamp,
+ def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
+                                  market: dict[str, Any] | None) -> bool:
+     qualification = account.strategic_qualification
+-    strategic_claims = (
+-        bool(account.strategic_cohort_targets)
+-        or any(p.shares > 0 and (p.grant_id or p.epoch_id) for p in account.positions.values())
+-        or any(o.grant_id or o.epoch_id for o in account.pending_orders)
+-    )
+     forming_full = (
+         qualification.qualification_last_observed_session == str(date.date())
+         and qualification.qualification_quorum == "FULL_COHORT"
+@@ -61,7 +56,7 @@ def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
+     local_open = (market is not None and (market.get("mature_entry_open") is True
+                   or market.get("persistent_mature_entry_open") is True
+                   or market.get("leader_cycle_armed") is True)
+-                  and not strategic_claims and not forming_full)
++                  and not forming_full)
+     return local_open
+ 
+ 

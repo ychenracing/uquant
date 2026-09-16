@@ -1,0 +1,33 @@
+{
+  "status": "SCREEN_ONLY",
+  "final_acceptance": "INCOMPLETE",
+  "cells": [
+    {
+      "case": "full",
+      "sha256": "7cace0421312f6f106bbc2ef57cb6296490d471d2d14bfcc297424d091cd273c",
+      "producer": "490be37de0c9d3d1081d9766b0098f94e235dbf5",
+      "uquant_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
+      "wealth": 29.711541480010446,
+      "drawdown": 0.27153945685329894,
+      "orders": 22
+    },
+    {
+      "case": "no_optical",
+      "sha256": "ccd3e54c2c9b636b86ca92fb3fcf1067a4cefc698376f43f71b580d78de26629",
+      "producer": "490be37de0c9d3d1081d9766b0098f94e235dbf5",
+      "uquant_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
+      "wealth": 2.4133656252864615,
+      "drawdown": 0.12656102449679907,
+      "orders": 27
+    },
+    {
+      "case": "remove_all_three",
+      "sha256": "7384c86702f19eb877bde477bdb5f6a8e5b0e0aa495ff3742bfc9049ca2042ee",
+      "producer": "490be37de0c9d3d1081d9766b0098f94e235dbf5",
+      "uquant_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
+      "wealth": 1.1801731249505552,
+      "drawdown": 0.16386765214232657,
+      "orders": 21
+    }
+  ]
+}

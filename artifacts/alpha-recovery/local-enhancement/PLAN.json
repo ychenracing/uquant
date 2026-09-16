@@ -1,0 +1,49 @@
+{
+  "objective": "Integrate useful PR67 work onto current main and deliver evidenced local capability improvements with explicit economic tradeoffs.",
+  "authorization": "2026-09-16 user correction: current main as base, reference PR67 improvements; user permits relaxing economic thresholds for local enhancement.",
+  "baseline_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+  "reference_pr_head": "8de51ef14a2bfbc76853c08d5b8963f68893e1ea",
+  "reference_production_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
+  "selected_groups": [
+    "medium and same-holding-interval relative exit",
+    "current held-book synchronized restoration evidence",
+    "settled ordinary rights no longer block fresh recovery",
+    "same-session sector recovery idempotence",
+    "leader confidence in decision diagnostics"
+  ],
+  "retained_for_comparison_not_deleted": [
+    "mature leader cycle and pyramiding",
+    "ordinary admission expansion and tactical entry",
+    "recovery fresh capital weighting",
+    "strategic formation restrictions",
+    "native evidence validation improvements"
+  ],
+  "economic_screen": {
+    "nominal_cases": [
+      "full",
+      "no_optical",
+      "remove_all_three",
+      "d-continuous_ai_era"
+    ],
+    "stress_cases": [
+      "full-cost2",
+      "full-offset5"
+    ],
+    "baseline_for_each_case": "same main with identical universe, dates, costs, runtime and inputs",
+    "minimum_nominal_geometric_wealth_retention": 0.9,
+    "maximum_drawdown_increase_per_case": 0.02,
+    "minimum_stress_wealth_retention_vs_same_main_stress": 0.9
+  },
+  "capability_requirement": "At least one reproduced main failure in real production behavior corrected with regression and integration evidence; economic neutrality alone is not improvement.",
+  "release_scope": "local holding/recovery/reliability enhancement; no claim of universal or future out-of-sample generalization",
+  "historical_acceptance": "Original contracts and failed reports remain preserved. Old 15x/weak-nine+10%/start-retention-vs-lucky-nominal requirements are research diagnostics, not this limited release gate.",
+  "nonnegotiable": [
+    "causal timing",
+    "T+1 and real execution/cash/fees",
+    "truthful source and evidence identity",
+    "preserve real holdings and pending obligations",
+    "normal repository merge protections"
+  ],
+  "budget": "One selected combination, then remove an identified harmful component if needed; no nearby parameter sweep. Expand verification only for a stable candidate.",
+  "status": "IMPLEMENTED_NOT_ECONOMICALLY_VALIDATED"
+}

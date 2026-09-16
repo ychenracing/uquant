@@ -1,0 +1,61 @@
+{
+  "control": {
+    "raw_sha256": "b4739119edd3533ac01661b65370b6b0adea8f62e2795247d5f7e9cffd2839dc",
+    "source_head": "a578886dcb9d04473916fee6cb5412cf521f85f1",
+    "source_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
+    "march18": {
+      "date": "2024-03-18",
+      "equity": 9412620.41443648,
+      "capital_drawdown": 0.12011038029297949,
+      "operating_drawdown": 0.0,
+      "capital_level": 2,
+      "repair_streak": 0,
+      "risk": "NORMAL",
+      "targets": {
+        "sz300308": 0.32273283806716285
+      }
+    },
+    "restoration_buys": [
+      {
+        "fill_date": "2024-05-06",
+        "signal_date": "2024-04-30",
+        "symbol": "sz300308",
+        "side": "BUY",
+        "shares": 18600,
+        "reason": "prequalified strategic leader cohort with staged profit protection"
+      }
+    ]
+  },
+  "suppressed": {
+    "raw_sha256": "ad71d386d0848bea0291aa315caaf438e90f0104b2638937bb052b77c3d376cd",
+    "source_head": "a578886dcb9d04473916fee6cb5412cf521f85f1",
+    "source_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
+    "march18": {
+      "date": "2024-03-18",
+      "equity": 9427636.55904128,
+      "capital_drawdown": 0.11988308519655377,
+      "operating_drawdown": 0.0,
+      "capital_level": 2,
+      "repair_streak": 1,
+      "risk": "NORMAL",
+      "targets": {
+        "sz300308": 0.6
+      }
+    },
+    "restoration_buys": [
+      {
+        "fill_date": "2024-03-19",
+        "signal_date": "2024-03-18",
+        "symbol": "sz300308",
+        "side": "BUY",
+        "shares": 21500,
+        "reason": "prequalified strategic leader cohort with staged profit protection"
+      }
+    ]
+  },
+  "method": "DIAGNOSTIC_ONLY_PATCHED_PREFIX_NOT_ACCEPTANCE",
+  "finding": "Suppressing all new ordinary core admissions restores the historical March 18 restoration under doubled costs; control delays to April 30. This identifies account-path coupling, not a proposal to remove ordinary discovery.",
+  "correction": "March 18 capital level remains 2 in both traces; repair streak is 0 versus 1. The immediate restoration gate is reason_clean_level2 in _bounded_strategic_restore_risk_open, coupled to capital_damage at 12%; completing the five-day ladder is NOT the immediate trigger. Supersedes earlier stress report causal interpretation.",
+  "unchanged": "No production changes or threshold changes; all risk and execution functions unchanged in the diagnostic except suppressed _admit_new_cores.",
+  "remaining": "Design a stable recovery policy that preserves hard risk limits and ordinary discovery; no accepted implementation yet. Do not merge current candidate."
+}

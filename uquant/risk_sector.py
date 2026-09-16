@@ -229,7 +229,15 @@ def _recover_sector_guard(
             and observation.recovery_breadth >= cfg.sector_recovery_breadth
             and active_sessions >= cfg.sector_guard_min_sessions
         )
-        account.sector_recovery_streak = account.sector_recovery_streak + 1 if repair else 0
+        session = date.toordinal()
+        marker = "sector_recovery_observed_session"
+        # A repeated daily scan is not another recovery session. Deteriorating
+        # same-day evidence can still reset the confirmation streak.
+        if not repair:
+            account.sector_recovery_streak = 0
+        elif account.risk_streaks.get(marker) != session:
+            account.sector_recovery_streak += 1
+        account.risk_streaks[marker] = session
         if account.sector_recovery_streak >= cfg.sector_recovery_confirmations:
             recovered = True
             account.sector_guard_active = False

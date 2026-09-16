@@ -2,7 +2,7 @@ name: Engineering gates
 
 on:
   push:
-    branches: [main, codex/targeted-generalization-research]
+    branches: [main]
   pull_request:
   workflow_dispatch: {}
 

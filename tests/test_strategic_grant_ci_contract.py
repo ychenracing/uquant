@@ -50,7 +50,7 @@ def test_strategic_grant_acceptance_is_bounded_and_automatic() -> None:
     assert workflow["name"] == "Strategic Grant Acceptance"
     assert workflow["on"] == {
         "pull_request": "",
-        "push": {"branches": ["main", "codex/targeted-generalization-research"]},
+        "push": {"branches": ["main"]},
         "workflow_dispatch": {},
     }
     rendered = str(workflow)

@@ -23,24 +23,6 @@ from research.cross_ai_strategy import case_symbols, run_production_case
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
 
 
-def test_default_runner_import_does_not_require_offline_policy_api() -> None:
-    """The unchanged frozen engine has no current offline-profile module."""
-    import subprocess
-    import sys
-
-    script = '''
-import importlib.abc
-import sys
-class AbsentOfflinePolicy(importlib.abc.MetaPathFinder):
-    def find_spec(self, fullname, path, target=None):
-        if fullname == "uquant.validation.parameter_policy":
-            raise ModuleNotFoundError(fullname)
-sys.meta_path.insert(0, AbsentOfflinePolicy())
-import research.cross_ai_strategy
-'''
-    subprocess.run([sys.executable, "-c", script], check=True, capture_output=True, text=True)
-
-
 def test_specs_cover_each_frozen_pair_and_never_cross_initial_factors() -> None:
     contract = json.loads(CONTRACT_PATH.read_text())
     specs = scenario_specs(contract, DEFAULT_CONFIG.to_dict())

@@ -20,6 +20,7 @@ def test_synchronized_restoration_requires_current_health(votes, damage, allowed
         "RECOVERY", freeze_new_risk=True, reduction_level=1)
     panel = _restore_panel(["lead"])
     panel["lead"]["ret5"] = .01
+    panel["lead"].loc[pd.Timestamp("2026-01-07"), "close"] = 1.01
     targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
         date=pd.Timestamp("2026-01-07"), opportunity=Opportunity.RECOVERY,
         risk=risk, user_panel=panel,

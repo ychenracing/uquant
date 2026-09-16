@@ -32,7 +32,6 @@ def observe(policy, account, symbol, frame, leader, date):
 
 def test_confirmed_structure_loss_exits_despite_pre_entry_rally():
     policy, account, symbol, frame, leader = setup_case()
-    frame["ma60"] = 100.  # Loss of the shared medium holding basis.
     assert frame.iloc[-1].ret20 > 0
     assert frame.iloc[-1].close < account.positions[symbol].avg_cost
     outcomes = [observe(policy, account, symbol, frame, leader, date) for date in frame.index[-3:]]

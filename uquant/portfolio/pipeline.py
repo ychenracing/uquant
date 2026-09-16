@@ -34,7 +34,6 @@ from ..types import (
 )
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
-from .leaders.cycle import add_mature_leaders, mature_cycle_weights, observe_mature_cycle
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import (
     is_consumed_repair_order,
@@ -63,6 +62,40 @@ from .strategic.rearm import (
 
 if TYPE_CHECKING:
     from .allocator import PortfolioAllocator
+
+
+def _held_repair_evidence_complete(book: AllocationBook) -> bool:
+    """Require complete inputs and a positive daily return for every actual holding."""
+    for symbol, position in book.account.positions.items():
+        if position.shares <= 0:
+            continue
+        frame = book.user_panel.get(symbol)
+        if frame is None or book.date not in frame.index or "close" not in frame:
+            return False
+        history = frame.loc[:book.date, "close"]
+        row = frame.loc[book.date]
+        if len(history) < 2:
+            return False
+        prices = (scalar(row, "close"), float(history.iloc[-2]))
+        if not all(math.isfinite(value) and value > 0 for value in prices) or prices[0] <= prices[1]:
+            return False
+        if not all(math.isfinite(scalar(row, column))
+                   for column in (f"ma{book.policy.cfg.trend_fast}", "ret5")):
+            return False
+    return True
+
+
+def _synchronized_ordinary_repair_open(book: AllocationBook) -> bool:
+    """Require complete live held-book repair evidence for synchronized restoration."""
+    risk, account = book.risk, book.account
+    return (risk.state is Risk.CAUTION and risk.shock_state == "RECOVERY"
+                    and any(p.shares > 0 for p in account.positions.values())
+                    and account.risk_streaks.get("concentrated_repair", 0)
+                    >= book.policy.cfg.concentrated_repair_days
+                    and _held_repair_evidence_complete(book)
+                    and risk.evidence.get("held_repair_ratio") == 1.0
+                    and risk.evidence.get("held_damage_ratio") == 0.0
+                    and account.capital_budget_level <= 1 and account.chronic_level <= 1)
 
 
 def _core_candidates(
@@ -314,19 +347,6 @@ def _completed_ordinary_exit_owner(account: AccountState, grant: StrategicGrantI
             or (full_settled and symbol in full_members))
 
 
-def _holding_exit_returns(book: AllocationBook, symbol: str) -> tuple[float | None, float]:
-    evidence = book.risk.evidence
-    observed_key = f"holding_return_observed:{symbol}"
-    if observed_key in evidence:
-        if evidence[observed_key] is not True:
-            return math.nan, math.nan
-        return (float(evidence.get(f"holding_return:{symbol}", math.nan)),
-                float(evidence.get(f"holding_reference_return:{symbol}", math.nan)))
-    reference = (float(evidence.get("tech_ret60", math.nan))
-                 if evidence.get("tech_ret60_observed") is True else math.nan)
-    return None, reference
-
-
 def _ordinary_exits(book: AllocationBook) -> None:
     """Use the same confirmed structural exit for completed, non-ACTIVE CORE."""
     account = book.account
@@ -356,9 +376,6 @@ def _ordinary_exits(book: AllocationBook) -> None:
         ):
             continue
         book.record(symbol)["allocation_reason"] = "RETAINED_HOLDING"
-        holding_return, reference_return = _holding_exit_returns(book, symbol)
-        book.record(symbol)["holding_exit_reference_return"] = (
-            reference_return if math.isfinite(reference_return) else None)
         pullback_exit = ordinary_pullback_exit(
             book.policy, symbol=symbol, date=book.date, user_panel=book.user_panel,
             leaders=book.leaders, account=account,
@@ -366,8 +383,6 @@ def _ordinary_exits(book: AllocationBook) -> None:
         if pullback_exit == "" or (pullback_exit is None and not book.policy._leader_lifecycle_exit_confirmed(
             symbol=symbol, date=book.date, user_panel=book.user_panel,
             leaders=book.leaders, account=account,
-            reference_return=reference_return,
-            holding_return=holding_return,
         )):
             continue
         book.proposed[symbol] = 0.0
@@ -491,45 +506,9 @@ def _restore_ordinary_holdings(book: AllocationBook) -> None:
             row["restore_block"] = "RESTORATION_COMPLETED_RETAIN_DRIFT"
             continue
         if book.fund(symbol, wanted, phase="POST_SHOCK_RESTORATION",
-                     minimum=0.0 if pending else cfg.protected_restore_min_trade_weight,
-                     concentration_cap=(cfg.recovery_target_gross
-                                        if symbol in book.recovery_restore_symbols else None)):
+                     minimum=0.0 if pending else cfg.protected_restore_min_trade_weight):
             book.mechanisms[symbol] = AttributionMechanism.POST_SHOCK_RESTORATION
             book.reasons[symbol] = "core restoration after account risk repair"
-
-
-def _held_repair_evidence_complete(book: AllocationBook) -> bool:
-    """Require observed repair inputs for every actual holding, including its prior close."""
-    for symbol, position in book.account.positions.items():
-        if position.shares <= 0:
-            continue
-        frame = book.user_panel.get(symbol)
-        if frame is None or book.date not in frame.index or "close" not in frame:
-            return False
-        history = frame.loc[:book.date, "close"]
-        row = frame.loc[book.date]
-        if len(history) < 2:
-            return False
-        prices = (scalar(row, "close"), float(history.iloc[-2]))
-        if not all(math.isfinite(value) and value > 0 for value in prices):
-            return False
-        if not all(math.isfinite(scalar(row, column))
-                   for column in (f"ma{book.policy.cfg.trend_fast}", "ret5")):
-            return False
-    return True
-
-
-def _synchronized_ordinary_repair_open(book: AllocationBook) -> bool:
-    """Require complete live held-book repair evidence for synchronized restoration."""
-    risk, account = book.risk, book.account
-    return (risk.state is Risk.CAUTION and risk.shock_state == "RECOVERY"
-                    and any(p.shares > 0 for p in account.positions.values())
-                    and account.risk_streaks.get("concentrated_repair", 0)
-                    >= book.policy.cfg.concentrated_repair_days
-                    and _held_repair_evidence_complete(book)
-                    and risk.evidence.get("held_repair_ratio") == 1.0
-                    and risk.evidence.get("held_damage_ratio") == 0.0
-                    and account.capital_budget_level <= 1 and account.chronic_level <= 1)
 
 
 def _bounded_ordinary_restore_risk_open(book: AllocationBook) -> bool:
@@ -614,22 +593,6 @@ def _current_independent_entry(evidence: dict[str, Any], date: pd.Timestamp) -> 
             and evidence.get("qualification_quorum") in {"FULL_COHORT", "STRONG_PAIR", "ABSOLUTE_SINGLE"})
 
 
-def _same_deferred_strategic_certificate(book: AllocationBook, symbol: str) -> bool:
-    """Prevent one deferred certificate from entering through another capital path."""
-    observed = book.account.strategic_qualification
-    entry = book.record(symbol).get("entry", {})
-    return (
-        observed.candidate_symbol == symbol
-        and observed.qualification_ready
-        and observed.deployment_blocked
-        and observed.deployment_block_reason == "strategic_commitment_evidence_not_confirmed"
-        and observed.qualification_last_observed_session == str(book.date.date())
-        and entry.get("qualification_quorum") == observed.qualification_quorum == "FULL_COHORT"
-        and entry.get("qualification_signature") == observed.qualification_signature
-        and entry.get("qualification_evidence_sha256") == observed.qualification_evidence_sha256
-    )
-
-
 def _repair_tranche_filled(account: AccountState, symbol: str, event_id: str,
                            order_id: str) -> bool:
     """A repair tranche needs its matching positive native BUY fill."""
@@ -684,45 +647,7 @@ def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified:
     return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
 
 
-def _mature_admission_weights(book: AllocationBook, eligible: list[str],
-                             opportunity: Opportunity) -> dict[str, float]:
-    symbols = [s for s in eligible if not book.owned and not book.account.pending_orders
-               and not book.account.candidate_tenure.get("ordinary_repair_capital_active")
-               and book.record(s).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"]
-    return mature_cycle_weights(book, symbols, opportunity)
-
-
-def _deferred_core_entries(
-    book: AllocationBook, eligible: list[str], market: dict[str, Any],
-) -> dict[str, str]:
-    """Preserve capital-confirmation and exact-certificate arbitration precedence."""
-    deployed_ordinary = any(
-        weight > 1e-12 and symbol not in book.owned
-        for symbol, weight in book.weights_now.items()
-    )
-    settled_strategic_rotation = (
-        book.account.strategic_epochs_completed > 0
-        and book.account.strategic_last_exit_date == str(book.date.date())
-        and market.get("persistent_mature_entry_open") is True
-    )
-    market["settled_strategic_rotation_open"] = settled_strategic_rotation
-    deployment_pending = {
-        symbol for symbol in eligible
-        if book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
-        and not (deployed_ordinary or settled_strategic_rotation)
-        and market.get("leader_cycle_armed") is not True
-    }
-    strategic_commitment_deferred = {
-        symbol for symbol in eligible if _same_deferred_strategic_certificate(book, symbol)
-    }
-    blocked = dict.fromkeys(strategic_commitment_deferred, "STRATEGIC_COMMITMENT_EVIDENCE_PENDING")
-    blocked.update(dict.fromkeys(deployment_pending, "DEPLOYMENT_CONFIRMATION_PENDING"))
-    return blocked
-
-
-def _admit_new_cores(
-    book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
-) -> None:
+def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
@@ -734,17 +659,11 @@ def _admit_new_cores(
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
-    blocked = _deferred_core_entries(book, eligible, market)
-    eligible = [symbol for symbol in eligible if symbol not in blocked]
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
-    cycle_weights = _mature_admission_weights(book, eligible, opportunity)
-    # Maturity sizes an already eligible request; an absent mature target
-    # leaves the ordinary initial tier subject to the same slots and cash.
     selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
-    blocked.update(dict.fromkeys(occupied, "EXISTING_HOLDING_OR_COMMITMENT"))
     for symbol in candidates:
-        if symbol in blocked:
-            book.record(symbol)["entry_gate"] = blocked[symbol]
+        if symbol in occupied:
+            book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
             continue
         if symbol not in eligible:
             book.record(symbol)["entry_gate"] = (
@@ -758,10 +677,7 @@ def _admit_new_cores(
         allowance = independent_budget if independent else budget
         assert allowance is not None  # The shared market-input check above already passed.
         weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
-        maturity_only = book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
-        if symbol in cycle_weights:
-            weight = min(cycle_weights[symbol], allowance)
-        elif not book.leaders[symbol].mature or maturity_only:
+        if not book.leaders[symbol].mature:
             weight = min(weight, book.policy.cfg.core_admission_weight)
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
@@ -817,8 +733,6 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
     )
     merged = []
     for target in targets:
-        if "leader_lifecycle" in book.record(target.symbol):
-            target = replace(target, lifecycle=book.record(target.symbol)["leader_lifecycle"])
         if target.symbol in book.recovery_targets:
             recovery = book.recovery_targets[target.symbol]
             mechanism = book.mechanisms.get(target.symbol)
@@ -845,8 +759,7 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
 
 def _caution_probe_book_open(book: AllocationBook) -> bool:
     account, risk = book.account, book.risk
-    return not (risk.state not in {Risk.NORMAL, Risk.CAUTION}
-            or (risk.state is Risk.NORMAL and risk.freeze_new_risk)
+    return not (risk.state is not Risk.CAUTION or not risk.freeze_new_risk
             or risk.evidence.get("freeze_new_risk", False)
             or risk.evidence.get("sentinel_freeze_new_risk", False)
             or account.capital_budget_level != 0 or account.chronic_level != 0
@@ -857,7 +770,7 @@ def _caution_probe_book_open(book: AllocationBook) -> bool:
 
 
 def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> set[str]:
-    """Reach the original tactical signal in unfrozen or bounded caution books."""
+    """Isolated research permission; reuse the original tactical signal unchanged."""
     account, risk, policy = book.account, book.risk, book.policy
     if not _caution_probe_book_open(book):
         return set()
@@ -874,7 +787,7 @@ def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> s
     targets = tactical_admission_targets(
         policy, opportunity=opportunity, date=book.date, risk=risk,
         user_panel=book.user_panel, leaders=book.leaders, account=planned,
-        level1_recovery_repair=False, bounded_recovery_repair=risk.freeze_new_risk,
+        level1_recovery_repair=False, bounded_recovery_repair=True,
         tactical_recovery_market=weak or transitional,
         transitional_recovery_market=transitional, weak_secular_market=weak,
     )
@@ -938,7 +851,6 @@ def _allocate_strategy(
         self, date=date, opportunity=opportunity, risk=risk, leaders=leaders,
         user_panel=user_panel,
     )
-    observe_mature_cycle(book, opportunity, market)
     rearm_ordinary_market(account=account, date=date, risk=risk, market=market,
                           confirmation_days=self.cfg.leader_tenure_days)
     observe_repair_maturity(self, account=account, date=date, market=market, user_panel=user_panel)
@@ -960,8 +872,7 @@ def _allocate_strategy(
         _restore_ordinary_holdings(book)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
     if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
-        _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market)
-        add_mature_leaders(book, opportunity)
+        _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
     else:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (

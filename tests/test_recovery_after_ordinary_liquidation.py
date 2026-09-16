@@ -2,7 +2,6 @@
 from copy import deepcopy
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
@@ -35,19 +34,21 @@ def settled_ordinary_account():
     return engine, account
 
 
-def test_settled_stale_ordinary_rights_do_not_block_new_confirmed_recovery(settled_ordinary_account):
-    engine, original = settled_ordinary_account
+def test_settled_stale_ordinary_rights_release_account_availability(settled_ordinary_account):
+    from types import SimpleNamespace
+
+    from uquant.portfolio.recovery.current_cohort import _book_available
+    from uquant.risk.pullback import pullback_book_settled
+
+    _, original = settled_ordinary_account
     account = deepcopy(original)
-    panel = {symbol: engine._raw[symbol] for symbol in SYMBOLS}
-    for session in ("2025-05-06", "2025-05-07", "2025-05-08"):
-        engine.execution.execute_open(date=pd.Timestamp(session), account=account, panel=panel)
-        decision = engine.decide(symbols=SYMBOLS, as_of=session, account=account)
-        account.pending_orders = list(decision.pending_orders)
-    assert decision.risk_summary["freeze_new_risk"] is False
-    buys = [o for o in account.pending_orders if o.side == "BUY"]
-    assert {o.symbol for o in buys} == {"sz300308", "sz300394", "sz300502"}
-    assert all(o.mechanism == "RECOVERY_COHORT" and not o.grant_id and not o.epoch_id for o in buys)
-    assert account.protected_weights == original.protected_weights
-    fills = engine.execution.execute_open(date=pd.Timestamp("2025-05-09"), account=account, panel=panel)
-    assert {f.symbol for f in fills if f.side == "BUY"} == {"sz300308", "sz300394", "sz300502"}
-    assert account.cash >= 0
+    historical_weights = dict(account.protected_weights)
+    assert not pullback_book_settled(account)
+    book = SimpleNamespace(account=account, weights_now={}, owned=set())
+    assert _book_available(book, set(), set(), [])
+    assert account.protected_weights == historical_weights
+    assert not account.positions and not account.pending_orders
+
+    # Actual ownership still blocks a new recovery account.
+    book.owned = {"sz300308"}
+    assert not _book_available(book, set(), set(), [])

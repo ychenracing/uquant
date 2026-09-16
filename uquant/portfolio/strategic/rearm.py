@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from copy import deepcopy
+from datetime import date as calendar_date
 from types import MappingProxyType
 from typing import cast
 
@@ -847,22 +848,35 @@ def authorize_ordinary_cash_rearm(
     *, account: AccountState, risk: RiskAssessment, universe: StrategicUniverseRoles,
     symbol: str, certificate: dict[str, object], observed_session: str, cfg: SystemConfig,
 ) -> bool:
-    """Reserve repaired capital for current independent qualification."""
+    """Reserve one ready account episode for a currently proven ordinary CORE."""
     repair = account.flat_book_capital_repair
     confirmations = certificate.get("confirmations")
-    route = "independent_core"
+    mature = certificate.get("qualification_quorum") == "MATURE_CORE"
+    confirmation_key = "credible_maturity" if mature else "independent_core"
+    route = "mature_core" if mature else "independent_core"
     inputs = risk.evidence.get("decision_input_identity")
     if (_ordinary_repair_context_invalid(
             account=account, risk=risk, universe=universe, symbol=symbol,
             observed_session=observed_session, cfg=cfg, inputs=inputs, repair=repair,
         )
-            or certificate.get("qualification_quorum") not in (None, "INDEPENDENT_CORE")
             or certificate.get("block") != "READY"
             or certificate.get("as_of") != observed_session
             or certificate.get("required_confirmation") != cfg.leader_tenure_days
             or not isinstance(confirmations, dict)
-            or confirmations.get("independent_core", 0) < cfg.leader_tenure_days):
+            or confirmations.get(confirmation_key, 0) < cfg.leader_tenure_days):
         return False
+    if mature:
+        market = certificate.get("ordinary_market")
+        if (certificate.get("qualification_route") != route
+                or not isinstance(market, dict) or market.get("as_of") != observed_session
+                or market.get("repair_mature_entry_open") is not True
+                or symbol not in market.get("credible_symbols", ())
+                or account.candidate_tenure.get("ordinary_repair_maturity_session")
+                != calendar_date.fromisoformat(observed_session).toordinal()
+                or confirmations.get("credible_maturity")
+                != account.replacement_tenure.get("ordinary_repair_maturity:" + symbol, 0)
+                or account.leader_tenure.get(symbol, 0) < cfg.leader_tenure_days):
+            return False
     proof = {**certificate, "candidate": symbol, "code_hash": account.code_hash,
              "prior_data_hash": account.data_hash, "decision_input_identity": dict(cast(dict[str, object], inputs)),
              "max_target_weight": strategic_cash_rearm_weight(account=account, risk=risk, cfg=cfg)}
@@ -873,7 +887,7 @@ def authorize_ordinary_cash_rearm(
     current = StrategicCashRearmState(
         observed_session=observed_session, repair_episode_id=repair.repair_episode_id,
         candidate_symbol=symbol, qualification_signature=route + ":" + symbol,
-        qualification_route=route, qualification_quorum="INDEPENDENT_CORE",
+        qualification_route=route, qualification_quorum="MATURE_CORE" if mature else "INDEPENDENT_CORE",
         qualification_evidence_sha256=evidence, capital_budget_level=account.capital_budget_level,
         tradable_universe_identity=universe.tradable_identity,
         qualification_reference_universe_identity=universe.qualification_reference_identity,

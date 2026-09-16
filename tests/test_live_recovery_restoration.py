@@ -16,6 +16,7 @@ def test_live_recovery_requires_current_held_repair_and_all_risk_permissions(mis
     fixture = _restorable()
     _, account, dates, panel, _, risk = fixture
     panel[SYMBOL]["ret5"] = .01
+    panel[SYMBOL].loc[dates[0], "close"] = 10.1
     account.capital_budget_repair_streak = 0
     account.risk_streaks["concentrated_repair"] = DEFAULT_CONFIG.concentrated_repair_days
     risk = replace(risk, evidence={"transition_damage": .2, "held_repair_ratio": 1.,
@@ -53,7 +54,7 @@ def test_live_recovery_requires_current_held_repair_and_all_risk_permissions(mis
         assert len(fills) == 1 and fills[0].shares > 0 and account.cash >= 0
 
 
-@pytest.mark.parametrize("missing", [None, "frame", "date", "close", "ma20", "ret5", "prior_close"])
+@pytest.mark.parametrize("missing", [None, "frame", "date", "close", "ma20", "ret5", "prior_close", "declining_peer"])
 def test_live_recovery_requires_complete_evidence_for_every_actual_holding(missing):
     from copy import deepcopy
     from types import SimpleNamespace
@@ -76,6 +77,8 @@ def test_live_recovery_requires_complete_evidence_for_every_actual_holding(missi
         del panel[peer]
     elif missing == "date":
         panel[peer] = panel[peer].drop(index=day)
+    elif missing == "declining_peer":
+        panel[peer].loc[day, "close"] = 9.9
     elif missing == "ret5":
         panel[peer] = panel[peer].drop(columns="ret5")
     elif missing == "prior_close":
@@ -83,9 +86,11 @@ def test_live_recovery_requires_complete_evidence_for_every_actual_holding(missi
         panel[peer].loc[prior, "close"] = float("nan")
     elif missing:
         panel[peer].loc[day, missing] = float("nan")
+    # Concentrated recovery may report only the protected subset as fully repaired.
+    # A declining unprotected actual holding must still deny all-held restoration.
     held = _held_book_state(date=day, user_panel=panel, account=account, cfg=DEFAULT_CONFIG)
     risk = replace(risk, evidence={"transition_damage": .2,
-                                   "held_repair_ratio": held.repair_ratio,
+                                   "held_repair_ratio": 1.0 if missing == "declining_peer" else held.repair_ratio,
                                    "held_damage_ratio": held.damage_ratio})
     book = SimpleNamespace(policy=policy, account=account, date=day, user_panel=panel, risk=risk)
     assert _bounded_ordinary_restore_risk_open(book) is (missing is None)

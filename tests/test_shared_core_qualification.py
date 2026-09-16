@@ -47,15 +47,14 @@ def _held_book():
     return allocator, account, dates, panel, leaders, roles
 
 
-def _decide(allocator, account, date, panel, leaders, roles, *, risk=None,
-            opportunity=Opportunity.TREND):
+def _decide(allocator, account, date, panel, leaders, roles, *, risk=None):
     risk = risk or _risk()
     risk.evidence.update(ai_fast_return=.16, declining_ratio=.05, below_ma20_ratio=.05,
                          tech_speed=.16, broad_speed=.02)
     previous = list(account.pending_orders)
     prices = {symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()}
     targets = allocator.allocate(
-        date=date, opportunity=opportunity, risk=risk,
+        date=date, opportunity=Opportunity.TREND, risk=risk,
         user_panel=panel, leaders=leaders, account=account, prices=prices,
         qualification_panel=panel, qualification_leaders=leaders, strategic_universe=roles,
     )
@@ -70,25 +69,6 @@ def _decide(allocator, account, date, panel, leaders, roles, *, risk=None,
         account=account, previous=previous, current=merged, submitted_date=str(date.date()),
     ))
     return targets
-
-
-def test_independent_certificate_does_not_bypass_choppy_opportunity_gate():
-    allocator, account, dates, panel, leaders, roles = _held_book()
-    owner_identity = (account.strategic_grant.grant_id, account.strategic_epochs[0].epoch_id)
-    for date in dates[:DEFAULT_CONFIG.strategic_cohort_confirm_days]:
-        _decide(allocator, account, date, panel, leaders, roles, opportunity=Opportunity.CHOPPY)
-    certificate = _current_full_certificate(allocator, account, date, panel, leaders, roles)
-    assert certificate is not None and certificate[2] >= certificate[1].required_confirm_days
-    risk = _risk()
-    _decide(allocator, account, dates[DEFAULT_CONFIG.strategic_cohort_confirm_days],
-            panel, leaders, roles, opportunity=Opportunity.CHOPPY,
-            risk=risk)
-    allocation = risk.evidence["core_allocation"]
-    assert allocation["symbols"][CHALLENGER]["entry"]["block"] == "READY"
-    assert allocation["symbols"][CHALLENGER]["entry_gate"] == "OPPORTUNITY_NOT_OPEN"
-    assert not [order for order in account.pending_orders
-                if order.symbol == CHALLENGER and order.side == "BUY"]
-    assert (account.strategic_grant.grant_id, account.strategic_epochs[0].epoch_id) == owner_identity
 
 
 def _current_full_certificate(allocator, account, date, panel, leaders, roles):

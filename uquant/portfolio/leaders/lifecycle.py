@@ -81,10 +81,8 @@ def _leader_lifecycle_exit_confirmed(
     user_panel: dict[str, pd.DataFrame],
     leaders: dict[str, LeaderScore],
     account: AccountState,
-    reference_return: float = math.nan,
-    holding_return: float | None = None,
 ) -> bool:
-    """Confirm holding-specific deterioration with causal session evidence."""
+    """Confirm lost holding structure without a pre-entry-return velocity veto."""
     position = account.positions.get(symbol)
     frame = user_panel.get(symbol)
     leader = leaders.get(symbol)
@@ -95,21 +93,14 @@ def _leader_lifecycle_exit_confirmed(
     row = frame.loc[date]
     peak_mfe = position.highest_close / max(position.avg_cost, 1e-12) - 1.0
     protected_winner = peak_mfe >= 0.20
-    # A valid medium trend is the holding basis even before the first profit.
-    # Preserve the existing unproven-holding fallback when it is unavailable.
-    basis = scalar(row, f"ma{self.cfg.trend_medium}", math.nan)
-    if not protected_winner and (not math.isfinite(basis) or basis <= 0):
-        basis = scalar(row, f"ma{self.cfg.trend_fast}")
     broken = bool(
         not leader.mature
-        and scalar(row, "close") < basis
+        and scalar(row, "close")
+        < scalar(
+            row,
+            f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
+        )
     )
-    if holding_return is None:
-        holding_return = scalar(row, f"ret{self.cfg.trend_medium}", math.nan)
-    if not protected_winner and math.isfinite(holding_return) and math.isfinite(reference_return):
-        # Relative resilience protects an unproven holding from common market
-        # damage. Proven winners keep their unconditional structural exit.
-        broken = broken and holding_return < reference_return
     clock = f"lifecycle_exit_session:{symbol}"
     session = date.toordinal()
     previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0

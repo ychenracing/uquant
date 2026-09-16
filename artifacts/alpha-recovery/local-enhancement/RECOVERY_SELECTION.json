@@ -1,0 +1,6 @@
+{
+  "parent_candidate": "cd3b424555168f14a27ee29491882db04f574569",
+  "action": "Remove only holding-exit group, retain synchronized recovery, settled-ownership recovery, sector idempotence and decision confidence. No parameter changes.",
+  "reason": "Initial combination failed prospective retention: full-offset5 0.973285 vs main 1.898175; remove_all_three 1.086864 vs main 1.631367. Causality to holding group requires this ablation.",
+  "acceptance": "Unchanged PLAN.json thresholds and six paired cells."
+}

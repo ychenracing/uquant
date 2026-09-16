@@ -22,7 +22,7 @@ def _aged_core(*, partial=False):
 
 def _damage(panel, leaders, dates):
     frame = panel[OWNER]
-    frame.loc[dates, f"ma{DEFAULT_CONFIG.trend_medium}"] = frame.loc[dates, "close"] * 1.10
+    frame.loc[dates, "ma20"] = frame.loc[dates, "close"] * 1.10
     frame.loc[dates, "ret20"] = -.09
     return {symbol: replace(leader, mature=False) for symbol, leader in leaders.items()}
 
@@ -89,7 +89,7 @@ def test_core_exit_preserves_existing_conjunction_and_entry_completion(missing):
     if missing == "maturity":
         damaged = leaders
     elif missing == "price":
-        panel[OWNER].loc[dates, f"ma{DEFAULT_CONFIG.trend_medium}"] = panel[OWNER].loc[dates, "close"] * .95
+        panel[OWNER].loc[dates, "ma20"] = panel[OWNER].loc[dates, "close"] * .95
     for index, date in enumerate(dates[:4]):
         current = leaders if missing == "interrupted" and index == 1 else damaged
         assert not _decide_and_submit(allocator, account, date, panel, current, roles)

@@ -173,15 +173,11 @@ def _fund_owner_targets(self: StrategicOwnershipPolicy, *, qualified: QualifiedS
 
 def _confirmed_formation_weights(
     self: StrategicOwnershipPolicy, desired: dict[str, float], leaders: dict[str, LeaderScore],
-    entry_eligibility: dict[str, dict[str, Any]], user_panel: dict[str, pd.DataFrame],
-    date: pd.Timestamp,
+    entry_eligibility: dict[str, dict[str, Any]],
 ) -> dict[str, float]:
     return {
-        symbol: weight if (leaders[symbol].mature or (entry_eligibility.get(symbol, {}).get(
-            "formation_quality") == "CONFIRMED_PERSISTENT"
-            and scalar(user_panel[symbol].loc[date], "close")
-            >= scalar(user_panel[symbol].loc[date], f"ma{self.cfg.trend_medium}", float("nan")) > 0)
-        ) else min(weight, self.cfg.core_admission_weight)
+        symbol: weight if (leaders[symbol].mature or entry_eligibility.get(symbol, {}).get(
+            "formation_quality") == "CONFIRMED_PERSISTENT") else min(weight, self.cfg.core_admission_weight)
         for symbol, weight in desired.items()
     }
 
@@ -242,7 +238,7 @@ def _prepare_strategic_owner_targets(
         restricted_initial_weight=qualified.restricted_initial_weight,
     )
     if qualified.quorum_route == StrategicQuorumRoute.FULL_COHORT.value and dominant_symbol is None:
-        desired = _confirmed_formation_weights(self, desired, leaders, entry_eligibility, user_panel, date)
+        desired = _confirmed_formation_weights(self, desired, leaders, entry_eligibility)
     if qualified.cash_rearm_authorized:
         desired = {
             account.strategic_qualification.candidate_symbol: strategic_cash_rearm_weight(

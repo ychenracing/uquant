@@ -1,0 +1,146 @@
+[
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/main/d-continuous_ai_era.json.gz",
+    "bytes": 273264,
+    "sha256": "16a6b057935a12217ae73f0c85b6bdff72615b28b2d1b6c28a3756d2e8ec9f5e",
+    "git_blob": "4b997e6bfb167248a21b928d4b9bf40102134d16"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/main/full-cost2.json.gz",
+    "bytes": 241930,
+    "sha256": "43c205e1b843811ebb211212c14fbfc40646d649672fea94ddc03fdc82aaa3a7",
+    "git_blob": "f14975ad3d7e508f47d43daaee4829ad6e6acd9e"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/main/full-offset5.json.gz",
+    "bytes": 192675,
+    "sha256": "eeb90aa879207b4201032ed5e05ffb46122e16b2ac9c4cb493016ef2411cb489",
+    "git_blob": "c0f89957562def63c33a7e7e58dd6506adfe8a88"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/main/full.json.gz",
+    "bytes": 272936,
+    "sha256": "6780df37b496769c1af798824b525c7bfd3446e5009da8130c804a9c7c88386f",
+    "git_blob": "f1d49f0add473a1223fd8d47bbaf7e2d5079642e"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/main/no_optical.json.gz",
+    "bytes": 181182,
+    "sha256": "5fdda02ad3695f2e2653f5b67740a0a5862fddf1e3a5c0939eb1c1ed51d431d6",
+    "git_blob": "527deec786595ac603ef4e4a186d8303c543594a"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/main/remove_all_three.json.gz",
+    "bytes": 190139,
+    "sha256": "10a1285e1dfa561e9b50b9ddef5499eb501cff99be4dc2c78b60cc9b35becd71",
+    "git_blob": "7bb6c35b17d7d856b5be030ae317d6197ab6e208"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/selected/d-continuous_ai_era.json.gz",
+    "bytes": 272870,
+    "sha256": "f502071fabdd069bcfae0d63e8861570a2f9548a988c38d89596079945e22d99",
+    "git_blob": "908478cadf40d5d3aa03123c6a1307c77136dc65"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/selected/full-cost2.json.gz",
+    "bytes": 242776,
+    "sha256": "27dc1bf505713382088da51977b57f2742e18d0f12e1d69017aadc1a14ff88f0",
+    "git_blob": "706a341ced3407032afd9060870ee9134e13a080"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/selected/full-offset5.json.gz",
+    "bytes": 201531,
+    "sha256": "fa74230e5da7ab1f5185b37317a3f5be1e7431d7771731395258367a81f8140f",
+    "git_blob": "2512f329f00a15a0e4bde10bd19551625456677d"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/selected/full.json.gz",
+    "bytes": 274215,
+    "sha256": "b6d0c84ebb614fda28d96750c2cf6ff257ff9926f6ee66fffdc1d41954cbc9bd",
+    "git_blob": "c1282700e592821e49f44d349c18c6c244f1e62a"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/selected/no_optical.json.gz",
+    "bytes": 229414,
+    "sha256": "67290b9e816eef812e35014b8df6d934fca4def9e6fcafa98c496c2e7f937bb6",
+    "git_blob": "a26cffaaa1cb76967c46912cae5e6af388713b9d"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/selected/remove_all_three.json.gz",
+    "bytes": 223669,
+    "sha256": "d1cca8656e4af7e08bee41ec2b66af1c1707ddc8c803b699ccfc27ad79e68f4b",
+    "git_blob": "239647de3e4cc2f6f0d1030569383e641929682c"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery/d-continuous_ai_era.json.gz",
+    "bytes": 273332,
+    "sha256": "1ec60fe16b2dca73940a45691c26cd1ef7f7b731b193450421525297a4c6be6f",
+    "git_blob": "7a2f49e1153f889adbe83980dc7d40c1b862c4d5"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery/full-cost2.json.gz",
+    "bytes": 241931,
+    "sha256": "516bf39a2fe364eff61fa3d5542744f6b1cbdd4b981e0a325c1cd11c8a978081",
+    "git_blob": "0d79f6127b53deadd462a2bbde0d6feecf4c8868"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery/full-offset5.json.gz",
+    "bytes": 192694,
+    "sha256": "41f99f622c590449f97bf6d3440244cdb2d6bc377668417b0c1930b2086ccbba",
+    "git_blob": "be737fce97fdadd79163d293287e13c3d9fd99de"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery/full.json.gz",
+    "bytes": 272933,
+    "sha256": "d1238f219298862dd7266666b1075f44e124ce28631c6c448fe35b0d0910709a",
+    "git_blob": "7d71247a4641add7880e900429e2f79128836771"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery/no_optical.json.gz",
+    "bytes": 181209,
+    "sha256": "efe7373efcf5b047249f31d83079eac29e98986ce066a58186bb779f9a4c93c4",
+    "git_blob": "16790c6a993ee9662f2d22dd5a48ee214ab8d85d"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery/remove_all_three.json.gz",
+    "bytes": 190170,
+    "sha256": "55c5b5bc959675d83f7bad37601c7d9ef072b5b5ed03e7a1ac203c90395772ab",
+    "git_blob": "2ff95f3c96cceab50cb60d4dd8d2d82bbe03a7f4"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery-reviewed/d-continuous_ai_era.json.gz",
+    "bytes": 273295,
+    "sha256": "1de92c042fa61c25428046ed0d9cf4ec71860adb142a18faabb31ef298781c0a",
+    "git_blob": "08d3e0ce5a98cdf5eeb8a22153695d954fa2011f"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery-reviewed/full-cost2.json.gz",
+    "bytes": 241919,
+    "sha256": "a1970b174dd4d5780b9b1fe709d0b3bd618312561d098c5cb99a4379c27856e1",
+    "git_blob": "ca6cd9b05fba6e05e9db3d85cae15514c9d40b90"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery-reviewed/full-offset5.json.gz",
+    "bytes": 192706,
+    "sha256": "e1f79d452a7e5f8ee11b7b44a521844cef41c3bbb6ee8aa062ee0e6b7fb1bab4",
+    "git_blob": "1953bf51fd9f1035553ae7150ca25048039f8254"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery-reviewed/full.json.gz",
+    "bytes": 272919,
+    "sha256": "0493a95549224803a25caa0bed1da37b51c29a2ccaadf19c619dbed70ce1ef13",
+    "git_blob": "02faf4ce2512e65e80e9b1a5b32f44d89d967fee"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery-reviewed/no_optical.json.gz",
+    "bytes": 181223,
+    "sha256": "6e6ea0d5cc2061571b03fe6a65ab3f9dc794b9387d77626bcc72d01286720fce",
+    "git_blob": "c57027b3c562e168788d0bcc0616867eedc9d3f7"
+  },
+  {
+    "path": "artifacts/alpha-recovery/local-enhancement/raw/recovery-reviewed/remove_all_three.json.gz",
+    "bytes": 190177,
+    "sha256": "0d7af1c235114075063846a455cb208df2bbc3a714911b6de572a2710788e6f0",
+    "git_blob": "d32caf01bd65c29e12b09c300d256fb73ceb1061"
+  }
+]

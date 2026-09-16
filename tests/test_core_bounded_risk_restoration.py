@@ -93,6 +93,7 @@ def test_existing_bounded_repair_restores_continuous_core_within_risk_cap(permis
         risk = replace(risk, shock_state="NONE")
     elif permission == "synchronized":
         panel[SYMBOL]["ret5"] = .01
+        panel[SYMBOL].loc[dates[0], "close"] = 10.1
         account.capital_budget_repair_streak = 0
         account.risk_streaks["concentrated_repair"] = DEFAULT_CONFIG.concentrated_repair_days
         risk = replace(risk, evidence={**risk.evidence, "held_repair_ratio": 1.,

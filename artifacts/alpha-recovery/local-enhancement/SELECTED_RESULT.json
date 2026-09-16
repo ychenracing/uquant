@@ -1,0 +1,152 @@
+{
+  "status": "ECONOMIC_SCREEN_FAIL",
+  "baseline_head": "ea695ac87fd2155aef55cd2c6911284f4f3ffaff",
+  "candidate_head": "cd3b424555168f14a27ee29491882db04f574569",
+  "candidate_production_tree": "a0651f3f211ff63878b22ef11cac5cd01d5e8ddb",
+  "cases": [
+    {
+      "case": "full",
+      "main_wealth": 29.717003593409824,
+      "candidate_wealth": 29.711541480010446,
+      "wealth_retention": 0.9998161956880273,
+      "main_drawdown": 0.27147361646156465,
+      "candidate_drawdown": 0.27153945685329894,
+      "drawdown_change": 6.584039173429534e-05,
+      "main_orders": 22,
+      "candidate_orders": 22,
+      "raw": [
+        {
+          "path": "main/full.json.gz",
+          "bytes": 272936,
+          "sha256": "6780df37b496769c1af798824b525c7bfd3446e5009da8130c804a9c7c88386f"
+        },
+        {
+          "path": "selected/full.json.gz",
+          "bytes": 274215,
+          "sha256": "b6d0c84ebb614fda28d96750c2cf6ff257ff9926f6ee66fffdc1d41954cbc9bd"
+        }
+      ]
+    },
+    {
+      "case": "no_optical",
+      "main_wealth": 1.418640231430432,
+      "candidate_wealth": 2.1241170838843657,
+      "wealth_retention": 1.4972908823702207,
+      "main_drawdown": 0.22224198510180826,
+      "candidate_drawdown": 0.15324053277093608,
+      "drawdown_change": -0.06900145233087218,
+      "main_orders": 17,
+      "candidate_orders": 26,
+      "raw": [
+        {
+          "path": "main/no_optical.json.gz",
+          "bytes": 181182,
+          "sha256": "5fdda02ad3695f2e2653f5b67740a0a5862fddf1e3a5c0939eb1c1ed51d431d6"
+        },
+        {
+          "path": "selected/no_optical.json.gz",
+          "bytes": 229414,
+          "sha256": "67290b9e816eef812e35014b8df6d934fca4def9e6fcafa98c496c2e7f937bb6"
+        }
+      ]
+    },
+    {
+      "case": "remove_all_three",
+      "main_wealth": 1.631367035639956,
+      "candidate_wealth": 1.0868640123661755,
+      "wealth_retention": 0.6662289899340881,
+      "main_drawdown": 0.22224198510180826,
+      "candidate_drawdown": 0.18280511950008305,
+      "drawdown_change": -0.03943686560172521,
+      "main_orders": 18,
+      "candidate_orders": 24,
+      "raw": [
+        {
+          "path": "main/remove_all_three.json.gz",
+          "bytes": 190139,
+          "sha256": "10a1285e1dfa561e9b50b9ddef5499eb501cff99be4dc2c78b60cc9b35becd71"
+        },
+        {
+          "path": "selected/remove_all_three.json.gz",
+          "bytes": 223669,
+          "sha256": "d1cca8656e4af7e08bee41ec2b66af1c1707ddc8c803b699ccfc27ad79e68f4b"
+        }
+      ]
+    },
+    {
+      "case": "d-continuous_ai_era",
+      "main_wealth": 14.98112734783729,
+      "candidate_wealth": 15.050160189291459,
+      "wealth_retention": 1.0046079870927827,
+      "main_drawdown": 0.27146973146234554,
+      "candidate_drawdown": 0.27146973146234554,
+      "drawdown_change": 0.0,
+      "main_orders": 26,
+      "candidate_orders": 24,
+      "raw": [
+        {
+          "path": "main/d-continuous_ai_era.json.gz",
+          "bytes": 273264,
+          "sha256": "16a6b057935a12217ae73f0c85b6bdff72615b28b2d1b6c28a3756d2e8ec9f5e"
+        },
+        {
+          "path": "selected/d-continuous_ai_era.json.gz",
+          "bytes": 272870,
+          "sha256": "f502071fabdd069bcfae0d63e8861570a2f9548a988c38d89596079945e22d99"
+        }
+      ]
+    },
+    {
+      "case": "full-cost2",
+      "main_wealth": 8.1484048485381,
+      "candidate_wealth": 8.144845160620985,
+      "wealth_retention": 0.9995631429729768,
+      "main_drawdown": 0.27228092480987354,
+      "candidate_drawdown": 0.272241484869271,
+      "drawdown_change": -3.943994060251477e-05,
+      "main_orders": 17,
+      "candidate_orders": 17,
+      "raw": [
+        {
+          "path": "main/full-cost2.json.gz",
+          "bytes": 241930,
+          "sha256": "43c205e1b843811ebb211212c14fbfc40646d649672fea94ddc03fdc82aaa3a7"
+        },
+        {
+          "path": "selected/full-cost2.json.gz",
+          "bytes": 242776,
+          "sha256": "27dc1bf505713382088da51977b57f2742e18d0f12e1d69017aadc1a14ff88f0"
+        }
+      ]
+    },
+    {
+      "case": "full-offset5",
+      "main_wealth": 1.8981745263674923,
+      "candidate_wealth": 0.9732852680190849,
+      "wealth_retention": 0.5127480400243523,
+      "main_drawdown": 0.24420616323638922,
+      "candidate_drawdown": 0.1798963963670499,
+      "drawdown_change": -0.06430976686933931,
+      "main_orders": 23,
+      "candidate_orders": 19,
+      "raw": [
+        {
+          "path": "main/full-offset5.json.gz",
+          "bytes": 192675,
+          "sha256": "eeb90aa879207b4201032ed5e05ffb46122e16b2ac9c4cb493016ef2411cb489"
+        },
+        {
+          "path": "selected/full-offset5.json.gz",
+          "bytes": 201531,
+          "sha256": "fa74230e5da7ab1f5185b37317a3f5be1e7431d7771731395258367a81f8140f"
+        }
+      ]
+    }
+  ],
+  "nominal_geometric_wealth_retention": 1.0004874036354086,
+  "violations": [
+    "full-offset5: stress retention"
+  ],
+  "scope": "Six in-sample paired cells; not universal generalization or future profitability proof.",
+  "engineering_and_capability": "Separate evidence required; this report is not merge authorization."
+}

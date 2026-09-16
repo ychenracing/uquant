@@ -34,9 +34,11 @@ ECONOMIC_FIELDS = (
 )
 LEGACY_NATIVE_RUNNER_SHA256 = "2e099c863b063d9f59fdd5dc4e34698bc4197eb12b54f75bccc8870fe1bbe2ba"
 FULL_CONFIG_NATIVE_RUNNER_SHA256 = "435e5019ca500da9d8b52891c0c7b7deb61bad2c61ab2eedd2bb02bb97c8fca2"
+FORMATTED_NATIVE_RUNNER_SHA256 = "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4"
 AUDITED_NATIVE_RUNNERS = {
     LEGACY_NATIVE_RUNNER_SHA256: "legacy dataclasses.asdict projection",
     FULL_CONFIG_NATIVE_RUNNER_SHA256: "complete cfg.to_dict serialization",
+    FORMATTED_NATIVE_RUNNER_SHA256: "complete cfg.to_dict; import whitespace only, identical AST",
 }
 
 
@@ -366,6 +368,7 @@ def _normalize_config(root: Path, payload: Mapping[str, Any]) -> dict[str, objec
     if payload["method"] == "native_public_backtest" and payload["runner_sha256"] not in {
         LEGACY_NATIVE_RUNNER_SHA256,
         FULL_CONFIG_NATIVE_RUNNER_SHA256,
+        FORMATTED_NATIVE_RUNNER_SHA256,
     }:
         raise ValueError("native replay runner is not an audited identity")
     if raw != full:

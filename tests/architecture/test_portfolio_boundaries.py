@@ -280,15 +280,24 @@ if not protected_winner and math.isfinite(holding_return) and math.isfinite(refe
         "account.replacement_tenure[key] = "
         "account.replacement_tenure.get(key, 0) + 1 if broken else 0"
     ).body
-    damage = next(item for item in projected.body if isinstance(item, ast.Assign)
-                  and any(isinstance(target, ast.Name) and target.id == "broken" for target in item.targets))
+    damage_index = next(index for index, item in enumerate(projected.body) if isinstance(item, ast.Assign)
+                        and any(isinstance(target, ast.Name) and target.id == "broken" for target in item.targets))
+    reviewed_basis = ast.parse('''
+basis = scalar(row, f"ma{self.cfg.trend_medium}", math.nan)
+if not protected_winner and (not math.isfinite(basis) or basis <= 0):
+    basis = scalar(row, f"ma{self.cfg.trend_fast}")
+broken = bool(not leader.mature and scalar(row, "close") < basis)
+''').body
+    assert [ast.dump(item) for item in projected.body[damage_index - 2:damage_index + 1]] == [
+        ast.dump(item) for item in reviewed_basis]
     expected_damage = ast.parse('''
 broken = bool(
     not leader.mature
     and scalar(row, "close") < scalar(row, f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}")
 )
 ''').body[0]
-    assert ast.dump(damage) == ast.dump(expected_damage)
+    projected.body[damage_index - 2:damage_index + 1] = [expected_damage]
+    damage = expected_damage
     assert isinstance(damage.value, ast.Call) and isinstance(damage.value.args[0], ast.BoolOp)
     damage.value.args[0].values.append(ast.parse(
         'scalar(row, f"ret{self.cfg.trend_fast}", 0.0) <= (-0.15 if protected_winner else -0.08)',
@@ -948,7 +957,11 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
         (">= self.cfg.replacement_confirm_days", ">= 1"),
         (">= self.cfg.min_hold_days", ">= 1"),
         ("not leader.mature", "leader.mature"),
-        ("self.cfg.trend_medium if protected_winner", "self.cfg.trend_fast if protected_winner"),
+        ("ma{self.cfg.trend_medium}", "ma{self.cfg.trend_fast}"),
+        ("not math.isfinite(basis)", "math.isfinite(basis)"),
+        ("basis <= 0", "basis < 0"),
+        ("ma{self.cfg.trend_fast}", "ma{self.cfg.trend_medium}"),
+        ("not protected_winner and (", "protected_winner and ("),
         ("holding_return < reference_return", "holding_return > reference_return"),
         ("not protected_winner and math.isfinite", "protected_winner and math.isfinite"),
         ("math.isfinite(holding_return) and math.isfinite(reference_return)", "True"),

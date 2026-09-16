@@ -194,7 +194,7 @@ def test_ownership_workflow_is_bounded_cached_and_blocking() -> None:
     assert workflow["name"] == "Strategic Ownership Acceptance"
     assert workflow["on"] == {
         "pull_request": "",
-        "push": {"branches": ["main"]},
+        "push": {"branches": ["main", "codex/targeted-generalization-research"]},
         "workflow_dispatch": {},
     }
     assert workflow["permissions"] == {"contents": "read"}

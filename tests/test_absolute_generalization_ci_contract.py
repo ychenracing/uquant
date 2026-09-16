@@ -49,7 +49,7 @@ def test_absolute_workflow_is_unconditional_read_only_and_locked() -> None:
     assert workflow["on"] == {
         "pull_request": "",
         "merge_group": "",
-        "push": {"branches": ["main"]},
+        "push": {"branches": ["main", "codex/targeted-generalization-research"]},
         "workflow_dispatch": {},
     }
     assert workflow["permissions"] == {"contents": "read"}

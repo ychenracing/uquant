@@ -1,6 +1,6 @@
 {
   "date": "2026-09-16",
-  "status": "INCOMPLETE",
+  "status": "REJECTED_BY_PERFORMANCE_AND_STRESS",
   "candidate_uquant_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
   "restored_from": "research/alpha-recovery:artifacts/alpha-recovery/holding-basis/source.patch applied to PR f67055f",
   "scope": "Original PR production plus medium holding basis only; no later reentry variants. Frozen acceptance unchanged.",
@@ -13,11 +13,10 @@
     "remove_all_three_wealth": 1.1801731249505552
   },
   "remaining": [
-    "same-source selected screens",
-    "45 paired windows",
-    "34 paired public removals",
-    "34 native removals",
-    "cost and start stress",
-    "engineering and normal merge protections"
-  ]
+    "collect current public/native LOO evidence",
+    "finish bounded root-cause diagnostics; no threshold tuning",
+    "select a genuinely robust implementation before full acceptance and merge"
+  ],
+  "restoration_complete": true,
+  "current_evidence": "SELECTED_SCREEN_RESULT.json, PERFORMANCE_RESULT.json, STRESS_FAILURE.json"
 }

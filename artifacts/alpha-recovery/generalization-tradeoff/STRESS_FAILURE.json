@@ -1,0 +1,22 @@
+{
+  "date": "2026-09-16",
+  "candidate_uquant_tree": "3385a463fcf5c1231ebd1759426cc15587ccf962",
+  "producer": "c703d6ef912cb57f436ddd0bcb25ab4d8d273afe",
+  "workflow_run": 35039272969,
+  "artifact_id": 10423684542,
+  "artifact_zip_sha256": "c6d0e6d1ab8672cbc067b8dfefa6e0c8bb7b1634800c81cd7ad434611a610d5d",
+  "status": "REJECTED_BY_STRESS",
+  "full_wealth": 29.711541480010446,
+  "cost2_wealth": 8.144845160620985,
+  "offset5_wealth": 1.210903389603885,
+  "offset10_wealth": 1.210903389603885,
+  "cost_retention": 0.27413068305798727,
+  "start_retention": 0.04075532029930408,
+  "contract_changed": false,
+  "findings": [
+    "Feature preparation uses full visible historical panels before economic window filtering; no missing indicator warmup found.",
+    "2023-01-10 fresh account misses January 4 strategic optical entry, enters equipment cohort on January 19. Mature ordinary admission globally vetoed while strategic claims exist, despite spare cash. Counterfactual coexistence diagnostic pending.",
+    "March 18 2024 drawdowns 0.119063 vs 0.120110 straddle strict 0.12 capital repair threshold; 5-day repair rule delays stressed restoration to April 30. Evidence supports legal but fragile state path, not cost arithmetic bug."
+  ],
+  "remaining": "Complete fixed-candidate evidence and bounded causal diagnostics; no merge or gate relaxation."
+}

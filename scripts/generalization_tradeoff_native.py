@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import subprocess
+import sys
+import tempfile
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
@@ -14,7 +17,6 @@ from uquant.provenance.fingerprints import (
     git_source_surface_fingerprint,
     source_surface_fingerprint,
 )
-from uquant.validation.absolute_generalization.aggregation import _manifest_document
 from uquant.validation.absolute_generalization.artifacts import validate_cell_artifact
 from uquant.validation.absolute_generalization.contract import (
     AbsoluteGeneralizationContract,
@@ -27,6 +29,35 @@ _TRUSTED_RUNNER_PATHS = (
     "uquant/validation/absolute_generalization",
 )
 _LOO_SHARDS = frozenset(f"loo-{letter}" for letter in "abcdef")
+_PUBLIC_MANIFEST_VALIDATOR = """
+import hashlib
+import json
+import sys
+from dataclasses import replace
+from pathlib import Path
+
+from uquant.validation.absolute_generalization import (
+    load_absolute_generalization_contract,
+    validate_shard_manifest,
+)
+
+root = Path(sys.argv[1])
+sys.path.insert(0, str(root))
+source = sys.argv[2]
+manifest_path = Path(sys.argv[3])
+expected_sha256 = sys.argv[4]
+encoded = manifest_path.read_bytes()
+if hashlib.sha256(encoded).hexdigest() != expected_sha256:
+    raise ValueError("manifest bytes changed after parent read")
+contract = load_absolute_generalization_contract(
+    root / "benchmarks/absolute_generalization_acceptance_contract.json"
+)
+contract = replace(
+    contract,
+    candidate=replace(contract.candidate, production_source_sha256=source),
+)
+validate_shard_manifest(json.loads(encoded), contract)
+"""
 
 
 def _percentile(values: Sequence[float], probability: float) -> float:
@@ -122,6 +153,41 @@ def _verify_producer_tree(root: Path, head: str, candidate_source_tree: str) -> 
         raise ValueError("native producer uquant tree differs from evaluated candidate")
 
 
+def _validate_manifest_at_producer(
+    root: Path,
+    head: str,
+    producer_source: str,
+    manifest_path: Path,
+    manifest_sha256: str,
+) -> None:
+    """Run the public manifest validator in an exact temporary producer checkout."""
+
+    with tempfile.TemporaryDirectory(prefix="uquant-native-manifest-") as folder:
+        checkout = Path(folder) / "producer"
+        _git(root, "worktree", "add", "--detach", str(checkout), head)
+        try:
+            completed = subprocess.run(  # nosec B603
+                [
+                    sys.executable,
+                    "-c",
+                    _PUBLIC_MANIFEST_VALIDATOR,
+                    str(checkout),
+                    producer_source,
+                    str(manifest_path),
+                    manifest_sha256,
+                ],
+                text=True,
+                capture_output=True,
+                cwd=checkout,
+                check=False,
+            )
+            if completed.returncode != 0:
+                detail = completed.stderr.strip() or "failed"
+                raise ValueError(f"public shard manifest validation failed: {detail}")
+        finally:
+            _git(root, "worktree", "remove", "--force", str(checkout))
+
+
 def evaluate_native(
     root: str | Path,
     candidate_root: str | Path,
@@ -143,7 +209,8 @@ def evaluate_native(
         seen_shards: set[str] = set()
         run_identities: set[str] = set()
         for path in paths:
-            raw = json.loads(path.read_bytes())
+            encoded = path.read_bytes()
+            raw = json.loads(encoded)
             identity = (raw.get("head"), raw.get("tree"), raw.get("production_source_sha256"))
             if not all(isinstance(value, str) for value in identity):
                 raise ValueError("native shard producer identity is malformed")
@@ -159,7 +226,10 @@ def evaluate_native(
                 raise ValueError("native shard producer identity is mixed")
             assert absolute is not None and producer is not None
             head, tree, producer_source = producer
-            document = _manifest_document(raw, absolute)
+            _validate_manifest_at_producer(
+                repository, head, producer_source, path, hashlib.sha256(encoded).hexdigest()
+            )
+            document = raw
             shard = str(document["shard"])
             if shard in seen_shards or shard not in {name for name, _ in absolute.shards}:
                 raise ValueError("native shard identity is duplicate or unexpected")

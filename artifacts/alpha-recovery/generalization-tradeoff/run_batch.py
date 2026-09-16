@@ -37,8 +37,8 @@ elif a.stage=='performance':
                 rows.append((role,f'{pool}-{window}',symbols,dates['start'],dates['end'],1))
 elif a.stage=='loo':
     for role in ('candidate','historical'):
-        for symbol in universe:
-            rows.append((role,f'loo-{symbol}',[s for s in universe if s!=symbol],c['window']['start'],c['window']['end'],1))
+        rows.extend((role,f'loo-{symbol}',[s for s in universe if s!=symbol],c['window']['start'],c['window']['end'],1)
+                    for symbol in universe)
 else:
     import pandas as pd
     calendars=[set(pd.read_csv(root/f'data/frozen/{symbol}.csv')['date'].str[:10])
@@ -47,8 +47,8 @@ else:
                  if c['window']['start']<=day<=c['window']['end'])
     for scenario,removed in [('full',None),('remove308','sz300308'),('remove502','sz300502')]:
         symbols=[s for s in universe if s!=removed]
-        for offset in c['stress']['start_session_offsets']:
-            rows.append(('candidate',f'{scenario}-offset{offset}',symbols,dates[offset],c['window']['end'],1))
+        rows.extend(('candidate',f'{scenario}-offset{offset}',symbols,dates[offset],c['window']['end'],1)
+                    for offset in c['stress']['start_session_offsets'])
         rows.append(('candidate',f'{scenario}-cost2',symbols,dates[0],c['window']['end'],2))
 if a.role:
     rows=[row for row in rows if row[0]==a.role]

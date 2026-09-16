@@ -2,7 +2,7 @@ name: Strategic Ownership Acceptance
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/targeted-generalization-research]
   pull_request:
   workflow_dispatch: {}
 

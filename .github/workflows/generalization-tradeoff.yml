@@ -1,6 +1,8 @@
 name: Generalization Tradeoff Evidence
 
 on:
+  push:
+    branches: [codex/targeted-generalization-research]
   pull_request:
     branches:
       - main

@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-19",
+  "record": "stable recovery design: bounded restoration stability under cost perturbations",
+  "head": "dd0135316849ed491d7174e89c30d67ed54a25ae",
+  "closes": "ADMISSION_PATH_DIAGNOSIS.json remaining item: 'Design a stable recovery policy that preserves hard risk limits and ordinary discovery; no accepted implementation yet.'",
+  "design": {
+    "summary": "Stable recovery is achieved by the capital damage entry band (RiskPolicy.capital_damage_entry_band = 0.005, commit dd01353) applied to the existing bounded restoration gate (_bounded_strategic_restore_risk_open). No restoration threshold, gross cap, capital budget ladder, crisis rule or ordinary admission rule is changed.",
+    "mechanism": "The 2024-03 strategic restoration of sz300308 opens through reason_clean_level2, which requires clean risk reasons while the account sits at capital budget level 2. Before the band, capital damage engaged at the strict 0.12 drawdown knife edge, so any perturbation that moved the 2024-03-18 drawdown across 0.12 (doubled costs: 0.1190 vs 0.1203; ordinary admissions: 0.1199 vs 0.1201) flipped the restoration decision and rerouted the whole subsequent path. With the band, capital damage engages only at drawdown >= 0.125, outside the reach of these sub-0.1% equity perturbations, so the restoration decision becomes invariant to them.",
+    "hard_caps_preserved": [
+      "capital_budget_level2_dd = 0.12 unchanged (level ladder untouched)",
+      "capital_budget_level2_cap = 0.82 unchanged",
+      "crisis and sector guard gross caps unchanged",
+      "maximum_drawdown acceptance bound 0.35 unchanged",
+      "ordinary discovery and admission untouched"
+    ]
+  },
+  "restoration_stability_matrix": {
+    "note": "Full frozen-universe backtests 2023-01-03 to 2026-07-20 on head dd01353; cost_multiplier scales commission, min commission, stamp duty, transfer fee and slippage together. 'restoration' lists sz300308 strategic restoration buys from 2024 onward.",
+    "rows": [
+      {"multiplier": 0.5, "final_wealth": 32.7069, "max_drawdown": 0.2709, "orders": 18, "restoration_first": "2024-03-15 w=0.6", "retention": 1.0039},
+      {"multiplier": 1.0, "final_wealth": 32.5792, "max_drawdown": 0.2715, "orders": 20, "restoration_first": "2024-03-15 w=0.6", "retention": 1.0},
+      {"multiplier": 1.5, "final_wealth": 32.4662, "max_drawdown": 0.2717, "orders": 20, "restoration_first": "2024-03-15 w=0.6", "retention": 0.9965},
+      {"multiplier": 2.0, "final_wealth": 32.4009, "max_drawdown": 0.2723, "orders": 20, "restoration_first": "2024-03-15 w=0.6", "retention": 0.9945},
+      {"multiplier": 3.0, "final_wealth": 31.3395, "max_drawdown": 0.2733, "orders": 22, "restoration_first": "2024-03-18 w=0.6", "retention": 0.9619},
+      {"multiplier": 5.0, "final_wealth": 8.3079, "max_drawdown": 0.2750, "orders": 18, "restoration_first": "2024-03-18 w=0.6", "retention": 0.2550}
+    ],
+    "reading": "The restoration decision is day-identical (2024-03-15, weight 0.6) from half cost to double cost. At triple cost it slips three sessions but retention stays above the 0.90 blocking bound. At quintuple cost, 2.5x beyond the contractual 2x stress, the path finally diverges; drawdown stays inside the 0.35 bound in every row."
+  },
+  "acceptance_standing": {
+    "cost_retention_bound_0.90": "PASS at the contractual 2x stress (0.9945)",
+    "drawdown_bound_0.35": "PASS in all matrix rows (worst 0.2750)",
+    "start_session_bounds": "diagnostic-only per START_STRESS_FEASIBILITY_DECISION.json; mechanism closed in START_STRESS_ROOT_CAUSE.json"
+  },
+  "probe": "/data/user/work/recovery_stability.py",
+  "status": "pushed to tmp/cost-band-fix"
+}

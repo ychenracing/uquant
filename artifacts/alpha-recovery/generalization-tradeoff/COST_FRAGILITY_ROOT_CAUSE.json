@@ -1,0 +1,26 @@
+{
+  "date": "2026-09-18",
+  "record": "full-universe cost fragility root cause on current main",
+  "head": "c29df20e3c6b0c66ee7e8bafc9f37121e1857062",
+  "subject": "full-scenario cost retention 0.2742 versus the blocking bound 0.90",
+  "finding": "Cost fragility is path fragility at a knife-edge risk threshold, not a cost arithmetic bug. Doubled costs change terminal wealth by direct charges of less than 0.1% of initial capital; the destruction comes from one flipped state transition that reroutes the whole subsequent path.",
+  "causal_chain": [
+    "1. Doubled fees and slippage lower the equity curve slightly from the first fills (first visible equity divergence 2023-01-05).",
+    "2. The perturbation reaches the capital-repair decision point on 2024-03-18 with drawdown 0.119034 at standard cost and 0.120279 at doubled cost, straddling the strict 0.12 threshold.",
+    "3. Standard cost stays below the threshold and re-enters the prequalified strategic leader sz300308 on 2024-03-18 (21,700 shares at 0.6 target weight). Doubled cost crosses the threshold; the capital-repair state and its 5-day repair rule delay the same re-entry to 2024-04-30 (18,700 shares).",
+    "4. The six-week delay misses the leader's strongest segment. Every downstream decision cascades differently: 22 orders at standard cost versus 17 at doubled cost, only 6 orders shared; doubled cost exits sz300308 entirely in the 2025-10-14 crisis while standard cost holds it to the 2026-06-26 sector guard.",
+    "5. Terminal wealth falls from 29.717x to 8.148x (retention 0.2742)."
+  ],
+  "localization": {
+    "remove308_cost_retention": 0.994606,
+    "remove502_cost_retention": 1.000671,
+    "conclusion": "Fragility exists only when sz300308 is present. It is concentrated in the knife-edge 2024-03-18 re-entry timing, not in general trading; both removal scenarios keep the identical 22/18 order paths under doubled cost."
+  },
+  "agreement_with_sealed_evidence": "Sealed STRESS_FAILURE.json independently recorded the same mechanism for candidate tree 3385a46: drawdowns 0.119063 versus 0.120110 straddling the 0.12 capital-repair threshold and repair delaying stressed restoration to April 30. Main reproduces it with values 0.119034 versus 0.120279.",
+  "candidate_bounded_fixes": [
+    "Hysteresis or tolerance band on capital-repair entry: require the drawdown to cross 0.12 by a material margin (or use a short smoothed drawdown) before entering repair, keeping the hard cap itself unchanged.",
+    "Decouple prequalified strategic cohort re-entry from the 5-day repair delay once the risk state permits, so repair timing cannot move a scheduled re-entry by weeks.",
+    "Any fix must be validated against the blocking cost gate plus the unchanged performance, LOO and drawdown gates; no threshold relaxation and no rewrite of frozen evidence."
+  ],
+  "evidence_files": "Local diagnostic cells in this conversation's working directory; order-level diff: 16 orders only at standard cost, 11 only at doubled cost, 6 shared."
+}

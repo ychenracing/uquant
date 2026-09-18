@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-18",
+  "record": "start-session stress feasibility decision",
+  "authority": "User explicitly authorized the trade-off decision in the 2026-09-18 conversation: the start-session stress gate measures historical path dependence on one-time first-week entries, not improvable implementation quality. Start-session bounds are downgraded to diagnostic-only. Cost and drawdown bounds remain blocking. Frozen documents are not rewritten; this decision is recorded alongside them.",
+  "question": "Can any candidate in the champion strategy family satisfy the frozen start-session stress bounds (median retention >= 0.85, minimum >= 0.75)?",
+  "answer": false,
+  "frozen_champion_commit": "cf8fecff76564fd4ed87faa0da336a06d433fd93",
+  "champion_local_reproduction": {
+    "runtime_note": "Local diagnostic reproduction on Python 3.12.10 / numpy 2.5.1 / pandas 3.0.5; sentinel cell agrees bit-for-bit with sealed CI evidence, so the economic results are identical.",
+    "full-offset0": {"final_wealth": 24.509661802900865, "max_drawdown": 0.27146973146234554, "account_orders": 12},
+    "full-offset5": {"final_wealth": 0.8754064273360002, "max_drawdown": 0.23851539613956552, "account_orders": 6},
+    "full-offset10": {"final_wealth": 0.8754064273360002, "max_drawdown": 0.23851539613956552, "account_orders": 6},
+    "full-cost2": {"final_wealth": 24.395647753902942, "max_drawdown": 0.27244679688670104, "account_orders": 12},
+    "full_cost_retention": 0.995348,
+    "full_start_retention_median": 0.035717,
+    "full_start_retention_minimum": 0.035717,
+    "remove308_offset0_wealth": 0.8321334882399101,
+    "remove502_offset0_wealth": 0.8568649080496994,
+    "sealed_ci_agreement": "full-offset0, full-offset5 and full-cost2 reproduce PUBLIC_AND_DIAGNOSTIC_RESULT.json diagnostics.historical-stress (GitHub Actions run 35039272969) bit-for-bit."
+  },
+  "mechanism": "All champion edge comes from strategic grants entered in the first week of January 2023. Accounts starting on or after 2023-01-10 miss those grants; mature ordinary admission stays globally vetoed while strategic claims exist, so delayed-start accounts enter losing equipment cohorts instead. offset5 and offset10 paths converge bit-for-bit. Removing sz300308 or sz300502 makes every champion path lose money, so the remove-scenario retention passes only as a ratio of losing paths.",
+  "contract_change": {
+    "stress.start_session_offsets": "retained as diagnostic scenarios",
+    "stress.minimum_median_start_wealth_retention": "downgraded from blocking bound to diagnostic observation",
+    "stress.minimum_start_wealth_retention": "downgraded from blocking bound to diagnostic observation",
+    "stress.minimum_cost_wealth_retention": "unchanged, remains blocking at 0.90",
+    "stress.maximum_drawdown": "unchanged, remains blocking at 0.35",
+    "frozen_documents": "FROZEN_SCENARIOS.json and all historical artifacts remain unmodified."
+  },
+  "current_main_standing": {
+    "head": "c29df20e3c6b0c66ee7e8bafc9f37121e1857062",
+    "measured": "2026-09-18 local reproduction, same frozen data and contract window",
+    "full": {
+      "offset0_wealth": 29.717003593409824,
+      "offset5_wealth": 1.8981745263674923,
+      "offset10_wealth": 1.8981745263674923,
+      "cost2_wealth": 8.1484048485381,
+      "cost_retention": 0.2742000828894178,
+      "start_retention_diagnostic": 0.063875,
+      "cost_gate": "FAIL",
+      "drawdown_gate": "PASS (0.272281 <= 0.35)"
+    },
+    "remove308": {"offset0_wealth": 1.5767806939863762, "cost_retention": 0.994606, "start_retention": 1.0, "gate": "PASS"},
+    "remove502": {"offset0_wealth": 1.0512942947783201, "cost_retention": 1.000671, "start_retention": 1.0, "gate": "PASS"},
+    "comparison_with_champion": "Main improved delayed starts from a 0.875x loss to a 1.898x profit and made both removal scenarios profitable, but full-universe cost retention collapsed from 0.995 to 0.274. Root cause recorded in COST_FRAGILITY_ROOT_CAUSE.json."
+  },
+  "next_action": "Bounded robustness fix of full-universe cost fragility while preserving hard risk caps; no threshold relaxation."
+}

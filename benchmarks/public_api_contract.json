@@ -366,7 +366,7 @@
         "min_trade_value",
         "risk_sentinel_mode"
       ],
-      "sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+      "sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6",
       "values": {
         "commission_rate": 0.00025,
         "initial_cash": 2000000.0,
@@ -81773,7 +81773,7 @@
     }
   },
   "contract_id": "uquant-public-api-v1",
-  "contract_sha256": "9f8274300a52c272dba56951deeb71b1b581d1c2f2b777b5419f8bc78c7a2c2e",
+  "contract_sha256": "86867db3a62e9e9bca32422d12ad33b7364751be55e95c564c6371dbda493206",
   "recorded_on": "2026-09-12",
   "schema_version": 1
 }

@@ -170,7 +170,7 @@ def test_public_configuration_and_complete_effective_policy_are_separate() -> No
     expected_flat = PUBLIC_API["flat_config_serialization"]
     payload = DEFAULT_CONFIG.to_dict()
     assert len(dataclasses.fields(SystemConfig)) == 13
-    assert len(payload) == 266
+    assert len(payload) == 267
     assert dataclasses.asdict(DEFAULT_CONFIG) == expected_flat["values"]
     assert config_fingerprint(DEFAULT_CONFIG) == expected_flat["sha256"]
     for name in set(payload) - {field.name for field in dataclasses.fields(SystemConfig)}:

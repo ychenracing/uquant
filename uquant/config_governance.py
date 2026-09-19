@@ -16,7 +16,7 @@ GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
 DEFAULT_GOVERNANCE_PATH: Final = Path(__file__).resolve().parents[1] / GOVERNANCE_PATH
 GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
-    "7677c1e1666ae0f003df0ae0950b60b1ec5adad1d154476b99bc59044798450d"
+    "05497092e2f88ae8fe567c92545a5cba7c6c7f7492ebe4badc0bd2f2e7cfc74f"
 )
 FROZEN_CHAMPION_CONFIG_SHA256: Final = "023d709731196a325d9cd03e95ece92e4baf63d2c5c66bb9f7d0e7a190e7bf20"
 REMOVAL_ORDER: Final = (
@@ -454,7 +454,7 @@ def economic_parameter_names() -> frozenset[str]:
 
 
 CURRENT_GOVERNANCE_PATH: Final = Path(__file__).parent / "contracts/resources/config_policy_governance.json"
-CURRENT_GOVERNANCE_SHA256: Final = "a48f70537c40e442e2fc7f8138a38fb38cf476e8323be63ac84ecff25a31b237"
+CURRENT_GOVERNANCE_SHA256: Final = "f9463e30ca558fe84c35a319d47fdf28aea32755cbe0b7529ecbda69ff41b0de"
 
 
 def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:

@@ -248,7 +248,7 @@ def test_strategy_rule_changes_cannot_use_the_historical_identity_only_migration
     assert migration.strategy_rule_removals == (
         "strategic_epoch_cooldown_sessions", "strategic_epoch_min_symbol_change",
     )
-    assert (migration.current_total_fields, migration.current_economic_fields) == (266, 153)
+    assert (migration.current_total_fields, migration.current_economic_fields) == (267, 153)
     assert migration.before_economic_fields == migration.after_economic_fields == 164
 
 
@@ -517,7 +517,7 @@ def test_current_inventory_covers_configurable_and_fixed_policy_without_history(
     current = governance_module.load_config_governance()
     assert {entry.field for entry in current.entries} == set(SystemConfig().to_dict())
     assert current.removed_fields == current.strategy_rule_removals == ()
-    assert len(current.entries) == 266
+    assert len(current.entries) == 267
 
 
 def test_current_inventory_rejects_resealed_resource(tmp_path: Path) -> None:

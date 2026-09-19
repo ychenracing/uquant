@@ -5,7 +5,7 @@ The 133-head September16 inventory is preserved unchanged. BRANCH_DISPOSITIONS.t
 | Capability / source | Decision and basis |
 |---|---|
 | Mature leader cycle / 8de51ef1 | Already restored in current main. Preserve confirmation, capacity, sizing, pyramiding, current entry and repair restrictions. Complete missing ADD lifecycle projection into emitted targets. |
-| Affordable core selection / d59b9086 | Integrate ranked affordable prefix. Reuse current sizing helper, including per-candidate caps and cycle weights. |
+| Affordable core selection / d59b9086 | Deferred after combined candidate failed frozen offset5 drawdown gate: +7.64pp, versus +5pp limit. Earlier ordinary admissions are the first economic divergence; narrower ablation restores current-main sizing while preserving full-book challenger evaluation. No threshold relaxation; original source and failed raw evidence retained. |
 | Full-book challenger / 812b4ddc | Integrate evaluation of one challenger; native funding and hypothetical settled-sale capacity checks retain cash and position constraints. |
 | Restore priority / 157a2296 | Use existing leader score before symbol tie-breaker for scarce qualified restoration funds. |
 | Fresh recovery allocation / 8de51ef1 | Preserve committed rights and request caps, allocate scarce fresh demand by existing leader strength. Correct historical transient-size bug: surplus cash cannot enlarge requested targets. |

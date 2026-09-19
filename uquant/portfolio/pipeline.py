@@ -697,28 +697,6 @@ def _ordinary_admission_weight(
     return weight
 
 
-def _affordable_core_candidates(
-    book: AllocationBook, eligible: list[str], occupied: set[str],
-    allowances: dict[str, float], cycle_weights: dict[str, float],
-) -> tuple[list[str], dict[str, str]]:
-    def affordable(symbol: str, count: int) -> bool:
-        return _ordinary_admission_weight(
-            book, symbol=symbol, selected_count=count, allowance=allowances[symbol],
-            cycle_weights=cycle_weights,
-        ) + 1e-12 >= book.policy.cfg.min_trade_weight
-
-    funded = [s for s in eligible if affordable(s, 1)]
-    # A full book may evaluate a challenger; funding still requires a free slot.
-    slots = funded[:max(1, book.policy.cfg.max_positions - len(occupied))]
-    selected = list(slots)
-    while selected and any(not affordable(s, len(selected)) for s in selected):
-        selected.pop()
-    blocked = {s: "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM" if s not in funded
-               else "ADMISSION_BUDGET_SLOTS_EXHAUSTED" if s in slots
-               else "POSITION_SLOTS_EXHAUSTED" for s in eligible if s not in selected}
-    return selected, blocked
-
-
 def _admit_new_cores(
     book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
 ) -> None:
@@ -737,9 +715,7 @@ def _admit_new_cores(
     eligible = [symbol for symbol in eligible if symbol not in deployment_pending]
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
     cycle_weights = _mature_admission_weights(book, eligible, opportunity)
-    allowances = {s: cast(float, independent_budget) if _current_independent_entry(
-        book.record(s).get("entry", {}), book.date) else budget for s in eligible}
-    selected, blocked = _affordable_core_candidates(book, eligible, occupied, allowances, cycle_weights)
+    selected = eligible[:max(1, book.policy.cfg.max_positions - len(occupied))]
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
@@ -753,9 +729,10 @@ def _admit_new_cores(
             )
             continue
         if symbol not in selected:
-            book.record(symbol)["entry_gate"] = blocked[symbol]
+            book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
-        allowance = allowances[symbol]
+        independent = _current_independent_entry(book.record(symbol).get("entry", {}), book.date)
+        allowance = cast(float, independent_budget if independent else budget)
         weight = _ordinary_admission_weight(
             book, symbol=symbol, selected_count=len(selected), allowance=allowance,
             cycle_weights=cycle_weights,

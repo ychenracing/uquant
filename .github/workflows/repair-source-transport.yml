@@ -1,4 +1,4 @@
-name: Repair runtime transport
+name: Repair tooling transport
 
 on:
   push:
@@ -9,49 +9,22 @@ permissions:
   contents: read
 
 jobs:
-  runtime:
+  tooling:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      UV_PYTHON_INSTALL_DIR: /tmp/uquant-python
-      UV_PYTHON_PREFERENCE: only-managed
-      UV_PYTHON: 3.12.13
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          ref: 237750e288350c8007a5619a06be22564fe39173
-          fetch-depth: 1
-          persist-credentials: false
-      - name: Install exact locked runtime
+      - name: Install reviewed tool
+        run: python -m pip install --disable-pip-version-check uv==0.11.33
+      - name: Preserve executable and digest
         run: |
-          python -m pip install --disable-pip-version-check uv==0.11.33
-          uv python install 3.12.13
-          uv sync --frozen --extra dev
-      - name: Preserve relocatable interpreter and locked dependencies
-        run: |
-          out="$RUNNER_TEMP/repair-runtime"
-          mkdir -p "$out"
-          uv pip list --python .venv/bin/python --format=json > "$out/packages.json"
-          sha256sum uv.lock pyproject.toml > "$out/inputs.sha256"
-          tar -C /tmp -czf "$out/runtime.tar.gz" uquant-python \
-            -C "$PWD/.venv/lib/python3.12" site-packages
-          python - "$out" <<'PY'
-          import hashlib
-          import json
-          from pathlib import Path
-          import sys
-          root = Path(sys.argv[1])
-          path = root / 'runtime.tar.gz'
-          with path.open('rb') as source:
-              digest = hashlib.file_digest(source, 'sha256').hexdigest()
-          manifest = dict(source_sha='237750e288350c8007a5619a06be22564fe39173',
-                          size=path.stat().st_size, sha256=digest)
-          (root / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-          print(json.dumps(manifest))
-          PY
+          mkdir -p "$RUNNER_TEMP/repair-tooling"
+          cp "$(command -v uv)" "$RUNNER_TEMP/repair-tooling/uv"
+          cd "$RUNNER_TEMP/repair-tooling"
+          ./uv --version > version.txt
+          sha256sum uv > uv.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: repair-runtime-237750e
-          path: ${{ runner.temp }}/repair-runtime/
+          name: repair-tooling-uv-0.11.33
+          path: ${{ runner.temp }}/repair-tooling/
           if-no-files-found: error
           retention-days: 7

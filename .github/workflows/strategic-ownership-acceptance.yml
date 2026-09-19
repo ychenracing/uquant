@@ -94,12 +94,17 @@ jobs:
           path: ${{ runner.temp }}/strategic-ownership-${{ matrix.shard }}.json
           if-no-files-found: warn
 
-      - name: Export cloud execution metadata
+      - name: Export controlled CI execution evidence
         if: ${{ always() }}
-        run: >-
-          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal"
-          export --output "$RUNNER_TEMP/cloud-execution-metadata.zip"
-      - name: Preserve cloud execution metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal" \
+            export --output "$RUNNER_TEMP/cloud-execution-metadata.zip"
+          # Only this fixed historical acceptance command, not arbitrary agent logs.
+          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal" \
+            export --include-private-logs --output "$RUNNER_TEMP/cloud-execution-originals.zip"
+      - name: Preserve controlled CI execution evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -107,7 +112,10 @@ jobs:
           path: |
             ${{ runner.temp }}/cloud-execution-metadata.zip
             ${{ runner.temp }}/cloud-execution-metadata.zip.receipt.json
-          if-no-files-found: warn
+            ${{ runner.temp }}/cloud-execution-originals.zip
+            ${{ runner.temp }}/cloud-execution-originals.zip.receipt.json
+          if-no-files-found: error
+          retention-days: 30
 
   strategic-ownership-acceptance:
     name: Strategic Ownership Acceptance

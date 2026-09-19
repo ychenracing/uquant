@@ -5,6 +5,7 @@ import signal
 import subprocess
 import sys
 import time
+from contextlib import suppress
 
 from tools.cloud_guard import journal as guard
 from tools.cloud_guard.tests.base import Base
@@ -81,10 +82,8 @@ class GuardTests(Base):
                 process.kill()
                 process.wait(timeout=2)
             if child is not None:
-                try:
+                with suppress(ProcessLookupError):
                     os.killpg(child, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
 
     def test_command_write_readback_preserves_execution_facts(self):
         result = self.run_code("print('synthetic write sentinel; no remote change')",

@@ -83,10 +83,17 @@ location, last successful operation, unresolved writes and saved bundle receipt.
 At a meaningful milestone, preserve originals through the authorized file-aware
 channel and read back remote bytes. Review private output before public GitHub
 publication; metadata export intentionally excludes raw log bodies. Do not add a
-second task-state ledger. CI publishes metadata separately from already-existing
-strategy artifacts, without changing the original artifact names or their checks.
-The CI workflow still needs a live runner to upload; abrupt machine loss is not
-solved by an `always()` step.
+second task-state ledger. The fixed Absolute and Ownership CI commands publish
+metadata and byte-verified original stdout/stderr in separate bundles inside
+`cloud-execution-*` artifacts, retained for 30 days. This is restricted to these
+controlled historical acceptance commands; arbitrary agent/private logs still
+require review before publication. Existing strategy artifact names and checks
+are unchanged. The focused Cloud guard workflow also preserves its lint and test
+originals, exact source, and a commit/length/SHA-256/Git-blob manifest. Download
+artifacts through the file-aware connector and compare bytes, not tool text.
+Artifacts expire: preserve required long-term originals through the authorized
+repository/storage channel before expiry. The CI workflow still needs a live
+runner to upload; abrupt machine loss is not solved by an `always()` step.
 
 On resumption: inspect first, verify live process identity and remote writes, then
 resume only missing work. COMMAND_NONZERO_EXIT, SUPERVISOR_TIMEOUT and PROCESS_SIGNAL

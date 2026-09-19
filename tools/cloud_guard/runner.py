@@ -7,6 +7,7 @@ import os
 import signal
 import subprocess
 import time
+from contextlib import suppress
 from pathlib import Path
 
 from .export import export_bundle
@@ -23,10 +24,8 @@ def stop_child(proc):
     try:
         proc.wait(timeout=2)
     except subprocess.TimeoutExpired:
-        try:
+        with suppress(ProcessLookupError):
             os.killpg(proc.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
         proc.wait(timeout=2)
 
 

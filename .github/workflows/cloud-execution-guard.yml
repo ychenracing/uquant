@@ -36,14 +36,17 @@ jobs:
           python -m pip install --disable-pip-version-check uv==0.11.33
           uv sync --frozen --extra dev
       - name: Lint guard
-        run: uv run ruff check tools/cloud_guard
+        run: >-
+          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal"
+          run --name cloud-guard-lint --timeout 120 --heartbeat 2 --
+          uv run ruff check tools/cloud_guard
       - name: Execute bounded fault-injection checks
         if: ${{ always() }}
         run: >-
           python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal"
           run --name cloud-guard-tests --timeout 240 --heartbeat 2 --
           python -m unittest discover -s tools/cloud_guard/tests -v
-      - name: Export non-sensitive test evidence and exact source
+      - name: Export controlled test and lint originals with exact source
         if: ${{ always() }}
         shell: bash
         run: |
@@ -51,6 +54,8 @@ jobs:
           python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal" export \
             --include-private-logs --output "$RUNNER_TEMP/cloud-guard-checks.zip"
           python - <<'PY'
+          import hashlib
+          import json
           import os
           import subprocess
           import zipfile
@@ -61,12 +66,28 @@ jobs:
               ".github/workflows/absolute-generalization-acceptance.yml",
               ".github/workflows/strategic-ownership-acceptance.yml",
           ]).split(b"\0")
-          with zipfile.ZipFile(Path(os.environ["RUNNER_TEMP"]) / "cloud-guard-source.zip",
-                               "w", zipfile.ZIP_DEFLATED) as bundle:
+          output = Path(os.environ["RUNNER_TEMP"])
+          manifest = {"schema": 1, "commit": subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True).strip(), "files": []}
+          with zipfile.ZipFile(output / "cloud-guard-source.zip", "w", zipfile.ZIP_DEFLATED) as bundle:
               for item in paths:
-                  if item:
-                      path = item.decode()
-                      bundle.writestr(path, subprocess.check_output(["git", "show", "HEAD:" + path]))
+                  if not item:
+                      continue
+                  path = item.decode()
+                  data = subprocess.check_output(["git", "show", "HEAD:" + path])
+                  if data != Path(path).read_bytes():
+                      raise ValueError("tested worktree differs from committed source: " + path)
+                  oid = subprocess.check_output(["git", "rev-parse", "HEAD:" + path], text=True).strip()
+                  if hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest() != oid:
+                      raise ValueError("Git blob identity mismatch: " + path)
+                  bundle.writestr(path, data)
+                  manifest["files"].append({"path": path, "bytes": len(data),
+                      "sha256": hashlib.sha256(data).hexdigest(), "git_blob_sha": oid})
+          with zipfile.ZipFile(output / "cloud-guard-source.zip") as bundle:
+              for row in manifest["files"]:
+                  if bundle.read(row["path"]) != Path(row["path"]).read_bytes():
+                      raise ValueError("source archive differs from tested bytes: " + row["path"])
+          (output / "cloud-guard-source-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
           PY
       - name: Preserve recorder test originals and source for remote readback
         if: ${{ always() }}
@@ -77,5 +98,6 @@ jobs:
             ${{ runner.temp }}/cloud-guard-checks.zip
             ${{ runner.temp }}/cloud-guard-checks.zip.receipt.json
             ${{ runner.temp }}/cloud-guard-source.zip
+            ${{ runner.temp }}/cloud-guard-source-manifest.json
           if-no-files-found: error
           retention-days: 30

@@ -439,9 +439,10 @@ uv run uquant account-code-migrate \
    `ordinary_market_session/streak` 已无执行读取；旧记录保留，不回填。普通成熟入口可凭
    当天强冲量或健康长周期市场证据申请；经历板块风控后，两种快捷入口均须重新积累
    `leader_tenure_days` 个健康确认日。真实持仓恢复和资金修复另按各自权限判断。
-   资金修复的成熟入口另要求连续可信成熟计数；旧账户缺少
-   `ordinary_repair_maturity_session` 或 `ordinary_repair_maturity:<symbol>` 时从零建立，
-   不能拿原 leader tenure 补齐。保留 `ordinary_repair_capital_active` 和对应真实持仓、
+   旧账户中的 `ordinary_repair_maturity_session` 和
+   `ordinary_repair_maturity:<symbol>` 仅为兼容保留，不再授予资金修复入口。
+   资金修复只接受当前严格独立资格，避免成熟普通候选提前消耗同一损伤 episode 的唯一权限。
+   保留 `ordinary_repair_capital_active` 和对应真实持仓、
    未成交责任，不能通过清空标记释放仍在使用的共享预算。
    保留真实账户账本和已有可信观察记录；新确认的
    冷启动不改变持续持有和合法风险恢复的管理条件。其他新增资格/交接确认

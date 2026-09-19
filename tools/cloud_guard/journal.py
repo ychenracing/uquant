@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-
 NAME = re.compile(r"^[A-Za-z0-9_.:-]{1,80}$")
 
 

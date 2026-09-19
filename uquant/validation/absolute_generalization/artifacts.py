@@ -211,7 +211,8 @@ def _is_crowning_predicate_path(path: tuple[str | int, ...]) -> bool:
 def _is_failed_grant_predicate_path(path: tuple[str | int, ...]) -> bool:
     return (
         len(path) == 8
-        and path[:2] == ("failed_grant_recovery", "transitions")
+        and path[0] in {"failed_grant_recovery", "terminal_scc"}
+        and path[1] == "transitions"
         and isinstance(path[2], int)
         and path[3:5] == ("runtime_state", "account_payload")
         and path[5] in {"flat_book_capital_repair", "strategic_cash_rearm"}

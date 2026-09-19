@@ -18,6 +18,28 @@ def case_name(year, offset):
     return ('full' if offset == '0' else f'full-offset{offset}') if year == '2023' else f'{year}-offset{offset}'
 
 
+def drawdown_recovery(result):
+    """Date the maximum drawdown and distinguish recovery from right censoring."""
+    curve = result['equity_curve']
+    peak_index = trough_index = recovery_peak = 0
+    maximum = 0.0
+    for i, row in enumerate(curve):
+        if row['equity'] > curve[peak_index]['equity']:
+            peak_index = i
+        drawdown = 1 - row['equity'] / curve[peak_index]['equity']
+        if drawdown > maximum:
+            maximum, trough_index, recovery_peak = drawdown, i, peak_index
+    if maximum == 0:
+        return {'peak_date': None, 'trough_date': None, 'recovery_date': None,
+                'trough_to_recovery_sessions': None, 'right_censored': False, 'drawdown_observed': False}
+    recovered = next((i for i in range(trough_index + 1, len(curve))
+                      if curve[i]['equity'] >= curve[recovery_peak]['equity']), None)
+    return {'peak_date': curve[recovery_peak]['date'], 'trough_date': curve[trough_index]['date'],
+            'recovery_date': curve[recovered]['date'] if recovered is not None else None,
+            'trough_to_recovery_sessions': recovered - trough_index if recovered is not None else None,
+            'right_censored': recovered is None, 'drawdown_observed': True}
+
+
 def metrics(data):
     result = data['result']
     # The durable account ledger includes submitted-but-unfilled instructions.
@@ -25,6 +47,8 @@ def metrics(data):
     orders = result['final_account']['order_ledger']
     by_day = Counter(order['signal_date'] for order in orders)
     days = result['daily_replay_evidence']
+    equities = {row['date']: row['equity'] for row in result['equity_curve']}
+    buy_sessions = sorted(fill['fill_date'] for fill in result['final_account']['fills'] if fill['side'] == 'BUY')
     return {'W': result['final_wealth'], 'DD': result['max_drawdown'],
             'account_instructions': len({order['order_id'] for order in orders}),
             'fill_records': len(result['final_account']['fills']),
@@ -33,7 +57,14 @@ def metrics(data):
             'gross_turnover': result['gross_turnover'], 'fees': result['fees'],
             'slippage_cost': result['slippage_cost'], 'cash': result['final_account']['cash'],
             'held_session_fraction': sum(any(v > 0 for v in row['position_shares'].values()) for row in days)/len(days),
-            'peak_to_recovery_days': result['peak_to_recovery_days']}
+            'mean_gross_exposure': sum(1 - row['cash']/equities[row['date']] for row in days)/len(days),
+            'maximum_single_name_weight': max((shares * row['close_marks'][symbol]/equities[row['date']]
+                                              for row in days for symbol, shares in row['position_shares'].items()),
+                                             default=0),
+            'first_buy_session': buy_sessions[0] if buy_sessions else None,
+            'last_buy_session': buy_sessions[-1] if buy_sessions else None,
+            'peak_to_recovery_days': result['peak_to_recovery_days'],
+            'drawdown_recovery': drawdown_recovery(result)}
 
 
 def evaluate(runs, baseline, repo):

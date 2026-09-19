@@ -245,3 +245,68 @@ identical with a cold/warm cache and with all future rows removed; every retaine
 owner meets the current formation-price test. See the current verification JSON.
 No confirmation or reserve date has yet run. This candidate remains unaccepted
 until complete economic results, raw preservation and repository gates pass.
+
+Same-C9-base mechanism pairs retain the previously observed economics exactly;
+`../C9_MECHANISM_COMPARISON.json` also records instruction-set displacement and
+portfolio costs/cash. Entry weighting W5.679903233990157 versus5.524467185719514;
+expanded tactical W1.1239075851579703 versus1.0296647183898. The legacy raw field
+`peak_to_recovery_days` actually counts sessions after the trough and returns
+remaining window sessions when unrecovered. Preserve it, but report actual
+peak/trough/recovery dates and censoring separately: expanded tactical recovers
+July24's trough on August31 (28 sessions); control's August25 trough is still
+unrecovered on September28. Its raw24 is not proof of successful recovery.
+
+C9 actual-account checkpoints at July19 and July21, under both normal and doubled
+costs, reproduce every subsequent account field and decision through July24.
+No account or risk state is fabricated for this equivalence test.
+`REMOTE_RECEIPT_4.json` records another byte-verified archive:5,897,141 bytes,
+205 incremental entries. It includes rejected C8 originals, C9 prefixes and
+mechanism pairs, causal/resume traces and the first six completed full C9 cells.
+The four remaining development/strong cells and confirmation dates need later
+preservation. The original no_optical five-name tradable exclusion is also being
+observed on C9; this does not exclude all optical reference roles and is not a
+new acceptance blocker.
+
+### C9 fixed-candidate confirmation in progress
+
+All ten development/pool/cost cells complete at the frozen producer above;
+`../C9_DEVELOPMENT_RESULT.json` has no failed available gate and remains INCOMPLETE
+only for thirteen confirmation dates. Weak-pool geometric retention is
+1.588688947412487; normal/double-cost wealth retention is 0.9946152513091567
+for full and 0.9939220681735514 for offset5. Thirteen confirmation replays began
+2026-09-19 19:01 UTC. These dates are now consumed; reserve dates remain unrun.
+
+The four native mechanism checkpoint resumes pass. Both treatment and control
+start from the same actual C9 prefix account (May7 2025 / July4 2023). Explicit
+code migration preserves the economic-state digest. Every subsequent cash,
+position and equity observation matches the corresponding full native paired
+replay; all final accounts pass strict decoding. See
+`MECHANISM_CHECKPOINT_VERIFICATION.json`. No favorable state is hand-injected.
+
+C9's original no_optical observation is W1.6697556792437505, DD22.561481451191534%,
+19 account instructions, 20 fill records and 16 operation days. It retains the
+old limited five-name tradable exclusion and reference roles. This is not evidence
+of full optical-industry independence and does not enter new weak-pool/risk gates.
+
+The original complete PR71 archive is now independently saved and byte-read back:
+6,951,866 bytes, SHA256 aa66970d04e31b73743501b91eb4c4d999d02f11b7b4c76318c3e852f3db4ab0.
+See ORIGINAL_PR71_REMOTE_RECEIPT.json (263 members including MANIFEST).
+The C9 GitHub Grant job passed 92 safety/identity tests, then its serial native
+replay was cancelled at the existing 25-minute job limit. No economic conclusion
+was produced. The workflow budget is raised to 60 minutes and its existing
+identity-bound per-case cache is preserved as an artifact. No assertion or
+acceptance threshold is removed. A matching native local acceptance is running.
+
+### Fixed C9 complete economic matrix
+
+All 23 core cells passed the strict source/input/runtime/payload screen:
+ECONOMIC_MATRIX_MET, failures=[], NOT_RUN=[]. Cluster R_common is
+0.966103551803152 / 0.8631011864156226 / 0.9998176598235909 for 2023/2024/2025.
+Offset5/full W is 0.977031; worst core DD is 27.2412%. Confirmation results
+were not used to modify C9; all reserve dates remain unrun. The 2024 cluster
+includes real participation and losses, not a claim of universal profitability.
+See C9_DELIVERY_REPORT.md, ../C9_FINAL_RESULT.json and C9_RAW_MANIFEST.json.
+All remaining matrix originals and shared-checkpoint mechanism states are
+byte-verified in REMOTE_RECEIPT_5.json (8,503,968 bytes,193 incremental entries).
+This supersedes earlier in-progress status, not historical failed candidates.
+Grant acceptance and final publication reconciliation remain pending.

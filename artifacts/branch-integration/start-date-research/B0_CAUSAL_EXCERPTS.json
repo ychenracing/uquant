@@ -1,0 +1,931 @@
+{
+  "source": "08916756b95ea3da94faae51828842469cdd0a6b",
+  "description": "Diagnostic source retaining B0 economics; original traces preserved unchanged. Selected decision/account evidence, not independent new economics.",
+  "rows": [
+    {
+      "start": "2023-01-03",
+      "date": "2023-01-04",
+      "raw_path": "../diagnostic-runs/2023-01-03.json.gz",
+      "raw_sha256": "d0b7c6d0c7e71f7676b2cc66f66c0d16b7aa034f30afd86385478f1d64e1edd3",
+      "account": {
+        "cash": 2000000.0,
+        "positions": {},
+        "strategic_epoch": 0,
+        "strategic_cohort_targets": {
+          "sz300308": 0.95
+        },
+        "strategic_qualification": {
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "qualification_ready": true,
+          "deployment_blocked": false,
+          "deployment_block_reason": "",
+          "qualification_streak": 2,
+          "qualification_last_observed_session": "2023-01-04",
+          "candidate_invalidation_reason": "",
+          "qualification_quorum": "FULL_COHORT",
+          "candidate_symbols": [
+            "sz300308",
+            "sz300394"
+          ],
+          "unavailable_reference_symbols": [
+            "sz000636"
+          ],
+          "evidence_family_status": {
+            "INDUSTRY_CONFIRMATION": "CONFIRMED",
+            "MARKET_CONFIRMATION": "FAILED",
+            "OWNER_ABSOLUTE_QUALITY": "FAILED",
+            "ROBUSTNESS_CONFIRMATION": "CONFIRMED"
+          }
+        },
+        "strategic_grant": {
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "created_session": "2023-01-04",
+          "last_eligible_session": "2023-01-04",
+          "first_submission_session": "2023-01-04",
+          "last_submission_session": "2023-01-04",
+          "healthy_retry_sessions": 0,
+          "submitted_order_ids": [
+            "O000000001"
+          ],
+          "acknowledged_order_ids": [],
+          "filled_shares": 0,
+          "target_weight": 0.95,
+          "status": "PENDING_EXECUTION",
+          "expiry_reason": "",
+          "previous_grant_id": "",
+          "account_identity": "account_338def9766de048c74d3b3100c2457d72f31666494a9d83ba3c7b318fa0fc081",
+          "production_source_identity": "7297e4601d3ac954d601e77657b89725c0f6cfb21aa72bc484064233a8b0737c",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+          "qualification_quorum": "FULL_COHORT",
+          "authorization_id": ""
+        },
+        "active_strategic_epoch_id": "",
+        "risk_anchor_symbols": [],
+        "risk_anchor_signature": "",
+        "capital_budget_level": 0
+      },
+      "risk": {
+        "freeze_new_risk": false,
+        "operating_drawdown": 0.0,
+        "capital_drawdown": 0.0,
+        "capital_budget_level": 0,
+        "severity": "NORMAL",
+        "target_gross_cap": 1.0,
+        "system_gross_cap": 1.0,
+        "broad_ret5": 0.0013117790038195132,
+        "tech_ret5": 0.008091529158847255,
+        "broad_ret20": -0.018963257900307395,
+        "tech_ret20": -0.04880765389912678
+      },
+      "target_gross": 0.95,
+      "orders": [
+        {
+          "signal_date": "2023-01-04",
+          "symbol": "sz300308",
+          "side": "BUY",
+          "target_weight": 0.95,
+          "reason": "prequalified strategic leader cohort with staged profit protection",
+          "order_id": "O000000001",
+          "mechanism": "STRATEGIC_COHORT",
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d"
+        }
+      ],
+      "new_fills": []
+    },
+    {
+      "start": "2023-01-03",
+      "date": "2023-01-05",
+      "raw_path": "../diagnostic-runs/2023-01-03.json.gz",
+      "raw_sha256": "d0b7c6d0c7e71f7676b2cc66f66c0d16b7aa034f30afd86385478f1d64e1edd3",
+      "account": {
+        "cash": 1389055.01959424,
+        "positions": {
+          "sz300308": {
+            "symbol": "sz300308",
+            "shares": 33600,
+            "avg_cost": 18.182886321599998,
+            "highest_close": 18.24
+          }
+        },
+        "strategic_epoch": 1,
+        "strategic_cohort_targets": {
+          "sz300308": 0.95
+        },
+        "strategic_qualification": {
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "qualification_ready": true,
+          "deployment_blocked": false,
+          "deployment_block_reason": "",
+          "qualification_streak": 2,
+          "qualification_last_observed_session": "2023-01-04",
+          "candidate_invalidation_reason": "",
+          "qualification_quorum": "FULL_COHORT",
+          "candidate_symbols": [
+            "sz300308",
+            "sz300394"
+          ],
+          "unavailable_reference_symbols": [
+            "sz000636"
+          ],
+          "evidence_family_status": {
+            "INDUSTRY_CONFIRMATION": "CONFIRMED",
+            "MARKET_CONFIRMATION": "FAILED",
+            "OWNER_ABSOLUTE_QUALITY": "FAILED",
+            "ROBUSTNESS_CONFIRMATION": "CONFIRMED"
+          }
+        },
+        "strategic_grant": {
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "created_session": "2023-01-04",
+          "last_eligible_session": "2023-01-04",
+          "first_submission_session": "2023-01-04",
+          "last_submission_session": "2023-01-04",
+          "healthy_retry_sessions": 0,
+          "submitted_order_ids": [
+            "O000000001"
+          ],
+          "acknowledged_order_ids": [
+            "O000000001"
+          ],
+          "filled_shares": 33600,
+          "target_weight": 0.95,
+          "status": "COMPLETED",
+          "expiry_reason": "",
+          "previous_grant_id": "",
+          "account_identity": "account_338def9766de048c74d3b3100c2457d72f31666494a9d83ba3c7b318fa0fc081",
+          "production_source_identity": "7297e4601d3ac954d601e77657b89725c0f6cfb21aa72bc484064233a8b0737c",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+          "qualification_quorum": "FULL_COHORT",
+          "authorization_id": ""
+        },
+        "active_strategic_epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+        "risk_anchor_symbols": [],
+        "risk_anchor_signature": "",
+        "capital_budget_level": 0
+      },
+      "risk": {
+        "freeze_new_risk": false,
+        "operating_drawdown": 0.0,
+        "capital_drawdown": 0.0,
+        "capital_budget_level": 0,
+        "severity": "NORMAL",
+        "target_gross_cap": 1.0,
+        "system_gross_cap": 1.0,
+        "broad_ret5": 0.025139101997799118,
+        "tech_ret5": 0.029444564024362352,
+        "broad_ret20": 0.0025616151817382526,
+        "tech_ret20": -0.03223913878764484
+      },
+      "target_gross": 0.95,
+      "orders": [
+        {
+          "signal_date": "2023-01-04",
+          "symbol": "sz300308",
+          "side": "BUY",
+          "target_weight": 0.95,
+          "reason": "prequalified strategic leader cohort with staged profit protection",
+          "order_id": "O000000001",
+          "mechanism": "STRATEGIC_COHORT",
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d"
+        }
+      ],
+      "new_fills": [
+        {
+          "signal_date": "2023-01-04",
+          "fill_date": "2023-01-05",
+          "symbol": "sz300308",
+          "side": "BUY",
+          "shares": 33600,
+          "price": 18.17816,
+          "gross_value": 610786.176,
+          "commission": 152.696544,
+          "stamp_duty": 0.0,
+          "transfer_fee": 6.1078617600000005,
+          "slippage_cost": 610.1759999999388,
+          "reason": "prequalified strategic leader cohort with staged profit protection",
+          "lifecycle": "CORE",
+          "order_id": "O000000001",
+          "fill_id": "",
+          "reduction_policy": "FIFO",
+          "reason_code": "strategic_cohort",
+          "exit_kind": "strategy",
+          "sold_tranches": [],
+          "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
+          "origin_subsystem": "STRATEGIC",
+          "mechanism": "STRATEGIC_COHORT",
+          "origin_lifecycle": "CORE",
+          "replaces_symbol": null,
+          "industry_at_entry": "optical",
+          "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d"
+        }
+      ]
+    },
+    {
+      "start": "2023-01-03",
+      "date": "2023-01-10",
+      "raw_path": "../diagnostic-runs/2023-01-03.json.gz",
+      "raw_sha256": "d0b7c6d0c7e71f7676b2cc66f66c0d16b7aa034f30afd86385478f1d64e1edd3",
+      "account": {
+        "cash": 101274.12359264019,
+        "positions": {
+          "sz300308": {
+            "symbol": "sz300308",
+            "shares": 104300,
+            "avg_cost": 18.204466696139598,
+            "highest_close": 18.24
+          }
+        },
+        "strategic_epoch": 1,
+        "strategic_cohort_targets": {
+          "sz300308": 0.95
+        },
+        "strategic_qualification": {
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "qualification_ready": true,
+          "deployment_blocked": false,
+          "deployment_block_reason": "",
+          "qualification_streak": 2,
+          "qualification_last_observed_session": "2023-01-04",
+          "candidate_invalidation_reason": "",
+          "qualification_quorum": "FULL_COHORT",
+          "candidate_symbols": [
+            "sz300308",
+            "sz300394"
+          ],
+          "unavailable_reference_symbols": [
+            "sz000636"
+          ],
+          "evidence_family_status": {
+            "INDUSTRY_CONFIRMATION": "CONFIRMED",
+            "MARKET_CONFIRMATION": "FAILED",
+            "OWNER_ABSOLUTE_QUALITY": "FAILED",
+            "ROBUSTNESS_CONFIRMATION": "CONFIRMED"
+          }
+        },
+        "strategic_grant": {
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "created_session": "2023-01-04",
+          "last_eligible_session": "2023-01-04",
+          "first_submission_session": "2023-01-04",
+          "last_submission_session": "2023-01-04",
+          "healthy_retry_sessions": 0,
+          "submitted_order_ids": [
+            "O000000001"
+          ],
+          "acknowledged_order_ids": [
+            "O000000001"
+          ],
+          "filled_shares": 33600,
+          "target_weight": 0.95,
+          "status": "COMPLETED",
+          "expiry_reason": "",
+          "previous_grant_id": "",
+          "account_identity": "account_338def9766de048c74d3b3100c2457d72f31666494a9d83ba3c7b318fa0fc081",
+          "production_source_identity": "7297e4601d3ac954d601e77657b89725c0f6cfb21aa72bc484064233a8b0737c",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+          "qualification_quorum": "FULL_COHORT",
+          "authorization_id": ""
+        },
+        "active_strategic_epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+        "risk_anchor_symbols": [],
+        "risk_anchor_signature": "",
+        "capital_budget_level": 0
+      },
+      "risk": {
+        "freeze_new_risk": false,
+        "operating_drawdown": 0.014737307409956713,
+        "capital_drawdown": 0.014737307409956713,
+        "capital_budget_level": 0,
+        "severity": "NORMAL",
+        "target_gross_cap": 1.0,
+        "system_gross_cap": 1.0,
+        "broad_ret5": 0.033326474446359056,
+        "tech_ret5": -0.006251931785566711,
+        "broad_ret20": 0.016196021692500562,
+        "tech_ret20": -0.05301165871217739
+      },
+      "target_gross": 0.9486547882156959,
+      "orders": [],
+      "new_fills": [
+        {
+          "signal_date": "2023-01-04",
+          "fill_date": "2023-01-10",
+          "symbol": "sz300308",
+          "side": "BUY",
+          "shares": 1900,
+          "price": 17.917899999999996,
+          "gross_value": 34044.009999999995,
+          "commission": 8.511002499999998,
+          "stamp_duty": 0.0,
+          "transfer_fee": 0.34044009999999997,
+          "slippage_cost": 34.00999999999499,
+          "reason": "prequalified strategic leader cohort with staged profit protection",
+          "lifecycle": "CORE",
+          "order_id": "O000000001",
+          "fill_id": "",
+          "reduction_policy": "FIFO",
+          "reason_code": "strategic_cohort",
+          "exit_kind": "strategy",
+          "sold_tranches": [],
+          "event_id": "evt_47cdde1ff6391abf66174f2ab4bcd79d31f5ffd06bbf5b1b79bb612a55353fa6",
+          "origin_subsystem": "STRATEGIC",
+          "mechanism": "STRATEGIC_COHORT",
+          "origin_lifecycle": "CORE",
+          "replaces_symbol": null,
+          "industry_at_entry": "optical",
+          "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d"
+        }
+      ]
+    },
+    {
+      "start": "2023-01-03",
+      "date": "2023-01-19",
+      "raw_path": "../diagnostic-runs/2023-01-03.json.gz",
+      "raw_sha256": "d0b7c6d0c7e71f7676b2cc66f66c0d16b7aa034f30afd86385478f1d64e1edd3",
+      "account": {
+        "cash": 101274.12359264019,
+        "positions": {
+          "sz300308": {
+            "symbol": "sz300308",
+            "shares": 104300,
+            "avg_cost": 18.204466696139598,
+            "highest_close": 18.37
+          }
+        },
+        "strategic_epoch": 1,
+        "strategic_cohort_targets": {
+          "sz300308": 0.95
+        },
+        "strategic_qualification": {
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "qualification_ready": true,
+          "deployment_blocked": false,
+          "deployment_block_reason": "",
+          "qualification_streak": 2,
+          "qualification_last_observed_session": "2023-01-04",
+          "candidate_invalidation_reason": "",
+          "qualification_quorum": "FULL_COHORT",
+          "candidate_symbols": [
+            "sz300308",
+            "sz300394"
+          ],
+          "unavailable_reference_symbols": [
+            "sz000636"
+          ],
+          "evidence_family_status": {
+            "INDUSTRY_CONFIRMATION": "CONFIRMED",
+            "MARKET_CONFIRMATION": "FAILED",
+            "OWNER_ABSOLUTE_QUALITY": "FAILED",
+            "ROBUSTNESS_CONFIRMATION": "CONFIRMED"
+          }
+        },
+        "strategic_grant": {
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "created_session": "2023-01-04",
+          "last_eligible_session": "2023-01-04",
+          "first_submission_session": "2023-01-04",
+          "last_submission_session": "2023-01-04",
+          "healthy_retry_sessions": 0,
+          "submitted_order_ids": [
+            "O000000001"
+          ],
+          "acknowledged_order_ids": [
+            "O000000001"
+          ],
+          "filled_shares": 33600,
+          "target_weight": 0.95,
+          "status": "COMPLETED",
+          "expiry_reason": "",
+          "previous_grant_id": "",
+          "account_identity": "account_338def9766de048c74d3b3100c2457d72f31666494a9d83ba3c7b318fa0fc081",
+          "production_source_identity": "7297e4601d3ac954d601e77657b89725c0f6cfb21aa72bc484064233a8b0737c",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+          "qualification_quorum": "FULL_COHORT",
+          "authorization_id": ""
+        },
+        "active_strategic_epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+        "risk_anchor_symbols": [],
+        "risk_anchor_signature": "",
+        "capital_budget_level": 0
+      },
+      "risk": {
+        "freeze_new_risk": false,
+        "operating_drawdown": 0.0,
+        "capital_drawdown": 0.0,
+        "capital_budget_level": 0,
+        "severity": "NORMAL",
+        "target_gross_cap": 1.0,
+        "system_gross_cap": 1.0,
+        "broad_ret5": 0.034381401090627595,
+        "tech_ret5": 0.08413549752571692,
+        "broad_ret20": 0.08496713257138677,
+        "tech_ret20": 0.08324078696009463
+      },
+      "target_gross": 1.0,
+      "orders": [
+        {
+          "signal_date": "2023-01-19",
+          "symbol": "sz300223",
+          "side": "BUY",
+          "target_weight": 0.05020367546546209,
+          "reason": "confirmed core admitted from available account capital",
+          "order_id": "O000000002",
+          "mechanism": "LEADER_SELECTION",
+          "grant_id": "",
+          "epoch_id": ""
+        }
+      ],
+      "new_fills": []
+    },
+    {
+      "start": "2023-01-03",
+      "date": "2023-01-20",
+      "raw_path": "../diagnostic-runs/2023-01-03.json.gz",
+      "raw_sha256": "d0b7c6d0c7e71f7676b2cc66f66c0d16b7aa034f30afd86385478f1d64e1edd3",
+      "account": {
+        "cash": 6859.2861156801955,
+        "positions": {
+          "sz300308": {
+            "symbol": "sz300308",
+            "shares": 104300,
+            "avg_cost": 18.204466696139598,
+            "highest_close": 18.47
+          },
+          "sz300223": {
+            "symbol": "sz300223",
+            "shares": 1200,
+            "avg_cost": 78.67903123079999,
+            "highest_close": 79.46
+          }
+        },
+        "strategic_epoch": 1,
+        "strategic_cohort_targets": {
+          "sz300308": 0.95
+        },
+        "strategic_qualification": {
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "qualification_ready": true,
+          "deployment_blocked": false,
+          "deployment_block_reason": "",
+          "qualification_streak": 2,
+          "qualification_last_observed_session": "2023-01-04",
+          "candidate_invalidation_reason": "",
+          "qualification_quorum": "FULL_COHORT",
+          "candidate_symbols": [
+            "sz300308",
+            "sz300394"
+          ],
+          "unavailable_reference_symbols": [
+            "sz000636"
+          ],
+          "evidence_family_status": {
+            "INDUSTRY_CONFIRMATION": "CONFIRMED",
+            "MARKET_CONFIRMATION": "FAILED",
+            "OWNER_ABSOLUTE_QUALITY": "FAILED",
+            "ROBUSTNESS_CONFIRMATION": "CONFIRMED"
+          }
+        },
+        "strategic_grant": {
+          "grant_id": "grant_97a339aba832770a047c197927e13e409af842fb9765de8165d138686e88bdba",
+          "candidate_symbol": "sz300308",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sz300308:optical,sz300394:optical:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "0c5c989c3ba83eabd120e4d774c43905ec76763398331820d75a7dcadde7e290",
+          "created_session": "2023-01-04",
+          "last_eligible_session": "2023-01-04",
+          "first_submission_session": "2023-01-04",
+          "last_submission_session": "2023-01-04",
+          "healthy_retry_sessions": 0,
+          "submitted_order_ids": [
+            "O000000001"
+          ],
+          "acknowledged_order_ids": [
+            "O000000001"
+          ],
+          "filled_shares": 33600,
+          "target_weight": 0.95,
+          "status": "COMPLETED",
+          "expiry_reason": "",
+          "previous_grant_id": "",
+          "account_identity": "account_338def9766de048c74d3b3100c2457d72f31666494a9d83ba3c7b318fa0fc081",
+          "production_source_identity": "7297e4601d3ac954d601e77657b89725c0f6cfb21aa72bc484064233a8b0737c",
+          "epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+          "qualification_quorum": "FULL_COHORT",
+          "authorization_id": ""
+        },
+        "active_strategic_epoch_id": "epoch_b504a1655774e9fc19cb519535d2bfd9655b57421e2d36a8d7067ef79e259b0d",
+        "risk_anchor_symbols": [],
+        "risk_anchor_signature": "",
+        "capital_budget_level": 0
+      },
+      "risk": {
+        "freeze_new_risk": false,
+        "operating_drawdown": 0.0,
+        "capital_drawdown": 0.0,
+        "capital_budget_level": 0,
+        "severity": "NORMAL",
+        "target_gross_cap": 1.0,
+        "system_gross_cap": 1.0,
+        "broad_ret5": 0.026298479768700922,
+        "tech_ret5": 0.08190834670339564,
+        "broad_ret20": 0.09006707455364005,
+        "tech_ret20": 0.09724443184639209
+      },
+      "target_gross": 0.9966187632117331,
+      "orders": [],
+      "new_fills": [
+        {
+          "signal_date": "2023-01-19",
+          "fill_date": "2023-01-20",
+          "symbol": "sz300223",
+          "side": "BUY",
+          "shares": 1200,
+          "price": 78.65857999999999,
+          "gross_value": 94390.29599999999,
+          "commission": 23.597573999999998,
+          "stamp_duty": 0.0,
+          "transfer_fee": 0.94390296,
+          "slippage_cost": 94.29599999998572,
+          "reason": "confirmed core admitted from available account capital",
+          "lifecycle": "CORE",
+          "order_id": "O000000002",
+          "fill_id": "",
+          "reduction_policy": "FIFO",
+          "reason_code": "strategy_target",
+          "exit_kind": "strategy",
+          "sold_tranches": [],
+          "event_id": "evt_2c79ce08dac090e872f104e253143d9c606242302c0617a31dc8b37ca102a465",
+          "origin_subsystem": "LEADER",
+          "mechanism": "LEADER_SELECTION",
+          "origin_lifecycle": "CORE",
+          "replaces_symbol": null,
+          "industry_at_entry": "semicap",
+          "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+          "grant_id": "",
+          "epoch_id": ""
+        }
+      ]
+    },
+    {
+      "start": "2023-01-10",
+      "date": "2023-01-10",
+      "raw_path": "../diagnostic-runs/2023-01-10.json.gz",
+      "raw_sha256": "2a300c0f17e676307d33c34845729a218ab0168865ce1aadfaae842a85b585db",
+      "account": {
+        "cash": 2000000.0,
+        "positions": {},
+        "strategic_epoch": 0,
+        "strategic_cohort_targets": {},
+        "strategic_qualification": {
+          "candidate_symbol": "",
+          "qualification_signature": "",
+          "qualification_route": "",
+          "qualification_evidence_sha256": "",
+          "qualification_ready": false,
+          "deployment_blocked": true,
+          "deployment_block_reason": "qualification_not_ready",
+          "qualification_streak": 0,
+          "qualification_last_observed_session": "",
+          "candidate_invalidation_reason": "absolute_qualification_failed",
+          "qualification_quorum": "",
+          "candidate_symbols": [],
+          "unavailable_reference_symbols": [],
+          "evidence_family_status": {}
+        },
+        "strategic_grant": null,
+        "active_strategic_epoch_id": "",
+        "risk_anchor_symbols": [],
+        "risk_anchor_signature": "",
+        "capital_budget_level": 0
+      },
+      "risk": {
+        "freeze_new_risk": false,
+        "operating_drawdown": 0.0,
+        "capital_drawdown": 0.0,
+        "capital_budget_level": 0,
+        "severity": "NORMAL",
+        "target_gross_cap": 1.0,
+        "system_gross_cap": 1.0,
+        "broad_ret5": 0.033326474446359056,
+        "tech_ret5": -0.006251931785566711,
+        "broad_ret20": 0.016196021692500562,
+        "tech_ret20": -0.05301165871217739
+      },
+      "target_gross": 0,
+      "orders": [],
+      "new_fills": []
+    },
+    {
+      "start": "2023-01-10",
+      "date": "2023-01-19",
+      "raw_path": "../diagnostic-runs/2023-01-10.json.gz",
+      "raw_sha256": "2a300c0f17e676307d33c34845729a218ab0168865ce1aadfaae842a85b585db",
+      "account": {
+        "cash": 2000000.0,
+        "positions": {},
+        "strategic_epoch": 0,
+        "strategic_cohort_targets": {
+          "sz300223": 0.2,
+          "sh688072": 0.2
+        },
+        "strategic_qualification": {
+          "candidate_symbol": "sz300223",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sh688072:equipment,sh688120:equipment,sz300223:equipment:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "5b3ed2c6c4228a35c8e7caa4eab1fc06d982cbdb1e4d854b7eb273064dbc3b14",
+          "qualification_ready": true,
+          "deployment_blocked": false,
+          "deployment_block_reason": "",
+          "qualification_streak": 4,
+          "qualification_last_observed_session": "2023-01-19",
+          "candidate_invalidation_reason": "",
+          "qualification_quorum": "FULL_COHORT",
+          "candidate_symbols": [
+            "sh688072",
+            "sh688120",
+            "sz300223"
+          ],
+          "unavailable_reference_symbols": [
+            "sz000636"
+          ],
+          "evidence_family_status": {
+            "INDUSTRY_CONFIRMATION": "CONFIRMED",
+            "MARKET_CONFIRMATION": "FAILED",
+            "OWNER_ABSOLUTE_QUALITY": "FAILED",
+            "ROBUSTNESS_CONFIRMATION": "CONFIRMED"
+          }
+        },
+        "strategic_grant": {
+          "grant_id": "grant_05930d8d41c2d4388135f40a9d2f2080a97d9d968e0f093f37236796ab7ea731",
+          "candidate_symbol": "sz300223",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sh688072:equipment,sh688120:equipment,sz300223:equipment:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "5b3ed2c6c4228a35c8e7caa4eab1fc06d982cbdb1e4d854b7eb273064dbc3b14",
+          "created_session": "2023-01-19",
+          "last_eligible_session": "2023-01-19",
+          "first_submission_session": "2023-01-19",
+          "last_submission_session": "2023-01-19",
+          "healthy_retry_sessions": 0,
+          "submitted_order_ids": [
+            "O000000002"
+          ],
+          "acknowledged_order_ids": [],
+          "filled_shares": 0,
+          "target_weight": 0.2,
+          "status": "PENDING_EXECUTION",
+          "expiry_reason": "",
+          "previous_grant_id": "",
+          "account_identity": "account_c6aeb7925476dfc893691578736f6690782589ccea6cbd8991c798d16e93ecf3",
+          "production_source_identity": "7297e4601d3ac954d601e77657b89725c0f6cfb21aa72bc484064233a8b0737c",
+          "epoch_id": "epoch_78fa18520d46541baf09acd709332a69bb1905dd1e1dd6c9c87a1a10757696af",
+          "qualification_quorum": "FULL_COHORT",
+          "authorization_id": ""
+        },
+        "active_strategic_epoch_id": "",
+        "risk_anchor_symbols": [],
+        "risk_anchor_signature": "",
+        "capital_budget_level": 0
+      },
+      "risk": {
+        "freeze_new_risk": false,
+        "operating_drawdown": 0.0,
+        "capital_drawdown": 0.0,
+        "capital_budget_level": 0,
+        "severity": "NORMAL",
+        "target_gross_cap": 1.0,
+        "system_gross_cap": 1.0,
+        "broad_ret5": 0.034381401090627595,
+        "tech_ret5": 0.08413549752571692,
+        "broad_ret20": 0.08496713257138677,
+        "tech_ret20": 0.08324078696009463
+      },
+      "target_gross": 0.4,
+      "orders": [
+        {
+          "signal_date": "2023-01-19",
+          "symbol": "sh688072",
+          "side": "BUY",
+          "target_weight": 0.2,
+          "reason": "prequalified strategic leader cohort with staged profit protection",
+          "order_id": "O000000001",
+          "mechanism": "STRATEGIC_COHORT",
+          "grant_id": "",
+          "epoch_id": "epoch_78fa18520d46541baf09acd709332a69bb1905dd1e1dd6c9c87a1a10757696af"
+        },
+        {
+          "signal_date": "2023-01-19",
+          "symbol": "sz300223",
+          "side": "BUY",
+          "target_weight": 0.2,
+          "reason": "prequalified strategic leader cohort with staged profit protection",
+          "order_id": "O000000002",
+          "mechanism": "STRATEGIC_COHORT",
+          "grant_id": "grant_05930d8d41c2d4388135f40a9d2f2080a97d9d968e0f093f37236796ab7ea731",
+          "epoch_id": "epoch_78fa18520d46541baf09acd709332a69bb1905dd1e1dd6c9c87a1a10757696af"
+        }
+      ],
+      "new_fills": []
+    },
+    {
+      "start": "2023-01-10",
+      "date": "2023-01-20",
+      "raw_path": "../diagnostic-runs/2023-01-10.json.gz",
+      "raw_sha256": "2a300c0f17e676307d33c34845729a218ab0168865ce1aadfaae842a85b585db",
+      "account": {
+        "cash": 1209742.32341162,
+        "positions": {
+          "sh688072": {
+            "symbol": "sh688072",
+            "shares": 3300,
+            "avg_cost": 120.2613698286,
+            "highest_close": 117.29
+          },
+          "sz300223": {
+            "symbol": "sz300223",
+            "shares": 5000,
+            "avg_cost": 78.67903123079998,
+            "highest_close": 79.46
+          }
+        },
+        "strategic_epoch": 1,
+        "strategic_cohort_targets": {
+          "sz300223": 0.2,
+          "sh688072": 0.2
+        },
+        "strategic_qualification": {
+          "candidate_symbol": "sz300223",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sh688072:equipment,sh688120:equipment,sz300223:equipment:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "5b3ed2c6c4228a35c8e7caa4eab1fc06d982cbdb1e4d854b7eb273064dbc3b14",
+          "qualification_ready": true,
+          "deployment_blocked": false,
+          "deployment_block_reason": "",
+          "qualification_streak": 4,
+          "qualification_last_observed_session": "2023-01-19",
+          "candidate_invalidation_reason": "",
+          "qualification_quorum": "FULL_COHORT",
+          "candidate_symbols": [
+            "sh688072",
+            "sh688120",
+            "sz300223"
+          ],
+          "unavailable_reference_symbols": [
+            "sz000636"
+          ],
+          "evidence_family_status": {
+            "INDUSTRY_CONFIRMATION": "CONFIRMED",
+            "MARKET_CONFIRMATION": "FAILED",
+            "OWNER_ABSOLUTE_QUALITY": "FAILED",
+            "ROBUSTNESS_CONFIRMATION": "CONFIRMED"
+          }
+        },
+        "strategic_grant": {
+          "grant_id": "grant_05930d8d41c2d4388135f40a9d2f2080a97d9d968e0f093f37236796ab7ea731",
+          "candidate_symbol": "sz300223",
+          "qualification_signature": "strategic_qualification:EMERGING_SECULAR:sh688072:equipment,sh688120:equipment,sz300223:equipment:evidence=reversal_industry",
+          "qualification_route": "reversal_industry",
+          "qualification_evidence_sha256": "5b3ed2c6c4228a35c8e7caa4eab1fc06d982cbdb1e4d854b7eb273064dbc3b14",
+          "created_session": "2023-01-19",
+          "last_eligible_session": "2023-01-19",
+          "first_submission_session": "2023-01-19",
+          "last_submission_session": "2023-01-19",
+          "healthy_retry_sessions": 0,
+          "submitted_order_ids": [
+            "O000000002"
+          ],
+          "acknowledged_order_ids": [
+            "O000000002"
+          ],
+          "filled_shares": 5000,
+          "target_weight": 0.2,
+          "status": "COMPLETED",
+          "expiry_reason": "",
+          "previous_grant_id": "",
+          "account_identity": "account_c6aeb7925476dfc893691578736f6690782589ccea6cbd8991c798d16e93ecf3",
+          "production_source_identity": "7297e4601d3ac954d601e77657b89725c0f6cfb21aa72bc484064233a8b0737c",
+          "epoch_id": "epoch_78fa18520d46541baf09acd709332a69bb1905dd1e1dd6c9c87a1a10757696af",
+          "qualification_quorum": "FULL_COHORT",
+          "authorization_id": ""
+        },
+        "active_strategic_epoch_id": "epoch_78fa18520d46541baf09acd709332a69bb1905dd1e1dd6c9c87a1a10757696af",
+        "risk_anchor_symbols": [],
+        "risk_anchor_signature": "",
+        "capital_budget_level": 0
+      },
+      "risk": {
+        "freeze_new_risk": false,
+        "operating_drawdown": 0.0029503382941900025,
+        "capital_drawdown": 0.0029503382941900025,
+        "capital_budget_level": 0,
+        "severity": "NORMAL",
+        "target_gross_cap": 1.0,
+        "system_gross_cap": 1.0,
+        "broad_ret5": 0.026298479768700922,
+        "tech_ret5": 0.08190834670339564,
+        "broad_ret20": 0.09006707455364005,
+        "tech_ret20": 0.09724443184639209
+      },
+      "target_gross": 0.39333898306433246,
+      "orders": [],
+      "new_fills": [
+        {
+          "signal_date": "2023-01-19",
+          "fill_date": "2023-01-20",
+          "symbol": "sh688072",
+          "side": "BUY",
+          "shares": 3300,
+          "price": 120.23010999999998,
+          "gross_value": 396759.36299999995,
+          "commission": 99.18984074999999,
+          "stamp_duty": 0.0,
+          "transfer_fee": 3.9675936299999996,
+          "slippage_cost": 396.36299999994264,
+          "reason": "prequalified strategic leader cohort with staged profit protection",
+          "lifecycle": "CORE",
+          "order_id": "O000000001",
+          "fill_id": "",
+          "reduction_policy": "FIFO",
+          "reason_code": "strategic_cohort",
+          "exit_kind": "strategy",
+          "sold_tranches": [],
+          "event_id": "evt_d5eda47033119bc1b9a08300b36aea997bf0ad00741edd69e374c815ad8e4117",
+          "origin_subsystem": "STRATEGIC",
+          "mechanism": "STRATEGIC_COHORT",
+          "origin_lifecycle": "CORE",
+          "replaces_symbol": null,
+          "industry_at_entry": "semicap",
+          "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+          "grant_id": "",
+          "epoch_id": "epoch_78fa18520d46541baf09acd709332a69bb1905dd1e1dd6c9c87a1a10757696af"
+        },
+        {
+          "signal_date": "2023-01-19",
+          "fill_date": "2023-01-20",
+          "symbol": "sz300223",
+          "side": "BUY",
+          "shares": 5000,
+          "price": 78.65857999999999,
+          "gross_value": 393292.8999999999,
+          "commission": 98.32322499999998,
+          "stamp_duty": 0.0,
+          "transfer_fee": 3.9329289999999992,
+          "slippage_cost": 392.8999999999405,
+          "reason": "prequalified strategic leader cohort with staged profit protection",
+          "lifecycle": "CORE",
+          "order_id": "O000000002",
+          "fill_id": "",
+          "reduction_policy": "FIFO",
+          "reason_code": "strategic_cohort",
+          "exit_kind": "strategy",
+          "sold_tranches": [],
+          "event_id": "evt_4e8030a06bf5cf91af9c898bf9f8b40ca5f9b029dfa55f0a965de67f32c01ecb",
+          "origin_subsystem": "STRATEGIC",
+          "mechanism": "STRATEGIC_COHORT",
+          "origin_lifecycle": "CORE",
+          "replaces_symbol": null,
+          "industry_at_entry": "semicap",
+          "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+          "grant_id": "grant_05930d8d41c2d4388135f40a9d2f2080a97d9d968e0f093f37236796ab7ea731",
+          "epoch_id": "epoch_78fa18520d46541baf09acd709332a69bb1905dd1e1dd6c9c87a1a10757696af"
+        }
+      ]
+    }
+  ]
+}

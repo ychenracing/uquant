@@ -37,7 +37,8 @@ def matrix(tmp_path, monkeypatch):
         common = max(contract['clusters'][start[:4]].values())
         result = {'final_wealth': 2., 'max_drawdown': .29, 'final_equity': 2.,
                   'equity_curve': [{'date': common, 'equity': 1.}, {'date': contract['end'], 'equity': 2.}],
-                  'order_ledger': [], 'daily_replay_evidence': [{'position_shares': {}}],
+                  'order_ledger': [], 'daily_replay_evidence': [{'date': common, 'cash': 1.,
+                                                             'position_shares': {}, 'close_marks': {}}],
                   'final_account': {'fills': [], 'order_ledger': [], 'cash': 2.}, 'gross_turnover': 0.,
                   'fees': 0., 'slippage_cost': 0., 'peak_to_recovery_days': 0}
         row = {'case': name, 'start': start, 'end': contract['end'], 'symbols': symbols,

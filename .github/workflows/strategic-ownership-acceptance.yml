@@ -77,6 +77,9 @@ jobs:
             'scripts/run_strategic_ownership_acceptance.py') }}
       - name: Run exact ownership shard
         run: >-
+          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal"
+          run --name ownership-${{ matrix.shard }} --timeout 2700
+          --heartbeat 5 --log-budget-mib 512 --
           uv run python scripts/run_strategic_ownership_acceptance.py
           --shard "${{ matrix.shard }}"
           --output "$RUNNER_TEMP/strategic-ownership-${{ matrix.shard }}.json"
@@ -89,6 +92,21 @@ jobs:
             strategic-ownership-${{ github.run_id }}-attempt-
             ${{ github.run_attempt }}-${{ matrix.shard }}
           path: ${{ runner.temp }}/strategic-ownership-${{ matrix.shard }}.json
+          if-no-files-found: warn
+
+      - name: Export cloud execution metadata
+        if: ${{ always() }}
+        run: >-
+          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal"
+          export --output "$RUNNER_TEMP/cloud-execution-metadata.zip"
+      - name: Preserve cloud execution metadata
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cloud-execution-ownership-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/cloud-execution-metadata.zip
+            ${{ runner.temp }}/cloud-execution-metadata.zip.receipt.json
           if-no-files-found: warn
 
   strategic-ownership-acceptance:

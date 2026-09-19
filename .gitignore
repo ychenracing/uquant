@@ -28,3 +28,5 @@ daily_report_*.md
 .worktrees/
 /.risk_differential_runtime/
 /risk_differential_observations.jsonl
+# Private cloud command journals and original logs are not source files.
+.cloud-task-journal/

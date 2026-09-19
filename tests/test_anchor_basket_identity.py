@@ -1,4 +1,4 @@
-"""Risk basket identity is independent of ranking during confirmation and holding."""
+"""Active risk memory survives rank-only re-anchoring; admission stays unchanged."""
 from uquant.config import DEFAULT_CONFIG
 from uquant.risk.anchors import update_dynamic_anchors
 from uquant.types import AccountState, LeaderScore
@@ -20,7 +20,7 @@ def test_active_members_keep_armed_and_break_memory_after_rank_reconfirmation():
     for _ in range(DEFAULT_CONFIG.risk_anchor_confirm_days):
         observed = update_dynamic_anchors(leaders=leaders(), account=account,
                                          cfg=DEFAULT_CONFIG, allow_reanchor=True)
-    assert observed == tuple(leaders())
+    assert observed == tuple(reversed(leaders()))
     assert account.risk_streaks['reference_anchor_armed'] == 1
     assert account.risk_streaks['reference_anchor_break'] == 3
 
@@ -38,10 +38,10 @@ def test_real_membership_replacement_still_clears_old_break_memory():
     assert account.risk_streaks['reference_anchor_break'] == 0
 
 
-def test_same_basket_rank_changes_complete_confirmation():
+def test_initial_admission_retains_existing_rank_confirmation_rule():
     account = AccountState.empty(2000000.)
     for day in range(DEFAULT_CONFIG.risk_anchor_confirm_days):
         observed = update_dynamic_anchors(leaders=leaders(bool(day % 2)), account=account,
                                          cfg=DEFAULT_CONFIG, allow_reanchor=True)
-    assert set(observed) == set(leaders())
-    assert account.risk_anchor_candidate_streak == 0
+        assert observed == ()
+        assert account.risk_anchor_candidate_streak == 1

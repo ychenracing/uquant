@@ -5,13 +5,13 @@ The 133-head September16 inventory is preserved unchanged. BRANCH_DISPOSITIONS.t
 | Capability / source | Decision and basis |
 |---|---|
 | Mature leader cycle / 8de51ef1 | Already restored in current main. Preserve confirmation, capacity, sizing, pyramiding, current entry and repair restrictions. Complete missing ADD lifecycle projection into emitted targets. |
-| Affordable core selection / d59b9086 | Deferred after combined candidate failed frozen offset5 drawdown gate: +7.64pp, versus +5pp limit. Earlier ordinary admissions are the first economic divergence; narrower ablation restores current-main sizing while preserving full-book challenger evaluation. No threshold relaxation; original source and failed raw evidence retained. |
+| Affordable core selection / d59b9086 | Integrate ranked affordable prefix with existing per-candidate caps and cycle weights. The first ablation removing this mechanism did not remove the offset5 breach; it is not attributed as the cause. |
 | Full-book challenger / 812b4ddc | Integrate evaluation of one challenger; native funding and hypothetical settled-sale capacity checks retain cash and position constraints. |
 | Restore priority / 157a2296 | Use existing leader score before symbol tie-breaker for scarce qualified restoration funds. |
 | Fresh recovery allocation / 8de51ef1 | Preserve committed rights and request caps, allocate scarce fresh demand by existing leader strength. Correct historical transient-size bug: surplus cash cannot enlarge requested targets. |
 | Normal tactical routing / 8de51ef1 | Reach existing signal in unfrozen NORMAL/CAUTION books while retaining sentinel, capital, ownership and pending-order guards. |
 | Settled guard / ae9ef72b | Retire damage authority only after actual strategic epoch settlement; pending and late liabilities retain protection. |
-| Anchor identity / 4d7e6b07 | Same membership completes confirmation despite rank permutations; actual membership replacement still resets old break memory. |
+| Anchor identity / 4d7e6b07 | Preserve current-main active-basket memory protection; defer relaxed initial member-set confirmation. First-divergence replay shows earlier anchor confirmation changes sh688082 from NOT_MATURE to READY on 2023-01-20 and admits extra risk. Keep main ranked confirmation in the revised candidate. |
 | Anchor nomination / e26583d6 | Do not freeze initial nominees. Historical offset20/remove-three improved 0.871803→1.109827, but no-optical worsened 2.116900→1.924814 and drawdown +2.49pp. This is a selection tradeoff, distinct from identity correctness. |
 | Protected holding helper / 1cee9a34 | Do not restore: partial-fill remainder expands .5→.5994525 and unrelated symbols can acquire rights; historical wealth/DD also worsened. Keep current custody. |
 | Shared / slow-damage exits / ce91b233,0880dcab,52790e4e | Existing current-main structural exit and stronger whole-cohort settlement already cover these improvements. Do not restore obsolete variants. |

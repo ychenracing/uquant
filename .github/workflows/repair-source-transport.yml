@@ -1,4 +1,4 @@
-name: Repair tooling transport
+name: Repair evidence transport
 
 on:
   push:
@@ -9,22 +9,57 @@ permissions:
   contents: read
 
 jobs:
-  tooling:
+  evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
-      - name: Install reviewed tool
-        run: python -m pip install --disable-pip-version-check uv==0.11.33
-      - name: Preserve executable and digest
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install locked lint executable
+        run: python -m pip install --disable-pip-version-check ruff==0.16.2
+      - name: Preserve immutable evidence objects and tools
         run: |
-          mkdir -p "$RUNNER_TEMP/repair-tooling"
-          cp "$(command -v uv)" "$RUNNER_TEMP/repair-tooling/uv"
-          cd "$RUNNER_TEMP/repair-tooling"
-          ./uv --version > version.txt
-          sha256sum uv > uv.sha256
+          mkdir -p "$RUNNER_TEMP/repair-evidence"
+          cp "$(command -v ruff)" "$RUNNER_TEMP/repair-evidence/ruff"
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          sha = '7fcf9562e6c7f96250811acd80c2dd4ee46485e3'
+          roots = ('artifacts/', 'benchmarks/current_heads_competitor_matrix.json',
+                   'benchmarks/cross_ai_stage1_baselines.json',
+                   'research/current_heads_competitor_matrix.py',
+                   'benchmarks/strategic_evidence_closure_contract.json')
+          objects = {sha, subprocess.check_output(['git', 'rev-parse', sha+'^{tree}'], text=True).strip()}
+          entries = subprocess.check_output(['git', 'ls-tree', '-r', '-t', '-z', sha]).split(b'\0')
+          for entry in entries:
+              if not entry:
+                  continue
+              metadata, path = entry.split(b'\t', 1)
+              mode, kind, oid = metadata.decode().split()
+              if kind == 'tree' or path.decode().startswith(roots):
+                  objects.add(oid)
+          out = Path(os.environ['RUNNER_TEMP']) / 'repair-evidence'
+          with (out / 'evidence.pack').open('wb') as output:
+              subprocess.run(['git', 'pack-objects', '--stdout'],
+                  input=('\n'.join(sorted(objects))+'\n').encode(), stdout=output, check=True)
+          manifest = {'source_sha': sha, 'objects': len(objects), 'files': {}}
+          for name in ('evidence.pack', 'ruff'):
+              path = out / name
+              with path.open('rb') as source:
+                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
+              manifest['files'][name] = {'size': path.stat().st_size, 'sha256': digest}
+          (out / 'manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
+          print(json.dumps(manifest))
+          PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: repair-tooling-uv-0.11.33
-          path: ${{ runner.temp }}/repair-tooling/
+          name: repair-evidence-and-ruff
+          path: ${{ runner.temp }}/repair-evidence/
           if-no-files-found: error
           retention-days: 7

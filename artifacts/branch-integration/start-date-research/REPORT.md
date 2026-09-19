@@ -1,4 +1,10 @@
-# Startup-date repair: research checkpoint, NOT COMPLETE
+# Startup-date repair: research chronology and release evidence
+
+Latest status (2026-09-19 19:40 UTC): fixed C9 passes all 23 economic cells,
+registered paired mechanisms, invariants and all-four-case native Grant acceptance.
+Six byte-verified archives plus the exact original PR71 archive are preserved.
+Normal merge/readback is still pending; see C9_DELIVERY_REPORT.md and PR73.
+The earlier chronological checkpoint statements below remain historical.
 
 Authorized contract: `../START_DATE_CONTRACT.json`, dated 2026-09-20 Asia/Tokyo.
 B0 is live main `28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef` (verified at task recovery).
@@ -310,3 +316,12 @@ All remaining matrix originals and shared-checkpoint mechanism states are
 byte-verified in REMOTE_RECEIPT_5.json (8,503,968 bytes,193 incremental entries).
 This supersedes earlier in-progress status, not historical failed candidates.
 Grant acceptance and final publication reconciliation remain pending.
+
+
+Final native Grant acceptance completed at 19:37:54 UTC, all four units successful;
+canonical acceptance PASS with no failures. REMOTE_RECEIPT_6.json records the
+510,203-byte supplement,69 verified entries,including native acceptance outputs,
+baseline raw trace, logs and release input mapping. All292 original input hashes
+and three additional producer/configuration files match published head adb3e9c.
+The remaining final commit is documentation/evidence plus the artifact uploader's
+include-hidden-files flag; it does not change production economics.

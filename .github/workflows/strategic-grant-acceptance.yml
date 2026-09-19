@@ -52,4 +52,5 @@ jobs:
             ${{ runner.temp }}/strategic-grant-acceptance.json
             ${{ runner.temp }}/strategic-grant-units
             .cloud-task-journal
+          include-hidden-files: true
           if-no-files-found: warn

@@ -656,6 +656,43 @@ def _mature_admission_weights(book: AllocationBook, eligible: list[str],
     return mature_cycle_weights(book, symbols, opportunity)
 
 
+def _mature_deployment_pending(
+    book: AllocationBook, eligible: list[str], market: dict[str, Any],
+) -> set[str]:
+    """Keep flat-book mature capital pending until its cycle is observable."""
+    deployed_ordinary = any(
+        weight > 1e-12 and symbol not in book.owned
+        for symbol, weight in book.weights_now.items()
+    )
+    settled_strategic_rotation = (
+        book.account.strategic_epochs_completed > 0
+        and book.account.strategic_last_exit_date == str(book.date.date())
+        and market.get("persistent_mature_entry_open") is True
+    )
+    market["settled_strategic_rotation_open"] = settled_strategic_rotation
+    return {
+        symbol for symbol in eligible
+        if book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
+        and not (deployed_ordinary or settled_strategic_rotation)
+        and market.get("leader_cycle_armed") is not True
+    }
+
+
+def _ordinary_admission_weight(
+    book: AllocationBook, *, symbol: str, selected_count: int, allowance: float,
+    cycle_weights: dict[str, float],
+) -> float:
+    weight = min(book.policy.cfg.single_core_entry_cap, allowance / selected_count)
+    maturity_only = (
+        book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
+    )
+    if symbol in cycle_weights:
+        return min(cycle_weights[symbol], allowance)
+    if not book.leaders[symbol].mature or maturity_only:
+        return min(weight, book.policy.cfg.core_admission_weight)
+    return weight
+
+
 def _admit_new_cores(
     book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
 ) -> None:
@@ -670,22 +707,7 @@ def _admit_new_cores(
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
-    deployed_ordinary = any(
-        weight > 1e-12 and symbol not in book.owned
-        for symbol, weight in book.weights_now.items()
-    )
-    settled_strategic_rotation = (
-        book.account.strategic_epochs_completed > 0
-        and book.account.strategic_last_exit_date == str(book.date.date())
-        and market.get("persistent_mature_entry_open") is True
-    )
-    market["settled_strategic_rotation_open"] = settled_strategic_rotation
-    deployment_pending = {
-        symbol for symbol in eligible
-        if book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
-        and not (deployed_ordinary or settled_strategic_rotation)
-        and market.get("leader_cycle_armed") is not True
-    }
+    deployment_pending = _mature_deployment_pending(book, eligible, market)
     eligible = [symbol for symbol in eligible if symbol not in deployment_pending]
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
     cycle_weights = _mature_admission_weights(book, eligible, opportunity)
@@ -708,12 +730,10 @@ def _admit_new_cores(
         independent = _current_independent_entry(book.record(symbol).get("entry", {}), book.date)
         allowance = independent_budget if independent else budget
         assert allowance is not None  # The shared market-input check above already passed.
-        weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
-        maturity_only = book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
-        if symbol in cycle_weights:
-            weight = min(cycle_weights[symbol], allowance)
-        elif not book.leaders[symbol].mature or maturity_only:
-            weight = min(weight, book.policy.cfg.core_admission_weight)
+        weight = _ordinary_admission_weight(
+            book, symbol=symbol, selected_count=len(selected), allowance=allowance,
+            cycle_weights=cycle_weights,
+        )
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
             continue

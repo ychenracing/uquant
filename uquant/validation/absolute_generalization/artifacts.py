@@ -197,6 +197,50 @@ def _is_production_predicate_fact(value: Mapping[object, object]) -> bool:
     )
 
 
+def _is_replay_decision_check_path(path: tuple[str | int, ...]) -> bool:
+    for index, component in enumerate(path):
+        if component != "replay_evidence":
+            continue
+        prefix = path[:index]
+        if prefix and not (
+            len(prefix) == 2
+            and prefix[0] == "cells"
+            and isinstance(prefix[1], int)
+        ):
+            continue
+        tail = path[index:]
+        if (
+            len(tail) == 12
+            and tail[:2] == ("replay_evidence", "observations")
+            and isinstance(tail[2], int)
+            and tail[3:6] == ("decision_payload", "value", "risk_summary")
+            and tail[6:10] == ("core_allocation", "symbols", "entry", "checks")
+            and isinstance(tail[8], str)
+            and isinstance(tail[11], str)
+        ):
+            return True
+    return False
+
+
+def _is_decision_check_fact(value: Mapping[object, object]) -> bool:
+    """Recognize the deterministic entry-check DTOs inside replayed decisions."""
+
+    keys = set(value)
+    if keys == {"as_of", "passed"}:
+        return type(value.get("passed")) is bool and isinstance(value.get("as_of"), str)
+    if keys == {"as_of", "minimum", "passed", "value"}:
+        return (
+            type(value.get("passed")) is bool
+            and isinstance(value.get("as_of"), str)
+            and isinstance(value.get("minimum"), (int, float))
+            and not isinstance(value.get("minimum"), bool)
+            and isinstance(value.get("value"), (int, float))
+            and not isinstance(value.get("value"), bool)
+        )
+    return False
+
+
+
 def _is_crowning_predicate_path(path: tuple[str | int, ...]) -> bool:
     return (
         len(path) == 5
@@ -310,8 +354,16 @@ def reject_self_assertion_claims(
             )
         }
         if forbidden and not (
-            forbidden == {"passed"} and _is_production_predicate_fact(value)
-            and _is_production_predicate_path(path)
+            (
+                forbidden == {"passed"}
+                and _is_production_predicate_fact(value)
+                and _is_production_predicate_path(path)
+            )
+            or (
+                forbidden == {"passed"}
+                and _is_decision_check_fact(value)
+                and _is_replay_decision_check_path(path)
+            )
         ):
             raise ValueError(
                 f"absolute generalization {label} contains a self-asserted pass"

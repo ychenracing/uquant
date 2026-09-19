@@ -1,0 +1,43 @@
+name: CI restoration diagnostic
+
+on:
+  push:
+    branches: [fix/main-ci-restoration-20260919]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Export pinned source and object identities
+        run: |
+          mkdir -p "$RUNNER_TEMP/restoration"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/restoration/source.tar.gz" HEAD \
+            AGENTS.md PROJECT_STATE.md .github uquant scripts research tests benchmarks data \
+            docs README.md pyproject.toml uv.lock setup.py requirements.txt MANIFEST.in .gitignore .gitattributes
+          git ls-tree -r HEAD > "$RUNNER_TEMP/restoration/git-objects.txt"
+          git cat-file commit HEAD > "$RUNNER_TEMP/restoration/head.commit"
+          python - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'restoration'
+          files = {}
+          for path in sorted(root.iterdir()):
+              files[path.name] = {'bytes': path.stat().st_size, 'sha256': hashlib.file_digest(path.open('rb'), 'sha256').hexdigest()}
+          metadata = {'source_sha': os.environ['GITHUB_SHA'], 'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(), 'run_id': os.environ['GITHUB_RUN_ID'], 'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'], 'files': files}
+          (root / 'manifest.json').write_text(json.dumps(metadata, indent=2) + '\n')
+          print(json.dumps(metadata, indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-restoration-source-${{ github.sha }}
+          path: ${{ runner.temp }}/restoration/
+          if-no-files-found: error
+          retention-days: 90

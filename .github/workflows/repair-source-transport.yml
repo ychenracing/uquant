@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/uquant-python
+      UV_PYTHON_INSTALL_DIR: /tmp/uquant-python
       UV_PYTHON_PREFERENCE: only-managed
       UV_PYTHON: 3.12.13
     steps:
@@ -33,7 +33,7 @@ jobs:
           mkdir -p "$out"
           uv pip list --python .venv/bin/python --format=json > "$out/packages.json"
           sha256sum uv.lock pyproject.toml > "$out/inputs.sha256"
-          tar -C "$RUNNER_TEMP" -czf "$out/runtime.tar.gz" uquant-python \
+          tar -C /tmp -czf "$out/runtime.tar.gz" uquant-python \
             -C "$PWD/.venv/lib/python3.12" site-packages
           python - "$out" <<'PY'
           import hashlib

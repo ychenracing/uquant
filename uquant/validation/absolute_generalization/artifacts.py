@@ -209,19 +209,56 @@ def _is_replay_decision_check_path(path: tuple[str | int, ...]) -> bool:
         ):
             continue
         tail = path[index:]
+        if len(tail) < 12 or tail[:2] != ("replay_evidence", "observations"):
+            continue
+        if not isinstance(tail[2], int):
+            continue
+        decision_prefix = tail[3:6] == ("decision_payload", "value", "risk_summary")
+        runtime_prefix = tail[3:7] == (
+            "decision_runtime_payload", "value", "risk_assessment", "evidence",
+        )
+        offset = 6 if decision_prefix else 7 if runtime_prefix else -1
         if (
-            len(tail) == 12
-            and tail[:2] == ("replay_evidence", "observations")
-            and isinstance(tail[2], int)
-            and tail[3:6] == ("decision_payload", "value", "risk_summary")
-            and tail[6:8] == ("core_allocation", "symbols")
-            and isinstance(tail[8], str)
-            and tail[9] in {"entry", "repair_entry"}
-            and tail[10] == "checks"
-            and isinstance(tail[11], str)
+            offset >= 0
+            and len(tail) == offset + 6
+            and tail[offset:offset + 2] == ("core_allocation", "symbols")
+            and isinstance(tail[offset + 2], str)
+            and tail[offset + 3] in {"entry", "repair_entry"}
+            and tail[offset + 4] == "checks"
+            and isinstance(tail[offset + 5], str)
         ):
             return True
     return False
+
+
+def _is_reachability_decision_check_path(path: tuple[str | int, ...]) -> bool:
+    """Recognize strict entry checks embedded in observed reachability state."""
+
+    failed_or_terminal = (
+        len(path) == 12
+        and path[0] in {"failed_grant_recovery", "terminal_scc"}
+        and path[1] == "transitions"
+        and isinstance(path[2], int)
+        and path[3] == "runtime_state"
+    )
+    repair_bound = (
+        len(path) == 13
+        and path[0] == "repair_bounds"
+        and isinstance(path[1], int)
+        and path[2] == "observations"
+        and isinstance(path[3], int)
+        and path[4] == "runtime_state"
+    )
+    offset = 4 if failed_or_terminal else 5 if repair_bound else -1
+    return (
+        offset >= 0
+        and path[offset:offset + 4]
+        == ("risk", "evidence", "core_allocation", "symbols")
+        and isinstance(path[offset + 4], str)
+        and path[offset + 5] in {"entry", "repair_entry"}
+        and path[offset + 6] == "checks"
+        and isinstance(path[offset + 7], str)
+    )
 
 
 def _is_decision_check_fact(value: Mapping[object, object]) -> bool:
@@ -376,6 +413,7 @@ def reject_self_assertion_claims(
                 and _is_decision_check_fact(value)
                 and (
                     _is_replay_decision_check_path(path)
+                    or _is_reachability_decision_check_path(path)
                     or _is_rearm_certificate_check_path(path)
                 )
             )

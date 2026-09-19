@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 
+from ..features import scalar
 from ..types import AccountState, LeaderScore, Opportunity, PendingOrder, Risk, RiskAssessment
 from .strategic.qualification_candidates import candidate_entry
 
@@ -58,7 +59,8 @@ def _ordinary_maturity_available(account: AccountState, date: pd.Timestamp,
         and not qualification.deployment_blocked
     )
     local_open = (market is not None and (market.get("mature_entry_open") is True
-                  or market.get("persistent_mature_entry_open") is True)
+                  or market.get("persistent_mature_entry_open") is True
+                  or market.get("leader_cycle_armed") is True)
                   and not strategic_claims and not forming_full)
     return local_open
 
@@ -97,7 +99,7 @@ def observe_persistent_maturity(self: PortfolioAllocator, *, account: AccountSta
     aligned = _aligned_market_legs(legs)
     healthy = (market.get("as_of") == str(date.date())
                and not market.get("missing_market_fields") and aligned
-               and opportunity is Opportunity.STRONG_TREND and risk.votes <= 1
+               and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND} and risk.votes <= 1
                and risk.state is Risk.NORMAL and not risk.freeze_new_risk
                and not any(risk.evidence.get(k, False) for k in
                            ("freeze_new_risk", "sentinel_freeze_new_risk", "sector_guard_active"))
@@ -148,6 +150,18 @@ def is_consumed_repair_order(account: AccountState, order: PendingOrder) -> bool
             and order.event_id == reference.event_id)
 
 
+def _ordinary_relative_leadership(self: PortfolioAllocator, *, symbol: str, date: pd.Timestamp,
+                                  user_panel: dict[str, pd.DataFrame], market: dict[str, Any] | None) -> bool:
+    """Require a local mature entry to lead its current technology reference."""
+    reference = (market or {}).get("tech_ret120")
+    frame = user_panel.get(symbol)
+    if (frame is None or date not in frame.index or isinstance(reference, bool)
+            or not isinstance(reference, (int, float)) or not math.isfinite(reference)):
+        return False
+    own = scalar(frame.loc[date], f"ret{self.cfg.trend_slow}", math.nan)
+    return math.isfinite(own) and own >= reference
+
+
 def ordinary_core_entry(
     self: PortfolioAllocator, *, symbol: str, score: LeaderScore, date: pd.Timestamp,
     user_panel: dict[str, pd.DataFrame], account: AccountState, confirmation_days: int,
@@ -176,7 +190,9 @@ def ordinary_core_entry(
     elif certificate is None and _mature_core_eligible(
         self, score=score, tenure=tenure, account=account, market=market,
         date=date, local_open=local_open, symbol=symbol,
-    ):
+    ) and (bool(market and market.get("leader_cycle_armed")) or _ordinary_relative_leadership(
+        self, symbol=symbol, date=date, user_panel=user_panel, market=market,
+    )):
         certificate = {
             "qualification_route": "mature_core", "qualification_quorum": "ORDINARY_CORE",
             "required_confirmation": self.cfg.leader_tenure_days,
@@ -256,6 +272,7 @@ def observe_ordinary_market(
     return {
         "as_of": str(date.date()), "confirmed": impulse, "impulse": impulse,
         "credible_symbols": credible, "missing_market_fields": missing,
+        "tech_ret120": risk.evidence.get("tech_ret120"),
         # Observation only; the account repair authorizer retains every risk guard.
         "repair_mature_entry_open": (
             not missing and long_cycle_complete

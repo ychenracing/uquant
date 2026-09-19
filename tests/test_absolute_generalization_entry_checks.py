@@ -61,6 +61,60 @@ def test_strict_round_trip_accepts_entry_checks_in_cell_and_shard(
 
 
 @pytest.mark.parametrize("entry", ("entry", "repair_entry"))
+def test_runtime_risk_evidence_accepts_strict_entry_checks(entry: str) -> None:
+    path = (
+        "replay_evidence", "observations", 0, "decision_runtime_payload", "value",
+        "risk_assessment", "evidence", "core_allocation", "symbols", "sh600487",
+        entry, "checks", "confidence",
+    )
+    reject_self_assertion_claims(
+        {"as_of": "2023-01-03", "passed": True}, path=path,
+    )
+
+
+@pytest.mark.parametrize("entry", ("entry", "repair_entry"))
+@pytest.mark.parametrize(
+    "prefix",
+    (
+        ("failed_grant_recovery", "transitions", 0),
+        ("terminal_scc", "transitions", 0),
+        ("repair_bounds", 0, "observations", 0),
+    ),
+)
+def test_reachability_risk_evidence_accepts_strict_entry_checks(
+    prefix: tuple[str | int, ...], entry: str,
+) -> None:
+    path = (
+        *prefix, "runtime_state", "risk", "evidence", "core_allocation",
+        "symbols", "sh600487", entry, "checks", "confidence",
+    )
+    reject_self_assertion_claims(
+        {"as_of": "2023-01-03", "passed": True}, path=path,
+    )
+
+
+@pytest.mark.parametrize(
+    "prefix",
+    (
+        ("untrusted", "failed_grant_recovery", "transitions", 0),
+        ("failed_grant_recovery", "observations", 0),
+        ("repair_bounds", 0, "transitions", 0),
+    ),
+)
+def test_reachability_risk_evidence_rejects_shifted_paths(
+    prefix: tuple[str | int, ...],
+) -> None:
+    path = (
+        *prefix, "runtime_state", "risk", "evidence", "core_allocation",
+        "symbols", "sh600487", "entry", "checks", "confidence",
+    )
+    with pytest.raises(ValueError, match="self-asserted pass"):
+        reject_self_assertion_claims(
+            {"as_of": "2023-01-03", "passed": True}, path=path,
+        )
+
+
+@pytest.mark.parametrize("entry", ("entry", "repair_entry"))
 @pytest.mark.parametrize(
     "check",
     (

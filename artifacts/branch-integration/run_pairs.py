@@ -53,6 +53,13 @@ def validate(path: Path, checkout: Path, expected: dict) -> dict:
             raise ValueError('Invalid daily cash/positions/equity reconciliation')
     if not isinstance(result.get('final_account', {}).get('fills'), list):
         raise ValueError('Missing final-account fills')
+    from uquant.account import account_from_dict
+    account = account_from_dict(result['final_account'], require_hashes=True)
+    final_day = result['daily_replay_evidence'][-1]
+    if (not math.isclose(account.cash, float(final_day['cash']), abs_tol=1e-6)
+            or {s: p.shares for s, p in account.positions.items() if p.shares > 0}
+            != {s: v for s, v in final_day['position_shares'].items() if v > 0}):
+        raise ValueError('Final account differs from daily evidence')
     return data
 
 
@@ -86,7 +93,7 @@ def run(row, *, runs: Path, data_dir: Path, contract: Path, end: str) -> dict:
             if output.exists():
                 try:
                     validate(output, checkout, expected)
-                except (ValueError, KeyError, TypeError, AssertionError, OSError, EOFError) as exc:
+                except (ValueError, KeyError, TypeError, AssertionError, OSError, EOFError, RuntimeError) as exc:
                     # Preserve the exact rejected bytes; never overwrite them on retry.
                     output.rename(attempt / 'rejected.json.gz')
                     status['rejected_existing'] = repr(exc)

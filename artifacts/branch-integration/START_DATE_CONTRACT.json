@@ -90,5 +90,50 @@
       "sz300502"
     ],
     "selection_basis": "Existing native test has causal tactical fill April3 signal and recovery May8 signal; all events in fixed remainder-of-year window included. No profit-based selection."
+  },
+  "additional_mechanism_window": {
+    "registered_before_results": true,
+    "start": "2023-07-03",
+    "end": "2023-09-28",
+    "symbols": [
+      "sz300308",
+      "sz300502",
+      "sz300394",
+      "sh688498",
+      "sz002281",
+      "sh601869",
+      "sh600487",
+      "sh688256",
+      "sh688041",
+      "sh688008",
+      "sh603986",
+      "sz300223",
+      "sh688110",
+      "sh688766",
+      "sz002371",
+      "sh688012",
+      "sh688072",
+      "sh688082",
+      "sh688120",
+      "sh688037",
+      "sh688361",
+      "sz300604",
+      "sh688200",
+      "sh688019",
+      "sz300054",
+      "sz002409",
+      "sz300666",
+      "sh688233",
+      "sh688268",
+      "sh688146",
+      "sh688300",
+      "sh603688"
+    ],
+    "basis": "tests/test_normal_tactical_admission.py native July 5 signal; end is last frozen-calendar session in Q3. Entire window and all events retained; no profit-based selection.",
+    "comparison": [
+      "C1",
+      "C1 with original bounded CAUTION tactical route"
+    ],
+    "purpose": "Direct expanded NORMAL/unfrozen tactical behavior attribution; earlier 2025 window did not exercise increment."
   }
 }

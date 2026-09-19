@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2023-01-04",
+    "cold_equals_warm": true,
+    "truncated_future_equals_full": true,
+    "cold_seconds": 2.1932514649997756,
+    "warm_seconds": 0.003311383003165247
+  },
+  {
+    "date": "2023-01-10",
+    "cold_equals_warm": true,
+    "truncated_future_equals_full": true,
+    "cold_seconds": 1.104423354001483,
+    "warm_seconds": 0.004447620001883479
+  },
+  {
+    "date": "2023-01-19",
+    "cold_equals_warm": true,
+    "truncated_future_equals_full": true,
+    "cold_seconds": 1.5708239990017319,
+    "warm_seconds": 0.003435313999943901
+  }
+]

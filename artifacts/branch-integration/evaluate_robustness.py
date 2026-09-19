@@ -20,12 +20,15 @@ def case_name(year, offset):
 
 def metrics(data):
     result = data['result']
-    orders = result['order_ledger']
+    # The durable account ledger includes submitted-but-unfilled instructions.
+    # The compact replay ledger contains executed orders only.
+    orders = result['final_account']['order_ledger']
     by_day = Counter(order['signal_date'] for order in orders)
     days = result['daily_replay_evidence']
     return {'W': result['final_wealth'], 'DD': result['max_drawdown'],
             'account_instructions': len({order['order_id'] for order in orders}),
             'fill_records': len(result['final_account']['fills']),
+            'pending_instructions': len(result['final_account'].get('pending_orders', [])),
             'operation_days': len(by_day), 'peak_daily_instructions': max(by_day.values(), default=0),
             'gross_turnover': result['gross_turnover'], 'fees': result['fees'],
             'slippage_cost': result['slippage_cost'], 'cash': result['final_account']['cash'],

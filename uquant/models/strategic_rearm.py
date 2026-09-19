@@ -574,7 +574,8 @@ def _canonical_rearm_rejections(
 
 def _validate_strategic_rearm_evidence(state: StrategicCashRearmState) -> None:
     rejected_observation = (
-        state.status == StrategicCashRearmStatus.OBSERVING.value
+        state.status in {StrategicCashRearmStatus.OBSERVING.value,
+                         StrategicCashRearmStatus.INVALIDATED.value}
         and state.authorized is False
         and not state.authorization_id
         and not state.authorized_session

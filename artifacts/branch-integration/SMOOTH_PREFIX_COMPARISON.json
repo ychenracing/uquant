@@ -1,0 +1,134 @@
+{
+  "status": "PREFIX_IMPROVEMENT_FULL_ACCEPTANCE_NOT_RUN",
+  "cases": {
+    "c6-prefix/full-offset5": {
+      "source_head": "27298d5f8ff4df61e5d65f6bd8e95817d79d9e86",
+      "source_tree": "036613caee0aa33c01863c2ebb70272014730522",
+      "start": "2023-01-10",
+      "end": "2023-11-01",
+      "metrics": {
+        "W": 3.1810691510599303,
+        "DD": 0.31349074729287896,
+        "account_instructions": 8,
+        "fill_records": 10,
+        "pending_instructions": 0,
+        "operation_days": 7,
+        "peak_daily_instructions": 2,
+        "gross_turnover": 5.7971676695,
+        "fees": 6719.12688014,
+        "slippage_cost": 11597.570999999538,
+        "cash": 5217344.30211986,
+        "held_session_fraction": 0.958974358974359,
+        "peak_to_recovery_days": 0
+      }
+    },
+    "c6-prefix/full-offset10": {
+      "source_head": "27298d5f8ff4df61e5d65f6bd8e95817d79d9e86",
+      "source_tree": "036613caee0aa33c01863c2ebb70272014730522",
+      "start": "2023-01-17",
+      "end": "2023-11-01",
+      "metrics": {
+        "W": 3.82295056784149,
+        "DD": 0.27118295588189323,
+        "account_instructions": 6,
+        "fill_records": 9,
+        "pending_instructions": 0,
+        "operation_days": 6,
+        "peak_daily_instructions": 1,
+        "gross_turnover": 4.125496701,
+        "fees": 5275.59231702,
+        "slippage_cost": 8255.271999999668,
+        "cash": 6265067.13568298,
+        "held_session_fraction": 0.9894736842105263,
+        "peak_to_recovery_days": 0
+      }
+    },
+    "c6-prefix/full": {
+      "source_head": "27298d5f8ff4df61e5d65f6bd8e95817d79d9e86",
+      "source_tree": "036613caee0aa33c01863c2ebb70272014730522",
+      "start": "2023-01-03",
+      "end": "2023-11-01",
+      "metrics": {
+        "W": 3.9050995211531205,
+        "DD": 0.27147361646156465,
+        "account_instructions": 6,
+        "fill_records": 9,
+        "pending_instructions": 0,
+        "operation_days": 6,
+        "peak_daily_instructions": 1,
+        "gross_turnover": 4.192290138,
+        "fees": 5375.96969376,
+        "slippage_cost": 8388.98799999975,
+        "cash": 6393959.042306241,
+        "held_session_fraction": 0.99,
+        "peak_to_recovery_days": 0
+      }
+    },
+    "c7-prefix/full-offset5": {
+      "source_head": "1bce3c9e18429ce452f6ee830455bb65055996a0",
+      "source_tree": "c240eaaf0f62089693b8d88c11decfe403d6a884",
+      "start": "2023-01-10",
+      "end": "2023-11-01",
+      "metrics": {
+        "W": 3.7966546453884997,
+        "DD": 0.2723275942565919,
+        "account_instructions": 7,
+        "fill_records": 9,
+        "pending_instructions": 0,
+        "operation_days": 6,
+        "peak_daily_instructions": 2,
+        "gross_turnover": 4.1021765875,
+        "fees": 5240.124223,
+        "slippage_cost": 8208.584999999675,
+        "cash": 6218376.290777,
+        "held_session_fraction": 0.958974358974359,
+        "peak_to_recovery_days": 0
+      }
+    },
+    "c7-prefix/full-offset10": {
+      "source_head": "1bce3c9e18429ce452f6ee830455bb65055996a0",
+      "source_tree": "c240eaaf0f62089693b8d88c11decfe403d6a884",
+      "start": "2023-01-17",
+      "end": "2023-11-01",
+      "metrics": {
+        "W": 3.8067454270302092,
+        "DD": 0.27119679209784264,
+        "account_instructions": 7,
+        "fill_records": 10,
+        "pending_instructions": 0,
+        "operation_days": 7,
+        "peak_daily_instructions": 1,
+        "gross_turnover": 4.112231979,
+        "fees": 5255.42993958,
+        "slippage_cost": 8228.715999999686,
+        "cash": 6238557.854060419,
+        "held_session_fraction": 0.9894736842105263,
+        "peak_to_recovery_days": 0
+      }
+    },
+    "c7-prefix/full": {
+      "source_head": "1bce3c9e18429ce452f6ee830455bb65055996a0",
+      "source_tree": "c240eaaf0f62089693b8d88c11decfe403d6a884",
+      "start": "2023-01-03",
+      "end": "2023-11-01",
+      "metrics": {
+        "W": 3.8759035747777597,
+        "DD": 0.27133916084354315,
+        "account_instructions": 7,
+        "fill_records": 10,
+        "pending_instructions": 0,
+        "operation_days": 7,
+        "peak_daily_instructions": 1,
+        "gross_turnover": 4.168977474,
+        "fees": 5340.534444479999,
+        "slippage_cost": 8342.315999999784,
+        "cash": 6347369.149555519,
+        "held_session_fraction": 0.99,
+        "peak_to_recovery_days": 0
+      }
+    }
+  },
+  "candidate_full_window_source": "0dc8b02af99a33a18924810e310808035e6171f0",
+  "candidate_production_tree": "c240eaaf0f62089693b8d88c11decfe403d6a884",
+  "scope": "Three development dates through observed 2023 drawdown trough; no full-window or held-out conclusion."
+}

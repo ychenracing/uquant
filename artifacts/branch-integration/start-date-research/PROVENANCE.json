@@ -1,17 +1,21 @@
 {
   "source_bundle": {
     "path": "source.bundle",
-    "bytes": 12867,
-    "sha256": "71c8783ac552b4ebaa46a8e2581230bd3b05955e0120cbdd6c6b57c48312e050",
+    "bytes": 20573,
+    "sha256": "ceac74d0d7dc644972eafc8be5ff8bfbecbd90caa6eb0446b254681623ef82c6",
     "requires": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
     "refs": [
-      "08916756b95ea3da94faae51828842469cdd0a6b refs/heads/fix/start-date-robustness",
+      "87cd0303d580ee03584da58c40a1405c5d456dab refs/heads/research/final-entry-ablation",
+      "1d829d894aca7b336b94079d944d49e8c69963ae refs/heads/research/final-tactical-ablation",
+      "0dd733c2269c985e801a60e96a9747682e479b67 refs/heads/research/recovery-entry-unweighted",
+      "e80552d0149970b957538f633b845bc163cc9c4d refs/heads/research/recovery-proportional",
       "92c558e7d35cfb5e46c97d73a1fbf31f153f2473 refs/heads/research/start-date-c1",
       "a4db3dd929844bfdfceaf3f6a0247bfa90d7afa2 refs/heads/research/start-date-c2",
       "9ff368115f07646ef43b72439bc66ac6b0bc13c2 refs/heads/research/start-date-c3",
+      "e624571a2ed13b2fb092e719512203344b3d83ae refs/heads/research/start-date-consolidated",
       "fb60fc4729f7cfcb7e696f2a73535234862316f9 refs/heads/research/start-date-event-continuity",
-      "e80552d0149970b957538f633b845bc163cc9c4d refs/heads/research/recovery-proportional",
-      "0dd733c2269c985e801a60e96a9747682e479b67 refs/heads/research/recovery-entry-unweighted",
+      "27298d5f8ff4df61e5d65f6bd8e95817d79d9e86 refs/heads/research/start-date-funding",
+      "0dc8b02af99a33a18924810e310808035e6171f0 refs/heads/research/start-date-smooth-protection",
       "3082d66302bf921a84386e7990f09b2a9f7d14db refs/heads/research/tactical-original"
     ]
   },
@@ -27,5 +31,12 @@
   "B0": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
   "original_archive_sha256": "aa66970d04e31b73743501b91eb4c4d999d02f11b7b4c76318c3e852f3db4ab0",
   "original_archive_bytes": 6951866,
-  "verified_original_members": 262
+  "verified_original_members": 262,
+  "baseline_reuse": {
+    "archive_label": "anchor-stable",
+    "original_source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+    "production_tree": "120fa8a2d2914b9185239a0918a84a8838aeed77",
+    "B0": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
+    "mapping": "Exact uquant tree match; source, data and runtime verified by existing compare.read; original producer retained."
+  }
 }

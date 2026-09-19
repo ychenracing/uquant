@@ -325,6 +325,27 @@ def test_candidate_invalidation_revokes_authorization_without_resetting_repair()
     assert replacement.candidate_symbol == "sz300502"
 
 
+def test_invalidated_rearm_at_zero_budget_round_trips_without_authority() -> None:
+    """A real budget repair can invalidate an earlier authorization at level zero."""
+    account = _ready_account()
+    first = _authorize(account)
+    assert first.authorized
+    account.capital_budget_level = 0
+    rejected = _authorize(account, observation=_observation(block_reason=""), session="2025-04-02")
+    assert rejected.status == StrategicCashRearmStatus.INVALIDATED.value
+    assert rejected.capital_budget_level == 0
+    assert rejected.rejection_reasons and not rejected.authorized
+    assert not rejected.authorization_id and not rejected.authorized_session
+    validate_strategic_cash_rearm_state(rejected)
+    restored = account_from_dict(account.to_dict(), require_hashes=False)
+    assert restored.strategic_cash_rearm == rejected
+    forged = copy.deepcopy(rejected)
+    forged.status = StrategicCashRearmStatus.AUTHORIZED.value
+    forged.authorized = True
+    with pytest.raises(ValueError, match="capital budget"):
+        validate_strategic_cash_rearm_state(forged)
+
+
 @pytest.mark.parametrize(
     ("roles", "observation", "reason"),
     (

@@ -150,3 +150,93 @@ def test_participation_filled_order_quantity_requires_actual_fill_sum():
     account["order_ledger"][0]["filled_shares"] -= 1
     with pytest.raises(ValueError, match="positive fill attribution"):
         runner._core_participation_facts(replace(result, final_account=account))
+
+
+
+def _native_mature_entry():
+    from test_ordinary_trend_budget import _confirmed_open
+
+    from uquant.execution import ExecutionPlanner
+
+    policy, account, dates, panel, leaders, risk, targets = _confirmed_open()
+    target = targets[0]
+    _record_final_allocation_trace(risk=risk, targets=targets, orders=tuple(account.pending_orders), planning={})
+    row = RouteTraceRow(
+        date=str(dates[4].date()), reference_context={}, leaders=tuple(asdict(x) for x in leaders.values()),
+        risk={"state": risk.state.value, "freeze_new_risk": risk.freeze_new_risk,
+              "target_gross_cap": risk.target_gross_cap, "core_allocation": copy.deepcopy(risk.evidence["core_allocation"])},
+        opportunity="TREND", targets=(), orders=(), fills=(), account_sha256="unit-native-mature",
+        equity=account.cash, cash=account.cash, position_shares={}, close_marks={},
+    )
+    fills = ExecutionPlanner(policy.cfg).execute_open(date=dates[5], account=account, panel=panel)
+    fill = next(x for x in fills if x.symbol == target.symbol)
+    order = next(x for x in account.order_ledger if x.order_id == fill.order_id)
+    assert fill.shares > 0 and not order.grant_id and not order.epoch_id
+    return row, order, asdict(target)
+
+
+def test_native_ordinary_maturity_has_its_own_route_and_capital_proof():
+    row, order, target = _native_mature_entry()
+    proof = runner._participation_entry(row, order, target)
+    assert proof["qualification"]["qualification_quorum"] == "ORDINARY_CORE"
+    assert proof["capital_budget"]["accepted"] is True
+
+
+@pytest.mark.parametrize("mutation", ["streak", "market", "credible", "structure", "quorum", "date", "confidence", "history", "nonfinite", "minimum", "flag_type"])
+def test_mature_participation_cannot_skip_own_current_proof(mutation):
+    row, order, target = _native_mature_entry()
+    book = row.risk["core_allocation"]
+    entry = book["symbols"][order.symbol]["entry"]
+    if mutation == "streak":
+        entry["confirmations"]["leader_tenure"] = 0
+    elif mutation == "market":
+        book["ordinary_market"]["impulse"] = False
+        book["ordinary_market"]["mature_entry_open"] = False
+    elif mutation == "credible":
+        book["ordinary_market"]["credible_symbols"] = []
+    elif mutation == "structure":
+        entry["checks"]["structure"]["passed"] = False
+    elif mutation == "quorum":
+        entry["qualification_quorum"] = "MATURE_CORE"
+    elif mutation in {"confidence", "history"}:
+        entry["checks"][mutation]["value"] = 0
+    elif mutation == "nonfinite":
+        entry["checks"]["confidence"]["value"] = float("nan")
+    elif mutation == "minimum":
+        entry["checks"]["confidence"]["minimum"] = 0
+    elif mutation == "flag_type":
+        book["ordinary_market"].update(impulse="false", mature_entry_open=False, persistent_mature_entry_open=True)
+    else:
+        entry["as_of"] = "2020-01-01"
+    with pytest.raises(ValueError):
+        runner._participation_entry(row, order, target)
+
+
+@pytest.mark.parametrize("mutation", [None, "invented_witness", "credible_streak", "market_streak", "leader_confidence", "confidence_drift"])
+def test_persistent_mature_evidence_binds_each_current_witness(mutation):
+    # Serialized-proof boundary test on a native funded entry, not economic replay evidence.
+    row, order, target = _native_mature_entry()
+    peer = {**row.leaders[-1], "symbol": "unit-third-witness"}
+    row = replace(row, leaders=(*row.leaders, peer))
+    symbols = [leader["symbol"] for leader in row.leaders]
+    book = row.risk["core_allocation"]
+    entry = book["symbols"][order.symbol]["entry"]
+    proof = {"witnesses": symbols, "observed": 5, "required": 5}
+    book["ordinary_market"].update(impulse=False, mature_entry_open=False, persistent_mature_entry_open=True,
+                                    persistent_maturity=proof, credible_symbols=symbols)
+    entry["confirmations"].update(credible_maturity=5, market_persistence=proof)
+    if mutation == "invented_witness":
+        proof["witnesses"] = [order.symbol, "invented-a", "invented-b"]
+    elif mutation == "credible_streak":
+        entry["confirmations"]["credible_maturity"] = 4
+    elif mutation == "market_streak":
+        proof["observed"] = 4
+    elif mutation == "leader_confidence":
+        peer["confidence"] = 0
+    elif mutation == "confidence_drift":
+        entry["checks"]["confidence"]["value"] = .99
+    if mutation is None:
+        assert runner._participation_entry(row, order, target)["qualification"] == entry
+    else:
+        with pytest.raises(ValueError):
+            runner._participation_entry(row, order, target)

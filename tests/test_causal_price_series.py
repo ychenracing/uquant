@@ -23,6 +23,9 @@ def test_split_and_dividend_link_preserves_raw_execution_fields():
     assert linked[0]['signal_close'] == 100
     assert linked[1]['signal_close'] == pytest.approx(100)
     assert linked[1]['close'] == 49
+    assert linked[0]['share_scale'] == 1
+    assert linked[1]['share_scale'] == 2
+    assert linked[1]['reference_close'] == 49
     assert linked[1]['volume'] == 1000
     assert linked[1]['amount'] == 49000
     assert rows == original
@@ -52,3 +55,12 @@ def test_invalid_action_evidence_is_rejected(events, match):
 def test_protected_date_is_rejected_before_price_use():
     with pytest.raises(ValueError, match='protected'):
         linked_prices([bar('2026-08-06', 1)], [], as_of='2026-08-05')
+
+
+def test_cash_adjustment_does_not_change_share_volume_units():
+    linked = linked_prices([bar('2021-01-04', 100), bar('2021-01-05', 98)],
+                           [event('2021-01-05', '2')], as_of='2021-01-05')
+    assert linked[1]['share_scale'] == 1
+    assert linked[1]['reference_close'] == 98
+    assert linked[1]['signal_close'] == pytest.approx(100)
+    assert linked[1]['volume'] == 1000

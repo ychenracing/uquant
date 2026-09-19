@@ -47,6 +47,7 @@ def linked_prices(rows: list[dict[str, Any]], events: list[dict[str, Any]], *, a
             raise ValueError('action ex-date requires an observed session')
         active[event['ex_date']] = event
     scale = Decimal(1)
+    share_scale = Decimal(1)
     previous_close: Decimal | None = None
     output: list[dict[str, Any]] = []
     for row in visible:
@@ -55,6 +56,7 @@ def linked_prices(rows: list[dict[str, Any]], events: list[dict[str, Any]], *, a
             raise ValueError('source prices must be positive')
         if values['high'] < max(values.values()) or values['low'] > min(values.values()):
             raise ValueError('invalid source OHLC geometry')
+        reference = previous_close
         action = active.get(row['date'])
         if action is not None:
             if previous_close is None:
@@ -74,7 +76,9 @@ def linked_prices(rows: list[dict[str, Any]], events: list[dict[str, Any]], *, a
             if reference <= 0:
                 raise ValueError('action reference price must be positive')
             scale *= previous_close / reference
-        linked = {**row, 'adjustment_scale': float(scale)}
+            share_scale *= 1 + shares
+        linked = {**row, 'adjustment_scale': float(scale), 'share_scale': float(share_scale),
+                  'reference_close': float(reference) if reference is not None else None}
         linked.update({f'signal_{name}': float(value * scale) for name, value in values.items()})
         output.append(linked)
         previous_close = values['close']

@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-19",
+  "record": "start-session sensitivity root cause on current main (closed diagnostic)",
+  "head": "dd0135316849ed491d7174e89c30d67ed54a25ae",
+  "subject": "why delayed-start accounts cannot recover the champion path; closes the start-stress diagnostic line",
+  "causal_chain": [
+    "1. The champion edge is one formation grant: a synchronized reversal_industry FULL_COHORT over the optical pair [sz300308, sz300394] with decisive owner sz300308, admitted 2023-01-04 at 0.95 weight. The synchronized full-cohort quorum needs only 2 confirmation days and bypasses the per-name quality gates (full_compatibility path in evaluate_strategic_quorum).",
+    "2. The route predicate window is calendar-bound: sz300308/sz300394/sz300502 satisfy reversal_industry only from 2023-01-03 to 2023-01-06. From 2023-01-09 the group leaves the route permanently. Any session starting on or after 2023-01-10 can never observe the window, regardless of streak accounting.",
+    "3. Delayed starts therefore form the next available synchronized group instead: the equipment cohort [sh688072, sh688120, sz300223] on 2023-01-19. Both held members exit by 2023-03-24 with confirmed structural deterioration.",
+    "4. No secondary concentrated path ever opens for the missed leader: across the whole 2023-01-10 run there are 0 sessions where sz300308 simultaneously satisfies strict_absolute_owner_quality and independent_market_confirmation (376 candidate sessions observed). The two gates are temporally exclusive: once the name matures into absolute quality (from 2023-03-23) the market overheating gate (max(broad_ret120, tech_ret120) <= strategic_long_cycle_max_tech_ret120) is already failing, and vice versa.",
+    "5. After the equipment cohort dies the account deploys only ordinary core admissions (0.19-0.27 weights), is flushed by the 2023-05-05 crisis, holds cash 2023-08-11 to 2024-07-22, and never regains concentrated leader exposure. Final wealth 1.898x versus 32.579x for the on-time start."
+  ],
+  "ceiling_argument": "The champion terminal wealth is dominated by the 0.95-weight first-week grant compounded over 3.5 years. Honest delayed-start paths are capped by the session's residual non-grant alpha at ordinary admission weights, roughly 2x-3x. The observed start retention 0.0408-0.0639 is already near that ceiling; the frozen start bounds (median >= 0.85, minimum >= 0.75) are unreachable by any causally clean mechanism.",
+  "rejected_alternatives": {
+    "pre_session_streak_warm_start": "Causally clean but ineffective here: the formation window closes before the delayed start, so replayed pre-session observations would reset to zero before the first session anyway.",
+    "lookahead_backfill_of_the_grant": "Violates the causal validation identity of the project; not considered further.",
+    "coexistence_ordinary_admission": "Already tested (coexistence-diagnostic.patch, PUBLIC_AND_DIAGNOSTIC_RESULT.json diagnostics.coexistence): delayed start improves 1.90x -> 2.60x, still ~0.075 retention, and changes the champion path (29.7x -> 34.7x), breaking bit-for-bit champion agreement. Not a fix.",
+    "concentrated_readoption_of_mature_leaders": "Would require relaxing the market overheating gate for new concentrated entries, i.e. buying concentrated into an overheated market. That is an economic redesign of the risk philosophy, not a bounded recovery fix; recorded as a user decision item, not implemented."
+  },
+  "standing": "Start-session bounds remain diagnostic-only per the user-authorized 2026-09-18 decision (START_STRESS_FEASIBILITY_DECISION.json). No further start-stress implementation work is planned; this file closes the diagnostic line with the full mechanism.",
+  "probes": [
+    "/data/user/work/discovery_probe.py (day-by-day eligibility and qualification traces)",
+    "/data/user/work/absolute_probe.py (ABSOLUTE_SINGLE gate availability over the full session)"
+  ]
+}

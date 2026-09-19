@@ -1,0 +1,133 @@
+{
+  "base_head": "041d2be170a3b246a0ae1ae10cb85b9d3bc53aed",
+  "date": "2026-09-18",
+  "findings": [
+    "Cost retention on the full universe moves from 0.2742 to 0.9945, clearing the 0.90 blocking bound.",
+    "Standard-cost terminal wealth improves from 29.717x to 32.579x with 20 orders instead of 22: the band also removes one unnecessary de-risk detour the knife edge used to trigger on the standard path.",
+    "Max drawdown is bit-identical to the pre-fix runs in every full-universe cell (0.27147 standard, 0.27228 doubled cost), so the hard risk cap behaviour is untouched.",
+    "remove308 and remove502 cells are bit-identical to the pre-fix runs: the fix only acts where the 12% knife edge was actually touched.",
+    "Start-offset retention stays at 0.058 (1.898x versus 32.579x). START_STRESS_FEASIBILITY_DECISION.json already records this bound as unachievable with the current one-time strategic-grant architecture; it is a separate trade-off decision, not a cost-band defect."
+  ],
+  "fix": {
+    "files": [
+      "uquant/config/policies.py",
+      "uquant/risk/market_book.py"
+    ],
+    "mechanism": "Capital damage now engages at capital drawdown >= 0.12 + 0.005 instead of the strict 0.12 knife edge. Escalation, caps, repair ladder and every other risk threshold are unchanged; the band only removes the hair-trigger entry that a 0.13% cost perturbation could flip.",
+    "parameter": "RiskPolicy.capital_damage_entry_band = 0.005"
+  },
+  "record": "bounded robustness fix for the full-universe cost fragility on main",
+  "retention": {
+    "bound": 0.9,
+    "full_cost2_after": 0.9945259602459026,
+    "full_cost2_before": 0.2742000828894178,
+    "full_offset10_after": 0.05826330468841387,
+    "full_offset5_after": 0.05826330468841387,
+    "remove308_cost2_after": 0.9946060227268805,
+    "remove502_cost2_after": 1.0006714907618033
+  },
+  "status": "local working-tree change, not pushed",
+  "stress_cells": {
+    "full-cost2": {
+      "after": {
+        "account_orders": 20,
+        "final_wealth": 32.40090574411483,
+        "max_drawdown": 0.27228092480987354
+      },
+      "before": {
+        "account_orders": 17,
+        "final_wealth": 8.1484048485381,
+        "max_drawdown": 0.27228092480987354
+      }
+    },
+    "full-offset0": {
+      "after": {
+        "account_orders": 20,
+        "final_wealth": 32.579245830951976,
+        "max_drawdown": 0.27147361646156465
+      },
+      "before": {
+        "account_orders": 22,
+        "final_wealth": 29.717003593409824,
+        "max_drawdown": 0.27147361646156465
+      }
+    },
+    "full-offset10": {
+      "after": {
+        "account_orders": 23,
+        "final_wealth": 1.8981745263674923,
+        "max_drawdown": 0.24420616323638922
+      },
+      "before": {
+        "account_orders": 23,
+        "final_wealth": 1.8981745263674923,
+        "max_drawdown": 0.24420616323638922
+      }
+    },
+    "full-offset5": {
+      "after": {
+        "account_orders": 23,
+        "final_wealth": 1.8981745263674923,
+        "max_drawdown": 0.24420616323638922
+      },
+      "before": {
+        "account_orders": 23,
+        "final_wealth": 1.8981745263674923,
+        "max_drawdown": 0.24420616323638922
+      }
+    },
+    "remove308-cost2": {
+      "after": {
+        "account_orders": 22,
+        "final_wealth": 1.5682755747583201,
+        "max_drawdown": 0.2252690380127187
+      },
+      "before": {
+        "account_orders": 22,
+        "final_wealth": 1.5682755747583201,
+        "max_drawdown": 0.2252690380127187
+      }
+    },
+    "remove308-offset0": {
+      "after": {
+        "account_orders": 22,
+        "final_wealth": 1.5767806939863762,
+        "max_drawdown": 0.22417190396858144
+      },
+      "before": {
+        "account_orders": 22,
+        "final_wealth": 1.5767806939863762,
+        "max_drawdown": 0.22417190396858144
+      }
+    },
+    "remove502-cost2": {
+      "after": {
+        "account_orders": 18,
+        "final_wealth": 1.0520002291852002,
+        "max_drawdown": 0.24145159409864236
+      },
+      "before": {
+        "account_orders": 18,
+        "final_wealth": 1.0520002291852002,
+        "max_drawdown": 0.24145159409864236
+      }
+    },
+    "remove502-offset0": {
+      "after": {
+        "account_orders": 18,
+        "final_wealth": 1.0512942947783201,
+        "max_drawdown": 0.24230406260647408
+      },
+      "before": {
+        "account_orders": 18,
+        "final_wealth": 1.0512942947783201,
+        "max_drawdown": 0.24230406260647408
+      }
+    }
+  },
+  "verification": {
+    "config_characterization": "benchmarks/public_api_contract.json flat-config section and tests/test_config_model_characterization.py count refreshed for the intentional new rule (266 -> 267 effective settings)",
+    "stress_runner": "/data/user/work/champion_stress.py --root /workspace/uquant --out-dir /data/user/work/main-stress-band",
+    "targeted_risk_tests": "tests/test_risk_transitions.py, test_risk_sentinel_evidence.py, test_risk_sentinel_integration.py, test_risk_sentinel_opinion.py, test_risk_differential_holdout.py, test_first_divergence.py all pass"
+  }
+}

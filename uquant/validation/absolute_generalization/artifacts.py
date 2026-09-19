@@ -197,6 +197,89 @@ def _is_production_predicate_fact(value: Mapping[object, object]) -> bool:
     )
 
 
+def _is_replay_decision_check_path(path: tuple[str | int, ...]) -> bool:
+    for index, component in enumerate(path):
+        if component != "replay_evidence":
+            continue
+        prefix = path[:index]
+        if prefix and not (
+            len(prefix) == 2
+            and prefix[0] == "cells"
+            and isinstance(prefix[1], int)
+        ):
+            continue
+        tail = path[index:]
+        if len(tail) < 12 or tail[:2] != ("replay_evidence", "observations"):
+            continue
+        if not isinstance(tail[2], int):
+            continue
+        decision_prefix = tail[3:6] == ("decision_payload", "value", "risk_summary")
+        runtime_prefix = tail[3:7] == (
+            "decision_runtime_payload", "value", "risk_assessment", "evidence",
+        )
+        offset = 6 if decision_prefix else 7 if runtime_prefix else -1
+        if (
+            offset >= 0
+            and len(tail) == offset + 6
+            and tail[offset:offset + 2] == ("core_allocation", "symbols")
+            and isinstance(tail[offset + 2], str)
+            and tail[offset + 3] in {"entry", "repair_entry"}
+            and tail[offset + 4] == "checks"
+            and isinstance(tail[offset + 5], str)
+        ):
+            return True
+    return False
+
+
+def _is_reachability_decision_check_path(path: tuple[str | int, ...]) -> bool:
+    """Recognize strict entry checks embedded in observed reachability state."""
+
+    failed_or_terminal = (
+        len(path) == 12
+        and path[0] in {"failed_grant_recovery", "terminal_scc"}
+        and path[1] == "transitions"
+        and isinstance(path[2], int)
+        and path[3] == "runtime_state"
+    )
+    repair_bound = (
+        len(path) == 13
+        and path[0] == "repair_bounds"
+        and isinstance(path[1], int)
+        and path[2] == "observations"
+        and isinstance(path[3], int)
+        and path[4] == "runtime_state"
+    )
+    offset = 4 if failed_or_terminal else 5 if repair_bound else -1
+    return (
+        offset >= 0
+        and path[offset:offset + 4]
+        == ("risk", "evidence", "core_allocation", "symbols")
+        and isinstance(path[offset + 4], str)
+        and path[offset + 5] in {"entry", "repair_entry"}
+        and path[offset + 6] == "checks"
+        and isinstance(path[offset + 7], str)
+    )
+
+
+def _is_decision_check_fact(value: Mapping[object, object]) -> bool:
+    """Recognize the deterministic entry-check DTOs inside replayed decisions."""
+
+    keys = set(value)
+    if keys == {"as_of", "passed"}:
+        return type(value.get("passed")) is bool and isinstance(value.get("as_of"), str)
+    if keys == {"as_of", "minimum", "passed", "value"}:
+        return (
+            type(value.get("passed")) is bool
+            and isinstance(value.get("as_of"), str)
+            and isinstance(value.get("minimum"), (int, float))
+            and not isinstance(value.get("minimum"), bool)
+            and isinstance(value.get("value"), (int, float))
+            and not isinstance(value.get("value"), bool)
+        )
+    return False
+
+
+
 def _is_crowning_predicate_path(path: tuple[str | int, ...]) -> bool:
     return (
         len(path) == 5
@@ -211,7 +294,8 @@ def _is_crowning_predicate_path(path: tuple[str | int, ...]) -> bool:
 def _is_failed_grant_predicate_path(path: tuple[str | int, ...]) -> bool:
     return (
         len(path) == 8
-        and path[:2] == ("failed_grant_recovery", "transitions")
+        and path[0] in {"failed_grant_recovery", "terminal_scc"}
+        and path[1] == "transitions"
         and isinstance(path[2], int)
         and path[3:5] == ("runtime_state", "account_payload")
         and path[5] in {"flat_book_capital_repair", "strategic_cash_rearm"}
@@ -292,48 +376,14 @@ def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
     )
 
 
-def _market_check_alias(path: tuple[str | int, ...]) -> tuple[str | int, ...]:
-    if (len(path) == 12 and path[:2] == ("failed_grant_recovery", "transitions")
-            and isinstance(path[2], int)
-            and path[3:6] == ("runtime_state", "risk", "evidence")):
-        return ("replay_evidence", "observations", path[2],
-                "decision_payload", "value", "risk_summary", *path[6:])
-    return path
-
-
-def _is_core_market_check_path(path: tuple[str | int, ...]) -> bool:
-    path = _market_check_alias(path)
-    if (len(path) >= 6 and path[-3:-1] == ("authoritative_state", "checks")
-            and path[-6] == "strategic_cash_rearm"
-            and _is_production_predicate_path(path[:-3])):
-        return True
-    if len(path) in {14, 15} and path[0] == "cells" and isinstance(path[1], int):
-        path = path[2:]
-    if (len(path) == 13 and path[:2] == ("replay_evidence", "observations")
-            and isinstance(path[2], int)
-            and path[3:7] == ("decision_runtime_payload", "value", "risk_assessment", "evidence")):
-        path = (*path[:3], "decision_payload", "value", "risk_summary", *path[7:])
-    return (len(path) == 12 and path[:2] == ("replay_evidence", "observations")
-            and isinstance(path[2], int)
-            and path[3:8] == ("decision_payload", "value", "risk_summary", "core_allocation", "symbols")
-            and isinstance(path[8], str) and bool(path[8])
-            and path[9] in {"entry", "pending_entry", "repair_entry"} and path[10] == "checks")
-
-
-def _is_core_market_check_fact(value: Mapping[object, object], path: tuple[str | int, ...]) -> bool:
-    """Accept only the production entry-check DTO at its owned decision path."""
-    if not _is_core_market_check_path(path):
-        return False
-    check = path[-1]
-    if check not in {"confidence", "industry", "current_data", "history", "structure", "liquidity"}:
-        return False
-    numeric = {"value", "minimum"} if check in {"confidence", "history"} else set()
-    return (set(value) == {"as_of", "passed"} | numeric
-            and type(value.get("passed")) is bool
-            and isinstance(value.get("as_of"), str)
-            and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(value["as_of"])) is not None
-            and all(isinstance(value[key], (int, float)) and not isinstance(value[key], bool)
-                    and math.isfinite(cast(float, value[key])) for key in numeric))
+def _is_rearm_certificate_check_path(path: tuple[str | int, ...]) -> bool:
+    return (
+        len(path) >= 6
+        and path[-6:-4] == ("strategic_cash_rearm", "predicate_results")
+        and path[-3:-1] == ("authoritative_state", "checks")
+        and isinstance(path[-1], str)
+        and _is_production_predicate_path(path[:-3])
+    )
 
 
 def reject_self_assertion_claims(
@@ -343,8 +393,6 @@ def reject_self_assertion_claims(
     path: tuple[str | int, ...] = (),
 ) -> None:
     if isinstance(value, Mapping):
-        if _is_production_predicate_path(path) and not _is_production_predicate_fact(value):
-            raise ValueError(f"absolute generalization {label} contains a self-asserted pass or malformed production predicate")
         forbidden = {
             key
             for key in value
@@ -355,13 +403,23 @@ def reject_self_assertion_claims(
             )
         }
         if forbidden and not (
-            forbidden == {"passed"} and (
-                (_is_production_predicate_fact(value) and _is_production_predicate_path(path))
-                or _is_core_market_check_fact(value, path)
+            (
+                forbidden == {"passed"}
+                and _is_production_predicate_fact(value)
+                and _is_production_predicate_path(path)
+            )
+            or (
+                forbidden == {"passed"}
+                and _is_decision_check_fact(value)
+                and (
+                    _is_replay_decision_check_path(path)
+                    or _is_reachability_decision_check_path(path)
+                    or _is_rearm_certificate_check_path(path)
+                )
             )
         ):
             raise ValueError(
-                f"absolute generalization {label} contains a self-asserted pass"
+                f"absolute generalization {label} contains a self-asserted pass at {path!r}"
             )
         for key, item in value.items():
             reject_self_assertion_claims(item, label=label, path=(*path, key))

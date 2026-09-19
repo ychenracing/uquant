@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from copy import deepcopy
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 
@@ -34,6 +34,7 @@ from ..types import (
 )
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
+from .leaders.cycle import add_mature_leaders, mature_cycle_weights, observe_mature_cycle
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import (
     is_consumed_repair_order,
@@ -162,7 +163,7 @@ def _available_transfer_incumbent(
             or str(date.date()) in account.rotation_dates or not self._rotation_allowed(account, date, user_panel)):
         return None
     held = [s for s, weight in weights_now.items() if weight > 0 and s in leaders and s in user_panel]
-    if not held or len(held) >= self.cfg.max_positions:
+    if not held:
         return None
     return min(held, key=lambda s: (self._retention_score(s, leaders, account), s))
 
@@ -473,7 +474,11 @@ def _restoration_episode_block(book: AllocationBook, symbol: str) -> str | None:
 def _restore_ordinary_holdings(book: AllocationBook) -> None:
     account, cfg = book.account, book.policy.cfg
     episode = pd.Timestamp(account.last_shock_date).toordinal() if account.last_shock_date else 0
-    for symbol, desired in sorted(account.protected_weights.items()):
+    priority = sorted(account.protected_weights, key=lambda symbol: (
+        -book.leaders[symbol].score if symbol in book.leaders else math.inf, symbol,
+    ))
+    for symbol in priority:
+        desired = account.protected_weights[symbol]
         if symbol in book.owned:
             continue
         row = book.record(symbol)
@@ -647,7 +652,76 @@ def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified:
     return max(0.0, book.policy.cfg.core_admission_weight - ordinary)
 
 
-def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity: Opportunity) -> None:
+def _mature_admission_weights(book: AllocationBook, eligible: list[str],
+                              opportunity: Opportunity) -> dict[str, float]:
+    symbols = [s for s in eligible if not book.owned and not book.account.pending_orders
+               and not book.account.candidate_tenure.get("ordinary_repair_capital_active")
+               and book.record(s).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"]
+    return mature_cycle_weights(book, symbols, opportunity)
+
+
+def _mature_deployment_pending(
+    book: AllocationBook, eligible: list[str], market: dict[str, Any],
+) -> set[str]:
+    """Keep flat-book mature capital pending until its cycle is observable."""
+    deployed_ordinary = any(
+        weight > 1e-12 and symbol not in book.owned
+        for symbol, weight in book.weights_now.items()
+    )
+    settled_strategic_rotation = (
+        book.account.strategic_epochs_completed > 0
+        and book.account.strategic_last_exit_date == str(book.date.date())
+        and market.get("persistent_mature_entry_open") is True
+    )
+    market["settled_strategic_rotation_open"] = settled_strategic_rotation
+    return {
+        symbol for symbol in eligible
+        if book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
+        and not (deployed_ordinary or settled_strategic_rotation)
+        and market.get("leader_cycle_armed") is not True
+    }
+
+
+def _ordinary_admission_weight(
+    book: AllocationBook, *, symbol: str, selected_count: int, allowance: float,
+    cycle_weights: dict[str, float],
+) -> float:
+    weight = min(book.policy.cfg.single_core_entry_cap, allowance / selected_count)
+    maturity_only = (
+        book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
+    )
+    if symbol in cycle_weights:
+        return min(cycle_weights[symbol], allowance)
+    if not book.leaders[symbol].mature or maturity_only:
+        return min(weight, book.policy.cfg.core_admission_weight)
+    return weight
+
+
+def _affordable_core_candidates(
+    book: AllocationBook, eligible: list[str], occupied: set[str],
+    allowances: dict[str, float], cycle_weights: dict[str, float],
+) -> tuple[list[str], dict[str, str]]:
+    def affordable(symbol: str, count: int) -> bool:
+        return _ordinary_admission_weight(
+            book, symbol=symbol, selected_count=count, allowance=allowances[symbol],
+            cycle_weights=cycle_weights,
+        ) + 1e-12 >= book.policy.cfg.min_trade_weight
+
+    funded = [s for s in eligible if affordable(s, 1)]
+    # A full book may evaluate a challenger; funding still requires a free slot.
+    slots = funded[:max(1, book.policy.cfg.max_positions - len(occupied))]
+    selected = list(slots)
+    while selected and any(not affordable(s, len(selected)) for s in selected):
+        selected.pop()
+    blocked = {s: "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM" if s not in funded
+               else "ADMISSION_BUDGET_SLOTS_EXHAUSTED" if s in slots
+               else "POSITION_SLOTS_EXHAUSTED" for s in eligible if s not in selected}
+    return selected, blocked
+
+
+def _admit_new_cores(
+    book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
+) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
@@ -659,11 +733,19 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+    deployment_pending = _mature_deployment_pending(book, eligible, market)
+    eligible = [symbol for symbol in eligible if symbol not in deployment_pending]
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
-    selected = eligible[:max(0, book.policy.cfg.max_positions - len(occupied))]
+    cycle_weights = _mature_admission_weights(book, eligible, opportunity)
+    allowances = {s: cast(float, independent_budget) if _current_independent_entry(
+        book.record(s).get("entry", {}), book.date) else budget for s in eligible}
+    selected, blocked = _affordable_core_candidates(book, eligible, occupied, allowances, cycle_weights)
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
+            continue
+        if symbol in deployment_pending:
+            book.record(symbol)["entry_gate"] = "DEPLOYMENT_CONFIRMATION_PENDING"
             continue
         if symbol not in eligible:
             book.record(symbol)["entry_gate"] = (
@@ -671,14 +753,13 @@ def _admit_new_cores(book: AllocationBook, *, candidates: list[str], opportunity
             )
             continue
         if symbol not in selected:
-            book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
+            book.record(symbol)["entry_gate"] = blocked[symbol]
             continue
-        independent = _current_independent_entry(book.record(symbol).get("entry", {}), book.date)
-        allowance = independent_budget if independent else budget
-        assert allowance is not None  # The shared market-input check above already passed.
-        weight = min(book.policy.cfg.single_core_entry_cap, allowance / len(selected))
-        if not book.leaders[symbol].mature:
-            weight = min(weight, book.policy.cfg.core_admission_weight)
+        allowance = allowances[symbol]
+        weight = _ordinary_admission_weight(
+            book, symbol=symbol, selected_count=len(selected), allowance=allowance,
+            cycle_weights=cycle_weights,
+        )
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
             continue
@@ -733,6 +814,8 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
     )
     merged = []
     for target in targets:
+        if "leader_lifecycle" in book.record(target.symbol):
+            target = replace(target, lifecycle=book.record(target.symbol)["leader_lifecycle"])
         if target.symbol in book.recovery_targets:
             recovery = book.recovery_targets[target.symbol]
             mechanism = book.mechanisms.get(target.symbol)
@@ -759,7 +842,8 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
 
 def _caution_probe_book_open(book: AllocationBook) -> bool:
     account, risk = book.account, book.risk
-    return not (risk.state is not Risk.CAUTION or not risk.freeze_new_risk
+    return not (risk.state not in {Risk.NORMAL, Risk.CAUTION}
+            or (risk.state is Risk.NORMAL and risk.freeze_new_risk)
             or risk.evidence.get("freeze_new_risk", False)
             or risk.evidence.get("sentinel_freeze_new_risk", False)
             or account.capital_budget_level != 0 or account.chronic_level != 0
@@ -770,7 +854,7 @@ def _caution_probe_book_open(book: AllocationBook) -> bool:
 
 
 def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> set[str]:
-    """Isolated research permission; reuse the original tactical signal unchanged."""
+    """Reach the original tactical signal in unfrozen or bounded caution books."""
     account, risk, policy = book.account, book.risk, book.policy
     if not _caution_probe_book_open(book):
         return set()
@@ -787,7 +871,7 @@ def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> s
     targets = tactical_admission_targets(
         policy, opportunity=opportunity, date=book.date, risk=risk,
         user_panel=book.user_panel, leaders=book.leaders, account=planned,
-        level1_recovery_repair=False, bounded_recovery_repair=True,
+        level1_recovery_repair=False, bounded_recovery_repair=risk.freeze_new_risk,
         tactical_recovery_market=weak or transitional,
         transitional_recovery_market=transitional, weak_secular_market=weak,
     )
@@ -851,6 +935,7 @@ def _allocate_strategy(
         self, date=date, opportunity=opportunity, risk=risk, leaders=leaders,
         user_panel=user_panel,
     )
+    observe_mature_cycle(book, opportunity, market)
     rearm_ordinary_market(account=account, date=date, risk=risk, market=market,
                           confirmation_days=self.cfg.leader_tenure_days)
     observe_repair_maturity(self, account=account, date=date, market=market, user_panel=user_panel)
@@ -872,7 +957,8 @@ def _allocate_strategy(
         _restore_ordinary_holdings(book)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
     if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
-        _admit_new_cores(book, candidates=candidates, opportunity=opportunity)
+        _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market)
+        add_mature_leaders(book, opportunity)
     else:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (

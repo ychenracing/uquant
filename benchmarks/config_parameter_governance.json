@@ -12,7 +12,7 @@
       "economic_fields": 164
     },
     "current": {
-      "total_fields": 275,
+      "total_fields": 276,
       "economic_fields": 162
     }
   },
@@ -122,6 +122,7 @@
           "capital_budget_level3_dd",
           "capital_budget_level3_cap",
           "capital_budget_repair_days",
+          "capital_damage_entry_band",
           "capital_guard_relapse_dd",
           "capital_guard_min_recovery_days",
           "capital_guard_cooldown_days",
@@ -430,7 +431,7 @@
     "strategic_persistent_confirm_days",
     "strategic_reversal_confirm_days"
   ],
-  "artifact_sha256": "7677c1e1666ae0f003df0ae0950b60b1ec5adad1d154476b99bc59044798450d",
+  "artifact_sha256": "05497092e2f88ae8fe567c92545a5cba7c6c7f7492ebe4badc0bd2f2e7cfc74f",
   "strategy_rule_removals": {
     "contract_sha256": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
     "fields": [

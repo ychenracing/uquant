@@ -101,6 +101,7 @@
           "capital_budget_level3_dd",
           "capital_budget_level3_cap",
           "capital_budget_repair_days",
+          "capital_damage_entry_band",
           "capital_guard_relapse_dd",
           "capital_guard_min_recovery_days",
           "capital_guard_cooldown_days",

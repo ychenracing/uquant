@@ -87,6 +87,9 @@ jobs:
       - name: Run absolute shard
         id: execute
         run: >-
+          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal"
+          run --name absolute-${{ matrix.shard }} --timeout 7200
+          --heartbeat 5 --log-budget-mib 512 --
           uv run python scripts/run_absolute_generalization_acceptance.py
           --shard "${{ matrix.shard }}"
           --run-id "${{ github.run_id }}"
@@ -108,6 +111,29 @@ jobs:
           name: absolute-diagnostic-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.shard }}
           path: ${{ steps.execute.outputs.diagnostic_path }}
           if-no-files-found: error
+
+      - name: Export controlled CI execution evidence
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal" \
+            export --output "$RUNNER_TEMP/cloud-execution-metadata.zip"
+          # Only this fixed historical acceptance command, not arbitrary agent logs.
+          python -m tools.cloud_guard --root "$RUNNER_TEMP/cloud-task-journal" \
+            export --include-private-logs --output "$RUNNER_TEMP/cloud-execution-originals.zip"
+      - name: Preserve controlled CI execution evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cloud-execution-absolute-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/cloud-execution-metadata.zip
+            ${{ runner.temp }}/cloud-execution-metadata.zip.receipt.json
+            ${{ runner.temp }}/cloud-execution-originals.zip
+            ${{ runner.temp }}/cloud-execution-originals.zip.receipt.json
+          if-no-files-found: error
+          retention-days: 30
 
   generalization-acceptance:
     name: Generalization Acceptance

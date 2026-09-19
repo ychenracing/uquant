@@ -208,6 +208,7 @@ damage guard 或 acute evacuation；策略目标还必须不低于当前总仓�
 | `capital_dd_risk_off` | 0.14 |
 | `capital_dd_crisis` | 0.20 |
 | `capital_budget_level2_dd / cap` | 0.12 / 0.82 |
+| `capital_damage_entry_band` | 0.005 |
 | `capital_budget_level3_dd / cap` | 0.16 / 0.50 |
 | `capital_budget_repair_days` | 5 |
 | `chronic_moderate_cap` | 0.45 |

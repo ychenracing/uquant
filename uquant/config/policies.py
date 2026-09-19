@@ -271,6 +271,7 @@ class RiskPolicy:
     capital_budget_new_cohort_grace_days: ClassVar[int] = 160
     capital_budget_emerging_cohort_grace_days: ClassVar[int] = 40
     capital_budget_level2_dd: ClassVar[float] = 0.12
+    capital_damage_entry_band: ClassVar[float] = 0.005
     capital_budget_level2_cap: ClassVar[float] = 0.82
     capital_budget_level3_dd: ClassVar[float] = 0.16
     capital_budget_level3_cap: ClassVar[float] = 0.50

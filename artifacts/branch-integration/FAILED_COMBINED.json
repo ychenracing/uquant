@@ -1,0 +1,285 @@
+{
+  "label": "combined",
+  "complete": true,
+  "gates": {
+    "nominal_geometric_retention_min": 0.9,
+    "each_wealth_retention_min": 0.75,
+    "each_drawdown_delta_max": 0.05
+  },
+  "nominal_geometric_retention": 1.3610217650058989,
+  "economic_screen_pass": false,
+  "rows": [
+    {
+      "case": "full",
+      "main": {
+        "wealth": 32.579245830951976,
+        "max_drawdown": 0.27147361646156465,
+        "orders": 20,
+        "annual_turnover": 14.599750878663292
+      },
+      "candidate": {
+        "wealth": 32.579245830951976,
+        "max_drawdown": 0.27147361646156465,
+        "orders": 20,
+        "annual_turnover": 14.599750878663292
+      },
+      "wealth_retention": 1.0,
+      "drawdown_delta": 0.0,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/full.json.gz",
+          "bytes": 271901,
+          "sha256": "b6ad715441c2b9845608c7542b5891de224f5491c028e1e079fa102130f76f13",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "combined/full.json.gz",
+          "bytes": 271953,
+          "sha256": "4c08cb1c3813fb4fc8b1d9fb0e0a3e20b5673d6bf27e495e59260784c424dc78",
+          "source_head": "57949b4fa99e66d297decba18cdd37033686561b",
+          "source_tree": "f34fbf88a145330e468a85f7e310d4742ac63ec1"
+        }
+      ]
+    },
+    {
+      "case": "no_optical",
+      "main": {
+        "wealth": 1.10081786436568,
+        "max_drawdown": 0.20928407343658617,
+        "orders": 13,
+        "annual_turnover": 0.8816718957784809
+      },
+      "candidate": {
+        "wealth": 1.6697556792437505,
+        "max_drawdown": 0.22561481451191534,
+        "orders": 19,
+        "annual_turnover": 1.3885831609810126
+      },
+      "wealth_retention": 1.5168319240584882,
+      "drawdown_delta": 0.01633074107532917,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/no_optical.json.gz",
+          "bytes": 163555,
+          "sha256": "d8394728126691a965c0554c50b434978b16c7f69ab058f988b1caae742d9a33",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "combined/no_optical.json.gz",
+          "bytes": 174660,
+          "sha256": "fd4249738e7a971ffe8b23c51f560fe3e269519621e3bb519efa798482017ed6",
+          "source_head": "57949b4fa99e66d297decba18cdd37033686561b",
+          "source_tree": "f34fbf88a145330e468a85f7e310d4742ac63ec1"
+        }
+      ]
+    },
+    {
+      "case": "remove_all_three",
+      "main": {
+        "wealth": 1.00002249697879,
+        "max_drawdown": 0.20928407343658617,
+        "orders": 13,
+        "annual_turnover": 0.8803668997088607
+      },
+      "candidate": {
+        "wealth": 1.4992750079683301,
+        "max_drawdown": 0.22561481451191534,
+        "orders": 19,
+        "annual_turnover": 1.3674172083417722
+      },
+      "wealth_retention": 1.4992412795690624,
+      "drawdown_delta": 0.01633074107532917,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/remove_all_three.json.gz",
+          "bytes": 161808,
+          "sha256": "f7392e1e9b4579e301ced79d9812ad154d886f6ed394e1ef49795cc4fe7594c5",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "combined/remove_all_three.json.gz",
+          "bytes": 172917,
+          "sha256": "aba61c155820cd1f1806479ab7b9f7b6902aae3c278483da8478040b38b6574c",
+          "source_head": "57949b4fa99e66d297decba18cdd37033686561b",
+          "source_tree": "f34fbf88a145330e468a85f7e310d4742ac63ec1"
+        }
+      ]
+    },
+    {
+      "case": "d-continuous_ai_era",
+      "main": {
+        "wealth": 18.810650610878163,
+        "max_drawdown": 0.27146973146234554,
+        "orders": 23,
+        "annual_turnover": 12.854414551612658
+      },
+      "candidate": {
+        "wealth": 19.658037359715983,
+        "max_drawdown": 0.2714231121619952,
+        "orders": 24,
+        "annual_turnover": 13.572585936841772
+      },
+      "wealth_retention": 1.0450482424221827,
+      "drawdown_delta": -4.661930035032569e-05,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/d-continuous_ai_era.json.gz",
+          "bytes": 272622,
+          "sha256": "9edfc99f1fd8634149a62c314e47afbcbd84396ae6efce30b6d93dabb18c297f",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "combined/d-continuous_ai_era.json.gz",
+          "bytes": 270679,
+          "sha256": "58401412d7652ce477636fe7f16dfea4577a0ac877577a4e2b60aeb017ade90b",
+          "source_head": "57949b4fa99e66d297decba18cdd37033686561b",
+          "source_tree": "f34fbf88a145330e468a85f7e310d4742ac63ec1"
+        }
+      ]
+    },
+    {
+      "case": "full-cost2",
+      "main": {
+        "wealth": 32.40090574411483,
+        "max_drawdown": 0.27228092480987354,
+        "orders": 20,
+        "annual_turnover": 14.53437775986329
+      },
+      "candidate": {
+        "wealth": 32.40090574411483,
+        "max_drawdown": 0.27228092480987354,
+        "orders": 20,
+        "annual_turnover": 14.53437775986329
+      },
+      "wealth_retention": 1.0,
+      "drawdown_delta": 0.0,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/full-cost2.json.gz",
+          "bytes": 271969,
+          "sha256": "e5b759644d32db610615a9f0df3bbb6b6b3fb97a5c3011c27898c0390c4f0c32",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "combined/full-cost2.json.gz",
+          "bytes": 271940,
+          "sha256": "055fca1cba1a18f2cf9727698ad570dbf07da1e38a59cfce113e7b38eff5bc2d",
+          "source_head": "57949b4fa99e66d297decba18cdd37033686561b",
+          "source_tree": "f34fbf88a145330e468a85f7e310d4742ac63ec1"
+        }
+      ]
+    },
+    {
+      "case": "full-offset5",
+      "main": {
+        "wealth": 1.3028975824211924,
+        "max_drawdown": 0.17754094669713794,
+        "orders": 23,
+        "annual_turnover": 1.4458908530712962
+      },
+      "candidate": {
+        "wealth": 5.622466803311666,
+        "max_drawdown": 0.25389366472788366,
+        "orders": 45,
+        "annual_turnover": 6.7680941995422454
+      },
+      "wealth_retention": 4.315355926030164,
+      "drawdown_delta": 0.07635271803074573,
+      "pass": false,
+      "originals": [
+        {
+          "path": "main/full-offset5.json.gz",
+          "bytes": 182337,
+          "sha256": "59da9ef07b071f72398d2068ee2e80467b15b80d30550ef9f22ba51b67f9bc49",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "combined/full-offset5.json.gz",
+          "bytes": 256848,
+          "sha256": "1970803c564c470f1f32f6b6584de8981fd8f0dcd5f5b937485085a08c39f6f2",
+          "source_head": "57949b4fa99e66d297decba18cdd37033686561b",
+          "source_tree": "f34fbf88a145330e468a85f7e310d4742ac63ec1"
+        }
+      ]
+    },
+    {
+      "case": "loo-sz300308",
+      "main": {
+        "wealth": 1.1112307929627396,
+        "max_drawdown": 0.22788951483933284,
+        "orders": 17,
+        "annual_turnover": 0.9852556021139242
+      },
+      "candidate": {
+        "wealth": 1.8633650614478565,
+        "max_drawdown": 0.27108751240098516,
+        "orders": 19,
+        "annual_turnover": 1.5617171048962024
+      },
+      "wealth_retention": 1.6768479358637935,
+      "drawdown_delta": 0.043197997561652324,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/loo-sz300308.json.gz",
+          "bytes": 167784,
+          "sha256": "4c6bd23def13f52b00aebe9aea34432495173c6ba57d06a4d3a5839ffc8bcde4",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "combined/loo-sz300308.json.gz",
+          "bytes": 176125,
+          "sha256": "f0bbbae6d2c88e512cdfa4d538a72e53c77c32b2bfbb805bdaea7d24aa428839",
+          "source_head": "57949b4fa99e66d297decba18cdd37033686561b",
+          "source_tree": "f34fbf88a145330e468a85f7e310d4742ac63ec1"
+        }
+      ]
+    },
+    {
+      "case": "loo-sz300502",
+      "main": {
+        "wealth": 1.1309150270568253,
+        "max_drawdown": 0.18666822008118045,
+        "orders": 21,
+        "annual_turnover": 1.219330044050633
+      },
+      "candidate": {
+        "wealth": 1.8037709373162703,
+        "max_drawdown": 0.25389366472788366,
+        "orders": 22,
+        "annual_turnover": 1.7969278864050635
+      },
+      "wealth_retention": 1.5949659295009402,
+      "drawdown_delta": 0.06722544464670321,
+      "pass": false,
+      "originals": [
+        {
+          "path": "main/loo-sz300502.json.gz",
+          "bytes": 180441,
+          "sha256": "ffda974aca3baf17ba5c741d28a4056ad9140a0a97312d3612e9da2ad50abc29",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "combined/loo-sz300502.json.gz",
+          "bytes": 186334,
+          "sha256": "39df6c960ec616a3c2c4989919040739c7a67c155ad9b8cb8d507fc0b7fd12bb",
+          "source_head": "57949b4fa99e66d297decba18cdd37033686561b",
+          "source_tree": "f34fbf88a145330e468a85f7e310d4742ac63ec1"
+        }
+      ]
+    }
+  ]
+}

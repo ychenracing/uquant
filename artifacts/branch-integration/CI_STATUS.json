@@ -1,0 +1,121 @@
+{
+  "source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+  "observed_at": "2026-09-19T14:00:00Z",
+  "required_rulesets": [],
+  "main_protected": false,
+  "queue_policy": "Existing authorization permits proceeding after more than 10 minutes queued; queued checks are not passed.",
+  "checks": [
+    {
+      "name": "Ownership shard (champion)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824806/job/105907084262"
+    },
+    {
+      "name": "Ownership shard (ghost-b)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824806/job/105907084253"
+    },
+    {
+      "name": "Ownership shard (ghost-a)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824806/job/105907084239"
+    },
+    {
+      "name": "Ownership shard (critical)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824806/job/105907084222"
+    },
+    {
+      "name": "Ownership shard (continuity)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824806/job/105907084158"
+    },
+    {
+      "name": "Ownership model tests",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824806/job/105907084099"
+    },
+    {
+      "name": "Windows smoke",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824775/job/105907083902"
+    },
+    {
+      "name": "Tests (application-right)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824775/job/105907083860"
+    },
+    {
+      "name": "Tests (architecture-foundation)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824775/job/105907083827"
+    },
+    {
+      "name": "Tests (architecture-remaining)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824775/job/105907083816"
+    },
+    {
+      "name": "Tests (architecture-portfolio)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824775/job/105907083812"
+    },
+    {
+      "name": "Python 3.12",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824775/job/105907083802"
+    },
+    {
+      "name": "Tests (application-left)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824775/job/105907083800"
+    },
+    {
+      "name": "Strategic Grant Acceptance",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824799/job/105907083728"
+    },
+    {
+      "name": "Security and dependency audit",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824775/job/105907083689"
+    },
+    {
+      "name": "Absolute input preflight",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-19T13:48:00Z",
+      "url": "https://github.com/ychenracing/uquant/actions/runs/35446824762/job/105907083647"
+    }
+  ]
+}

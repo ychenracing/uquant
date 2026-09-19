@@ -1,0 +1,150 @@
+{
+  "label": "narrower",
+  "complete": false,
+  "gates": {
+    "nominal_geometric_retention_min": 0.9,
+    "each_wealth_retention_min": 0.75,
+    "each_drawdown_delta_max": 0.05
+  },
+  "nominal_geometric_retention": null,
+  "economic_screen_pass": false,
+  "rows": [
+    {
+      "case": "full",
+      "main": {
+        "wealth": 32.579245830951976,
+        "max_drawdown": 0.27147361646156465,
+        "orders": 20,
+        "annual_turnover": 14.599750878663292
+      },
+      "candidate": {
+        "wealth": 32.579245830951976,
+        "max_drawdown": 0.27147361646156465,
+        "orders": 20,
+        "annual_turnover": 14.599750878663292
+      },
+      "wealth_retention": 1.0,
+      "drawdown_delta": 0.0,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/full.json.gz",
+          "bytes": 271901,
+          "sha256": "b6ad715441c2b9845608c7542b5891de224f5491c028e1e079fa102130f76f13",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "narrower/full.json.gz",
+          "bytes": 271941,
+          "sha256": "4810cb07021adb2c475b5d92d9042cc4c3ca1b25f7e8a86331fcb823321700cb",
+          "source_head": "aeb7f63854c81b8f86b119db21899ef19f4564ba",
+          "source_tree": "1ea9de23a94051dae0988bf3b526f2b1be206df2"
+        }
+      ]
+    },
+    {
+      "case": "no_optical",
+      "main": {
+        "wealth": 1.10081786436568,
+        "max_drawdown": 0.20928407343658617,
+        "orders": 13,
+        "annual_turnover": 0.8816718957784809
+      },
+      "candidate": {
+        "wealth": 1.6697556792437505,
+        "max_drawdown": 0.22561481451191534,
+        "orders": 19,
+        "annual_turnover": 1.3885831609810126
+      },
+      "wealth_retention": 1.5168319240584882,
+      "drawdown_delta": 0.01633074107532917,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/no_optical.json.gz",
+          "bytes": 163555,
+          "sha256": "d8394728126691a965c0554c50b434978b16c7f69ab058f988b1caae742d9a33",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "narrower/no_optical.json.gz",
+          "bytes": 174633,
+          "sha256": "2e4ef3870e3f5e23379d65c101afa9c7856a290e55062ac5767b4607540e3829",
+          "source_head": "aeb7f63854c81b8f86b119db21899ef19f4564ba",
+          "source_tree": "1ea9de23a94051dae0988bf3b526f2b1be206df2"
+        }
+      ]
+    },
+    {
+      "case": "d-continuous_ai_era",
+      "main": {
+        "wealth": 18.810650610878163,
+        "max_drawdown": 0.27146973146234554,
+        "orders": 23,
+        "annual_turnover": 12.854414551612658
+      },
+      "candidate": {
+        "wealth": 19.658037359715983,
+        "max_drawdown": 0.2714231121619952,
+        "orders": 24,
+        "annual_turnover": 13.572585936841772
+      },
+      "wealth_retention": 1.0450482424221827,
+      "drawdown_delta": -4.661930035032569e-05,
+      "pass": true,
+      "originals": [
+        {
+          "path": "main/d-continuous_ai_era.json.gz",
+          "bytes": 272622,
+          "sha256": "9edfc99f1fd8634149a62c314e47afbcbd84396ae6efce30b6d93dabb18c297f",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "narrower/d-continuous_ai_era.json.gz",
+          "bytes": 270659,
+          "sha256": "155574a320657ffee9d84a8670d944387ae5eea30024d7e4136e3a0247c9cc15",
+          "source_head": "aeb7f63854c81b8f86b119db21899ef19f4564ba",
+          "source_tree": "1ea9de23a94051dae0988bf3b526f2b1be206df2"
+        }
+      ]
+    },
+    {
+      "case": "full-offset5",
+      "main": {
+        "wealth": 1.3028975824211924,
+        "max_drawdown": 0.17754094669713794,
+        "orders": 23,
+        "annual_turnover": 1.4458908530712962
+      },
+      "candidate": {
+        "wealth": 5.622466803311666,
+        "max_drawdown": 0.25389366472788366,
+        "orders": 45,
+        "annual_turnover": 6.7680941995422454
+      },
+      "wealth_retention": 4.315355926030164,
+      "drawdown_delta": 0.07635271803074573,
+      "pass": false,
+      "originals": [
+        {
+          "path": "main/full-offset5.json.gz",
+          "bytes": 182337,
+          "sha256": "59da9ef07b071f72398d2068ee2e80467b15b80d30550ef9f22ba51b67f9bc49",
+          "source_head": "b4850f1eac2df8872672277612fbc71ef6130740",
+          "source_tree": "fafcddf4e7d2e2ea93f23ec43d24faf4be8c048a"
+        },
+        {
+          "path": "narrower/full-offset5.json.gz",
+          "bytes": 256894,
+          "sha256": "9a02a6ecf62f733a344be21f4141b09383356347195672f5223d0110760216ff",
+          "source_head": "aeb7f63854c81b8f86b119db21899ef19f4564ba",
+          "source_tree": "1ea9de23a94051dae0988bf3b526f2b1be206df2"
+        }
+      ]
+    }
+  ],
+  "disposition": "Stopped after unchanged offset5 failure; incomplete cells are neither passed nor inferred."
+}

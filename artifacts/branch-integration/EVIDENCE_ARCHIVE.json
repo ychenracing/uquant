@@ -1,0 +1,11 @@
+{
+  "library_file_id": "libfile_976d558b1ab48191bdd9dec9e3b83b65",
+  "file_id": "file_00000000691081f5a65f1452474348cf",
+  "version": 1,
+  "path": "/uquant/uquant-pr71-evidence-20260919.zip",
+  "bytes": 6951866,
+  "sha256": "aa66970d04e31b73743501b91eb4c4d999d02f11b7b4c76318c3e852f3db4ab0",
+  "verified_files": 262,
+  "native_replays": 31,
+  "verification": "Remote materialization byte-equals locally verified archive; all manifest entries match length/hash; each economic/diagnostic original also re-compared byte-for-byte."
+}

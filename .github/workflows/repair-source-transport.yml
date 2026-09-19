@@ -1,0 +1,71 @@
+name: Repair source transport
+
+on:
+  push:
+    branches: [fix/main-ci-recovery-20260919]
+    paths: [.github/workflows/repair-source-transport.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 237750e288350c8007a5619a06be22564fe39173
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Pack pinned source objects without historical evidence blobs
+        env:
+          SOURCE_SHA: 237750e288350c8007a5619a06be22564fe39173
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          sha = os.environ['SOURCE_SHA']
+          roots = ('uquant/', 'scripts/', 'tests/', 'research/', 'benchmarks/',
+                   'data/frozen/', 'docs/', '.github/')
+          entries = subprocess.check_output(
+              ['git', 'ls-tree', '-r', '-t', '-z', sha]).split(b'\0')
+          objects = {sha}
+          selected = []
+          for entry in entries:
+              if not entry:
+                  continue
+              metadata, raw_path = entry.split(b'\t', 1)
+              mode, kind, oid = metadata.decode().split()
+              path = raw_path.decode()
+              if kind == 'tree':
+                  objects.add(oid)
+              elif '/' not in path or path.startswith(roots):
+                  objects.add(oid)
+                  selected.append(path)
+          tree = subprocess.check_output(
+              ['git', 'rev-parse', sha + '^{tree}'], text=True).strip()
+          objects.add(tree)
+          out = Path(os.environ['RUNNER_TEMP']) / 'repair-source'
+          out.mkdir()
+          pack = out / 'source.pack'
+          with pack.open('wb') as handle:
+              subprocess.run(['git', 'pack-objects', '--stdout'],
+                  input=('\n'.join(sorted(objects)) + '\n').encode(),
+                  stdout=handle, check=True)
+          digest = hashlib.sha256(pack.read_bytes()).hexdigest()
+          manifest = dict(source_sha=sha, tree_sha=tree, pack_size=pack.stat().st_size,
+                          pack_sha256=digest, selected_paths=sorted(selected))
+          (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          print(json.dumps({k: v for k, v in manifest.items() if k != 'selected_paths'}))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: repair-source-237750e
+          path: ${{ runner.temp }}/repair-source/
+          if-no-files-found: error
+          retention-days: 7

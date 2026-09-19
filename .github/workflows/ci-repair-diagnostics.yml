@@ -1,4 +1,4 @@
-name: CI repair source snapshot
+name: CI repair locked runtime snapshot
 
 on:
   push:
@@ -7,6 +7,9 @@ on:
 
 permissions:
   contents: read
+
+env:
+  UV_VERSION: "0.11.33"
 
 jobs:
   snapshot:
@@ -17,23 +20,32 @@ jobs:
         with:
           ref: 237750e288350c8007a5619a06be22564fe39173
           persist-credentials: false
-      - name: Preserve exact committed source for offline diagnosis
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12.13"
+      - name: Install the existing locked development environment
+        run: |
+          python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
+          uv sync --frozen --extra dev
+      - name: Preserve interpreter and locked dependencies for offline verification
         env:
-          SNAPSHOT_DIR: ${{ runner.temp }}/uquant-source
+          SNAPSHOT_DIR: ${{ runner.temp }}/uquant-runtime
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 237750e288350c8007a5619a06be22564fe39173
           mkdir -p "$SNAPSHOT_DIR"
-          git archive --format=tar HEAD | gzip -n > "$SNAPSHOT_DIR/source.tar.gz"
-          git ls-tree -rz --full-tree HEAD > "$SNAPSHOT_DIR/git-files.bin"
-          git cat-file commit HEAD > "$SNAPSHOT_DIR/commit.raw"
-          git rev-parse HEAD HEAD^{tree} > "$SNAPSHOT_DIR/identity.txt"
+          prefix=$(python -c 'import sys; print(sys.base_prefix)')
+          tar -C "$prefix" -czf "$SNAPSHOT_DIR/interpreter.tar.gz" .
+          tar -C .venv/lib/python3.12/site-packages -czf "$SNAPSHOT_DIR/site-packages.tar.gz" .
+          cp "$(command -v uv)" "$SNAPSHOT_DIR/uv"
+          uv run python -c 'import sys, numpy, pandas; print(sys.version); print(numpy.__version__); print(pandas.__version__)' > "$SNAPSHOT_DIR/versions.txt"
+          uv --version >> "$SNAPSHOT_DIR/versions.txt"
+          sha256sum uv.lock > "$SNAPSHOT_DIR/lock.sha256"
           cd "$SNAPSHOT_DIR"
-          sha256sum source.tar.gz git-files.bin commit.raw identity.txt > SHA256SUMS
+          sha256sum interpreter.tar.gz site-packages.tar.gz uv versions.txt lock.sha256 > SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: uquant-source-237750e-${{ github.run_id }}
-          path: ${{ runner.temp }}/uquant-source/
+          name: uquant-runtime-237750e-${{ github.run_id }}
+          path: ${{ runner.temp }}/uquant-runtime/
           compression-level: 0
           if-no-files-found: error
           retention-days: 30

@@ -1,4 +1,5 @@
 """Run the eight declared cells through the existing immutable native replay."""
+import argparse
 import concurrent.futures
 import json
 import os
@@ -28,6 +29,18 @@ cases = [
     ('loo-sz300308', [s for s in universe if s != 'sz300308'], start, 1),
     ('loo-sz300502', [s for s in universe if s != 'sz300502'], start, 1),
 ]
+parser = argparse.ArgumentParser()
+parser.add_argument('--candidate-root', type=Path, default=ROOT.parent / 'uquant-candidate')
+parser.add_argument('--candidate-label', default='combined')
+parser.add_argument('--candidate-only', action='store_true')
+parser.add_argument('--only')
+parser.add_argument('--workers', type=int, default=6)
+args = parser.parse_args()
+if args.only:
+    selected = set(args.only.split(','))
+    if selected - {case[0] for case in cases}:
+        raise ValueError('Unknown case')
+    cases = [case for case in cases if case[0] in selected]
 runs = ROOT.parent / 'branch-integration-runs'
 env = {**os.environ, 'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1',
        'PATH': str(ROOT / '.venv/bin') + os.pathsep + os.environ['PATH']}
@@ -49,8 +62,10 @@ def run(row):
     return {'label': label, 'case': name, 'exit_code': result.returncode,
             'tail': log.read_text()[-1000:]}
 
-rows = [(label, ROOT.parent / directory, case) for case in cases
-        for label, directory in [('main', 'uquant-current-main'), ('combined', 'uquant-candidate')]]
-with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+checkouts = [(args.candidate_label, args.candidate_root.resolve())]
+if not args.candidate_only:
+    checkouts.insert(0, ('main', ROOT.parent / 'uquant-current-main'))
+rows = [(label, checkout, case) for case in cases for label, checkout in checkouts]
+with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
     for result in pool.map(run, rows):
         print(json.dumps(result), flush=True)

@@ -53,11 +53,13 @@ def test_actual_tactical_probe_precedes_confirmed_recovery_and_fills(recovery_pr
     assert len(confirmed.pending_orders) == 2
     prices = {symbol: float(engine._raw[symbol].loc["2025-05-08", "close"]) for symbol in SYMBOLS}
     held_weights, _ = current_weights(confirmed, prices)
-    assert {order.symbol: order.target_weight for order in confirmed.pending_orders} == pytest.approx({
-        "sz300394": (DEFAULT_CONFIG.recovery_target_gross - DEFAULT_CONFIG.tactical_rebound_weight) / 2,
-        "sz300502": DEFAULT_CONFIG.recovery_target_gross - held_weights[probe.symbol]
-                     - (DEFAULT_CONFIG.recovery_target_gross - DEFAULT_CONFIG.tactical_rebound_weight) / 2,
-    })
+    fresh = {order.symbol: order.target_weight for order in confirmed.pending_orders}
+    # Frozen native path: the stronger fresh peer receives more scarce capital;
+    # the already filled probe is not sold or resized to finance that preference.
+    assert fresh == pytest.approx({"sz300394": .0730090507054782,
+                                  "sz300502": .20356709107112828})
+    assert sum(fresh.values()) + held_weights[probe.symbol] == pytest.approx(
+        DEFAULT_CONFIG.recovery_target_gross)
     assert all(order.side == "BUY" and order.mechanism == "RECOVERY_COHORT"
                and order.origin_subsystem == "RECOVERY" and not order.grant_id and not order.epoch_id
                for order in confirmed.pending_orders)

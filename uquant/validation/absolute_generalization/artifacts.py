@@ -381,6 +381,16 @@ def _is_rearm_certificate_check_path(path: tuple[str | int, ...]) -> bool:
     )
 
 
+def _is_owned_pass_fact(value: Mapping[object, object], path: tuple[str | int, ...]) -> bool:
+    if _is_production_predicate_path(path):
+        return _is_production_predicate_fact(value)
+    return _is_decision_check_fact(value, path[-1] if path else "") and (
+        _is_replay_decision_check_path(path)
+        or _is_reachability_decision_check_path(path)
+        or _is_rearm_certificate_check_path(path)
+    )
+
+
 def reject_self_assertion_claims(
     value: object,
     *,
@@ -399,22 +409,7 @@ def reject_self_assertion_claims(
                 or key.endswith("_passed")
             )
         }
-        if forbidden and not (
-            (
-                forbidden == {"passed"}
-                and _is_production_predicate_fact(value)
-                and _is_production_predicate_path(path)
-            )
-            or (
-                forbidden == {"passed"}
-                and _is_decision_check_fact(value, path[-1] if path else "")
-                and (
-                    _is_replay_decision_check_path(path)
-                    or _is_reachability_decision_check_path(path)
-                    or _is_rearm_certificate_check_path(path)
-                )
-            )
-        ):
+        if forbidden and (forbidden != {"passed"} or not _is_owned_pass_fact(value, path)):
             raise ValueError(
                 f"absolute generalization {label} contains a self-asserted pass at {path!r}"
             )

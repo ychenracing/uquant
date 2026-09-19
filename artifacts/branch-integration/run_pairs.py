@@ -6,6 +6,7 @@ import concurrent.futures
 import fcntl
 import importlib.util
 import json
+import math
 import os
 import subprocess
 import sys
@@ -42,6 +43,14 @@ def validate(path: Path, checkout: Path, expected: dict) -> dict:
         raise ValueError('Incomplete or reordered calendar')
     if [row['date'] for row in result['daily_replay_evidence']] != dates:
         raise ValueError('Incomplete daily evidence')
+    for point, ledger in zip(curve, result['daily_replay_evidence'], strict=True):
+        cash = float(ledger['cash'])
+        marked = cash + sum(float(shares) * float(ledger['close_marks'][symbol])
+                            for symbol, shares in ledger['position_shares'].items())
+        if (not math.isfinite(cash) or cash < -1e-6
+                or any(float(shares) < 0 for shares in ledger['position_shares'].values())
+                or not math.isclose(marked, float(point['equity']), rel_tol=1e-10, abs_tol=1e-6)):
+            raise ValueError('Invalid daily cash/positions/equity reconciliation')
     if not isinstance(result.get('final_account', {}).get('fills'), list):
         raise ValueError('Missing final-account fills')
     return data
@@ -71,7 +80,8 @@ def run(row, *, runs: Path, data_dir: Path, contract: Path, end: str) -> dict:
             identity = attempt / 'identity.json'
             with (attempt / 'identity.log').open('x') as log:
                 subprocess.run([*base, '--identity-only', '--output', str(identity)],
-                               env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
+                               env=env, stdout=log, stderr=subprocess.STDOUT, check=True,
+                               pass_fds=(lock.fileno(),))
             expected = json.loads(identity.read_text())
             if output.exists():
                 try:
@@ -86,7 +96,7 @@ def run(row, *, runs: Path, data_dir: Path, contract: Path, end: str) -> dict:
             pending = attempt / 'result.json.gz'
             with (attempt / 'replay.log').open('x') as log:
                 child = subprocess.run([*base, '--output', str(pending)], env=env,
-                                       stdout=log, stderr=subprocess.STDOUT)
+                                       stdout=log, stderr=subprocess.STDOUT, pass_fds=(lock.fileno(),))
             status['exit_code'] = child.returncode
             if child.returncode:
                 return status

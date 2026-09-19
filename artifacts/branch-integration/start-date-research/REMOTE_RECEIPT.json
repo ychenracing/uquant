@@ -1,0 +1,11 @@
+{
+  "path": "/workspace/scratch/607cd381710d/uquant-start-date-research-checkpoint-20260919.zip",
+  "bytes": 8373679,
+  "sha256": "ad847b99dbc0abb94136d4525cdb11306ec0222449b130f8dd2913fbfb69134e",
+  "verified_members": 250,
+  "library_file_id": "libfile_0cdd17d016208191a2458c3e1bbd43d1",
+  "file_id": "file_00000000a540820694d93efddbdf1e7f",
+  "version": 0,
+  "byte_equal": true,
+  "remote_readback_path": "/workspace/scratch/607cd381710d/research-readback/uquant-start-date-research-checkpoint-20260919.zip"
+}

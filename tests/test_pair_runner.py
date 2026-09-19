@@ -54,3 +54,30 @@ def test_main_propagates_failed_task(monkeypatch, tmp_path):
     monkeypatch.setattr('sys.argv', ['run_pairs', '--candidate-only', '--only', 'full', '--runs', str(tmp_path)])
     monkeypatch.setattr(runner, 'run', lambda *a, **k: {'exit_code': 7})
     assert runner.main() == 1
+
+
+@pytest.mark.parametrize('frozen,settling,recovery,reason', [
+    (False, False, True, 'RECOVERY_ALLOCATION_ACTIVE'),
+    (False, True, True, 'FAILED_DEPLOYMENT_UNSETTLED'),
+    (True, False, True, 'NEW_RISK_FROZEN'),
+])
+def test_recovery_gate_keeps_orders_blocked(monkeypatch, frozen, settling, recovery, reason):
+    from dataclasses import replace
+
+    from test_ordinary_trend_budget import _decide, _scenario
+
+    from uquant.leader import apply_leader_tenure
+    from uquant.portfolio import pipeline
+
+    policy, account, dates, panel, base, risk = _scenario()
+    for _ in range(policy.cfg.leader_tenure_days):
+        leaders = apply_leader_tenure(base, account=account, cfg=policy.cfg)
+    risk = replace(risk, freeze_new_risk=frozen)
+    monkeypatch.setattr(pipeline, 'allocate_confirmed_recovery', lambda *a, **k: recovery)
+    monkeypatch.setattr(pipeline, '_failed_deployment_awaits_settlement', lambda a: settling)
+    monkeypatch.setattr(pipeline, '_core_candidates', lambda *a, **k: list(base))
+    _decide(policy, account, dates[0], panel, leaders, risk)
+    trace = risk.evidence['core_allocation']['symbols']
+    assert all(trace[s]['entry_gate'] == reason for s in base)
+    assert not account.pending_orders and not account.positions
+    assert account.cash == account.initial_cash

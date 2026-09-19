@@ -1,4 +1,4 @@
-name: Repair source transport
+name: Repair runtime transport
 
 on:
   push:
@@ -9,63 +9,49 @@ permissions:
   contents: read
 
 jobs:
-  source:
+  runtime:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      UV_PYTHON_INSTALL_DIR: ${{ runner.temp }}/uquant-python
+      UV_PYTHON_PREFERENCE: only-managed
+      UV_PYTHON: 3.12.13
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: 237750e288350c8007a5619a06be22564fe39173
           fetch-depth: 1
           persist-credentials: false
-      - name: Pack pinned source objects without historical evidence blobs
-        env:
-          SOURCE_SHA: 237750e288350c8007a5619a06be22564fe39173
+      - name: Install exact locked runtime
         run: |
-          python - <<'PY'
+          python -m pip install --disable-pip-version-check uv==0.11.33
+          uv python install 3.12.13
+          uv sync --frozen --extra dev
+      - name: Preserve relocatable interpreter and locked dependencies
+        run: |
+          out="$RUNNER_TEMP/repair-runtime"
+          mkdir -p "$out"
+          uv pip list --python .venv/bin/python --format=json > "$out/packages.json"
+          sha256sum uv.lock pyproject.toml > "$out/inputs.sha256"
+          tar -C "$RUNNER_TEMP" -czf "$out/runtime.tar.gz" uquant-python \
+            -C "$PWD/.venv/lib/python3.12" site-packages
+          python - "$out" <<'PY'
           import hashlib
           import json
-          import os
           from pathlib import Path
-          import subprocess
-
-          sha = os.environ['SOURCE_SHA']
-          roots = ('uquant/', 'scripts/', 'tests/', 'research/', 'benchmarks/',
-                   'data/frozen/', 'docs/', '.github/')
-          entries = subprocess.check_output(
-              ['git', 'ls-tree', '-r', '-t', '-z', sha]).split(b'\0')
-          objects = {sha}
-          selected = []
-          for entry in entries:
-              if not entry:
-                  continue
-              metadata, raw_path = entry.split(b'\t', 1)
-              mode, kind, oid = metadata.decode().split()
-              path = raw_path.decode()
-              if kind == 'tree':
-                  objects.add(oid)
-              elif '/' not in path or path.startswith(roots):
-                  objects.add(oid)
-                  selected.append(path)
-          tree = subprocess.check_output(
-              ['git', 'rev-parse', sha + '^{tree}'], text=True).strip()
-          objects.add(tree)
-          out = Path(os.environ['RUNNER_TEMP']) / 'repair-source'
-          out.mkdir()
-          pack = out / 'source.pack'
-          with pack.open('wb') as handle:
-              subprocess.run(['git', 'pack-objects', '--stdout'],
-                  input=('\n'.join(sorted(objects)) + '\n').encode(),
-                  stdout=handle, check=True)
-          digest = hashlib.sha256(pack.read_bytes()).hexdigest()
-          manifest = dict(source_sha=sha, tree_sha=tree, pack_size=pack.stat().st_size,
-                          pack_sha256=digest, selected_paths=sorted(selected))
-          (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-          print(json.dumps({k: v for k, v in manifest.items() if k != 'selected_paths'}))
+          import sys
+          root = Path(sys.argv[1])
+          path = root / 'runtime.tar.gz'
+          with path.open('rb') as source:
+              digest = hashlib.file_digest(source, 'sha256').hexdigest()
+          manifest = dict(source_sha='237750e288350c8007a5619a06be22564fe39173',
+                          size=path.stat().st_size, sha256=digest)
+          (root / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          print(json.dumps(manifest))
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: repair-source-237750e
-          path: ${{ runner.temp }}/repair-source/
+          name: repair-runtime-237750e
+          path: ${{ runner.temp }}/repair-runtime/
           if-no-files-found: error
           retention-days: 7

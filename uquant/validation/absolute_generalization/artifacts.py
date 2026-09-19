@@ -216,7 +216,8 @@ def _is_replay_decision_check_path(path: tuple[str | int, ...]) -> bool:
             and tail[3:6] == ("decision_payload", "value", "risk_summary")
             and tail[6:8] == ("core_allocation", "symbols")
             and isinstance(tail[8], str)
-            and tail[9:11] == ("entry", "checks")
+            and tail[9] in {"entry", "repair_entry"}
+            and tail[10] == "checks"
             and isinstance(tail[11], str)
         ):
             return True
@@ -338,6 +339,16 @@ def _is_production_predicate_path(path: tuple[str | int, ...]) -> bool:
     )
 
 
+def _is_rearm_certificate_check_path(path: tuple[str | int, ...]) -> bool:
+    return (
+        len(path) >= 6
+        and path[-6:-4] == ("strategic_cash_rearm", "predicate_results")
+        and path[-3:-1] == ("authoritative_state", "checks")
+        and isinstance(path[-1], str)
+        and _is_production_predicate_path(path[:-3])
+    )
+
+
 def reject_self_assertion_claims(
     value: object,
     *,
@@ -363,7 +374,10 @@ def reject_self_assertion_claims(
             or (
                 forbidden == {"passed"}
                 and _is_decision_check_fact(value)
-                and _is_replay_decision_check_path(path)
+                and (
+                    _is_replay_decision_check_path(path)
+                    or _is_rearm_certificate_check_path(path)
+                )
             )
         ):
             raise ValueError(

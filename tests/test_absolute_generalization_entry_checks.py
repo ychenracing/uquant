@@ -16,6 +16,7 @@ from uquant.validation.absolute_generalization import (
 from uquant.validation.absolute_generalization.artifacts import reject_self_assertion_claims
 
 
+@pytest.mark.parametrize("entry", ("entry", "repair_entry", "rearm_certificate"))
 @pytest.mark.parametrize(
     "check",
     (
@@ -24,7 +25,7 @@ from uquant.validation.absolute_generalization.artifacts import reject_self_asse
     ),
 )
 def test_strict_round_trip_accepts_entry_checks_in_cell_and_shard(
-    check: dict[str, object],
+    check: dict[str, object], entry: str,
 ) -> None:
     """Keep both production entry-check DTO forms at their exact symbol path."""
     from uquant.contracts.strict_json import strict_json_loads
@@ -33,9 +34,18 @@ def test_strict_round_trip_accepts_entry_checks_in_cell_and_shard(
     first = replay.observations[0]
     decision = strict_json_loads(first.decision_payload.canonical_json)
     assert isinstance(decision, dict)
-    decision["risk_summary"]["core_allocation"] = {
-        "symbols": {"sh600487": {"entry": {"checks": {"confidence": check}}}}
-    }
+    if entry == "rearm_certificate":
+        decision["risk_summary"]["strategic_cash_rearm"].update({
+            "predicate_results": [{
+                "code": "current_independent_core", "passed": True,
+                "economic_authority": False, "orphan_residue": False,
+                "authoritative_state": {"checks": {"confidence": check}},
+            }],
+        })
+    else:
+        decision["risk_summary"]["core_allocation"] = {
+            "symbols": {"sh600487": {entry: {"checks": {"confidence": check}}}}
+        }
     replay = replace(
         replay,
         observations=(
@@ -50,6 +60,7 @@ def test_strict_round_trip_accepts_entry_checks_in_cell_and_shard(
     reject_self_assertion_claims({"cells": [raw]}, label="manifest")
 
 
+@pytest.mark.parametrize("entry", ("entry", "repair_entry"))
 @pytest.mark.parametrize(
     "check",
     (
@@ -58,10 +69,10 @@ def test_strict_round_trip_accepts_entry_checks_in_cell_and_shard(
         {"as_of": "2023-01-03", "passed": True, "value": 1.0, "minimum": True},
     ),
 )
-def test_entry_check_path_does_not_trust_malformed_dtos(check: dict[str, object]) -> None:
+def test_entry_check_path_does_not_trust_malformed_dtos(check: dict[str, object], entry: str) -> None:
     path = (
         "replay_evidence", "observations", 0, "decision_payload", "value",
-        "risk_summary", "core_allocation", "symbols", "sh600487", "entry",
+        "risk_summary", "core_allocation", "symbols", "sh600487", entry,
         "checks", "confidence",
     )
     with pytest.raises(ValueError, match="self-asserted pass at"):
@@ -94,3 +105,24 @@ def test_entry_check_path_rejects_nested_fake_replay_root() -> None:
         reject_self_assertion_claims({"as_of": "2023-01-03", "passed": True}, path=path)
 
 
+@pytest.mark.parametrize("owner", ("strategic_cash_rearm", "flat_book_capital_repair", "untrusted"))
+@pytest.mark.parametrize("prefix", ((), ("cells", 0), ("untrusted",)))
+@pytest.mark.parametrize("malformed", (False, True))
+def test_rearm_certificate_checks_require_exact_owner_and_dto(
+    owner: str, prefix: tuple[str | int, ...], malformed: bool,
+) -> None:
+    check = {"as_of": "2023-01-03", "passed": True}
+    if malformed:
+        check["capability_pass"] = True
+    predicate = {
+        "code": "current_independent_core", "passed": True,
+        "economic_authority": False, "orphan_residue": False,
+        "authoritative_state": {"checks": {"confidence": check}},
+    }
+    path = (*prefix, "replay_evidence", "observations", 0, "decision_payload",
+            "value", "risk_summary", owner, "predicate_results", 0)
+    if owner == "strategic_cash_rearm" and prefix != ("untrusted",) and not malformed:
+        reject_self_assertion_claims(predicate, path=path)
+    else:
+        with pytest.raises(ValueError, match="self-asserted pass"):
+            reject_self_assertion_claims(predicate, path=path)

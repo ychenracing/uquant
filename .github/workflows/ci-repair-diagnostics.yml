@@ -1,4 +1,4 @@
-name: CI repair locked runtime snapshot
+name: CI repair targeted verification
 
 on:
   push:
@@ -12,40 +12,50 @@ env:
   UV_VERSION: "0.11.33"
 
 jobs:
-  snapshot:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: 237750e288350c8007a5619a06be22564fe39173
+          ref: 4ccb1bfa1fb5aca0b5e2f9fbdb0ef31ad97d1b4b
           persist-credentials: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12.13"
-      - name: Install the existing locked development environment
+      - name: Install the locked development environment
         run: |
           python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
           uv sync --frozen --extra dev
-      - name: Preserve interpreter and locked dependencies for offline verification
+      - name: Preserve published source before verification
         env:
-          SNAPSHOT_DIR: ${{ runner.temp }}/uquant-runtime
+          OUTPUT_DIR: ${{ runner.temp }}/uquant-readback
         run: |
           set -euo pipefail
-          mkdir -p "$SNAPSHOT_DIR"
-          prefix=$(python -c 'import sys; print(sys.base_prefix)')
-          tar -C "$prefix" -czf "$SNAPSHOT_DIR/interpreter.tar.gz" .
-          tar -C .venv/lib/python3.12/site-packages -czf "$SNAPSHOT_DIR/site-packages.tar.gz" .
-          cp "$(command -v uv)" "$SNAPSHOT_DIR/uv"
-          uv run python -c 'import sys, numpy, pandas; print(sys.version); print(numpy.__version__); print(pandas.__version__)' > "$SNAPSHOT_DIR/versions.txt"
-          uv --version >> "$SNAPSHOT_DIR/versions.txt"
-          sha256sum uv.lock > "$SNAPSHOT_DIR/lock.sha256"
-          cd "$SNAPSHOT_DIR"
-          sha256sum interpreter.tar.gz site-packages.tar.gz uv versions.txt lock.sha256 > SHA256SUMS
+          test "$(git rev-parse HEAD)" = 4ccb1bfa1fb5aca0b5e2f9fbdb0ef31ad97d1b4b
+          mkdir -p "$OUTPUT_DIR"
+          git archive HEAD uquant/validation/absolute_generalization/artifacts.py tests/test_absolute_generalization_entry_checks.py | gzip -n > "$OUTPUT_DIR/source.tar.gz"
+          git cat-file commit HEAD > "$OUTPUT_DIR/commit.raw"
+          git ls-tree -r HEAD uquant/validation/absolute_generalization/artifacts.py tests/test_absolute_generalization_entry_checks.py > "$OUTPUT_DIR/git-files.txt"
+          cp .venv/bin/ruff "$OUTPUT_DIR/ruff"
+          git rev-parse HEAD HEAD^{tree} > "$OUTPUT_DIR/identity.txt"
+          uv run python -c 'import sys, numpy, pandas; print(sys.version); print(numpy.__version__); print(pandas.__version__)' > "$OUTPUT_DIR/runtime.txt"
+      - name: Validate exact changed source and artifact regressions
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/uquant-readback
+        run: |
+          set -euo pipefail
+          uv run ruff check uquant/validation/absolute_generalization/artifacts.py tests/test_absolute_generalization_entry_checks.py | tee "$OUTPUT_DIR/lint.txt"
+          uv run mypy uquant/validation/absolute_generalization/artifacts.py | tee "$OUTPUT_DIR/types.txt"
+          uv run pytest tests/test_absolute_generalization_artifacts.py tests/test_absolute_generalization_entry_checks.py | tee "$OUTPUT_DIR/tests.txt"
+      - name: Hash verification files
+        if: ${{ always() }}
+        working-directory: ${{ runner.temp }}/uquant-readback
+        run: find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ always() }}
         with:
-          name: uquant-runtime-237750e-${{ github.run_id }}
-          path: ${{ runner.temp }}/uquant-runtime/
-          compression-level: 0
+          name: uquant-readback-4ccb1bfa-${{ github.run_id }}
+          path: ${{ runner.temp }}/uquant-readback/
           if-no-files-found: error
           retention-days: 30

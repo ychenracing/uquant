@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from copy import deepcopy
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 
@@ -728,8 +728,7 @@ def _admit_new_cores(
             book.record(symbol)["entry_gate"] = "POSITION_SLOTS_EXHAUSTED"
             continue
         independent = _current_independent_entry(book.record(symbol).get("entry", {}), book.date)
-        allowance = independent_budget if independent else budget
-        assert allowance is not None  # The shared market-input check above already passed.
+        allowance = cast(float, independent_budget if independent else budget)
         weight = _ordinary_admission_weight(
             book, symbol=symbol, selected_count=len(selected), allowance=allowance,
             cycle_weights=cycle_weights,

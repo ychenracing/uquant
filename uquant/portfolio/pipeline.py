@@ -811,11 +811,11 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
         lifecycle=Lifecycle.CORE, reason="retained core holding",
         origin_subsystem=OriginSubsystem.LEADER, mechanism=AttributionMechanism.LEADER_SELECTION,
         reasons=book.reasons, mechanisms=book.mechanisms, replaces_symbols=book.replacements,
+        lifecycles={symbol: Lifecycle(book.record(symbol)["leader_lifecycle"])
+                    for symbol in book.proposed if "leader_lifecycle" in book.record(symbol)},
     )
     merged = []
     for target in targets:
-        if "leader_lifecycle" in book.record(target.symbol):
-            target = replace(target, lifecycle=book.record(target.symbol)["leader_lifecycle"])
         if target.symbol in book.recovery_targets:
             recovery = book.recovery_targets[target.symbol]
             mechanism = book.mechanisms.get(target.symbol)

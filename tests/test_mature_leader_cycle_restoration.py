@@ -68,3 +68,20 @@ def test_capacity_counts_qualified_incumbents_before_subtracting_fresh_slots():
         weights = mature_cycle_weights(book, [fresh], Opportunity.STRONG_TREND)
     assert account.dynamic_k == 3
     assert weights == {fresh: DEFAULT_CONFIG.core_admission_weight}
+
+
+@pytest.mark.parametrize("stage", ["ADD1", "ADD2"])
+def test_pyramid_target_preserves_both_current_and_origin_lifecycle(stage):
+    from test_recovery_fresh_budget import _book
+
+    from uquant.portfolio.pipeline import _book_targets
+    from uquant.types import AttributionMechanism
+
+    book, names, _ = _book(.2, .8)
+    symbol = names[0]
+    book.proposed[symbol] = .3
+    book.mechanisms[symbol] = AttributionMechanism.LEADER_PYRAMID
+    book.record(symbol)["leader_lifecycle"] = stage
+    target = next(t for t in _book_targets(book) if t.symbol == symbol)
+    assert target.lifecycle == target.origin_lifecycle == stage
+    assert target.mechanism == "LEADER_PYRAMID"

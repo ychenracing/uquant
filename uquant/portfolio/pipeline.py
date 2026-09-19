@@ -317,10 +317,12 @@ def _fund_strategic_owners(book: AllocationBook, *, frozen: bool,
     grant = book.account.strategic_grant
     blocked = bool(grant is not None and (grant.status in {"EXPIRED", "CANCELLED"}
                    or (grant.status != "ACTIVE" and book.account.strategic_qualification.deployment_blocked)))
+    # Continue the already qualified cohort under the same concentration budget.
+    # Another small holding must not revoke that budget midway through execution.
+    # Current cash, gross, symbol caps and real pending liabilities still bind.
     founding_cap = (
         book.policy.cfg.max_gross
         if grant is not None and grant.qualification_quorum == "FULL_COHORT"
-        and not {s for s, weight in book.committed.items() if weight > 0} - book.owned
         else None
     )
     for symbol in sorted(book.strategic_targets, key=lambda s: (s != (grant.candidate_symbol if grant else ""), s)):
@@ -963,7 +965,8 @@ def _allocate_strategy(
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (
                 "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY" if liabilities
-                else "FAILED_DEPLOYMENT_UNSETTLED"
+                else "FAILED_DEPLOYMENT_UNSETTLED" if awaiting_settlement
+                else "RECOVERY_ALLOCATION_ACTIVE"
             )
     repair_symbol = ""
     if frozen and not liabilities and not awaiting_settlement and strategic_universe is not None:

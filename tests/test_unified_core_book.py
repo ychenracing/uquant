@@ -90,6 +90,7 @@ def test_nearly_funded_cohort_keeps_registered_buy_remainder_until_a_real_reduct
     if restriction == "profit_lock":
         ctx.dominant_profit_lock_armed_now = True
         ctx.dominant_symbol = "sh600001"
+        account.strategic_cohort_targets["sh600001"] = DEFAULT_CONFIG.strategic_dominant_retained_gross
     elif restriction == "trailing_exit":
         account.strategic_exit_bands["sh600001"] = [0.20, 0.20, 0.20]
     proposed = _final_strategic_proposal(ctx, active_symbols=set(current), current_selected=current)

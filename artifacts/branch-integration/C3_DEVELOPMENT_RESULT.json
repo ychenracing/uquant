@@ -1,0 +1,30 @@
+{
+  "status": "NOT_MET",
+  "reason": "Full wealth below 80% B0; offset5/full below 70%; no held-out confirmation run",
+  "cases": {
+    "full-offset5": {
+      "source_head": "9ff368115f07646ef43b72439bc66ac6b0bc13c2",
+      "source_tree": "a1f4e442e83ba3e9f8da010ab9c34abd468ee656",
+      "W": 1.82981679956659,
+      "DD": 0.250691099849499,
+      "instructions": 21,
+      "fees": 6285.2772668200005
+    },
+    "full-offset10": {
+      "source_head": "9ff368115f07646ef43b72439bc66ac6b0bc13c2",
+      "source_tree": "a1f4e442e83ba3e9f8da010ab9c34abd468ee656",
+      "W": 5.429822630637547,
+      "DD": 0.24404236284186398,
+      "instructions": 44,
+      "fees": 25754.424224906
+    },
+    "full": {
+      "source_head": "9ff368115f07646ef43b72439bc66ac6b0bc13c2",
+      "source_tree": "a1f4e442e83ba3e9f8da010ab9c34abd468ee656",
+      "W": 13.17488044924954,
+      "DD": 0.29150503914703874,
+      "instructions": 14,
+      "fees": 42414.29750092
+    }
+  }
+}

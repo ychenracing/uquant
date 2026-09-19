@@ -1,4 +1,4 @@
-"""Scarce confirmed-peer capital follows current leadership within old caps."""
+"""Entry leadership weights share scarce capital once, within existing caps."""
 from dataclasses import replace
 
 import pytest
@@ -43,13 +43,13 @@ def test_expansion_leadership_sizes_entry_without_moving_restoration_rights(reve
 
 
 @pytest.mark.parametrize("reverse", [False, True])
-def test_current_stronger_peer_receives_more_without_moving_incumbent(reverse):
+def test_equal_requests_share_capital_without_second_leadership_tilt(reverse):
     book, names, leaders = _book(.65, .35)
     for name, score in zip(names[1:], (.2, .8), strict=True):
         leaders[name] = replace(leaders[name], score=score)
     targets = tuple(Target(s, .16, "RECOVERY", .9, .9, "confirmed peer") for s in names[1:])
     _fund_members(book, tuple(reversed(targets)) if reverse else targets, {names[0]}, leaders)
-    assert book.proposed == pytest.approx({names[0]: .65, names[1]: .11, names[2]: .16})
+    assert book.proposed == pytest.approx({names[0]: .65, names[1]: .135, names[2]: .135})
     assert sum(book.committed.values()) == pytest.approx(.92)
     assert book.cash_room == pytest.approx(.08)
 
@@ -72,14 +72,14 @@ def test_unequal_incremental_requests_preserve_existing_reservation(reverse):
     targets = tuple(Target(s, .16, "RECOVERY", .9, .9, "confirmed peer") for s in names[1:])
     _fund_members(book, tuple(reversed(targets)) if reverse else targets, {names[0]}, leaders)
     # Only the unreserved .11 participates; neither share reaches its cap.
-    increment = .15 * (.11 * .4) / (.11 * .4 + .16 * .8)
+    increment = .15 * .11 / (.11 + .16)
     assert book.proposed == pytest.approx({names[0]: .65, names[1]: .05 + increment,
                                           names[2]: .15 - increment})
     assert sum(book.committed.values()) == pytest.approx(.85)
     assert book.cash_room == pytest.approx(0.)
 
 
-def test_persisted_unequal_rights_still_use_current_leadership():
+def test_persisted_unequal_rights_keep_their_request_proportions():
     book, names, leaders = _book(.65, .35)
     for name, score in zip(names[1:], (.2, .8), strict=True):
         leaders[name] = replace(leaders[name], score=score)
@@ -90,7 +90,7 @@ def test_persisted_unequal_rights_still_use_current_leadership():
 
     _fund_members(book, targets, {names[0]}, leaders)
 
-    assert book.proposed == pytest.approx({names[0]: .65, names[1]: .05, names[2]: .22})
+    assert book.proposed == pytest.approx({names[0]: .65, names[1]: .27 * .10 / .32, names[2]: .27 * .22 / .32})
 
 
 def test_expansion_cash_surplus_cannot_increase_requested_targets():

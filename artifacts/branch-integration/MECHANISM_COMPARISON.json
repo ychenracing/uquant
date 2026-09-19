@@ -1,0 +1,158 @@
+{
+  "tactical-original": {
+    "source_head": "3082d66302bf921a84386e7990f09b2a9f7d14db",
+    "metrics": {
+      "W": 5.679903233990157,
+      "DD": 0.15365546220578596,
+      "account_instructions": 8,
+      "fill_records": 8,
+      "pending_instructions": 0,
+      "operation_days": 4,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 6.155248815549999,
+      "fees": 6348.043319685999,
+      "slippage_cost": 12310.78869999947,
+      "cash": 2272410.0679803146,
+      "held_session_fraction": 0.9838709677419355,
+      "peak_to_recovery_days": 2
+    },
+    "buy_fills_by_mechanism": {
+      "TACTICAL_REBOUND": 1,
+      "RECOVERY_COHORT": 2,
+      "POST_SHOCK_RESTORATION": 2
+    },
+    "evidence": "../mechanism-runs/tactical-original/recovery-2025.json.gz",
+    "delta_enabled_vs_this": {
+      "W": 0.0,
+      "DD": 0.0,
+      "account_instructions": 0,
+      "fill_records": 0,
+      "pending_instructions": 0,
+      "operation_days": 0,
+      "peak_daily_instructions": 0,
+      "gross_turnover": 0.0,
+      "fees": 0.0,
+      "slippage_cost": 0.0,
+      "cash": 0.0,
+      "held_session_fraction": 0.0,
+      "peak_to_recovery_days": 0
+    }
+  },
+  "c1": {
+    "source_head": "92c558e7d35cfb5e46c97d73a1fbf31f153f2473",
+    "metrics": {
+      "W": 5.679903233990157,
+      "DD": 0.15365546220578596,
+      "account_instructions": 8,
+      "fill_records": 8,
+      "pending_instructions": 0,
+      "operation_days": 4,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 6.155248815549999,
+      "fees": 6348.043319685999,
+      "slippage_cost": 12310.78869999947,
+      "cash": 2272410.0679803146,
+      "held_session_fraction": 0.9838709677419355,
+      "peak_to_recovery_days": 2
+    },
+    "buy_fills_by_mechanism": {
+      "TACTICAL_REBOUND": 1,
+      "RECOVERY_COHORT": 2,
+      "POST_SHOCK_RESTORATION": 2
+    },
+    "evidence": "../mechanism-runs/c1/recovery-2025.json.gz",
+    "delta_enabled_vs_this": {
+      "W": 0.0,
+      "DD": 0.0,
+      "account_instructions": 0,
+      "fill_records": 0,
+      "pending_instructions": 0,
+      "operation_days": 0,
+      "peak_daily_instructions": 0,
+      "gross_turnover": 0.0,
+      "fees": 0.0,
+      "slippage_cost": 0.0,
+      "cash": 0.0,
+      "held_session_fraction": 0.0,
+      "peak_to_recovery_days": 0
+    }
+  },
+  "proportional": {
+    "source_head": "e80552d0149970b957538f633b845bc163cc9c4d",
+    "metrics": {
+      "W": 5.679903233990157,
+      "DD": 0.15365546220578596,
+      "account_instructions": 8,
+      "fill_records": 8,
+      "pending_instructions": 0,
+      "operation_days": 4,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 6.155248815549999,
+      "fees": 6348.043319685999,
+      "slippage_cost": 12310.78869999947,
+      "cash": 2272410.0679803146,
+      "held_session_fraction": 0.9838709677419355,
+      "peak_to_recovery_days": 2
+    },
+    "buy_fills_by_mechanism": {
+      "TACTICAL_REBOUND": 1,
+      "RECOVERY_COHORT": 2,
+      "POST_SHOCK_RESTORATION": 2
+    },
+    "evidence": "../mechanism-runs/proportional/recovery-2025.json.gz",
+    "delta_enabled_vs_this": {
+      "W": 0.0,
+      "DD": 0.0,
+      "account_instructions": 0,
+      "fill_records": 0,
+      "pending_instructions": 0,
+      "operation_days": 0,
+      "peak_daily_instructions": 0,
+      "gross_turnover": 0.0,
+      "fees": 0.0,
+      "slippage_cost": 0.0,
+      "cash": 0.0,
+      "held_session_fraction": 0.0,
+      "peak_to_recovery_days": 0
+    }
+  },
+  "entry-unweighted": {
+    "source_head": "0dd733c2269c985e801a60e96a9747682e479b67",
+    "metrics": {
+      "W": 5.576242029802855,
+      "DD": 0.1551597624494696,
+      "account_instructions": 8,
+      "fill_records": 8,
+      "pending_instructions": 0,
+      "operation_days": 4,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 6.059253975749999,
+      "fees": 6236.39649429,
+      "slippage_cost": 12118.743899999505,
+      "cash": 2217593.35960571,
+      "held_session_fraction": 0.9838709677419355,
+      "peak_to_recovery_days": 2
+    },
+    "buy_fills_by_mechanism": {
+      "TACTICAL_REBOUND": 1,
+      "RECOVERY_COHORT": 2,
+      "POST_SHOCK_RESTORATION": 2
+    },
+    "evidence": "../mechanism-runs/entry-unweighted/recovery-2025.json.gz",
+    "delta_enabled_vs_this": {
+      "W": 0.1036612041873024,
+      "DD": -0.0015043002436836428,
+      "account_instructions": 0,
+      "fill_records": 0,
+      "pending_instructions": 0,
+      "operation_days": 0,
+      "peak_daily_instructions": 0,
+      "gross_turnover": 0.09599483980000034,
+      "fees": 111.64682539599926,
+      "slippage_cost": 192.0447999999651,
+      "cash": 54816.70837460458,
+      "held_session_fraction": 0.0,
+      "peak_to_recovery_days": 0
+    }
+  }
+}

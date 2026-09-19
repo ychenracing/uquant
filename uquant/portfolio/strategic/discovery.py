@@ -178,6 +178,7 @@ def strategic_qualification_evidence_sha256(
                 "tech_ret120",
             )
         },
+        "reversal_observations": risk.evidence.get("reversal_observations", {}),
         "route": route.route,
         "session": str(date.date()),
         "signature": signature,
@@ -616,7 +617,7 @@ def strategic_candidate_certificates(
     reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
 ) -> list[tuple[StrategicRoute, StrategicQuorumResult, int]]:
     """Read all current certificates without allocating or replacing an owner."""
-    evaluated: list[tuple[tuple[int, int, float, int, str, str, tuple[str, ...]],
+    evaluated: list[tuple[tuple[int, int, int, float, int, str, str, tuple[str, ...]],
                           tuple[StrategicRoute, StrategicQuorumResult, int]]] = []
     for route in strategic_route_candidates(self, snapshots=snapshots, leaders=leaders, risk=risk):
         quorum, _ = _strategic_route_quorum(
@@ -628,8 +629,11 @@ def strategic_candidate_certificates(
         candidate = strategic_candidate_symbol(route=route, symbols=route.symbols, leaders=leaders)
         streak = _route_confirmation(account=account, candidate=candidate, route=route.route, quorum=quorum)
         witnesses = strategic_quorum_candidate_symbols(route=route, route_symbols=route.symbols)
+        observation = risk.evidence.get("reversal_observations", {}).get(candidate, {})
+        observed = observation.get("observed_session", "")
+        freshness = pd.Timestamp(observed).toordinal() if observed else 0
         key = (-int(streak >= quorum.required_confirm_days),
-               -int(route.decisive_reversal_symbol == candidate), -leaders[candidate].score,
+               -int(route.decisive_reversal_symbol == candidate), -freshness, -leaders[candidate].score,
                -len(witnesses), candidate, route.route, tuple(sorted(route.symbols)))
         evaluated.append((key, (route, quorum, streak)))
     return [certificate for _, certificate in sorted(evaluated, key=lambda item: item[0])]

@@ -1,0 +1,463 @@
+{
+  "status": "NOT_MET",
+  "contract": {
+    "contract_id": "start-date-robustness-20260920",
+    "authority": "User implementation prompt 2026-09-20 replaces old per-cell DD increment screen. Historical records unchanged.",
+    "B0": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
+    "C1_source": "57949b4fa99e66d297decba18cdd37033686561b",
+    "end": "2026-08-05",
+    "clusters": {
+      "2023": {
+        "0": "2023-01-03",
+        "1": "2023-01-04",
+        "2": "2023-01-05",
+        "3": "2023-01-06",
+        "4": "2023-01-09",
+        "5": "2023-01-10",
+        "6": "2023-01-11",
+        "7": "2023-01-12",
+        "8": "2023-01-13",
+        "9": "2023-01-16",
+        "10": "2023-01-17"
+      },
+      "2024": {
+        "0": "2024-01-02",
+        "5": "2024-01-09",
+        "10": "2024-01-16"
+      },
+      "2025": {
+        "0": "2025-01-02",
+        "5": "2025-01-09",
+        "10": "2025-01-16"
+      }
+    },
+    "reserve_confirmation_dates": {
+      "2023": {
+        "12": "2023-01-19",
+        "15": "2023-01-31",
+        "20": "2023-02-07"
+      },
+      "2024": {
+        "12": "2024-01-18",
+        "15": "2024-01-23",
+        "20": "2024-01-30"
+      },
+      "2025": {
+        "12": "2025-01-20",
+        "15": "2025-01-23",
+        "20": "2025-02-07"
+      }
+    },
+    "development_offsets": [
+      0,
+      1,
+      5,
+      10
+    ],
+    "gates": {
+      "common_growth_retention": 0.7,
+      "offset5_wealth_retention": 0.7,
+      "strong_wealth_retention": 0.8,
+      "maximum_drawdown": 0.3,
+      "weak_geometric_retention": 1.2,
+      "weak_minimum_retention": 0.9,
+      "cost2_retention": 0.9
+    },
+    "strong_cases": [
+      "full",
+      "d-continuous_ai_era",
+      "full-cost2"
+    ],
+    "weak_cases": [
+      "loo-sz300308",
+      "loo-sz300502",
+      "remove_all_three"
+    ],
+    "cost_pairs": [
+      "full",
+      "full-offset5"
+    ],
+    "no_optical": "observation only; tradable five-name removal, not all-role optical independence",
+    "mechanisms": [
+      "fresh_leadership_budget",
+      "entry_leadership_weights",
+      "caution_probe_book_open"
+    ],
+    "mechanism_window": {
+      "start": "2025-04-01",
+      "end": "2025-12-31",
+      "symbols": [
+        "sz300308",
+        "sz300394",
+        "sz300502"
+      ],
+      "selection_basis": "Existing native test has causal tactical fill April3 signal and recovery May8 signal; all events in fixed remainder-of-year window included. No profit-based selection."
+    },
+    "additional_mechanism_window": {
+      "registered_before_results": true,
+      "start": "2023-07-03",
+      "end": "2023-09-28",
+      "symbols": [
+        "sz300308",
+        "sz300502",
+        "sz300394",
+        "sh688498",
+        "sz002281",
+        "sh601869",
+        "sh600487",
+        "sh688256",
+        "sh688041",
+        "sh688008",
+        "sh603986",
+        "sz300223",
+        "sh688110",
+        "sh688766",
+        "sz002371",
+        "sh688012",
+        "sh688072",
+        "sh688082",
+        "sh688120",
+        "sh688037",
+        "sh688361",
+        "sz300604",
+        "sh688200",
+        "sh688019",
+        "sz300054",
+        "sz002409",
+        "sz300666",
+        "sh688233",
+        "sh688268",
+        "sh688146",
+        "sh688300",
+        "sh603688"
+      ],
+      "basis": "tests/test_normal_tactical_admission.py native July 5 signal; end is last frozen-calendar session in Q3. Entire window and all events retained; no profit-based selection.",
+      "comparison": [
+        "C1",
+        "C1 with original bounded CAUTION tactical route"
+      ],
+      "purpose": "Direct expanded NORMAL/unfrozen tactical behavior attribution; earlier 2025 window did not exercise increment."
+    }
+  },
+  "candidate_identity": [
+    [
+      "0dc8b02af99a33a18924810e310808035e6171f0",
+      "c240eaaf0f62089693b8d88c11decfe403d6a884"
+    ]
+  ],
+  "cells": {
+    "d-continuous_ai_era": {
+      "W": 18.695267712933383,
+      "DD": 0.27139914597186277,
+      "account_instructions": 26,
+      "fill_records": 29,
+      "pending_instructions": 0,
+      "operation_days": 21,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 45.9449903068,
+      "fees": 55725.455333236,
+      "slippage_cost": 91925.51879999797,
+      "cash": 37390535.42586677,
+      "held_session_fraction": 0.9700805523590333,
+      "peak_to_recovery_days": 224
+    },
+    "full": {
+      "W": 32.316992795022415,
+      "DD": 0.27133916084354315,
+      "account_instructions": 21,
+      "fill_records": 25,
+      "pending_instructions": 0,
+      "operation_days": 18,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 52.02715922695,
+      "fees": 68743.384655164,
+      "slippage_cost": 104117.12529999841,
+      "cash": 64633985.590044826,
+      "held_session_fraction": 0.9654775604142692,
+      "peak_to_recovery_days": 224
+    },
+    "full-cost2": {
+      "W": 32.14297391037743,
+      "DD": 0.2724116752412089,
+      "account_instructions": 21,
+      "fill_records": 25,
+      "pending_instructions": 0,
+      "operation_days": 18,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 51.77224693589999,
+      "fees": 136826.771045136,
+      "slippage_cost": 207339.5082000026,
+      "cash": 64285947.820754856,
+      "held_session_fraction": 0.9654775604142692,
+      "peak_to_recovery_days": 224
+    },
+    "full-offset1": {
+      "W": 32.31090501796239,
+      "DD": 0.2714705828141921,
+      "account_instructions": 21,
+      "fill_records": 25,
+      "pending_instructions": 0,
+      "operation_days": 18,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 51.9961390131,
+      "fees": 68708.69147521199,
+      "slippage_cost": 104055.07259999837,
+      "cash": 64621810.03592478,
+      "held_session_fraction": 0.9654377880184332,
+      "peak_to_recovery_days": 224
+    },
+    "full-offset10": {
+      "W": 31.72720416499964,
+      "DD": 0.27119679209784264,
+      "account_instructions": 21,
+      "fill_records": 25,
+      "pending_instructions": 0,
+      "operation_days": 18,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 51.0786005461,
+      "fees": 67480.644800722,
+      "slippage_cost": 102218.82519999833,
+      "cash": 63454408.32999928,
+      "held_session_fraction": 0.9650756693830035,
+      "peak_to_recovery_days": 224
+    },
+    "full-offset5": {
+      "W": 31.653480772240975,
+      "DD": 0.2723275942565919,
+      "account_instructions": 21,
+      "fill_records": 24,
+      "pending_instructions": 0,
+      "operation_days": 17,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 50.9531158775,
+      "fees": 67315.74751805,
+      "slippage_cost": 101967.70799999833,
+      "cash": 63306961.54448195,
+      "held_session_fraction": 0.9583333333333334,
+      "peak_to_recovery_days": 224
+    },
+    "full-offset5-cost2": {
+      "W": 18.386990516098365,
+      "DD": 0.27958937282358254,
+      "account_instructions": 18,
+      "fill_records": 21,
+      "pending_instructions": 0,
+      "operation_days": 15,
+      "peak_daily_instructions": 2,
+      "gross_turnover": 41.649669376599995,
+      "fees": 102403.517803264,
+      "slippage_cost": 166738.85000000184,
+      "cash": 36773981.03219673,
+      "held_session_fraction": 0.9583333333333334,
+      "peak_to_recovery_days": 86
+    },
+    "loo-sz300308": {
+      "W": 1.0417438648145532,
+      "DD": 0.27849752804443473,
+      "account_instructions": 8,
+      "fill_records": 15,
+      "pending_instructions": 0,
+      "operation_days": 8,
+      "peak_daily_instructions": 1,
+      "gross_turnover": 2.61878604095,
+      "fees": 2692.706870894,
+      "slippage_cost": 5237.663499999708,
+      "cash": 2083487.7296291064,
+      "held_session_fraction": 0.25431530494821636,
+      "peak_to_recovery_days": 269
+    },
+    "loo-sz300502": {
+      "W": 1.0417438648145532,
+      "DD": 0.27849752804443473,
+      "account_instructions": 8,
+      "fill_records": 15,
+      "pending_instructions": 0,
+      "operation_days": 8,
+      "peak_daily_instructions": 1,
+      "gross_turnover": 2.61878604095,
+      "fees": 2692.706870894,
+      "slippage_cost": 5237.663499999708,
+      "cash": 2083487.7296291064,
+      "held_session_fraction": 0.25431530494821636,
+      "peak_to_recovery_days": 269
+    },
+    "remove_all_three": {
+      "W": 1.0417438648145532,
+      "DD": 0.27849752804443473,
+      "account_instructions": 8,
+      "fill_records": 15,
+      "pending_instructions": 0,
+      "operation_days": 8,
+      "peak_daily_instructions": 1,
+      "gross_turnover": 2.61878604095,
+      "fees": 2692.706870894,
+      "slippage_cost": 5237.663499999708,
+      "cash": 2083487.7296291064,
+      "held_session_fraction": 0.25431530494821636,
+      "peak_to_recovery_days": 269
+    }
+  },
+  "relative": {
+    "full": {
+      "baseline_source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+      "B0": {
+        "W": 32.579245830951976,
+        "DD": 0.27147361646156465,
+        "account_instructions": 20,
+        "fill_records": 24,
+        "pending_instructions": 0,
+        "operation_days": 17,
+        "peak_daily_instructions": 3,
+        "gross_turnover": 52.4263781552,
+        "fees": 69281.84909605401,
+        "slippage_cost": 104916.08899999836,
+        "cash": 65158491.66190395,
+        "held_session_fraction": 0.9654775604142692,
+        "peak_to_recovery_days": 224
+      },
+      "W_ratio": 0.9919503036598715
+    },
+    "d-continuous_ai_era": {
+      "baseline_source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+      "B0": {
+        "W": 18.810650610878163,
+        "DD": 0.27146973146234554,
+        "account_instructions": 23,
+        "fill_records": 26,
+        "pending_instructions": 0,
+        "operation_days": 18,
+        "peak_daily_instructions": 3,
+        "gross_turnover": 46.1590340717,
+        "fees": 56001.540443684,
+        "slippage_cost": 92353.83779999794,
+        "cash": 37621301.221756324,
+        "held_session_fraction": 0.9700805523590333,
+        "peak_to_recovery_days": 224
+      },
+      "W_ratio": 0.9938660868073296
+    },
+    "full-cost2": {
+      "baseline_source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+      "B0": {
+        "W": 32.40090574411483,
+        "DD": 0.27228092480987354,
+        "account_instructions": 20,
+        "fill_records": 24,
+        "pending_instructions": 0,
+        "operation_days": 17,
+        "peak_daily_instructions": 3,
+        "gross_turnover": 52.19162922859999,
+        "fees": 137940.799770344,
+        "slippage_cost": 209019.11200000267,
+        "cash": 64801811.48822966,
+        "held_session_fraction": 0.9654775604142692,
+        "peak_to_recovery_days": 224
+      },
+      "W_ratio": 0.9920393634741445
+    },
+    "loo-sz300308": {
+      "baseline_source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+      "B0": {
+        "W": 1.1112307929627396,
+        "DD": 0.22788951483933284,
+        "account_instructions": 17,
+        "fill_records": 17,
+        "pending_instructions": 0,
+        "operation_days": 12,
+        "peak_daily_instructions": 3,
+        "gross_turnover": 3.5379632985000002,
+        "fees": 3665.25427452,
+        "slippage_cost": 7076.159799999555,
+        "cash": 2222461.5859254794,
+        "held_session_fraction": 0.1714614499424626,
+        "peak_to_recovery_days": 776
+      },
+      "W_ratio": 0.9374685001637492
+    },
+    "loo-sz300502": {
+      "baseline_source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+      "B0": {
+        "W": 1.1309150270568253,
+        "DD": 0.18666822008118045,
+        "account_instructions": 21,
+        "fill_records": 21,
+        "pending_instructions": 0,
+        "operation_days": 16,
+        "peak_daily_instructions": 3,
+        "gross_turnover": 4.37850334,
+        "fees": 4532.66408635,
+        "slippage_cost": 8757.281799999435,
+        "cash": 2261830.0541136507,
+        "held_session_fraction": 0.24626006904487918,
+        "peak_to_recovery_days": 26
+      },
+      "W_ratio": 0.9211513154314187
+    },
+    "remove_all_three": {
+      "baseline_source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+      "B0": {
+        "W": 1.00002249697879,
+        "DD": 0.20928407343658617,
+        "account_instructions": 13,
+        "fill_records": 13,
+        "pending_instructions": 0,
+        "operation_days": 11,
+        "peak_daily_instructions": 2,
+        "gross_turnover": 3.1613175035,
+        "fees": 3225.36144242,
+        "slippage_cost": 6322.644599999659,
+        "cash": 2000044.99395758,
+        "held_session_fraction": 0.17261219792865362,
+        "peak_to_recovery_days": 776
+      },
+      "W_ratio": 1.0417204292521511
+    }
+  },
+  "clusters": {
+    "2023": {
+      "common_date": "2023-01-17",
+      "G": {
+        "0": 32.68252851554453,
+        "1": 32.562061817113,
+        "5": 31.653480772240975,
+        "10": 31.72720416499964
+      },
+      "R_common": null
+    },
+    "2024": {
+      "common_date": "2024-01-16",
+      "G": {},
+      "R_common": null
+    },
+    "2025": {
+      "common_date": "2025-01-16",
+      "G": {},
+      "R_common": null
+    }
+  },
+  "cost_retention": {
+    "full": 0.9946152513091567,
+    "full-offset5": 0.580883683800839
+  },
+  "weak_geometric_retention": 0.9653384704227385,
+  "failures": [
+    "weak pool geometric retention",
+    "full-offset5: doubled cost retention"
+  ],
+  "NOT_RUN": [
+    "2024-offset0",
+    "2024-offset10",
+    "2024-offset5",
+    "2025-offset0",
+    "2025-offset10",
+    "2025-offset5",
+    "full-offset2",
+    "full-offset3",
+    "full-offset4",
+    "full-offset6",
+    "full-offset7",
+    "full-offset8",
+    "full-offset9"
+  ],
+  "completion": "Separate mechanism, invariant, evidence preservation and protected merge evidence required."
+}

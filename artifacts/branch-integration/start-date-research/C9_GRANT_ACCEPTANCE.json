@@ -1,0 +1,92 @@
+{
+  "producer": "33e310ec6aee04b50b2fa907c3e5935e1c88c557",
+  "production_tree": "27e436e2be97d2bf82bb29eab95450f976e091e0",
+  "status": "PASS",
+  "failures": [],
+  "native_eligibility": [
+    {
+      "date": "2024-02-27",
+      "final_account_sha256": "5192ebf4b89990e31c742167709bd9c1bf57675dd92e2cba8d8ecf83d083e337",
+      "owner": "sz300308",
+      "status": "SUCCESS",
+      "trace_sha256": "1e648edf6c2ef71cc0c2cb3a734427263069b625c7ce12dfe53fb79f12685480"
+    },
+    {
+      "date": "2024-03-04",
+      "final_account_sha256": "c77f0a8c4e77201327b6d57a1c86659e21fb1c97ed6fdaf19f878f38b7aae6b4",
+      "owner": "sz300502",
+      "status": "SUCCESS",
+      "trace_sha256": "f16eaae5c7aeab80882157b6c3f261d9cef9be967bc0116fc110eafe9d4d76d2"
+    },
+    {
+      "date": "2023-02-13",
+      "final_account_sha256": "e36d2dc5645078a069859dc767d95468f5a082a6c31bf2ca9a37cba529913155",
+      "owner": "sz300394",
+      "status": "SUCCESS",
+      "trace_sha256": "600b2152fb4c335d61e18018452d88f2fad17c04ce6863d6e5859a5cd54b49ce"
+    }
+  ],
+  "baseline": {
+    "acceptance_basis": {
+      "contract_id": "cross-ai-core-strategy-20260905-v1",
+      "contract_sha256": "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500ca7b89a75d78b4",
+      "mode": "current_candidate",
+      "production_source_sha256": "cf7f5185124cbd5b0c99610f12ae95d779bd870585db67cab2c67a74a260abb5"
+    },
+    "accounting": {
+      "cash": 55946267.99772954,
+      "final_equity": 55946267.99772954,
+      "initial_cash": 2000000.0,
+      "maximum_target_gross": 0.95,
+      "minimum_risk_target_gross_cap": 0.0,
+      "open_pnl": 0.0,
+      "owner_symbols": [
+        "sz300308"
+      ],
+      "position_market_value": 0.0,
+      "realized_pnl": 53946267.99772953,
+      "unexpected_owner_symbols": []
+    },
+    "completion": {
+      "account_orders": 13,
+      "final_account_sha256": "1a40404b4a94935de1819addf2dadb0b2e472bdb1afa374cd92165d429c3b374",
+      "final_equity": 55946267.99772954,
+      "observed_sessions": 869,
+      "trace_sha256": "e43e9384f7878789f930b644a3fb9c997b036ba6d2ed6fddea20458dadd7b46c"
+    },
+    "duplicate_epoch_count": 0,
+    "duplicate_grant_count": 0,
+    "duplicate_order_count": 0,
+    "first_positive_target_session": "2023-01-04",
+    "historical_comparison": {
+      "first_positive_matches": true,
+      "path_matches": false
+    },
+    "incumbent_epoch_count": 1,
+    "metrics": {
+      "account_orders": 13,
+      "fees": 49784.169470463996,
+      "final_equity": 55946267.99772954,
+      "final_wealth": 27.97313399886477,
+      "gross_turnover": 35.5736827732,
+      "max_drawdown": 0.27133435111722704,
+      "slippage_cost": 71201.4327999963,
+      "total_return": 26.97313399886477
+    },
+    "physical_fills": 16,
+    "sha256": {
+      "equity": "e9260ebc336218c4d981def528acb0759ec34539527fba7e11691b3e7ca909e0",
+      "fills": "c2acd3aae1e2eea9597f0148cea5e6b98ed6ee11ff1b847edd7c7d3523198ccc",
+      "orders": "1c6bad74a9b3db3affeeeca8f80e73be012c7333e22503c9a19c16990c6137ad",
+      "positions": "48d370de6906cca8a344064e1e77ec5c9c12823e2219487af7f4fed233d249f6",
+      "targets": "2ade10027bc01f6ce45a23fa03c6b28c3703c5d881497a6056a2c31bd52ad993"
+    },
+    "successor_capital_before_incumbent_exit_count": 0,
+    "violations": []
+  },
+  "raw_file": "c9-grant-acceptance/acceptance.json",
+  "bytes": 1671065,
+  "sha256": "ce8c44aba2ec8d91e459049858c9a35edcb7aea3c61c936205ad0d678a4aa7f9",
+  "cloud_operation": "20260919T191914-7eee0e9063cb",
+  "scope": "Canonical all-four-case acceptance after exact-identity cached native units; not a single diagnostic case."
+}

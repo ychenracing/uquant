@@ -1,0 +1,13 @@
+{
+  "run_id": 35462205327,
+  "job_id": 105947957096,
+  "head_sha": "082513bdb37d395609d173f5bde08d3da0793067",
+  "job_started": "2026-09-19T18:52:35Z",
+  "replay_started": "2026-09-19T18:54:31Z",
+  "job_cancelled": "2026-09-19T19:17:47Z",
+  "grant_tests": "92 passed in 96.21s",
+  "native_acceptance": "INCOMPLETE_CANCELLED",
+  "diagnosis": "Cancellation at 25-minute job budget; log contains no completed economic result. No manual cancellation performed.",
+  "log_sha256": "33c8323c782e396f8b1e547fa0fc46dedcc2ebdfc4fb78447f7d6dd6ba0e5739",
+  "workflow_change": "60-minute job budget and 3300-second cloud_guard; existing identity-bound unit cache and journal persisted, all cases/assertions retained"
+}

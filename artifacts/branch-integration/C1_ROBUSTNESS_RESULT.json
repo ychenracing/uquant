@@ -1,0 +1,230 @@
+{
+  "status": "NOT_MET",
+  "contract": {
+    "contract_id": "start-date-robustness-20260920",
+    "authority": "User implementation prompt 2026-09-20 replaces old per-cell DD increment screen. Historical records unchanged.",
+    "B0": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
+    "C1_source": "57949b4fa99e66d297decba18cdd37033686561b",
+    "end": "2026-08-05",
+    "clusters": {
+      "2023": {
+        "0": "2023-01-03",
+        "1": "2023-01-04",
+        "2": "2023-01-05",
+        "3": "2023-01-06",
+        "4": "2023-01-09",
+        "5": "2023-01-10",
+        "6": "2023-01-11",
+        "7": "2023-01-12",
+        "8": "2023-01-13",
+        "9": "2023-01-16",
+        "10": "2023-01-17"
+      },
+      "2024": {
+        "0": "2024-01-02",
+        "5": "2024-01-09",
+        "10": "2024-01-16"
+      },
+      "2025": {
+        "0": "2025-01-02",
+        "5": "2025-01-09",
+        "10": "2025-01-16"
+      }
+    },
+    "reserve_confirmation_dates": {
+      "2023": {
+        "12": "2023-01-19",
+        "15": "2023-01-31",
+        "20": "2023-02-07"
+      },
+      "2024": {
+        "12": "2024-01-18",
+        "15": "2024-01-23",
+        "20": "2024-01-30"
+      },
+      "2025": {
+        "12": "2025-01-20",
+        "15": "2025-01-23",
+        "20": "2025-02-07"
+      }
+    },
+    "development_offsets": [
+      0,
+      1,
+      5,
+      10
+    ],
+    "gates": {
+      "common_growth_retention": 0.7,
+      "offset5_wealth_retention": 0.7,
+      "strong_wealth_retention": 0.8,
+      "maximum_drawdown": 0.3,
+      "weak_geometric_retention": 1.2,
+      "weak_minimum_retention": 0.9,
+      "cost2_retention": 0.9
+    },
+    "strong_cases": [
+      "full",
+      "d-continuous_ai_era",
+      "full-cost2"
+    ],
+    "weak_cases": [
+      "loo-sz300308",
+      "loo-sz300502",
+      "remove_all_three"
+    ],
+    "cost_pairs": [
+      "full",
+      "full-offset5"
+    ],
+    "no_optical": "observation only; tradable five-name removal, not all-role optical independence",
+    "mechanisms": [
+      "fresh_leadership_budget",
+      "entry_leadership_weights",
+      "caution_probe_book_open"
+    ],
+    "mechanism_window": {
+      "start": "2025-04-01",
+      "end": "2025-12-31",
+      "symbols": [
+        "sz300308",
+        "sz300394",
+        "sz300502"
+      ],
+      "selection_basis": "Existing native test has causal tactical fill April3 signal and recovery May8 signal; all events in fixed remainder-of-year window included. No profit-based selection."
+    }
+  },
+  "candidate_identity": [
+    [
+      "92c558e7d35cfb5e46c97d73a1fbf31f153f2473",
+      "4f4ccda7ad40c9e3f5a640494379410bfd28b5b6"
+    ]
+  ],
+  "cells": {
+    "full": {
+      "W": 32.579245830951976,
+      "DD": 0.27147361646156465,
+      "account_instructions": 20,
+      "fill_records": 24,
+      "operation_days": 17,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 52.4263781552,
+      "fees": 69281.84909605401,
+      "slippage_cost": 104916.08899999836,
+      "cash": 65158491.66190395,
+      "held_session_fraction": 0.9654775604142692,
+      "peak_to_recovery_days": 224
+    },
+    "full-offset1": {
+      "W": 32.56160358866472,
+      "DD": 0.2712056833489911,
+      "account_instructions": 20,
+      "fill_records": 24,
+      "operation_days": 17,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 52.38348221665,
+      "fees": 69229.26097055801,
+      "slippage_cost": 104830.26169999833,
+      "cash": 65123207.177329436,
+      "held_session_fraction": 0.9654377880184332,
+      "peak_to_recovery_days": 224
+    },
+    "full-offset10": {
+      "W": 1.8984387124959399,
+      "DD": 0.23812423499266522,
+      "account_instructions": 20,
+      "fill_records": 21,
+      "operation_days": 17,
+      "peak_daily_instructions": 2,
+      "gross_turnover": 6.0307581285,
+      "fees": 6602.24320812,
+      "slippage_cost": 12063.33179999948,
+      "cash": 3796877.4249918796,
+      "held_session_fraction": 0.19557625145518046,
+      "peak_to_recovery_days": 23
+    },
+    "full-offset5": {
+      "W": 5.622466803311666,
+      "DD": 0.25389366472788366,
+      "account_instructions": 45,
+      "fill_records": 45,
+      "operation_days": 35,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 24.16377433225,
+      "fees": 26965.02447667,
+      "slippage_cost": 48336.868899997324,
+      "cash": 11244933.606623333,
+      "held_session_fraction": 0.4525462962962963,
+      "peak_to_recovery_days": 25
+    }
+  },
+  "relative": {
+    "full": {
+      "baseline_source": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+      "B0": {
+        "W": 32.579245830951976,
+        "DD": 0.27147361646156465,
+        "account_instructions": 20,
+        "fill_records": 24,
+        "operation_days": 17,
+        "peak_daily_instructions": 3,
+        "gross_turnover": 52.4263781552,
+        "fees": 69281.84909605401,
+        "slippage_cost": 104916.08899999836,
+        "cash": 65158491.66190395,
+        "held_session_fraction": 0.9654775604142692,
+        "peak_to_recovery_days": 224
+      },
+      "W_ratio": 1.0
+    }
+  },
+  "clusters": {
+    "2023": {
+      "common_date": "2023-01-17",
+      "G": {
+        "0": 32.94774788107832,
+        "1": 32.81470909988434,
+        "5": 5.622466803311666,
+        "10": 1.8984387124959399
+      },
+      "R_common": null
+    },
+    "2024": {
+      "common_date": "2024-01-16",
+      "G": {},
+      "R_common": null
+    },
+    "2025": {
+      "common_date": "2025-01-16",
+      "G": {},
+      "R_common": null
+    }
+  },
+  "cost_retention": {},
+  "weak_geometric_retention": null,
+  "failures": [
+    "offset5 raw wealth retention"
+  ],
+  "NOT_RUN": [
+    "2024-offset0",
+    "2024-offset10",
+    "2024-offset5",
+    "2025-offset0",
+    "2025-offset10",
+    "2025-offset5",
+    "d-continuous_ai_era",
+    "full-cost2",
+    "full-offset2",
+    "full-offset3",
+    "full-offset4",
+    "full-offset5-cost2",
+    "full-offset6",
+    "full-offset7",
+    "full-offset8",
+    "full-offset9",
+    "loo-sz300308",
+    "loo-sz300502",
+    "remove_all_three"
+  ],
+  "completion": "Separate mechanism, invariant, evidence preservation and protected merge evidence required."
+}

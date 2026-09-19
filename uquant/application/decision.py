@@ -8,7 +8,7 @@ import json
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from types import MappingProxyType
-from typing import Protocol, cast
+from typing import Any, Protocol, cast
 
 import pandas as pd
 
@@ -49,6 +49,7 @@ from ..types import (
     bind_account_strategic_ownership,
     build_strategic_universe_roles,
 )
+from .market_observations import recent_reversal_observations
 from .target_attribution import attach_target_attribution
 
 
@@ -89,6 +90,7 @@ class DecisionEngineRuntime(Protocol):
     _features: dict[str, pd.DataFrame]
     _code_hash: str | None
     _leader_score_cache: dict[tuple[object, ...], dict[str, LeaderScore]]
+    _reversal_observation_cache: dict[tuple[object, ...], list[dict[str, Any]]]
 
     def _load(self, symbols: Iterable[str]) -> None: ...
 
@@ -886,6 +888,12 @@ def _decide_result(
         account=account,
         assess_risk_fn=assess_risk_fn,
         evaluate_sentinel_fn=evaluate_sentinel_fn,
+    )
+    risk.evidence["reversal_observations"] = recent_reversal_observations(
+        data=self.data, cfg=market.cfg, date=inputs.date,
+        panel={**market.qualification_reference_panel, **market.user_panel}, tech=market.tech,
+        allocator=self.allocator, score_cache=self._leader_score_cache,
+        observation_cache=self._reversal_observation_cache,
     )
     allocation = _allocate_decision_orders(
         self,

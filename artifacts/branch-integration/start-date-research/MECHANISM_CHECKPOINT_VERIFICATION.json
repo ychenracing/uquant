@@ -1,0 +1,58 @@
+[
+  {
+    "case": "recovery-2025",
+    "label": "c9-entry-off",
+    "prefix_source": "33e310ec6aee04b50b2fa907c3e5935e1c88c557",
+    "suffix_source": "3e8fcf461ff2d989adf4d5c750a2ad8bd3ec798e",
+    "checkpoint": "2025-05-07",
+    "prefix_account_sha256": "5feb91f92555c646fb5602d10ece637ced35576ca6ee5e3a62b5409bacf13845",
+    "economic_sha256_before_migration": "f688192e47b8975d6e362d1f1ed901b6cc4bba2027b7a307f412c04656981473",
+    "economic_sha256_after_migration": "f688192e47b8975d6e362d1f1ed901b6cc4bba2027b7a307f412c04656981473",
+    "all_equity_cash_positions_match_full_native_pair": true,
+    "sessions": 186,
+    "W": 5.524467185719514,
+    "final_account_strict_decode": true
+  },
+  {
+    "case": "normal-tactical-2023",
+    "label": "c9",
+    "prefix_source": "33e310ec6aee04b50b2fa907c3e5935e1c88c557",
+    "suffix_source": "33e310ec6aee04b50b2fa907c3e5935e1c88c557",
+    "checkpoint": "2023-07-04",
+    "prefix_account_sha256": "c9ceeb053d9764d6b8d4529a8911a4adeb6f980414bab13ca9b0f35e4489b45c",
+    "economic_sha256_before_migration": "54c69604f3ddfb9936b5cdff0bd16137a9791fc27ae6c984b01a607e1b71acc0",
+    "economic_sha256_after_migration": "54c69604f3ddfb9936b5cdff0bd16137a9791fc27ae6c984b01a607e1b71acc0",
+    "all_equity_cash_positions_match_full_native_pair": true,
+    "sessions": 64,
+    "W": 1.1239075851579703,
+    "final_account_strict_decode": true
+  },
+  {
+    "case": "recovery-2025",
+    "label": "c9",
+    "prefix_source": "33e310ec6aee04b50b2fa907c3e5935e1c88c557",
+    "suffix_source": "33e310ec6aee04b50b2fa907c3e5935e1c88c557",
+    "checkpoint": "2025-05-07",
+    "prefix_account_sha256": "5feb91f92555c646fb5602d10ece637ced35576ca6ee5e3a62b5409bacf13845",
+    "economic_sha256_before_migration": "f688192e47b8975d6e362d1f1ed901b6cc4bba2027b7a307f412c04656981473",
+    "economic_sha256_after_migration": "f688192e47b8975d6e362d1f1ed901b6cc4bba2027b7a307f412c04656981473",
+    "all_equity_cash_positions_match_full_native_pair": true,
+    "sessions": 186,
+    "W": 5.679903233990157,
+    "final_account_strict_decode": true
+  },
+  {
+    "case": "normal-tactical-2023",
+    "label": "c9-tactical-off",
+    "prefix_source": "33e310ec6aee04b50b2fa907c3e5935e1c88c557",
+    "suffix_source": "575209cc32855d986e52a9e9d826bcccac46c24c",
+    "checkpoint": "2023-07-04",
+    "prefix_account_sha256": "c9ceeb053d9764d6b8d4529a8911a4adeb6f980414bab13ca9b0f35e4489b45c",
+    "economic_sha256_before_migration": "54c69604f3ddfb9936b5cdff0bd16137a9791fc27ae6c984b01a607e1b71acc0",
+    "economic_sha256_after_migration": "54c69604f3ddfb9936b5cdff0bd16137a9791fc27ae6c984b01a607e1b71acc0",
+    "all_equity_cash_positions_match_full_native_pair": true,
+    "sessions": 64,
+    "W": 1.0296647183898,
+    "final_account_strict_decode": true
+  }
+]

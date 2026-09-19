@@ -1,0 +1,184 @@
+{
+  "c1": {
+    "source_head": "92c558e7d35cfb5e46c97d73a1fbf31f153f2473",
+    "source_tree": "4f4ccda7ad40c9e3f5a640494379410bfd28b5b6",
+    "metrics": {
+      "W": 1.1239075851579703,
+      "DD": 0.06823342110531982,
+      "account_instructions": 10,
+      "fill_records": 10,
+      "pending_instructions": 1,
+      "operation_days": 6,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 2.6513745779999995,
+      "fees": 2401.2876840599997,
+      "slippage_cost": 5301.541999999702,
+      "cash": 785141.1703159403,
+      "held_session_fraction": 0.890625,
+      "peak_to_recovery_days": 28
+    },
+    "orders": [
+      {
+        "signal_date": "2023-07-05",
+        "symbol": "sh688072",
+        "side": "BUY",
+        "target_weight": 0.6,
+        "filled_shares": 7400,
+        "mechanism": "TACTICAL_REBOUND"
+      },
+      {
+        "signal_date": "2023-08-31",
+        "symbol": "sh688072",
+        "side": "SELL",
+        "target_weight": 0.0,
+        "filled_shares": 7400,
+        "mechanism": "TACTICAL_REBOUND"
+      },
+      {
+        "signal_date": "2023-09-06",
+        "symbol": "sh688200",
+        "side": "BUY",
+        "target_weight": 0.16000000000000003,
+        "filled_shares": 3400,
+        "mechanism": "RECOVERY_COHORT"
+      },
+      {
+        "signal_date": "2023-09-06",
+        "symbol": "sh688233",
+        "side": "BUY",
+        "target_weight": 0.6,
+        "filled_shares": 15100,
+        "mechanism": "RECOVERY_COHORT"
+      },
+      {
+        "signal_date": "2023-09-06",
+        "symbol": "sz300604",
+        "side": "BUY",
+        "target_weight": 0.16000000000000003,
+        "filled_shares": 8800,
+        "mechanism": "RECOVERY_COHORT"
+      },
+      {
+        "signal_date": "2023-09-15",
+        "symbol": "sz300308",
+        "side": "BUY",
+        "target_weight": 0.13206638098303658,
+        "filled_shares": 3800,
+        "mechanism": "STRATEGIC_COHORT"
+      },
+      {
+        "signal_date": "2023-09-15",
+        "symbol": "sz300394",
+        "side": "BUY",
+        "target_weight": 0.3333333333333333,
+        "filled_shares": 27400,
+        "mechanism": "STRATEGIC_COHORT"
+      },
+      {
+        "signal_date": "2023-09-20",
+        "symbol": "sh688200",
+        "side": "SELL",
+        "target_weight": 0.0,
+        "filled_shares": 3400,
+        "mechanism": "LEADER_LIFECYCLE_EXIT"
+      },
+      {
+        "signal_date": "2023-09-20",
+        "symbol": "sz300604",
+        "side": "SELL",
+        "target_weight": 0.0,
+        "filled_shares": 8800,
+        "mechanism": "LEADER_LIFECYCLE_EXIT"
+      },
+      {
+        "signal_date": "2023-09-27",
+        "symbol": "sh688233",
+        "side": "SELL",
+        "target_weight": 0.0,
+        "filled_shares": 6700,
+        "mechanism": "LEADER_LIFECYCLE_EXIT"
+      }
+    ]
+  },
+  "tactical-original": {
+    "source_head": "3082d66302bf921a84386e7990f09b2a9f7d14db",
+    "source_tree": "093fa5f8702225aa6975dc2ce82c782d4d209069",
+    "metrics": {
+      "W": 1.0296647183898,
+      "DD": 0.11852709509868908,
+      "account_instructions": 5,
+      "fill_records": 2,
+      "pending_instructions": 3,
+      "operation_days": 3,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 0.6817182075,
+      "fees": 437.1582204,
+      "slippage_cost": 1362.404999999933,
+      "cash": 966785.4367796001,
+      "held_session_fraction": 0.671875,
+      "peak_to_recovery_days": 24
+    },
+    "orders": [
+      {
+        "signal_date": "2023-07-31",
+        "symbol": "sz002281",
+        "side": "BUY",
+        "target_weight": 0.6,
+        "filled_shares": 40300,
+        "mechanism": "TACTICAL_REBOUND"
+      },
+      {
+        "signal_date": "2023-08-21",
+        "symbol": "sz002281",
+        "side": "SELL",
+        "target_weight": 0.5,
+        "filled_shares": 5900,
+        "mechanism": "CRISIS"
+      },
+      {
+        "signal_date": "2023-09-28",
+        "symbol": "sz002281",
+        "side": "SELL",
+        "target_weight": 0.0,
+        "filled_shares": 0,
+        "mechanism": "TACTICAL_REBOUND"
+      },
+      {
+        "signal_date": "2023-09-28",
+        "symbol": "sz300308",
+        "side": "BUY",
+        "target_weight": 0.13613280429031405,
+        "filled_shares": 0,
+        "mechanism": "STRATEGIC_COHORT"
+      },
+      {
+        "signal_date": "2023-09-28",
+        "symbol": "sz300394",
+        "side": "BUY",
+        "target_weight": 0.3333333333333333,
+        "filled_shares": 0,
+        "mechanism": "STRATEGIC_COHORT"
+      }
+    ]
+  },
+  "proportional": {
+    "source_head": "e80552d0149970b957538f633b845bc163cc9c4d",
+    "source_tree": "aa290f80479ee47663a2e6de114c1c50e26c463f",
+    "metrics": {
+      "W": 1.1239075851579703,
+      "DD": 0.06823342110531982,
+      "account_instructions": 10,
+      "fill_records": 10,
+      "pending_instructions": 1,
+      "operation_days": 6,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 2.6513745779999995,
+      "fees": 2401.2876840599997,
+      "slippage_cost": 5301.541999999702,
+      "cash": 785141.1703159403,
+      "held_session_fraction": 0.890625,
+      "peak_to_recovery_days": 28
+    },
+    "disposition": "Second independent mechanism window still has zero incremental portfolio effect; extra funding tilt remains unproven."
+  }
+}

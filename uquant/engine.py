@@ -81,7 +81,6 @@ class ProductionEngine:
         self.data = self.workspace.data
         self.execution = ExecutionPlanner(cfg)
         self.allocator = PortfolioAllocator(cfg)
-        # Shared application views owned and invalidated by the market workspace.
         self._raw = self.workspace._raw
         self._features = self.workspace._features
         self._code_hash: str | None = None

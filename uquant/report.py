@@ -257,6 +257,7 @@ _BLOCK_TEXT = MappingProxyType({
     "NO_TARGET": "没有记录目标，不据此推断买卖许可",
     "NONE": "本项检查未记录阻断",
     "PENDING_CORE_BUY_ALREADY_EVALUATED": "原买单已在延续路径评估，不重复分配",
+    "RECOVERY_ALLOCATION_ACTIVE": "恢复分配正在占用本次准入，暂缓普通新建仓",
     "FAILED_DEPLOYMENT_UNSETTLED": "先前部署仍未结清，暂缓新建仓",
     "ACCOUNT_REPAIR_AUTHORIZED": "本次有限账户恢复买入已获得原规则授权",
     "candidate_identity_already_bound": "候选已经绑定持仓或未完成订单",

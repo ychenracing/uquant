@@ -30,6 +30,7 @@ def main() -> None:
     parser.add_argument('--end', required=True)
     parser.add_argument('--cost-multiplier', type=float, default=1.0)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--identity-only', action='store_true')
     args = parser.parse_args()
     root, output = args.root.resolve(), args.output.resolve()
     data_dir, contract = args.data_dir.resolve(), args.contract.resolve()
@@ -71,6 +72,11 @@ def main() -> None:
                 'contract_sha256': digest(contract.read_bytes()), 'runner_sha256': digest(Path(__file__).read_bytes()),
                 'symbols': sorted(args.symbols.split(',')), 'start': args.start, 'end': args.end,
                 'cost_multiplier': args.cost_multiplier, 'completed': False}
+    if args.identity_only:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with output.open('x') as stream:
+            json.dump(evidence, stream, sort_keys=True, allow_nan=False)
+        return
     started = time.monotonic()
     try:
         result = ProductionEngine(data_dir, cfg).backtest(symbols=evidence['symbols'], start=args.start, end=args.end)

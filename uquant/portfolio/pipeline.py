@@ -963,7 +963,8 @@ def _allocate_strategy(
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (
                 "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY" if liabilities
-                else "FAILED_DEPLOYMENT_UNSETTLED"
+                else "FAILED_DEPLOYMENT_UNSETTLED" if awaiting_settlement
+                else "RECOVERY_ALLOCATION_ACTIVE"
             )
     repair_symbol = ""
     if frozen and not liabilities and not awaiting_settlement and strategic_universe is not None:

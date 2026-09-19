@@ -214,8 +214,9 @@ def _is_replay_decision_check_path(path: tuple[str | int, ...]) -> bool:
             and tail[:2] == ("replay_evidence", "observations")
             and isinstance(tail[2], int)
             and tail[3:6] == ("decision_payload", "value", "risk_summary")
-            and tail[6:10] == ("core_allocation", "symbols", "entry", "checks")
+            and tail[6:8] == ("core_allocation", "symbols")
             and isinstance(tail[8], str)
+            and tail[9:11] == ("entry", "checks")
             and isinstance(tail[11], str)
         ):
             return True
@@ -366,7 +367,7 @@ def reject_self_assertion_claims(
             )
         ):
             raise ValueError(
-                f"absolute generalization {label} contains a self-asserted pass"
+                f"absolute generalization {label} contains a self-asserted pass at {path!r}"
             )
         for key, item in value.items():
             reject_self_assertion_claims(item, label=label, path=(*path, key))

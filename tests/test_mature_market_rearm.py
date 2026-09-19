@@ -29,10 +29,15 @@ def test_sector_recovery_does_not_reuse_old_tenure_or_duplicate_observations():
     for date in dates[1:5]:
         assert not _decide(policy, account, date, panel, base, risk)
         assert not _decide(policy, account, date, panel, base, risk)
+        assert risk.evidence["core_allocation"]["ordinary_market"]["mature_entry_open"] is False
         account = account_from_dict(asdict(account))
-    assert _decide(policy, account, dates[5], panel, base, risk)
-    assert len(account.pending_orders) == 1
-    assert account.pending_orders[0].target_weight == policy.cfg.single_core_entry_cap
+    assert not _decide(policy, account, dates[5], panel, base, risk)
+    trace = risk.evidence["core_allocation"]
+    assert trace["ordinary_market"]["mature_entry_open"] is True
+    ready = trace["symbols"][next(iter(base))]
+    assert ready["entry"]["block"] == "READY"
+    assert ready["entry_gate"] == "DEPLOYMENT_CONFIRMATION_PENDING"
+    assert not account.pending_orders
 
 
 def test_unhealthy_market_resets_fresh_sector_recovery_confirmation():
@@ -49,7 +54,10 @@ def test_unhealthy_market_resets_fresh_sector_recovery_confirmation():
 
 def test_no_sector_episode_does_not_add_a_market_wait():
     policy, account, dates, panel, base, risk = _inputs()
-    assert _decide(policy, account, dates[0], panel, base, risk)
+    assert not _decide(policy, account, dates[0], panel, base, risk)
+    trace = risk.evidence["core_allocation"]
+    assert trace["ordinary_market"]["mature_entry_open"] is True
+    assert trace["symbols"][next(iter(base))]["entry"]["block"] == "READY"
 
 
 def test_impulse_cannot_bypass_pending_maturity_market_rearm():

@@ -1,0 +1,584 @@
+{
+  "authorization": "PR73 startup-date implementation; API-only evolution; 2026-09-20",
+  "base_contract_sha256": "86867db3a62e9e9bca32422d12ad33b7364751be55e95c564c6371dbda493206",
+  "contract_sha256": "341b4eaedbc765931dcc0bc14d88f227f40f7645afe0ea9f9771a52965686c74",
+  "modules": {
+    "uquant.application.market_observations": {
+      "classes": {},
+      "dataclasses": {},
+      "enums": {},
+      "functions": {
+        "recent_reversal_observations": {
+          "parameters": [
+            {
+              "annotation": "DataStore",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "data"
+            },
+            {
+              "annotation": "SystemConfig",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "cfg"
+            },
+            {
+              "annotation": "pd.Timestamp",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "date"
+            },
+            {
+              "annotation": "dict[str, pd.DataFrame]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "panel"
+            },
+            {
+              "annotation": "pd.DataFrame",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "tech"
+            },
+            {
+              "annotation": "PortfolioAllocator",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "allocator"
+            },
+            {
+              "annotation": "dict[tuple[object, ...], dict[str, LeaderScore]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "score_cache"
+            },
+            {
+              "annotation": "dict[tuple[object, ...], list[dict[str, Any]]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "observation_cache"
+            }
+          ],
+          "return": "dict[str, dict[str, Any]]"
+        }
+      },
+      "path": "uquant/application/market_observations.py",
+      "public_names": [
+        "recent_reversal_observations"
+      ]
+    },
+    "uquant.portfolio.leaders.cycle": {
+      "classes": {},
+      "dataclasses": {},
+      "enums": {},
+      "functions": {
+        "add_mature_leaders": {
+          "parameters": [
+            {
+              "annotation": "AllocationBook",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "book"
+            },
+            {
+              "annotation": "Opportunity",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "opportunity"
+            }
+          ],
+          "return": "None"
+        },
+        "mature_cycle_weights": {
+          "parameters": [
+            {
+              "annotation": "AllocationBook",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "book"
+            },
+            {
+              "annotation": "list[str]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "symbols"
+            },
+            {
+              "annotation": "Opportunity",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "opportunity"
+            }
+          ],
+          "return": "dict[str, float]"
+        },
+        "observe_mature_cycle": {
+          "parameters": [
+            {
+              "annotation": "AllocationBook",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "book"
+            },
+            {
+              "annotation": "Opportunity",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "opportunity"
+            },
+            {
+              "annotation": "dict[str, Any]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "market"
+            }
+          ],
+          "return": "None"
+        }
+      },
+      "path": "uquant/portfolio/leaders/cycle.py",
+      "public_names": [
+        "add_mature_leaders",
+        "mature_cycle_weights",
+        "observe_mature_cycle"
+      ]
+    },
+    "uquant.portfolio.strategic.qualification_candidates": {
+      "classes": {
+        "StrategicRoute": {
+          "methods": {},
+          "properties": [],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": "list[str]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "symbols"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "route"
+              },
+              {
+                "annotation": "str | None",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "decisive_reversal_symbol"
+              },
+              {
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "synchronized_reversal"
+              },
+              {
+                "annotation": "list[list[str]]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "reversal_groups"
+              },
+              {
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "anchor_state_observed"
+              },
+              {
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "anchors_not_yet_armed"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "owner_symbol"
+              }
+            ],
+            "return": "None"
+          }
+        }
+      },
+      "dataclasses": {
+        "StrategicRoute": {
+          "fields": [
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "symbols",
+              "type": "list[str]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "route",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "decisive_reversal_symbol",
+              "type": "str | None"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "synchronized_reversal",
+              "type": "bool"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "reversal_groups",
+              "type": "list[list[str]]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "anchor_state_observed",
+              "type": "bool"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "anchors_not_yet_armed",
+              "type": "bool"
+            },
+            {
+              "default": {
+                "kind": "value",
+                "value": ""
+              },
+              "name": "owner_symbol",
+              "type": "str"
+            }
+          ]
+        }
+      },
+      "enums": {},
+      "functions": {
+        "candidate_entry": {
+          "parameters": [
+            {
+              "annotation": "PortfolioCore",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "self"
+            },
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "symbol"
+            },
+            {
+              "annotation": "LeaderScore",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "score"
+            },
+            {
+              "annotation": "pd.Timestamp",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "date"
+            },
+            {
+              "annotation": "dict[str, pd.DataFrame]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "user_panel"
+            },
+            {
+              "annotation": "AccountState",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "account"
+            },
+            {
+              "annotation": "int",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "confirmation_days"
+            },
+            {
+              "annotation": "dict[str, Any] | None",
+              "default": {
+                "kind": "value",
+                "value": null
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "certificate"
+            }
+          ],
+          "return": "dict[str, Any]"
+        },
+        "candidate_market_block": {
+          "parameters": [
+            {
+              "annotation": "PortfolioCore",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "self"
+            },
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "symbol"
+            },
+            {
+              "annotation": "LeaderScore",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "score"
+            },
+            {
+              "annotation": "pd.Timestamp",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "date"
+            },
+            {
+              "annotation": "dict[str, pd.DataFrame]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "user_panel"
+            },
+            {
+              "annotation": "dict[str, Any] | None",
+              "default": {
+                "kind": "value",
+                "value": null
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "checks"
+            }
+          ],
+          "return": "str"
+        },
+        "reversal_candidates": {
+          "parameters": [
+            {
+              "annotation": "StrategicQualificationPolicy",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "self"
+            },
+            {
+              "annotation": "dict[str, dict[str, float]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "snapshots"
+            },
+            {
+              "annotation": "dict[str, LeaderScore]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "leaders"
+            },
+            {
+              "annotation": "RiskAssessment | None",
+              "default": {
+                "kind": "value",
+                "value": null
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "risk"
+            }
+          ],
+          "return": "list[str]"
+        },
+        "strategic_candidate_meets_route": {
+          "parameters": [
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "candidate_symbol"
+            },
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "qualification_route"
+            },
+            {
+              "annotation": "dict[str, dict[str, float]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "snapshots"
+            },
+            {
+              "annotation": "dict[str, LeaderScore]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "leaders"
+            },
+            {
+              "annotation": "RiskAssessment",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "risk"
+            },
+            {
+              "annotation": "SystemConfig",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "cfg"
+            }
+          ],
+          "return": "bool"
+        },
+        "strategic_route_candidates": {
+          "parameters": [
+            {
+              "annotation": "StrategicQualificationPolicy",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "self"
+            },
+            {
+              "annotation": "dict[str, dict[str, float]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "snapshots"
+            },
+            {
+              "annotation": "dict[str, LeaderScore]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "leaders"
+            },
+            {
+              "annotation": "RiskAssessment",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "risk"
+            }
+          ],
+          "return": "tuple[StrategicRoute, ...]"
+        }
+      },
+      "path": "uquant/portfolio/strategic/qualification_candidates.py",
+      "public_names": [
+        "StrategicRoute",
+        "candidate_entry",
+        "candidate_market_block",
+        "reversal_candidates",
+        "strategic_candidate_meets_route",
+        "strategic_route_candidates"
+      ]
+    }
+  }
+}

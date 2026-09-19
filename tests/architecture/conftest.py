@@ -4,13 +4,31 @@ from collections.abc import Iterator
 
 import pytest
 
-from ._analysis import INVENTORY_PATH, PUBLIC_API_PATH, architecture_snapshot, load_json
+from ._analysis import INVENTORY_PATH, PUBLIC_API_PATH, architecture_snapshot, canonical_sha256, load_json
 
 
 @pytest.fixture(scope="session")
 def public_api_contract() -> dict[str, object]:
     assert PUBLIC_API_PATH.is_file(), f"missing current public API contract: {PUBLIC_API_PATH}"
-    return load_json(PUBLIC_API_PATH)
+    document = load_json(PUBLIC_API_PATH)
+    # Keep the large sealed snapshot intact; bind the three reviewed PR73 API
+    # changes through a small, independently sealed evolution record.
+    delta = load_json(PUBLIC_API_PATH.with_name("public_api_pr73_delta.json"))
+    contract = document["contract"]
+    assert isinstance(contract, dict)
+    assert canonical_sha256(contract) == document["contract_sha256"] == delta["base_contract_sha256"]
+    modules = contract["modules"]
+    assert isinstance(modules, dict)
+    changes = delta["modules"]
+    assert isinstance(changes, dict)
+    assert set(changes) == {
+        "uquant.application.market_observations", "uquant.portfolio.leaders.cycle",
+        "uquant.portfolio.strategic.qualification_candidates",
+    }
+    modules.update(changes)
+    assert canonical_sha256(contract) == delta["contract_sha256"]
+    document["contract_sha256"] = delta["contract_sha256"]
+    return document
 
 
 @pytest.fixture(scope="session")

@@ -976,8 +976,21 @@ def test_risk_moved_helper_bodies_are_exactly_bound_to_immutable_source() -> Non
         mode="eval",
     ).body)
     # Accepted active-anchor repair preserves armed/break memory on rank-only
-    # changes, while retaining ordered admission confirmation (PR58).
+    # changes (PR58); PR73 also confirms basket membership independent of rank.
     anchor = immutable["_update_dynamic_anchors"]
+    source = ast.unparse(anchor)
+    for before, after in (
+        ("current_signature = account.risk_anchor_signature",
+         "candidate_members = set(candidate)\n    current_members = set(account.risk_anchor_symbols)"),
+        ("signature != current_signature", "candidate_members != current_members"),
+        ("signature == account.risk_anchor_candidate_signature",
+         "candidate_members == set(account.risk_anchor_candidate_signature.split(','))"),
+        ("signature == current_signature", "candidate_members == current_members"),
+    ):
+        assert source.count(before) == 1
+        source = source.replace(before, after)
+    anchor = ast.parse(source).body[0]
+    immutable["_update_dynamic_anchors"] = anchor
     confirmation = next(
         node for node in ast.walk(anchor)
         if isinstance(node, ast.If)

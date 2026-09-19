@@ -569,8 +569,25 @@ bind_ordinary_entry_authorizations(
     assert ast.dump(industry_calls[0]) == ast.dump(ast.parse(
         "decision_industries(str(date.date()))", mode="eval").body)
     assert {"uquant.contracts.universe", "uquant.industry"} <= fan_out
+    # PR73's market-only owner adds no account authority to orchestration.
+    observations = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "recent_reversal_observations"]
+    assert len(observations) == 1
+    assert ast.dump(observations[0]) == ast.dump(ast.parse("""
+recent_reversal_observations(
+    data=self.data, cfg=market.cfg, date=inputs.date,
+    panel={**market.qualification_reference_panel, **market.user_panel}, tech=market.tech,
+    allocator=self.allocator, score_cache=self._leader_score_cache,
+    observation_cache=self._reversal_observation_cache,
+)
+""", mode="eval").body)
+    assert "uquant.application.market_observations" in fan_out
     # The independently verified point-in-time lookup shares the universe authority.
-    return fan_out - {"uquant.portfolio.strategic.rearm", "uquant.industry"}
+    return fan_out - {
+        "uquant.portfolio.strategic.rearm", "uquant.industry",
+        "uquant.application.market_observations",
+    }
 
 
 def test_execution_facade_and_decision_fanout_are_bounded() -> None:
@@ -790,6 +807,13 @@ def test_execution_moved_definitions_are_mechanically_bound_to_immutable_source(
         else:
             candidate = _normalized_docstring_indentation(candidate_methods[name])
         immutable = _normalized_docstring_indentation(immutable_methods[name])
+        if name == "__init__":
+            # PR73 adds only a cold market-observation cache, never account history.
+            cache = ast.parse(
+                "self._reversal_observation_cache: dict[tuple[object, ...], "
+                "list[dict[str, Any]]] = {}"
+            ).body[0]
+            immutable.body.insert(-2, cache)
         current_docstring = ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS.get(name)
         if current_docstring is not None:
             assert ast.get_docstring(candidate) == current_docstring

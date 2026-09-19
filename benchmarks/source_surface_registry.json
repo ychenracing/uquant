@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "fa57fc9615ebf8e76bc79fe2c3b20102795cc12be782fbd78f018604a8e14470",
+  "canonical_sha256": "f0e5d14f2f12af6f0711e0a4fa506fd29ce2a606fa74eddb89962643048105e5",
   "registry_version": 2,
   "surfaces": [
     {
@@ -98,6 +98,7 @@
         "uquant/portfolio/freeze.py",
         "uquant/portfolio/leaders/__init__.py",
         "uquant/portfolio/leaders/admission.py",
+        "uquant/portfolio/leaders/cycle.py",
         "uquant/portfolio/leaders/lifecycle.py",
         "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/ordinary.py",
@@ -701,6 +702,7 @@
         "uquant/portfolio/freeze.py",
         "uquant/portfolio/leaders/__init__.py",
         "uquant/portfolio/leaders/admission.py",
+        "uquant/portfolio/leaders/cycle.py",
         "uquant/portfolio/leaders/lifecycle.py",
         "uquant/portfolio/leaders/targets.py",
         "uquant/portfolio/ordinary.py",

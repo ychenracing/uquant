@@ -11,13 +11,13 @@ permissions:
 jobs:
   source:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
-      - name: Export pinned source and object identities
+      - name: Export pinned source and required immutable evidence
         run: |
           mkdir -p "$RUNNER_TEMP/restoration"
           git archive --format=tar.gz --output="$RUNNER_TEMP/restoration/source.tar.gz" HEAD \
@@ -28,11 +28,21 @@ jobs:
           python - <<'PY'
           import hashlib, json, os, pathlib, subprocess
           root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'restoration'
+          source = '7fcf9562e6c7f96250811acd80c2dd4ee46485e3'
+          paths = ['artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True)
+          objects = {source, git('rev-parse', source + '^{tree}').strip()}
+          objects.update(git('ls-tree', '-r', '-d', '--format=%(objectname)', source).splitlines())
+          objects.update(git('ls-tree', '-r', '--format=%(objectname)', source, '--', *paths).splitlines())
+          with (root / 'immutable-evidence.pack').open('wb') as stream:
+              subprocess.run(['git', 'pack-objects', '--stdout'], input=('\n'.join(sorted(objects)) + '\n').encode(), stdout=stream, check=True)
+          (root / 'immutable-evidence-objects.txt').write_text('\n'.join(sorted(objects)) + '\n')
           files = {}
           for path in sorted(root.iterdir()):
               with path.open('rb') as stream:
                   files[path.name] = {'bytes': path.stat().st_size, 'sha256': hashlib.file_digest(stream, 'sha256').hexdigest()}
-          metadata = {'source_sha': os.environ['GITHUB_SHA'], 'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(), 'run_id': os.environ['GITHUB_RUN_ID'], 'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'], 'files': files}
+          metadata = {'source_sha': os.environ['GITHUB_SHA'], 'source_tree': git('rev-parse', 'HEAD^{tree}').strip(), 'immutable_source': source, 'run_id': os.environ['GITHUB_RUN_ID'], 'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'], 'files': files}
           (root / 'manifest.json').write_text(json.dumps(metadata, indent=2) + '\n')
           print(json.dumps(metadata, indent=2))
           PY
@@ -40,41 +50,5 @@ jobs:
         with:
           name: ci-restoration-source-${{ github.sha }}
           path: ${{ runner.temp }}/restoration/
-          if-no-files-found: error
-          retention-days: 90
-  environment:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
-        with:
-          python-version: '3.12.13'
-      - run: |
-          python -m pip install --disable-pip-version-check uv==0.11.33
-          uv sync --frozen --extra dev
-      - name: Package runtime without credentials or caches
-        run: |
-          mkdir -p "$RUNNER_TEMP/locked-environment"
-          runtime_root=$(python -c 'import sys; print(sys.base_prefix)')
-          tar -czf "$RUNNER_TEMP/locked-environment/python.tar.gz" -C "$runtime_root" .
-          tar --exclude='__pycache__' -czf "$RUNNER_TEMP/locked-environment/venv.tar.gz" .venv
-          cp uv.lock "$RUNNER_TEMP/locked-environment/uv.lock"
-          python - <<'PY'
-          import hashlib, json, os, pathlib
-          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'locked-environment'
-          files = {}
-          for path in sorted(root.iterdir()):
-              with path.open('rb') as stream:
-                  files[path.name] = {'bytes': path.stat().st_size, 'sha256': hashlib.file_digest(stream, 'sha256').hexdigest()}
-          (root / 'manifest.json').write_text(json.dumps({'source_sha': os.environ['GITHUB_SHA'], 'files': files}, indent=2) + '\n')
-          print(json.dumps(files, indent=2))
-          PY
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: ci-restoration-locked-environment-${{ github.sha }}
-          path: ${{ runner.temp }}/locked-environment/
           if-no-files-found: error
           retention-days: 90

@@ -223,7 +223,7 @@ def _is_replay_decision_check_path(path: tuple[str | int, ...]) -> bool:
             and len(tail) == offset + 6
             and tail[offset:offset + 2] == ("core_allocation", "symbols")
             and isinstance(tail[offset + 2], str)
-            and tail[offset + 3] in {"entry", "repair_entry"}
+            and tail[offset + 3] in {"entry", "pending_entry", "repair_entry"}
             and tail[offset + 4] == "checks"
             and isinstance(tail[offset + 5], str)
         ):
@@ -255,28 +255,23 @@ def _is_reachability_decision_check_path(path: tuple[str | int, ...]) -> bool:
         and path[offset:offset + 4]
         == ("risk", "evidence", "core_allocation", "symbols")
         and isinstance(path[offset + 4], str)
-        and path[offset + 5] in {"entry", "repair_entry"}
+        and path[offset + 5] in {"entry", "pending_entry", "repair_entry"}
         and path[offset + 6] == "checks"
         and isinstance(path[offset + 7], str)
     )
 
 
-def _is_decision_check_fact(value: Mapping[object, object]) -> bool:
-    """Recognize the deterministic entry-check DTOs inside replayed decisions."""
-
-    keys = set(value)
-    if keys == {"as_of", "passed"}:
-        return type(value.get("passed")) is bool and isinstance(value.get("as_of"), str)
-    if keys == {"as_of", "minimum", "passed", "value"}:
-        return (
-            type(value.get("passed")) is bool
+def _is_decision_check_fact(value: Mapping[object, object], check: str | int) -> bool:
+    """Recognize only dated, finite facts emitted by the actual entry checker."""
+    if check not in {"confidence", "industry", "current_data", "history", "structure", "liquidity"}:
+        return False
+    numeric = {"value", "minimum"} if check in {"confidence", "history"} else set()
+    return (set(value) == {"as_of", "passed"} | numeric
+            and type(value.get("passed")) is bool
             and isinstance(value.get("as_of"), str)
-            and isinstance(value.get("minimum"), (int, float))
-            and not isinstance(value.get("minimum"), bool)
-            and isinstance(value.get("value"), (int, float))
-            and not isinstance(value.get("value"), bool)
-        )
-    return False
+            and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(value["as_of"])) is not None
+            and all(isinstance(value[key], (int, float)) and not isinstance(value[key], bool)
+                    and math.isfinite(cast(float, value[key])) for key in numeric))
 
 
 
@@ -386,6 +381,16 @@ def _is_rearm_certificate_check_path(path: tuple[str | int, ...]) -> bool:
     )
 
 
+def _is_owned_pass_fact(value: Mapping[object, object], path: tuple[str | int, ...]) -> bool:
+    if _is_production_predicate_path(path):
+        return _is_production_predicate_fact(value)
+    return _is_decision_check_fact(value, path[-1] if path else "") and (
+        _is_replay_decision_check_path(path)
+        or _is_reachability_decision_check_path(path)
+        or _is_rearm_certificate_check_path(path)
+    )
+
+
 def reject_self_assertion_claims(
     value: object,
     *,
@@ -393,6 +398,8 @@ def reject_self_assertion_claims(
     path: tuple[str | int, ...] = (),
 ) -> None:
     if isinstance(value, Mapping):
+        if _is_production_predicate_path(path) and not _is_production_predicate_fact(value):
+            raise ValueError(f"absolute generalization {label} contains a self-asserted pass or malformed production predicate")
         forbidden = {
             key
             for key in value
@@ -402,22 +409,7 @@ def reject_self_assertion_claims(
                 or key.endswith("_passed")
             )
         }
-        if forbidden and not (
-            (
-                forbidden == {"passed"}
-                and _is_production_predicate_fact(value)
-                and _is_production_predicate_path(path)
-            )
-            or (
-                forbidden == {"passed"}
-                and _is_decision_check_fact(value)
-                and (
-                    _is_replay_decision_check_path(path)
-                    or _is_reachability_decision_check_path(path)
-                    or _is_rearm_certificate_check_path(path)
-                )
-            )
-        ):
+        if forbidden and (forbidden != {"passed"} or not _is_owned_pass_fact(value, path)):
             raise ValueError(
                 f"absolute generalization {label} contains a self-asserted pass at {path!r}"
             )

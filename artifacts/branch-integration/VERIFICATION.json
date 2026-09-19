@@ -1,0 +1,97 @@
+{
+  "scope": "Focused engineering verification; no full-suite claim",
+  "tested_source_notes": "Early 70 capability and 14 anchor/settlement checks ran with tracked implementation changes. Their unchanged behavior is reused, not claimed as exact-head runs. Corrected 102 checks ran on ff58340; final anchor/admission boundaries ran on c261ce8 whose tree equals remote 92eb19c. Validation-only refactoring is economically neutral; the final economic matrix itself runs exact remote 92eb19c.",
+  "checks": [
+    {
+      "name": "corrected-native-and-fact-regressions",
+      "operation_id": "20260919T133552-7b7598b0379e",
+      "status": "EXITED",
+      "returncode": 0,
+      "source": {
+        "head": "ff58340ed329b9718371f3fdf8579d0b3d56cce7",
+        "tracked_dirty": false
+      },
+      "stdout_tail": "........................................................................ [ 70%]\n..............................                                           [100%]\n102 passed, 55 deselected in 47.39s\n"
+    },
+    {
+      "name": "branch-capability-tests",
+      "operation_id": "20260919T130357-7d469729675b",
+      "status": "EXITED",
+      "returncode": 0,
+      "source": {
+        "head": "b4850f1eac2df8872672277612fbc71ef6130740",
+        "tracked_dirty": true
+      },
+      "stdout_tail": "......................................................................   [100%]\n70 passed in 117.48s (0:01:57)\n"
+    },
+    {
+      "name": "direct-evidence-facts",
+      "operation_id": "20260919T131322-b4fdccbdb760",
+      "status": "EXITED",
+      "returncode": 0,
+      "source": {
+        "head": "0dc254dd6113738e08ee96522d9576e11cfcd210",
+        "tracked_dirty": false
+      },
+      "stdout_tail": "........................................................................ [ 75%]\n.......................                                                  [100%]\n95 passed, 55 deselected in 1.95s\n"
+    },
+    {
+      "name": "negative-crowning-pinned-runtime",
+      "operation_id": "20260919T131913-991e2f85c33a",
+      "status": "EXITED",
+      "returncode": 0,
+      "source": {
+        "head": "d166341b169b4a7c6bbe741d23f37522b333ea87",
+        "tracked_dirty": false
+      },
+      "stdout_tail": "..                                                                       [100%]\n2 passed in 27.51s\n"
+    },
+    {
+      "name": "anchor-settlement-tests",
+      "operation_id": "20260919T130442-a6d563debf21",
+      "status": "EXITED",
+      "returncode": 0,
+      "source": {
+        "head": "b4850f1eac2df8872672277612fbc71ef6130740",
+        "tracked_dirty": true
+      },
+      "stdout_tail": "..............                                                           [100%]\n14 passed in 4.97s\n"
+    },
+    {
+      "name": "reduced-evidence-guard-complexity",
+      "operation_id": "20260919T133211-2b1874898594",
+      "status": "EXITED",
+      "returncode": 0,
+      "source": {
+        "head": "4bf23db7fbd65cc81bb4c553189e5bff319a42fd",
+        "tracked_dirty": true
+      },
+      "stdout_tail": ".....                                                                    [100%]\n5 passed in 72.80s (0:01:12)\n"
+    },
+    {
+      "name": "anchor-stable-boundaries",
+      "operation_id": "20260919T134710-029c1b798c74",
+      "status": "EXITED",
+      "returncode": 0,
+      "source": {
+        "head": "c261ce8b9cc09e29253fd82b4d59dcbc514f7ee3",
+        "tracked_dirty": false
+      },
+      "stdout_tail": "......................                                                   [100%]\n22 passed in 5.36s\n"
+    },
+    {
+      "name": "evidence-guard-types",
+      "operation_id": "20260919T133121-dd99d16e327d",
+      "status": "EXITED",
+      "returncode": 0,
+      "source": {
+        "head": "4bf23db7fbd65cc81bb4c553189e5bff319a42fd",
+        "tracked_dirty": true
+      },
+      "stdout_tail": "Success: no issues found in 1 source file\n"
+    }
+  ],
+  "failed_or_unfinished": "Earlier integration assertion assumed equal fresh allocation and was corrected to native strength-weighted allocation with gross conservation. Architecture branch budget failure resolved by equivalent owned-fact predicate extraction. Two negative-evidence attempts used wrong global uv; pinned runtime rerun passed. Broad timeouts/stopped attempts are retained and not counted as passes. Original combined economic candidate fails two drawdown cells; admission-removal ablation does not fix offset5 and its remaining work is explicitly incomplete.",
+  "review": "Independent review found and resolved ADD1/ADD2 origin attribution. Follow-up confirmed owned-fact equivalence and full-book settlement custody. Main anchor implementation restored unchanged.",
+  "unrun": "Full suite, universal generalization matrix, future holdout, full raw corporate-action accounting acceptance. Queued CI is not green."
+}

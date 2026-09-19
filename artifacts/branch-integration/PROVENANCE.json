@@ -1,0 +1,9 @@
+{
+  "baseline": "b4850f1eac2df8872672277612fbc71ef6130740",
+  "tested_candidate": "92eb19c26b65dd4e06d5078bc16db808bc4b175f",
+  "tested_candidate_uquant_tree": "120fa8a2d2914b9185239a0918a84a8838aeed77",
+  "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+  "runner_sha256": "109c70cf7fcdfa73f6a9ae3dfcd3dfa72a067f93dc57532f6c1d4a710227c6d4",
+  "frozen_scenarios_sha256": "fe32efa98728cc03039c5dbb040a4342ac7333e7f34e1165fcb6ad3cf78e8ad6",
+  "reuse": "Final candidate uses all eight new exact-source replays. Baseline paired results are reused unchanged. Final report/receipt-only commits do not change production, config, runtime lock, runner or frozen data. No failed candidate is relabeled."
+}

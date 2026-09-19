@@ -275,6 +275,8 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
     if identifier in {"validation_runner_v1", "full_package_v1"}:
         projected.add("uquant/validation/parameter_policy.py")
         projected.add("uquant/config/input.py")
+    if "uquant/application/decision.py" in projected:
+        projected.add("uquant/application/market_observations.py")
     if "uquant/config/model.py" in projected:
         projected.add("uquant/config/policies.py")
     return (projected | set(additions)) - RETIRED_ALLOCATION_SOURCES - {

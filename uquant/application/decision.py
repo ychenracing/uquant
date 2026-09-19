@@ -26,9 +26,7 @@ from ..data import DataManifest, DataStore, normalize_symbol
 from ..execution import merge_pending_orders, plan_orders
 from ..industry import decision_industries
 from ..leader import (
-    apply_opportunity_alpha,
     compute_leaders,
-    compute_structural_leaders,
 )
 from ..opportunity import classify_opportunity
 from ..portfolio import PortfolioAllocator, current_weights
@@ -51,6 +49,7 @@ from ..types import (
     bind_account_strategic_ownership,
     build_strategic_universe_roles,
 )
+from .market_observations import recent_reversal_observations
 from .target_attribution import attach_target_attribution
 
 
@@ -567,54 +566,6 @@ def _retained_allocation_orders(
             if order.side != "BUY" or rows.get(order.symbol, {}).get("pending_buy_rejected") is not True]
 
 
-def _recent_reversal_observations(
-    self: DecisionEngineRuntime, inputs: _DecisionInputs, market: _DecisionMarket,
-) -> dict[str, dict[str, Any]]:
-    """Observe market setups, without simulating holdings, orders or account rights."""
-    from ..portfolio.strategic.qualification_candidates import decisive_reversal, reversal_candidates
-    panel = {**market.qualification_reference_panel, **market.user_panel}
-    dates = market.tech.index[market.tech.index <= inputs.date][-market.cfg.trend_fast:]
-    observations: dict[str, dict[str, Any]] = {}
-    universe = decision_ai_universe()
-    for observed in dates:
-        visible = universe.symbols_as_of(str(observed.date()))
-        past_panel = {s: f for s, f in panel.items() if s in visible and observed in f.index}
-        # DataStore is the workspace's loaded-data authority. Replacing
-        # it, the policy, visible roles or universe identity invalidates this key.
-        key = (self.data, market.cfg, universe.sha256, tuple(past_panel), observed)
-        if key not in self._reversal_observation_cache:
-            events: list[dict[str, Any]] = []
-            leaders = apply_opportunity_alpha(compute_structural_leaders(
-                past_panel, as_of=observed, tech=market.tech, cfg=market.cfg,
-                score_cache=self._leader_score_cache), opportunity=Opportunity.CHOPPY, cfg=market.cfg)
-            snapshots = self.allocator._strategic_qualification_snapshots(
-                date=observed, user_panel=past_panel, leaders=leaders)
-            groups: dict[str, list[str]] = {}
-            for symbol in reversal_candidates(self.allocator, snapshots, leaders):
-                groups.setdefault(leaders[symbol].industry, []).append(symbol)
-            for group in groups.values():
-                if len(group) < market.cfg.strategic_cohort_min_size:
-                    continue
-                synchronized = sum(snapshots[s]['ret20'] for s in group[:2])/2 >= market.cfg.strategic_reversal_min_median_ret20
-                owner, pair = decisive_reversal(self.allocator, synchronized=synchronized,
-                    reversal_groups=[group], snapshots=snapshots, leaders=leaders, anchor_state_observed=True)
-                if owner is None:
-                    continue
-                invalidation = float(panel[owner].loc[:observed, 'low'].tail(market.cfg.trend_fast).min())
-                events.append({'observed_session': str(observed.date()), 'owner': owner,
-                    'witnesses': group[:market.cfg.strategic_cohort_size], 'dominant_pair': pair,
-                    'invalidation_price': invalidation,
-                    'owner_score_at_observation': leaders[owner].score})
-            self._reversal_observation_cache[key] = events
-        for event in self._reversal_observation_cache[key]:
-            owner = event['owner']
-            since = panel[owner].loc[observed:inputs.date]
-            # Invalidation is always evaluated through today's observable close.
-            if not (since['close'] < event['invalidation_price']).any():
-                observations[owner] = {**event, 'as_of': str(inputs.date.date())}
-    return observations
-
-
 def _allocate_decision_orders(
     self: DecisionEngineRuntime,
     *,
@@ -632,7 +583,6 @@ def _allocate_decision_orders(
         "as_of": str(inputs.date.date()), "code_hash": inputs.current_code_hash,
         "data_hash": inputs.data_digest,
     }
-    risk.evidence["reversal_observations"] = _recent_reversal_observations(self, inputs, market)
     structural_users = {
         symbol: market.structural_leaders[symbol]
         for symbol in inputs.user_symbols
@@ -938,6 +888,12 @@ def _decide_result(
         account=account,
         assess_risk_fn=assess_risk_fn,
         evaluate_sentinel_fn=evaluate_sentinel_fn,
+    )
+    risk.evidence["reversal_observations"] = recent_reversal_observations(
+        data=self.data, cfg=market.cfg, date=inputs.date,
+        panel={**market.qualification_reference_panel, **market.user_panel}, tech=market.tech,
+        allocator=self.allocator, score_cache=self._leader_score_cache,
+        observation_cache=self._reversal_observation_cache,
     )
     allocation = _allocate_decision_orders(
         self,

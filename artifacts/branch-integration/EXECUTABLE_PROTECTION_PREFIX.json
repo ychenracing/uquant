@@ -1,0 +1,35 @@
+{
+  "status": "PREFIX_ONLY",
+  "end": "2023-11-01",
+  "cells": {
+    "full-offset10": {
+      "W": 3.78644793330406,
+      "DD": 0.27122244352835423,
+      "source_head": "9e091fd5135e532943ad4faa826eb996af1e03bf",
+      "source_tree": "793af3e2e200c346e08848d52bd936e15e849487",
+      "raw_sha256": "bb3b28bd6c25a8755b8138c3a07bbc3d020af415b183e6a046562de70f062363"
+    },
+    "full-offset5-cost2": {
+      "W": 3.77851160822668,
+      "DD": 0.272185249615322,
+      "source_head": "9e091fd5135e532943ad4faa826eb996af1e03bf",
+      "source_tree": "793af3e2e200c346e08848d52bd936e15e849487",
+      "raw_sha256": "0ff0970169de95d91d89934368c71f5ce75b50601ed00c26e754ac0017324978"
+    },
+    "full-offset5": {
+      "W": 3.78644793330406,
+      "DD": 0.27122244352835423,
+      "source_head": "9e091fd5135e532943ad4faa826eb996af1e03bf",
+      "source_tree": "793af3e2e200c346e08848d52bd936e15e849487",
+      "raw_sha256": "7f7ca592ffaad3ac86c3669e78904405c6777f74a74dc3d9a4c6c8676fb1fc00"
+    },
+    "full": {
+      "W": 3.8759035747777597,
+      "DD": 0.27133916084354315,
+      "source_head": "9e091fd5135e532943ad4faa826eb996af1e03bf",
+      "source_tree": "793af3e2e200c346e08848d52bd936e15e849487",
+      "raw_sha256": "550771e4272ca669b6ec93b3123ffa0b34c1bde8177e5fdc2bde9dc9018c957f"
+    }
+  },
+  "identity_note": "Prefix producer preceded complete new-module registry registration. Exact uquant tree and all replay inputs are retained; full candidate runs use the complete registry and fresh accounts."
+}

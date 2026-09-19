@@ -278,6 +278,10 @@ def _arm_dominant_profit_lock(
         return
     cap = cfg.strategic_dominant_max_weight - progress * (
         cfg.strategic_dominant_max_weight - cfg.strategic_dominant_retained_gross)
+    # Finish the protective reduction rather than leave a residual target gap
+    # that the existing minimum trade size cannot execute on its own.
+    if cap - cfg.strategic_dominant_retained_gross < cfg.min_trade_weight:
+        cap = cfg.strategic_dominant_retained_gross
     account = ctx.account
     current = account.strategic_cohort_targets[symbol]
     if current <= cap:

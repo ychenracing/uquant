@@ -194,3 +194,54 @@ comparisons with all window events included, not attribution-tag profit claims.
 Integrated architecture/runner/screen/boundary checks and updated membership
 anchor regressions passed. This does not turn the failed economic screen into
 acceptance or authorize merging this candidate.
+
+### C8 causal counterfactuals and next bounded hypothesis
+
+`../C8_COUNTERFACTUALS.json` preserves separate experiments. Requiring current
+close at or above the observed formation close (while preserving its original
+swing-low invalidation) restores loo308 W 1.8633650614478565 / DD
+0.27108751240098516. It does not create account history or require the account
+to have witnessed the original impulse. Keep provisionally; other weak cells
+are not yet verified under this revision.
+
+Unifying generic strategic crisis severity with the existing strategic route
+leaves normal offset5 unchanged but worsens double-cost to W 9.602531732519818 /
+DD 0.30931143242650383. Reject this change; do not keep it merely for apparent
+state-machine uniformity. Its exact source and raw failure remain preserved.
+
+C9 instead tests execution granularity in profit protection: C7 emits April24
+targets 0.70646/0.71107, then the remaining reduction to the policy's 0.70
+floor is smaller than the existing 0.05 minimum trade weight. Complete that
+sub-minimum protective remainder with the current sale, while retaining the
+one-ATR gradual transition outside the final minimum-sized band. This introduces
+at most the existing minimum trade-size step and never increases exposure.
+No crisis severity, capital ladder, loss history or restoration budget is reset.
+Test offsets0/5/10 plus double-cost5 only through the known November1 risk trough
+before any new full-window run or confirmation dates. C9 includes the supported
+current-price confirmation, excludes rejected crisis reclassification.
+
+The new market-observation helper is moved to a dedicated application module
+because the unchanged architecture budget rejects growth of decision.py beyond
+its limit. This preserves its calculation and cache identity; no budget is
+weakened. C7 raw archive3 has been byte-verified remotely (REMOTE_RECEIPT_3.json).
+
+C9's bounded counterfactual passes the known risk trough: W at offsets0/5/10/
+double-cost5 is 3.8759035747777597 / 3.78644793330406 / 3.78644793330406 /
+3.77851160822668; DD is 27.1339% / 27.1222% / 27.1222% / 27.2185%.
+All four retain the July20 capital reduction then July21 concentrated crisis.
+See `../EXECUTABLE_PROTECTION_PREFIX.json`. This is not full-window acceptance.
+
+Frozen full-window producer: `33e310ec6aee04b50b2fa907c3e5935e1c88c557`,
+uquant tree `27e436e2be97d2bf82bb29eab95450f976e091e0`. The economic/full-package
+source surfaces now explicitly include market_observations.py and their seal
+is recomputed; the prefix producer's missing new-module registry entry is not
+carried into final runs. New full development/pool/cost runs use this exact source
+and fresh accounts. Same-base mechanism ablations use independent commits.
+
+Thirty-six source-identity, runner, reason/screen and protection-boundary tests
+pass. The unchanged complexity budget passes after moving market observation
+out of the decision allocation function. Real January4/10/19 observations are
+identical with a cold/warm cache and with all future rows removed; every retained
+owner meets the current formation-price test. See the current verification JSON.
+No confirmation or reserve date has yet run. This candidate remains unaccepted
+until complete economic results, raw preservation and repository gates pass.

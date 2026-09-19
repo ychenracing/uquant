@@ -42,6 +42,7 @@ MODULE_AUTHORITIES = {
     "uquant.application": "production_safe",
     "uquant.application.backtest": "production_safe",
     "uquant.application.decision": "production_safe",
+    "uquant.application.market_observations": "production_safe",
     "uquant.application.metrics": "production_safe",
     "uquant.application.risk_timeline_cache": "production_safe",
     "uquant.application.target_attribution": "production_safe",

@@ -16,7 +16,7 @@ def context(weight=.95):
                            dominant_profit_lock_armed_now=False)
 
 
-def test_transition_is_continuous_and_never_increases_rights():
+def test_transition_is_gradual_and_never_increases_rights():
     caps = []
     for mfe in [2.099999, 2.10, 2.15, 2.199999, 2.20, 2.200001]:
         ctx = context()
@@ -39,3 +39,11 @@ def test_loss_cannot_arm_profit_protection():
     _arm_dominant_profit_lock(ctx, symbol='sh600001', peak_mfe=-.1, atr_mfe=10.)
     assert ctx.account.to_dict() == before
     assert not ctx.dominant_profit_lock_armed_now
+
+
+def test_terminal_remainder_smaller_than_minimum_trade_is_completed():
+    ctx = context()
+    _arm_dominant_profit_lock(ctx, symbol='sh600001', peak_mfe=2.19, atr_mfe=.1)
+    assert ctx.account.strategic_cohort_targets['sh600001'] == .70
+    assert ctx.account.cash == DEFAULT_CONFIG.initial_cash
+    assert not ctx.account.positions and not ctx.account.fills

@@ -1,0 +1,27 @@
+[
+  {
+    "date": "2023-01-04",
+    "cold_equals_warm": true,
+    "truncated_future_equals_full": true,
+    "formation_price_confirmed": true,
+    "owners": [
+      "sz300308"
+    ]
+  },
+  {
+    "date": "2023-01-10",
+    "cold_equals_warm": true,
+    "truncated_future_equals_full": true,
+    "formation_price_confirmed": true,
+    "owners": []
+  },
+  {
+    "date": "2023-01-19",
+    "cold_equals_warm": true,
+    "truncated_future_equals_full": true,
+    "formation_price_confirmed": true,
+    "owners": [
+      "sz300308"
+    ]
+  }
+]

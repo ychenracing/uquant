@@ -1,11 +1,14 @@
 {
   "source_bundle": {
     "path": "source.bundle",
-    "bytes": 23109,
-    "sha256": "2b033f74637748d07bdb48cbcc96343f99ae3099be2945f6da91ecbba684711c",
+    "bytes": 30254,
+    "sha256": "b325659989726aa042d3cdf20e31d5f4ea48bbe6898627e3884bc138109b7100",
     "requires": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
     "refs": [
       "ec6312cc16fd2ccc12a9f71440c63c42d5127ba4 refs/heads/research/current-formation-validation",
+      "3e8fcf461ff2d989adf4d5c750a2ad8bd3ec798e refs/heads/research/executable-entry-ablation",
+      "33e310ec6aee04b50b2fa907c3e5935e1c88c557 refs/heads/research/executable-profit-protection",
+      "575209cc32855d986e52a9e9d826bcccac46c24c refs/heads/research/executable-tactical-ablation",
       "87cd0303d580ee03584da58c40a1405c5d456dab refs/heads/research/final-entry-ablation",
       "1d829d894aca7b336b94079d944d49e8c69963ae refs/heads/research/final-tactical-ablation",
       "0dd733c2269c985e801a60e96a9747682e479b67 refs/heads/research/recovery-entry-unweighted",

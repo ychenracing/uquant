@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "72f6bd107ef4f6a2f9a6ae2b68ecc1914a8bc150f16a106672dd07f21381ec46",
+  "canonical_sha256": "fa57fc9615ebf8e76bc79fe2c3b20102795cc12be782fbd78f018604a8e14470",
   "registry_version": 2,
   "surfaces": [
     {
@@ -28,6 +28,7 @@
         "uquant/application/__init__.py",
         "uquant/application/backtest.py",
         "uquant/application/decision.py",
+        "uquant/application/market_observations.py",
         "uquant/application/metrics.py",
         "uquant/application/risk_timeline_cache.py",
         "uquant/application/target_attribution.py",
@@ -614,6 +615,7 @@
         "uquant/application/__init__.py",
         "uquant/application/backtest.py",
         "uquant/application/decision.py",
+        "uquant/application/market_observations.py",
         "uquant/application/metrics.py",
         "uquant/application/risk_timeline_cache.py",
         "uquant/application/target_attribution.py",

@@ -1,0 +1,33 @@
+{
+  "cases": {
+    "c8-entry/loo-sz300308": {
+      "source_head": "ec6312cc16fd2ccc12a9f71440c63c42d5127ba4",
+      "source_tree": "bb482282593d2a51915a5bfd34c66fa3ac189b91",
+      "W": 1.8633650614478565,
+      "DD": 0.27108751240098516,
+      "sha256": "c9a02162dc868f2aab9ab56e22853ac4b413aa03ac3e6690ba2d4e0f15985f04",
+      "validation": "Canonical artifact published by run_pairs after strict payload, account and input validation."
+    },
+    "c8-risk/full-offset5": {
+      "source_head": "bbcac5f433cebe235458d2715951c15a9c1853c3",
+      "source_tree": "69fa76e43a0cf1c1421b036ed50a198d95150cff",
+      "W": 31.653480772240975,
+      "DD": 0.2723275942565919,
+      "sha256": "035df50087dcc9d44922557c99c654615e7d73606a692bf15ce37f4c67584ad3",
+      "validation": "Canonical artifact published by run_pairs after strict payload, account and input validation."
+    },
+    "c8-risk/full-offset5-cost2": {
+      "source_head": "bbcac5f433cebe235458d2715951c15a9c1853c3",
+      "source_tree": "69fa76e43a0cf1c1421b036ed50a198d95150cff",
+      "W": 9.602531732519818,
+      "DD": 0.30931143242650383,
+      "sha256": "84ab0b3570cdbe16b0d745efeeec30b833e846d797661d56582c8177b7f9f417",
+      "validation": "Canonical artifact published by run_pairs after strict payload, account and input validation."
+    }
+  },
+  "disposition": {
+    "current_price_confirmation": "provisionally retain; one weak pool returns historical C1 economics",
+    "unified_crisis_severity": "REJECTED: doubles-cost wealth falls further and absolute DD exceeds 30%"
+  },
+  "confirmation_dates": "NOT_RUN"
+}

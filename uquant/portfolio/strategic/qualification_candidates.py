@@ -284,16 +284,20 @@ def _reversal_candidates(
     self: StrategicQualificationPolicy,
     snapshots: dict[str, dict[str, float]],
     leaders: dict[str, LeaderScore],
+    risk: RiskAssessment | None = None,
 ) -> list[str]:
+    observations = risk.evidence.get("reversal_observations", {}) if risk else {}
+    continuing = {s for observation in observations.values() for s in observation['witnesses']}
     return sorted(
         (
             symbol
             for symbol, values in snapshots.items()
-            if values["ret240"] <= self.cfg.strategic_reversal_max_ret240
-            and values["ret5"] >= self.cfg.strategic_reversal_min_ret5
+            if ((values["ret240"] <= self.cfg.strategic_reversal_max_ret240
+                 and values["ret5"] >= self.cfg.strategic_reversal_min_ret5) or symbol in continuing)
             and _known_industry(self, symbol=symbol, snapshots=snapshots, leaders=leaders)
         ),
         key=lambda symbol: (
+            -int(symbol in observations),
             -snapshots[symbol]["ret20"],
             -snapshots[symbol]["ret5"],
             -snapshots[symbol]["leader_score"],
@@ -422,6 +426,11 @@ def _witness_owner_routes(
         self, synchronized=synchronized, reversal_groups=reversal_groups,
         snapshots=snapshots, leaders=leaders, anchor_state_observed=anchor_observed,
     )
+    for observation in risk.evidence.get("reversal_observations", {}).values():
+        if route == "reversal_industry" and set(observation['witnesses']) <= set(symbols):
+            decisive, pair = observation['owner'], observation['dominant_pair']
+            synchronized = True
+            break
     decisive_owner = decisive if decisive in symbols and set(pair) <= set(symbols) else None
     choices = [StrategicRoute(
         list(symbols), route, None, synchronized,
@@ -449,7 +458,7 @@ def strategic_route_candidates(
         "transition_impulse": _impulse_candidates(
             self, snapshots=snapshots, leaders=leaders, risk=risk),
         "persistent_industry": _persistent_candidates(self, snapshots, leaders),
-        "reversal_industry": _reversal_candidates(self, snapshots, leaders),
+        "reversal_industry": _reversal_candidates(self, snapshots, leaders, risk),
     }
     choices: dict[tuple[str, str, tuple[str, ...]], StrategicRoute] = {}
     for route, candidates in families.items():
@@ -494,7 +503,7 @@ def strategic_candidate_meets_route(
         elif qualification_route == "persistent_industry":
             candidates = _persistent_candidates(policy, snapshots, leaders)
         elif qualification_route == "reversal_industry":
-            candidates = _reversal_candidates(policy, snapshots, leaders)
+            candidates = _reversal_candidates(policy, snapshots, leaders, risk)
         else:
             return False
     except (KeyError, TypeError, ValueError):

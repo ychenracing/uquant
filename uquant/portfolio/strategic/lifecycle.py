@@ -262,22 +262,28 @@ def _arm_dominant_profit_lock(
     *,
     symbol: str,
     peak_mfe: float,
+    atr_mfe: float,
 ) -> None:
     if symbol != ctx.dominant_symbol:
         _arm_completed_core_profit_lock(ctx, symbol=symbol, peak_mfe=peak_mfe)
         return
-    if not (
-        symbol == ctx.dominant_symbol
-        and not ctx.dominant_profit_locked
-        and peak_mfe >= ctx.policy.cfg.strategic_dominant_profit_lock_mfe
-    ):
+    cfg = ctx.policy.cfg
+    threshold = cfg.strategic_dominant_profit_lock_mfe
+    width = min(threshold - cfg.strategic_cohort_profit_arm, max(0.0, atr_mfe))
+    # A one-ATR transition avoids a full allocation jump from tiny differences
+    # in real purchase cost. Neither account MFE nor its high-water mark changes.
+    progress = (min(1.0, max(0.0, (peak_mfe - threshold + width) / width))
+                if width > 0 else float(peak_mfe >= threshold))
+    if progress <= 0:
         return
+    cap = cfg.strategic_dominant_max_weight - progress * (
+        cfg.strategic_dominant_max_weight - cfg.strategic_dominant_retained_gross)
     account = ctx.account
+    current = account.strategic_cohort_targets[symbol]
+    if current <= cap:
+        return
     account.candidate_tenure["strategic_dominant_profit_lock_epoch"] = account.strategic_epoch
-    account.strategic_cohort_targets[symbol] = min(
-        account.strategic_cohort_targets[symbol],
-        ctx.policy.cfg.strategic_dominant_retained_gross,
-    )
+    account.strategic_cohort_targets[symbol] = cap
     account.strategic_restore_weights.pop(symbol, None)
     account.protected_weights.pop(symbol, None)
     ctx.dominant_profit_locked = True
@@ -450,7 +456,8 @@ def _evaluate_strategic_member(ctx: _StrategicLifecycleContext, symbol: str) -> 
         close < scalar(row, f"ma{self.cfg.trend_fast}") and scalar(row, f"ret{self.cfg.trend_fast}", 0.0) < 0
     )
     peak_mfe = position.highest_close / max(strategic_cost, 1e-12) - 1.0
-    _arm_dominant_profit_lock(ctx, symbol=symbol, peak_mfe=peak_mfe)
+    _arm_dominant_profit_lock(ctx, symbol=symbol, peak_mfe=peak_mfe,
+                              atr_mfe=atr / max(strategic_cost, 1e-12))
     triggered = [
         peak_mfe >= self.cfg.strategic_cohort_profit_arm
         and structural_damage
@@ -723,7 +730,7 @@ def _final_strategic_proposal(
     if ctx.dominant_profit_lock_armed_now and ctx.dominant_symbol is not None:
         proposed[ctx.dominant_symbol] = min(
             proposed.get(ctx.dominant_symbol, 0.0),
-            ctx.policy.cfg.strategic_dominant_retained_gross,
+            account.strategic_cohort_targets[ctx.dominant_symbol],
         )
     if ctx.core_profit_lock_symbol is not None:
         symbol = ctx.core_profit_lock_symbol

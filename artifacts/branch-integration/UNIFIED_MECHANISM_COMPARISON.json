@@ -1,0 +1,96 @@
+{
+  "c7/recovery-2025": {
+    "source_head": "0dc8b02af99a33a18924810e310808035e6171f0",
+    "source_tree": "c240eaaf0f62089693b8d88c11decfe403d6a884",
+    "metrics": {
+      "W": 5.679903233990157,
+      "DD": 0.15365546220578596,
+      "account_instructions": 8,
+      "fill_records": 8,
+      "pending_instructions": 0,
+      "operation_days": 4,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 6.155248815549999,
+      "fees": 6348.043319685999,
+      "slippage_cost": 12310.78869999947,
+      "cash": 2272410.0679803146,
+      "held_session_fraction": 0.9838709677419355,
+      "peak_to_recovery_days": 2
+    },
+    "buy_fills_by_mechanism": {
+      "TACTICAL_REBOUND": 1,
+      "RECOVERY_COHORT": 2,
+      "POST_SHOCK_RESTORATION": 2
+    }
+  },
+  "c7-entry-off/recovery-2025": {
+    "source_head": "87cd0303d580ee03584da58c40a1405c5d456dab",
+    "source_tree": "05e6bfdb0a2cb787a551faac9c90aead271db8f9",
+    "metrics": {
+      "W": 5.524467185719514,
+      "DD": 0.15592341313164304,
+      "account_instructions": 8,
+      "fill_records": 8,
+      "pending_instructions": 0,
+      "operation_days": 4,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 5.984355362349999,
+      "fees": 6156.994060972,
+      "slippage_cost": 11968.934499999525,
+      "cash": 2205649.3714390285,
+      "held_session_fraction": 0.9838709677419355,
+      "peak_to_recovery_days": 2
+    },
+    "buy_fills_by_mechanism": {
+      "TACTICAL_REBOUND": 1,
+      "RECOVERY_COHORT": 2,
+      "POST_SHOCK_RESTORATION": 2
+    }
+  },
+  "c7/normal-tactical-2023": {
+    "source_head": "0dc8b02af99a33a18924810e310808035e6171f0",
+    "source_tree": "c240eaaf0f62089693b8d88c11decfe403d6a884",
+    "metrics": {
+      "W": 1.1239075851579703,
+      "DD": 0.06823342110531982,
+      "account_instructions": 10,
+      "fill_records": 10,
+      "pending_instructions": 1,
+      "operation_days": 6,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 2.6513745779999995,
+      "fees": 2401.2876840599997,
+      "slippage_cost": 5301.541999999702,
+      "cash": 785141.1703159403,
+      "held_session_fraction": 0.890625,
+      "peak_to_recovery_days": 28
+    },
+    "buy_fills_by_mechanism": {
+      "TACTICAL_REBOUND": 1,
+      "RECOVERY_COHORT": 3,
+      "STRATEGIC_COHORT": 2
+    }
+  },
+  "c7-tactical-off/normal-tactical-2023": {
+    "source_head": "1d829d894aca7b336b94079d944d49e8c69963ae",
+    "source_tree": "ac6f26ed4cca6a237fa09880d67d4de29258e3dc",
+    "metrics": {
+      "W": 1.0296647183898,
+      "DD": 0.11852709509868908,
+      "account_instructions": 5,
+      "fill_records": 2,
+      "pending_instructions": 3,
+      "operation_days": 3,
+      "peak_daily_instructions": 3,
+      "gross_turnover": 0.6817182075,
+      "fees": 437.1582204,
+      "slippage_cost": 1362.404999999933,
+      "cash": 966785.4367796001,
+      "held_session_fraction": 0.671875,
+      "peak_to_recovery_days": 24
+    },
+    "buy_fills_by_mechanism": {
+      "TACTICAL_REBOUND": 1
+    }
+  }
+}

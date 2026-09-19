@@ -77,7 +77,8 @@ def _update_dynamic_anchors(
         if symbol in leaders and leaders[symbol].industry != "unknown"
     }
     signature = ",".join(candidate)
-    current_signature = account.risk_anchor_signature
+    candidate_members = set(candidate)
+    current_members = set(account.risk_anchor_symbols)
     if len(candidate) != cfg.risk_anchor_count or len(candidate_groups) < cfg.risk_anchor_min_groups:
         # Confirmation must be consecutive.  Missing coverage/evidence cannot
         # bridge two otherwise unrelated candidate periods.  More importantly,
@@ -93,8 +94,8 @@ def _update_dynamic_anchors(
         account.risk_anchor_candidate_signature = ""
         account.risk_anchor_candidate_streak = 0
         return tuple(account.risk_anchor_symbols)
-    if signature and signature != current_signature:
-        if signature == account.risk_anchor_candidate_signature:
+    if signature and candidate_members != current_members:
+        if candidate_members == set(account.risk_anchor_candidate_signature.split(",")):
             account.risk_anchor_candidate_streak += 1
         else:
             account.risk_anchor_candidate_signature = signature
@@ -108,7 +109,7 @@ def _update_dynamic_anchors(
             account.risk_anchor_signature = signature
             account.risk_anchor_candidate_signature = ""
             account.risk_anchor_candidate_streak = 0
-    elif signature == current_signature:
+    elif candidate_members == current_members:
         account.risk_anchor_candidate_signature = ""
         account.risk_anchor_candidate_streak = 0
     return tuple(account.risk_anchor_symbols)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pandas as pd
 
@@ -86,6 +86,7 @@ class ProductionEngine:
         self._features = self.workspace._features
         self._code_hash: str | None = None
         self._leader_score_cache: dict[tuple[object, ...], dict[str, LeaderScore]] = {}
+        self._reversal_observation_cache: dict[tuple[object, ...], list[dict[str, Any]]] = {}
         self._risk_timeline_cache_key: tuple[object, ...] | None = None
         self._risk_timeline_cache: RiskEvidenceTimeline | None = None
 

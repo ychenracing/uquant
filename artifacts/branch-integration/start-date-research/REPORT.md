@@ -164,3 +164,33 @@ these running research worktrees. Preserve failed C3/C4/C6 evidence.
 `REMOTE_RECEIPT_2.json` records another 4,354,712 byte-verified raw evidence archive
 with 256 additional/changed manifest entries, linked to the first checkpoint.
 Research source is preserved separately in the updated Git bundle.
+
+### C7 full development and contract screen (not accepted)
+
+The four development replays completed at the exact unified source above:
+W 32.316992795022415 / 32.31090501796239 / 31.653480772240975 /
+31.72720416499964 for offsets 0/1/5/10, with DD 27.1339% / 27.1471% /
+27.2328% / 27.1197%. Offset5/full is 97.95%; full retains 99.20% of B0.
+The six pool/cost replays also completed. `../C7_ROBUSTNESS_RESULT.json` is
+NOT_MET: weak-pool geometric retention is 0.9653384704227385 (required 1.20),
+and offset5 cost-stress retention is 0.580883683800839 (required 0.90).
+Strong pools and absolute drawdown pass among these ten completed cells.
+The thirteen confirmation cells remain NOT_RUN; no reserve dates were consumed.
+
+The first cost-stress control-path divergence is July 20, 2023: normal cost
+reduces the strategic holding to 0.5 through CAPITAL_BUDGET, whereas doubled
+cost invokes CRISIS at 0.2. This is not explained by fees alone. The weak pools
+all take the same January 4 sh688200 strategic entry, sourced from the December
+7 market observation, and converge to W 1.0417438648145532. Investigate these
+causal paths before changing the candidate or consuming confirmation dates.
+
+Final same-base mechanism pairs completed and passed payload/identity validation;
+see `../UNIFIED_MECHANISM_COMPARISON.json`. Entry weighting produces W
+5.679903233990157 versus 5.524467185719514 without it in the registered 2025
+window. Expanded tactical eligibility produces W 1.1239075851579703 versus
+1.0296647183898 in the registered Q3 2023 window. Keep both provisionally;
+the second fresh-funding score tilt remains removed. These are portfolio-level
+comparisons with all window events included, not attribution-tag profit claims.
+Integrated architecture/runner/screen/boundary checks and updated membership
+anchor regressions passed. This does not turn the failed economic screen into
+acceptance or authorize merging this candidate.

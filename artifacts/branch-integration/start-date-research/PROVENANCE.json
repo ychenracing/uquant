@@ -1,10 +1,11 @@
 {
   "source_bundle": {
     "path": "source.bundle",
-    "bytes": 20573,
-    "sha256": "ceac74d0d7dc644972eafc8be5ff8bfbecbd90caa6eb0446b254681623ef82c6",
+    "bytes": 23109,
+    "sha256": "2b033f74637748d07bdb48cbcc96343f99ae3099be2945f6da91ecbba684711c",
     "requires": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
     "refs": [
+      "ec6312cc16fd2ccc12a9f71440c63c42d5127ba4 refs/heads/research/current-formation-validation",
       "87cd0303d580ee03584da58c40a1405c5d456dab refs/heads/research/final-entry-ablation",
       "1d829d894aca7b336b94079d944d49e8c69963ae refs/heads/research/final-tactical-ablation",
       "0dd733c2269c985e801a60e96a9747682e479b67 refs/heads/research/recovery-entry-unweighted",
@@ -16,7 +17,8 @@
       "fb60fc4729f7cfcb7e696f2a73535234862316f9 refs/heads/research/start-date-event-continuity",
       "27298d5f8ff4df61e5d65f6bd8e95817d79d9e86 refs/heads/research/start-date-funding",
       "0dc8b02af99a33a18924810e310808035e6171f0 refs/heads/research/start-date-smooth-protection",
-      "3082d66302bf921a84386e7990f09b2a9f7d14db refs/heads/research/tactical-original"
+      "3082d66302bf921a84386e7990f09b2a9f7d14db refs/heads/research/tactical-original",
+      "bbcac5f433cebe235458d2715951c15a9c1853c3 refs/heads/research/unified-crisis-ownership"
     ]
   },
   "trace_sources": {
@@ -26,7 +28,8 @@
     "diagnostic-c3": "9ff368115f07646ef43b72439bc66ac6b0bc13c2",
     "diagnostic-c4": "4aea17a71d3a4718c1e86d97db9ac1147529ced6",
     "diagnostic-c4b": "727f7805b4f8689cd848c308413279dc947426b0",
-    "diagnostic-c4c": "fb60fc4729f7cfcb7e696f2a73535234862316f9"
+    "diagnostic-c4c": "fb60fc4729f7cfcb7e696f2a73535234862316f9",
+    "diagnostic-c7-failures": "0dc8b02af99a33a18924810e310808035e6171f0"
   },
   "B0": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
   "original_archive_sha256": "aa66970d04e31b73743501b91eb4c4d999d02f11b7b4c76318c3e852f3db4ab0",

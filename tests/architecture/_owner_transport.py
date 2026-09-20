@@ -1140,6 +1140,14 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
             assert len(calls) == 1
             assert [keyword.arg for keyword in calls[0].keywords[:2]] == ["capital_dd", "operating_dd"]
     elif current.name == "_apply_capital_overlays":
+        initial_cap = next(node for node in current.body if isinstance(node, ast.Assign)
+                           and any(isinstance(target, ast.Name) and target.id == "overlay_cap"
+                                   for target in node.targets))
+        assert ast.unparse(initial_cap.value) == (
+            "cfg.market_crisis_gross if account.capital_peak > 0 and "
+            "account.deployed_peak <= account.capital_peak * (1.0 - cfg.capital_dd_crisis) else cfg.max_gross"
+        )
+        initial_cap.value = ast.parse("cfg.max_gross", mode="eval").body
         assert current.args.kwonlyargs[6].arg == "operating_dd"
         current.args.kwonlyargs.insert(6, ast.arg(arg="capital_dd", annotation=ast.Name(id="float", ctx=ast.Load())))
         current.args.kw_defaults.insert(6, None)

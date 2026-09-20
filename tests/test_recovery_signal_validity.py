@@ -34,14 +34,14 @@ def test_recent_breakout_expires_and_requires_current_structure_and_liquidity(de
     assert again == candidates
 
 
-def test_selection_preserves_owned_members_and_original_depth_priority():
+def test_selection_preserves_owned_members_and_scanner_evidence_priority():
     account = AccountState.empty(100)
     account.anchor_weights = {'held': .6}
     leaders = {name: _leader(name, score) for name, score in
                [('held', .05), ('strong', .9), ('second', .8), ('deepest', .1)]}
     policy = SimpleNamespace(cfg=DEFAULT_CONFIG)
     selected, targets = _recovery_selection(policy, leaders=leaders, account=account,
-        anchored_held={'held': .6}, candidates=[leaders[s] for s in ('deepest', 'strong', 'second')],
+        anchored_held={'held': .6}, candidates=[leaders[s] for s in ('deepest', 'second', 'strong')],
         crash_depth={'held': -.1, 'strong': -.2, 'second': -.3, 'deepest': -.5},
         recovery_elapsed=1, deep_count=2, admission_depth=-.15,
         risk=SimpleNamespace(), freeze_active=False)
@@ -49,6 +49,26 @@ def test_selection_preserves_owned_members_and_original_depth_priority():
     assert selected.selected == ['held', 'deepest', 'second']
     assert selected.lead == 'held'
     assert account.anchor_weights == {'held': .6}
+
+
+def test_current_breakouts_keep_depth_priority_before_retained_strength():
+    dates = pd.bdate_range('2025-01-02', periods=12)
+    def frame(prices, depth):
+        return pd.DataFrame({'close': prices, 'ma20': 105., 'ret120': depth}, index=dates)
+    panel = {'deep_fresh': frame([100.] * 10 + [110., 111.], -.5),
+             'strong_fresh': frame([100.] * 10 + [110., 111.], -.4),
+             'strong_recent': frame([100.] * 10 + [110., 108.], -.3),
+             'deep_recent': frame([100.] * 10 + [110., 108.], -.6)}
+    leaders = {name: _leader(name, score) for name, score in
+               [('strong_recent', .95), ('deep_fresh', .1),
+                ('deep_recent', .2), ('strong_fresh', .8)]}
+    account = AccountState.empty(100)
+    account.anchor_weights = {'held': .5}
+    candidates, _ = scan_recovery_evidence(
+        SimpleNamespace(cfg=DEFAULT_CONFIG, _liquidity_confirmed=lambda frame, date: True),
+        date=dates[-1], user_panel=panel, leaders=leaders, account=account)
+    assert [item.symbol for item in candidates] == [
+        'deep_fresh', 'strong_fresh', 'strong_recent', 'deep_recent']
 
 
 @pytest.mark.parametrize('anchors', [{}, {'a': .5}])

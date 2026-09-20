@@ -130,3 +130,19 @@ def test_accumulated_loss_reduces_budget_only_with_independent_damage(capital_dd
         worsening_damage=damage, votes=votes, sector_stress=0.8,
         transition_damage=0.8, held_damage_ratio=float(damage), cfg=DEFAULT_CONFIG,
     ) == expected
+
+
+@pytest.mark.parametrize('deployment_peak,expected_cap', [(73., .5), (79., .5), (81., 1.), (100., 1.)])
+def test_repaired_admission_retains_inherited_crisis_budget_without_freezing_cash(deployment_peak, expected_cap):
+    account = AccountState.empty(100.)
+    account.cash = 73.
+    account.capital_peak = 100.
+    account.deployed_peak = deployment_peak
+    facts = (account.cash, account.capital_peak, account.deployed_peak)
+    result = apply_capital_overlays(account=account, cfg=DEFAULT_CONFIG,
+        observed_budget_level=0, transition_damage=0.1, votes=0,
+        held_damage_ratio=0, deployed_dd=0, strategic_damage_guard=False)
+    assert not result.freeze_new_risk
+    assert result.overlay_cap == expected_cap
+    assert account.capital_budget_level == 0
+    assert (account.cash, account.capital_peak, account.deployed_peak) == facts

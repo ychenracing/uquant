@@ -292,7 +292,16 @@ def _apply_capital_overlays(
     freeze_new_risk = bool(
         strategic_damage_guard or account.capital_budget_level >= 1 or account.chronic_level >= 1
     )
-    overlay_cap = cfg.max_gross
+    # Ending a damaged deployment restores admission, not lost risk capacity.
+    # A new deployment still below the lifetime crisis line uses the existing
+    # crisis budget until its own actual peak repairs that inherited shortfall.
+    # This ceiling never freezes cash or creates another reserve ledger.
+    overlay_cap = (
+        cfg.market_crisis_gross
+        if account.capital_peak > 0
+        and account.deployed_peak <= account.capital_peak * (1.0 - cfg.capital_dd_crisis)
+        else cfg.max_gross
+    )
     if account.capital_budget_level >= 4:
         overlay_cap = min(overlay_cap, cfg.market_crisis_gross)
     elif account.capital_budget_level >= 3:

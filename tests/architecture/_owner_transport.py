@@ -29,9 +29,6 @@ RETIRED_ALLOCATION_SOURCES = frozenset(
 _RETIRED_PORTFOLIO_PRIVATE_EDGES = frozenset(
     {
         "uquant.portfolio.pipeline:uquant.portfolio.recovery.admission:_recovery_admission_targets",
-        "uquant.portfolio.recovery:uquant.portfolio.recovery.substitution:_recovery_anchor_substitution",
-        "uquant.portfolio.recovery.substitution:uquant.portfolio.recovery.targets:_pending_recovery_substitution_targets",
-        "uquant.portfolio.recovery.substitution:uquant.portfolio.recovery.targets:_confirmed_recovery_substitution_targets",
     }
 )
 

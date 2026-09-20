@@ -1,0 +1,59 @@
+{
+  "base": "dd5ef43931c3e316f3808d4ef04f34e3953be194",
+  "candidate_local": "f7a75cb",
+  "candidate_remote": "b4b19feec48b2416fbe898c59a905de5e96cddcc",
+  "production_net_lines_removed": 481,
+  "changed_production": [
+    {
+      "path": "uquant/portfolio/recovery/__init__.py",
+      "before_lines": 40,
+      "after_lines": 3,
+      "removed_functions": [
+        "_bind_recovery_assembly_method",
+        "_recovery_assembly_method"
+      ],
+      "retained_function_bodies_exact": true
+    },
+    {
+      "path": "uquant/portfolio/recovery/admission.py",
+      "before_lines": 103,
+      "after_lines": 91,
+      "removed_functions": [
+        "_recovery_anchor_substitution"
+      ],
+      "retained_function_bodies_exact": true
+    },
+    {
+      "path": "uquant/portfolio/recovery/substitution.py",
+      "before_lines": 385,
+      "after_lines": 1,
+      "removed_functions": [
+        "_broken_secondaries",
+        "_commit_substitution",
+        "_confirmed_substitution_pair",
+        "_pending_substitution",
+        "_recovery_anchor_substitution",
+        "_reset_substitution_streaks",
+        "_risk_neutral_targets",
+        "_substitution_eligible",
+        "_substitution_pairs"
+      ],
+      "retained_function_bodies_exact": true
+    },
+    {
+      "path": "uquant/portfolio/recovery/targets.py",
+      "before_lines": 178,
+      "after_lines": 130,
+      "removed_functions": [
+        "_confirmed_recovery_substitution_targets",
+        "_pending_recovery_substitution_targets"
+      ],
+      "retained_function_bodies_exact": true
+    }
+  ],
+  "config_and_registry_unchanged": true,
+  "policies_changed": 0,
+  "persistent_fields_removed": 0,
+  "new_parameters": 0,
+  "note": "Unreachable implementation retired; live strategy rule count and public MRO preserved. Empty legacy namespace retained."
+}

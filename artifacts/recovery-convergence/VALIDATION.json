@@ -1,0 +1,274 @@
+{
+  "production_lines_removed": 481,
+  "exact_allocator_calls": 159,
+  "native_trace_sessions": 60,
+  "fresh_native_recovery_sessions": 99,
+  "initial_pytest": {
+    "passed": 243,
+    "failed": 9,
+    "status": "failures subsequently resolved; preserved original log"
+  },
+  "resolved_initial_failures": {
+    "retired_namespace_and_current_book": "convergence-retirement-check: 7 passed",
+    "historical_relocation_and_order_identity": "convergence-relocation-final: 2 passed",
+    "cannot_short_circuit": "convergence-failed-recheck first assertion passed before later timeout",
+    "public_routes": "convergence-public-routes-final first three assertions passed; last private-edge assertion completed separately",
+    "private_edge_contract": "convergence-private-edge-final passed"
+  },
+  "compatibility": "6 passed",
+  "public_api": "1 passed",
+  "typing": "7 source files passed",
+  "ruff": "changed Python files passed",
+  "diff_check": "passed",
+  "economic_candidate": "not attempted: insufficient evidence",
+  "unrun": [
+    "full local suite",
+    "full Absolute",
+    "full economic scenario matrix",
+    "future holdout"
+  ],
+  "ci": "queued, not counted as passing; repository has no required checks or rulesets at premerge readback",
+  "operations": [
+    {
+      "operation_id": "20260920T171949-f781da3321eb",
+      "name": "convergence-environment",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:19:49.708098+00:00",
+      "updated_at_utc": "2026-09-20T17:19:54.719339+00:00",
+      "git": {
+        "head": "dd5ef43931c3e316f3808d4ef04f34e3953be194",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T172036-a46d00be13a2",
+      "name": "convergence-history",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:20:36.424242+00:00",
+      "updated_at_utc": "2026-09-20T17:20:56.437837+00:00",
+      "git": {
+        "head": "d5f600dc328f972333b80971b1c7655138da8d6a",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T172202-be648c39f594",
+      "name": "convergence-capture",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:22:02.336295+00:00",
+      "updated_at_utc": "2026-09-20T17:27:32.591702+00:00",
+      "git": {
+        "head": "d5f600dc328f972333b80971b1c7655138da8d6a",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T172214-aedcd04faf78",
+      "name": "convergence-preregister-push",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 128,
+      "started_at_utc": "2026-09-20T17:22:14.285113+00:00",
+      "updated_at_utc": "2026-09-20T17:22:29.299559+00:00",
+      "git": {
+        "head": "d5f600dc328f972333b80971b1c7655138da8d6a",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T172340-1eef519ca5d5",
+      "name": "convergence-connector-publish",
+      "status": "REMOTE_VERIFICATION_RECORDED",
+      "finding": null,
+      "returncode": null,
+      "started_at_utc": "2026-09-20T17:23:40.346724+00:00",
+      "updated_at_utc": "2026-09-20T17:25:15.155298+00:00",
+      "git": null
+    },
+    {
+      "operation_id": "20260920T172757-c4b4d3a8c9fd",
+      "name": "convergence-compare",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:27:57.504208+00:00",
+      "updated_at_utc": "2026-09-20T17:28:52.570306+00:00",
+      "git": {
+        "head": "38db5b0c5179f799a6cdcbca20402032546efa01",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T172806-ae7e6b4360ac",
+      "name": "convergence-focused",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at_utc": "2026-09-20T17:28:06.876776+00:00",
+      "updated_at_utc": "2026-09-20T17:33:27.406210+00:00",
+      "git": {
+        "head": "38db5b0c5179f799a6cdcbca20402032546efa01",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T172855-c0df86eefc40",
+      "name": "convergence-review-static",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at_utc": "2026-09-20T17:28:55.755857+00:00",
+      "updated_at_utc": "2026-09-20T17:29:00.799670+00:00",
+      "git": {
+        "head": "38db5b0c5179f799a6cdcbca20402032546efa01",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T173038-1f235d622a77",
+      "name": "convergence-retirement-check",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:30:38.694467+00:00",
+      "updated_at_utc": "2026-09-20T17:30:48.722667+00:00",
+      "git": {
+        "head": "38db5b0c5179f799a6cdcbca20402032546efa01",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260920T173232-dbdf20b71363",
+      "name": "convergence-compatibility",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:32:32.322710+00:00",
+      "updated_at_utc": "2026-09-20T17:33:47.435351+00:00",
+      "git": {
+        "head": "f7a75cb3a0eafe6c0858095cb75b50d6cba5df15",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T173248-57c8089154c7",
+      "name": "convergence-code-publish",
+      "status": "REMOTE_VERIFICATION_RECORDED",
+      "finding": null,
+      "returncode": null,
+      "started_at_utc": "2026-09-20T17:32:48.389041+00:00",
+      "updated_at_utc": "2026-09-20T17:33:55.637848+00:00",
+      "git": null
+    },
+    {
+      "operation_id": "20260920T173404-653a7bf99677",
+      "name": "convergence-failed-recheck",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 143,
+      "started_at_utc": "2026-09-20T17:34:04.705432+00:00",
+      "updated_at_utc": "2026-09-20T17:40:04.818399+00:00",
+      "git": {
+        "head": "f7a75cb3a0eafe6c0858095cb75b50d6cba5df15",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260920T173556-7fc30ab958a2",
+      "name": "convergence-typecheck",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:35:56.614614+00:00",
+      "updated_at_utc": "2026-09-20T17:36:46.773711+00:00",
+      "git": {
+        "head": "f7a75cb3a0eafe6c0858095cb75b50d6cba5df15",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260920T173639-4d7be013101a",
+      "name": "convergence-public-api",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:36:39.105856+00:00",
+      "updated_at_utc": "2026-09-20T17:36:49.138319+00:00",
+      "git": {
+        "head": "f7a75cb3a0eafe6c0858095cb75b50d6cba5df15",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260920T173731-e312c6b2c046",
+      "name": "convergence-relocation-diagnosis",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at_utc": "2026-09-20T17:37:31.393706+00:00",
+      "updated_at_utc": "2026-09-20T17:39:16.507056+00:00",
+      "git": {
+        "head": "f7a75cb3a0eafe6c0858095cb75b50d6cba5df15",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260920T174028-a37db96de207",
+      "name": "convergence-relocation-final",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:40:29.000023+00:00",
+      "updated_at_utc": "2026-09-20T17:43:04.203433+00:00",
+      "git": {
+        "head": "f7a75cb3a0eafe6c0858095cb75b50d6cba5df15",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260920T174053-d9667858e70f",
+      "name": "convergence-public-routes-final",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 143,
+      "started_at_utc": "2026-09-20T17:40:53.421052+00:00",
+      "updated_at_utc": "2026-09-20T17:43:53.511572+00:00",
+      "git": {
+        "head": "f7a75cb3a0eafe6c0858095cb75b50d6cba5df15",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260920T174220-92014002998a",
+      "name": "convergence-native-recovery",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:42:20.213831+00:00",
+      "updated_at_utc": "2026-09-20T17:45:20.397643+00:00",
+      "git": {
+        "head": "29c2f23aefd1dafc96543f44d2acd20fed2568f5",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation_id": "20260920T174445-8ec24db58190",
+      "name": "convergence-private-edge-final",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at_utc": "2026-09-20T17:44:45.176854+00:00",
+      "updated_at_utc": "2026-09-20T17:46:35.327427+00:00",
+      "git": {
+        "head": "29c2f23aefd1dafc96543f44d2acd20fed2568f5",
+        "tracked_dirty": false
+      }
+    }
+  ]
+}

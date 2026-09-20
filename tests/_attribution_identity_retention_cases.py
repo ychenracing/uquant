@@ -321,6 +321,7 @@ def test_blocked_recovery_replacement_retains_event_and_link_next_session() -> N
         symbol=retained.symbol, weight=retained.target_weight,
         reason=retained.reason, lifecycle=domain.Lifecycle.CORE.value,
         alpha_score=0.8, confidence=0.9,
+        origin_lifecycle=domain.Lifecycle.CORE.value,
         origin_subsystem=domain.OriginSubsystem.RECOVERY.value,
         mechanism=domain.AttributionMechanism.RECOVERY_SUBSTITUTION.value,
         replaces_symbol="sh688008",

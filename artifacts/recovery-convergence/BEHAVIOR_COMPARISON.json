@@ -1,0 +1,22 @@
+{
+  "capture": {
+    "source": "d5f600dc328f972333b80971b1c7655138da8d6a",
+    "calls": 159,
+    "input_sha256": "7516f8d8ada4ca715add4a08b634f3cbf6246af9864abc634ef7384b3a3dac1a"
+  },
+  "comparison": {
+    "source": "38db5b0c5179f799a6cdcbca20402032546efa01",
+    "calls": 159,
+    "exact_targets_account_risk_equal": true,
+    "input_sha256": "7516f8d8ada4ca715add4a08b634f3cbf6246af9864abc634ef7384b3a3dac1a",
+    "scope": "candidate allocator applied to identical baseline native inputs; source identities unmodified"
+  },
+  "candidate_production_tree": "2d8940d2684bceafd94bae699f3cb0262035b145",
+  "baseline_production_tree": "9dbae37ba102bb1eb551b3ddedef5789994eca67",
+  "runner_sha256": "e90a532c32ef62d14bc60f027bae2a818225521ff42d8bce43b606349b036c9d",
+  "data_tree": "b49acceffe95949fc5f62d80eeb7055ce17a676d",
+  "normalization": "none; full target/account/risk JSON compared byte-for-byte on identical baseline fixture inputs",
+  "reuse": "Final empty module namespace replaces the deleted file, does not rebind any method. Other live function bodies unchanged; exact-input comparison remains applicable. Current native trace separately passed 60 sessions.",
+  "economic_candidate": null,
+  "worst_observed_decision_difference": 0
+}

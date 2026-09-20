@@ -1,0 +1,192 @@
+{
+  "original_name": "allocator-inputs.pkl.gz",
+  "original_bytes": 1956329361,
+  "original_sha256": "7516f8d8ada4ca715add4a08b634f3cbf6246af9864abc634ef7384b3a3dac1a",
+  "parts": [
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part001",
+      "offset": 0,
+      "bytes": 209715200,
+      "sha256": "c29eaf3b433de85907dde79143d1ba9965978e4f40e0d16805bc656143e221c9"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part002",
+      "offset": 209715200,
+      "bytes": 209715200,
+      "sha256": "fd7157aaafd941dc4f68b8dc21053002cc910d37206bad0fd6c17ae48b586677"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part003",
+      "offset": 419430400,
+      "bytes": 209715200,
+      "sha256": "002e71a84b3d86c3bf93d432d4679064565424cfd9d7412a11aa33167dc399b8"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part004",
+      "offset": 629145600,
+      "bytes": 209715200,
+      "sha256": "b6159e72c2d16b419638c3f8f5580a7296ad337fb9e1089fc86fc9d09b46c49d"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part005",
+      "offset": 838860800,
+      "bytes": 209715200,
+      "sha256": "922cf22d2abe8eb88a2deb1f4a9e9eb026823a923061e741ce8975673c831b51"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part006",
+      "offset": 1048576000,
+      "bytes": 209715200,
+      "sha256": "61b671aa11022a00f90a3c852d5ba05764b7eb7de269dd1e8bb7085cb3522df3"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part007",
+      "offset": 1258291200,
+      "bytes": 209715200,
+      "sha256": "1fae3576815ee755342c57af9baddb6875e2454b893b7b19c9ed4d3729a2f8a3"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part008",
+      "offset": 1468006400,
+      "bytes": 209715200,
+      "sha256": "ea29ae9f88eb9896615181bab078755940826fee400151f19f0d28971ecff763"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part009",
+      "offset": 1677721600,
+      "bytes": 209715200,
+      "sha256": "9377ab446952e1cd5200bbae2569a151fb547466d1d1bfd380a23cd022cf0c5a"
+    },
+    {
+      "path": "UQUANT_PR78_ALLOCATOR_INPUTS.part010",
+      "offset": 1887436800,
+      "bytes": 68892561,
+      "sha256": "d93938a63fd2517973f6f520b45850d401e49897600909842934b800b50393e9"
+    }
+  ],
+  "remote_readback_byte_equal": true,
+  "reconstructed_sha256": "7516f8d8ada4ca715add4a08b634f3cbf6246af9864abc634ef7384b3a3dac1a",
+  "files": [
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part001",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_000000007d6c81f59fee8b29ba3a8eb8",
+      "library_file_id": "libfile_ce4d43f8f7ac8191964c9f4bb400687f",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part001",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part001",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part002",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000716c81f5baa0c1abf3c5671a",
+      "library_file_id": "libfile_fe3133759ca08191a351b3bd208edef5",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part002",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part002",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part003",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_0000000073ac81f58b4680e8249b40ef",
+      "library_file_id": "libfile_03604a60fd4c81919b5f1223003b5865",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part003",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part003",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part004",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000370c81f5a690bb45058f2300",
+      "library_file_id": "libfile_83dfed197f788191a51e48f23f2f2182",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part004",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part004",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part005",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_000000001b7881f5a4aa5c3dffd968c0",
+      "library_file_id": "libfile_d4e998c4b3008191aa1ee6b81a239314",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part005",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part005",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part006",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000617081f5abf503561d54a6fc",
+      "library_file_id": "libfile_ee1c512d36708191aabf4f36c2eb292a",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part006",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part006",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part007",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000752481f58e9a88d7f80db918",
+      "library_file_id": "libfile_1382dba7be8081919a62ecd84822df8c",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part007",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part007",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part008",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000aa0081f5bfd71ee31fc74b24",
+      "library_file_id": "libfile_aa073741b9ac8191a02cbcd4c81ee80d",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part008",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part008",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part009",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000c5fc81f5ad55c449ea41daea",
+      "library_file_id": "libfile_549c991b24c8819191ad0bc90b40ae1c",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part009",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part009",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_ALLOCATOR_INPUTS.part010",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000ca9481f5b4809f642a631ba5",
+      "library_file_id": "libfile_480975e7e540819193cae2e5729c6d42",
+      "file_name": "UQUANT_PR78_ALLOCATOR_INPUTS.part010",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_ALLOCATOR_INPUTS.part010",
+      "current_version_number": 0
+    },
+    {
+      "local_path": "/workspace/scratch/e1556fe9bbd2/convergence-evidence/preservation/UQUANT_PR78_INPUTS_MANIFEST.json",
+      "purpose": "create_library_file",
+      "status": "succeeded",
+      "file_id": "file_00000000441081f59290960f1e4c21cc",
+      "library_file_id": "libfile_f2333d13bb848191b0bab853885f4346",
+      "file_name": "UQUANT_PR78_INPUTS_MANIFEST.json",
+      "local_metadata_applied": true,
+      "path": "/UQUANT_PR78_INPUTS_MANIFEST.json",
+      "current_version_number": 0
+    }
+  ]
+}

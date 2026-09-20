@@ -1144,7 +1144,8 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
                       and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "freeze_new_risk")
         assert ast.unparse(freeze.value) == (
             "bool(strategic_damage_guard or (account.capital_budget_level >= 1 and "
-            "account.capital_budget_repair_streak < cfg.capital_budget_repair_days) or account.chronic_level >= 1)"
+            "(account.capital_budget_repair_streak < cfg.capital_budget_repair_days or "
+            "operating_dd >= cfg.operating_dd_caution)) or account.chronic_level >= 1)"
         )
         freeze.value = ast.parse(
             "bool(strategic_damage_guard or account.capital_budget_level >= 1 or account.chronic_level >= 1)",

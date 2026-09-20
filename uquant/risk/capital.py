@@ -292,7 +292,8 @@ def _apply_capital_overlays(
     freeze_new_risk = bool(
         strategic_damage_guard
         or (account.capital_budget_level >= 1
-            and account.capital_budget_repair_streak < cfg.capital_budget_repair_days)
+            and (account.capital_budget_repair_streak < cfg.capital_budget_repair_days
+                 or deployed_dd >= cfg.operating_dd_caution))
         or account.chronic_level >= 1
     )
     overlay_cap = cfg.max_gross

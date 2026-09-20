@@ -39,6 +39,7 @@ def test_confirmed_repair_reopens_admission_inside_remaining_cap_and_refreezes_o
         assert result.freeze_new_risk == (day + 1 < DEFAULT_CONFIG.capital_budget_repair_days)
     assert account.capital_budget_level == 3
     assert result.overlay_cap == DEFAULT_CONFIG.capital_budget_level3_cap
+
     result = apply_capital_overlays(account=account, cfg=DEFAULT_CONFIG, observed_budget_level=0,
         transition_damage=0.8, votes=4, held_damage_ratio=1,
         deployed_dd=0.1, strategic_damage_guard=False)
@@ -46,6 +47,18 @@ def test_confirmed_repair_reopens_admission_inside_remaining_cap_and_refreezes_o
     assert account.capital_budget_repair_streak == 0
     assert account.capital_budget_level == 3
     assert result.overlay_cap == DEFAULT_CONFIG.capital_budget_level3_cap
+
+
+def test_partial_repair_does_not_reopen_admission_while_deployed_capital_is_damaged():
+    account = AccountState.empty(100)
+    account.capital_budget_level = 4
+    for _ in range(DEFAULT_CONFIG.capital_budget_repair_days):
+        result = apply_capital_overlays(account=account, cfg=DEFAULT_CONFIG, observed_budget_level=0,
+            transition_damage=0.1, votes=0, held_damage_ratio=0,
+            deployed_dd=0.17, strategic_damage_guard=False)
+    assert account.capital_budget_level == 3
+    assert result.overlay_cap == DEFAULT_CONFIG.capital_budget_level3_cap
+    assert result.freeze_new_risk
 
 
 @pytest.mark.parametrize('deployed_dd,expected', [(0.0, 0), (0.13, 1)])

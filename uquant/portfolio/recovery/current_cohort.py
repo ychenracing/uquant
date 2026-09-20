@@ -109,8 +109,7 @@ def _pending_members(book: AllocationBook) -> list[PendingOrder]:
 
 def _book_available(book: AllocationBook, members: set[str], restorable: set[str],
                     pending: list[PendingOrder]) -> bool:
-    live = {symbol for symbol, weight in book.weights_now.items() if weight > 0}
-    if book.owned or live - members:
+    if book.owned:
         return False
     # Old ordinary risk snapshots are history, not ownership of fresh cash.
     current_account = replace(book.account, protected_weights=protected_weights_for_current_episode(book.account))
@@ -121,7 +120,6 @@ def _prune_anchors(book: AllocationBook, known: set[str]) -> None:
     account = book.account
     if account.anchor_weights:
         account.anchor_weights = {symbol: weight for symbol, weight in account.anchor_weights.items() if symbol in known}
-        account.candidate_tenure["recovery_cohort_locked"] = int(len(known) >= 3)
 
 
 def _weak_market(book: AllocationBook) -> bool | None:
@@ -162,40 +160,6 @@ def _continue_members(book: AllocationBook, pending: list[PendingOrder], members
                 account.anchor_weights.pop(order.symbol, None)
     if not account.anchor_weights:
         policy._release_recovery_anchor(account)
-
-
-def _fund_members(book: AllocationBook, targets: tuple[Target, ...], members: set[str],
-                   leaders: dict[str, LeaderScore]) -> None:
-    account, policy = book.account, book.policy
-    funded = set(members)
-    requests = {target.symbol: target.weight - book.committed.get(target.symbol, 0.0)
-                for target in targets if target.symbol in leaders
-                and target.weight > book.committed.get(target.symbol, 0.0)}
-    industries = {leaders[symbol].industry for symbol in requests}
-    increments = dict(requests)
-    if len(requests) > 1 and len(industries) == 1:
-        industry_used = sum(weight for symbol, weight in book.committed.items()
-                            if symbol in leaders and leaders[symbol].industry in industries)
-        remaining = max(0.0, min(book.cash_room, book.gross_cap - sum(book.committed.values()),
-                                policy.cfg.recovery_target_gross - industry_used))
-        # Entry weights already express current leadership. Share the remaining
-        # real capital in those proportions without weighting the demand twice.
-        total = sum(requests.values())
-        increments = {symbol: request * min(remaining, total) / total
-                      for symbol, request in requests.items()}
-    for target in targets:
-        if target.symbol not in leaders or target.weight <= book.weights_now.get(target.symbol, 0.0):
-            continue
-        reserved = min(target.weight, book.committed.get(target.symbol, 0.0))
-        desired = reserved + increments.get(target.symbol, 0.0)
-        if book.fund(target.symbol, desired, phase="CONFIRMED_RECOVERY_ADMISSION",
-                     minimum=policy.cfg.min_trade_weight, concentration_cap=policy.cfg.recovery_target_gross):
-            funded.add(target.symbol)
-            book.recovery_targets[target.symbol] = target
-    if account.anchor_weights:
-        _prune_anchors(book, funded)
-        if not funded:
-            policy._release_recovery_anchor(account)
 
 
 def _advance_tactical_clock(book: AllocationBook) -> None:
@@ -340,38 +304,38 @@ def _manage_tactical_holding(book: AllocationBook, opportunity: Opportunity, fro
     return _retain_or_exit_tactical(book, symbol, promotable, frozen)
 
 
-def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunity, frozen: bool) -> bool:
-    """Return whether this session belongs to an actual confirmed recovery book."""
+def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunity, frozen: bool) -> tuple[Target, ...] | None:
+    """Retain actual owners; return fresh requests for the shared admission queue."""
     account, policy, risk = book.account, book.policy, book.risk
     _advance_tactical_clock(book)
     _settle_tactical_holding(book)
     if _manage_tactical_holding(book, opportunity, frozen):
-        return True
+        return None  # Tactical lifecycle retains its separate admission exclusion.
     members = _filled_members(book)
     restorable = {symbol for symbol, weight in account.protected_weights.items()
                   if weight > 0 and recovery_owner_open(account, symbol, account.last_shock_date)}
     pending = _pending_members(book)
     if not _book_available(book, members, restorable, pending):
-        return False
+        return ()
     _prune_anchors(book, members | restorable | {order.symbol for order in pending})
     book.recovery_restore_symbols = restorable
     weak = _weak_market(book)
     if weak is None:
         _retain_members(book, members | restorable)
-        return bool(members or restorable)
+        return ()
     if _graduate(book, members, opportunity, weak):
-        return True
+        return ()
     _retain_members(book, members | restorable)
     leaders = _actual_leaders(book)
     if pending:
         _continue_members(book, pending, members, leaders, frozen=frozen)
-        return True
+        return ()
     if restorable:
-        return True  # Saved risk rights use the shared restoration checks, never fresh admission.
+        return ()  # Saved risk rights use the shared restoration checks, never fresh admission.
     if frozen or opportunity is not Opportunity.RECOVERY:
-        return bool(members or restorable)
+        return ()
     if not _observation_is_new(book):
-        return bool(members or restorable)
+        return ()
     targets = cohort_admission_targets(
         policy, date=book.date, risk=risk, user_panel=book.user_panel, leaders=leaders,
         account=account, weights_now=book.weights_now,
@@ -381,6 +345,5 @@ def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunit
         weak_secular_market=weak,
     )
     if targets is None:
-        return bool(members or restorable)
-    _fund_members(book, targets, members, leaders)
-    return True
+        return ()
+    return targets

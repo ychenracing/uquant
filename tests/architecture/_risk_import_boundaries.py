@@ -40,10 +40,10 @@ def test_risk_facade_preserves_consumed_names_reflection_and_live_anchor_seam(
                 "operating_drawdown", "deployed_drawdown"
             )
             assert hashlib.sha256(function.__doc__.encode()).hexdigest() == (
-                "f32b27454954561b6fdb31ce73b031a361f45aba5ab5031ca8bc911ce58dbeb1"
+                "633f3a346544fd12a5af4accab2e2e234ceb956329ce6d1921cd77f4e6389843"
             )
         elif name == "_update_capital_budget_ladder":
-            assert function.__doc__ == "Escalate immediately; release repaired restrictions after full confirmation."
+            assert function.__doc__ == "Escalate immediately; after confirmation release one tier per session."
         else:
             assert function.__doc__ == reflection[name]["raw_docstring"]
         assert str(inspect.signature(function)) == signature

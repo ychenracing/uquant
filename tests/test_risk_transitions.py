@@ -760,7 +760,7 @@ from _risk_transition_strategic_cap_cases import (
 from _risk_transition_overlay_budget_cases import (
     test_acute_overlay_preserves_existing_zero_gross_crisis_owner,
     test_protected_restore_cannot_use_overweight_members_to_hide_a_missing_member,
-    test_capital_budget_releases_confirmed_repaired_restrictions,
+    test_capital_budget_reuses_continuous_confirmation_for_gradual_release,
     test_capital_budget_repair_requires_drawdown_recovery,
     test_single_core_strategic_crisis_uses_concentrated_severity,
     test_capital_budget_relapse_escalates_immediately_and_resets_repair,

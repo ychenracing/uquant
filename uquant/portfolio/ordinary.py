@@ -269,31 +269,25 @@ def observe_ordinary_market(
         and not isinstance(risk.evidence[key], bool)
         and math.isfinite(risk.evidence[key]) for key in long_cycle_fields
     )
+    mature_market = (
+        not missing and long_cycle_complete
+        and risk.evidence["breadth20"] >= self.cfg.high_confidence_entry_breadth
+        and min(risk.evidence["broad_ret20"], risk.evidence["tech_ret20"])
+        >= self.cfg.strategic_transition_impulse_min_market_ret20
+        and max(risk.evidence["broad_ret120"], risk.evidence["tech_ret120"])
+        > self.cfg.strategic_long_cycle_max_tech_ret120
+        and risk.state is Risk.NORMAL
+        and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
+    )
     return {
         "as_of": str(date.date()), "confirmed": impulse, "impulse": impulse,
         "credible_symbols": credible, "missing_market_fields": missing,
         "tech_ret120": risk.evidence.get("tech_ret120"),
         # Observation only; the account repair authorizer retains every risk guard.
-        "repair_mature_entry_open": (
-            not missing and long_cycle_complete
-            and risk.evidence["breadth20"] >= self.cfg.high_confidence_entry_breadth
-            and min(risk.evidence["broad_ret20"], risk.evidence["tech_ret20"])
-            >= self.cfg.strategic_transition_impulse_min_market_ret20
-            and max(risk.evidence["broad_ret120"], risk.evidence["tech_ret120"])
-            > self.cfg.strategic_long_cycle_max_tech_ret120
-            and risk.state is Risk.NORMAL
-            and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
-        ),
+        "repair_mature_entry_open": mature_market,
         "mature_entry_open": (
-            not missing and long_cycle_complete
-            and risk.evidence["breadth20"] >= self.cfg.high_confidence_entry_breadth
-            and min(risk.evidence["broad_ret20"], risk.evidence["tech_ret20"])
-            >= self.cfg.strategic_transition_impulse_min_market_ret20
-            and max(risk.evidence["broad_ret120"], risk.evidence["tech_ret120"])
-            > self.cfg.strategic_long_cycle_max_tech_ret120
-            and risk.state is Risk.NORMAL and not risk.freeze_new_risk
+            mature_market and not risk.freeze_new_risk
             and not risk.evidence.get("freeze_new_risk", False)
             and not risk.evidence.get("sentinel_freeze_new_risk", False)
-            and opportunity in {Opportunity.TREND, Opportunity.STRONG_TREND}
         ),
     }

@@ -57,7 +57,6 @@ def test_main_propagates_failed_task(monkeypatch, tmp_path):
 
 
 @pytest.mark.parametrize('frozen,settling,recovery,reason', [
-    (False, False, True, 'RECOVERY_ALLOCATION_ACTIVE'),
     (False, True, True, 'FAILED_DEPLOYMENT_UNSETTLED'),
     (True, False, True, 'NEW_RISK_FROZEN'),
 ])

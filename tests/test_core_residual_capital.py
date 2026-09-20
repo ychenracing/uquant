@@ -9,6 +9,7 @@ from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_universe_quorum import _risk
 from test_unified_core_book import _inputs, _ordinary_market_risk
 
+from uquant.account import account_from_dict
 from uquant.application.target_attribution import attach_target_attribution
 from uquant.config import DEFAULT_CONFIG
 from uquant.execution import ExecutionPlanner, plan_orders, reconcile_account_orders
@@ -17,7 +18,7 @@ from uquant.types import AccountState, Opportunity, Target
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
 
 
-def _funded_book(cash_fraction: float):
+def _funded_book(cash_fraction: float, *, recovery: bool = False):
     _, panel, leaders, risk = _inputs()
     universe = default_ai_universe()
     as_of = str(next(iter(panel.values())).index[-4].date())
@@ -37,8 +38,10 @@ def _funded_book(cash_fraction: float):
     initial = tuple(target for symbol in symbols[:2] for target in attach_target_attribution(
         leaders[symbol].industry, REQUIRED_AI_UNIVERSE_SHA256, signal_date=initial_signal,
         targets=(Target(
-            symbol, (1.0 - cash_fraction) / 2, "CORE", .9, .9, "prior ordinary entry",
-            origin_subsystem="LEADER", mechanism="LEADER_SELECTION", origin_lifecycle="CORE",
+            symbol, (1.0 - cash_fraction) / 2, "RECOVERY" if recovery else "CORE", .9, .9, "prior entry",
+            origin_subsystem="RECOVERY" if recovery else "LEADER",
+            mechanism="RECOVERY_COHORT" if recovery else "LEADER_SELECTION",
+            origin_lifecycle="RECOVERY" if recovery else "CORE",
         ),),
     ))
     prices = dict.fromkeys(symbols, 10.0)
@@ -56,6 +59,9 @@ def _funded_book(cash_fraction: float):
     )
     assert len(fills) == 2 and all(fill.side == "BUY" for fill in fills)
     assert not account.pending_orders
+    if recovery:
+        account.anchor_weights = {s: (1.0 - cash_fraction) / 2 for s in symbols[:2]}
+        account.recovery_anchor_date = initial_signal
     candidate = symbols[-1]
     panel[candidate] = _strategic_frame(dates)
     leaders[candidate] = _leader(candidate, .95, industry=leaders[candidate].industry)
@@ -70,9 +76,10 @@ def _funded_book(cash_fraction: float):
 
 
 @pytest.mark.parametrize("restriction", ["none", "below_minimum", "freeze", "ineligible"])
-def test_native_residual_admission_preserves_healthy_holdings(restriction):
+@pytest.mark.parametrize("recovery", [False, True])
+def test_native_residual_admission_preserves_healthy_holdings(restriction, recovery):
     account, dates, panel, leaders, risk, prices, execution, candidate = _funded_book(
-        .04 if restriction == "below_minimum" else .12
+        .04 if restriction == "below_minimum" else .12, recovery=recovery,
     )
     if restriction == "freeze":
         risk = replace(risk, freeze_new_risk=True)
@@ -115,3 +122,13 @@ def test_native_residual_admission_preserves_healthy_holdings(restriction):
     assert len(fills) == 1 and fills[0].side == "BUY" and fills[0].symbol == candidate
     assert fills[0].shares > 0 and account.cash >= 0
     assert all(account.positions[s].shares == shares for s, shares in before.items())
+    if recovery:
+        # Real recovery receipts keep their owner after the ordinary neighbour fills,
+        # including through a serialized account restart.
+        account = account_from_dict(account.to_dict())
+        mixed = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+            date=dates[-1], opportunity=Opportunity.TREND, risk=risk,
+            user_panel=panel, leaders=leaders, account=account, prices=prices,
+        )
+        assert all(t.origin_subsystem == "RECOVERY" for t in mixed if t.symbol in before)
+        assert {t.symbol for t in mixed if t.symbol in before} == set(before)

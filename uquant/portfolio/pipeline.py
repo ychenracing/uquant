@@ -958,15 +958,15 @@ def _allocate_strategy(
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
         _restore_ordinary_holdings(book)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
-    if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
+    if not frozen and not liabilities and not awaiting_settlement:
         _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market)
-        add_mature_leaders(book, opportunity)
+        if not recovery_active:
+            add_mature_leaders(book, opportunity)
     else:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (
                 "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY" if liabilities
-                else "FAILED_DEPLOYMENT_UNSETTLED" if awaiting_settlement
-                else "RECOVERY_ALLOCATION_ACTIVE"
+                else "FAILED_DEPLOYMENT_UNSETTLED"
             )
     repair_symbol = ""
     if frozen and not liabilities and not awaiting_settlement and strategic_universe is not None:

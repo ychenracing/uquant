@@ -493,7 +493,7 @@ def _apply_live_book_votes(
     state.indicators.update(
         live_book_damage=(guard.active or held.damage_ratio >= cfg.concentrated_break_ratio),
         capital_damage=(
-            capital_dd >= cfg.capital_budget_level2_dd + cfg.capital_damage_entry_band
+            operating_dd >= cfg.capital_budget_level2_dd + cfg.capital_damage_entry_band
             or (operating_dd >= cfg.operating_dd_caution and held.damage_ratio > 0.0)
         ),
     )

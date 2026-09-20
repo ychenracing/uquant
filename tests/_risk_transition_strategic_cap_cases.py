@@ -45,7 +45,8 @@ def test_strategic_label_cannot_bypass_confirmed_capital_budget_damage() -> None
             "strategic_cohort_active": 1,
             "strategic_cohort_started": 1,
         },
-        operating_peak=225.0,
+        # Current deployed damage must remain binding even with a strategic label.
+        operating_peak=260.0,
         capital_peak=260.0,
     )
     cfg = policy_inputs(

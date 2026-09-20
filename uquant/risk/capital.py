@@ -76,11 +76,17 @@ def _update_capital_budget_ladder(
 def _capital_budget_repair_drawdown_confirmed(
     *,
     level: int,
-    capital_drawdown: float,
     operating_drawdown: float,
     cfg: SystemConfig,
 ) -> bool:
-    """Require drawdown repair before releasing a persistent capital tier."""
+    """Repair current deployed risk, without requiring cash to earn back history.
+
+    Historical losses and the capital high-water mark remain account facts.
+    Both escalation and repair use the current deployed episode. Requiring
+    historical high-water recovery made a settled cash account's freeze circular:
+    no new exposure until profits, but no profits without new exposure.
+    Market confirmation and gradual tier release remain in the shared ladder.
+    """
 
     threshold = (
         cfg.capital_dd_crisis
@@ -91,7 +97,7 @@ def _capital_budget_repair_drawdown_confirmed(
         if level >= 2
         else cfg.operating_dd_caution
     )
-    return max(capital_drawdown, operating_drawdown) < threshold
+    return operating_drawdown < threshold
 
 
 def _independent_capital_damage(
@@ -121,7 +127,6 @@ def _independent_capital_damage(
 
 def _observed_capital_budget_level(
     *,
-    capital_dd: float,
     operating_dd: float,
     worsening_damage: bool,
     independent_damage: bool,
@@ -132,7 +137,7 @@ def _observed_capital_budget_level(
     cfg: SystemConfig,
 ) -> int:
     if (
-        capital_dd >= cfg.capital_dd_crisis
+        operating_dd >= cfg.capital_dd_crisis
         and worsening_damage
         and votes >= 4
         and sector_stress >= 0.50
@@ -140,15 +145,15 @@ def _observed_capital_budget_level(
     ):
         return 4
     if (
-        capital_dd >= cfg.capital_budget_level3_dd
+        operating_dd >= cfg.capital_budget_level3_dd
         and worsening_damage
         and votes >= 4
         and transition_damage >= cfg.transition_damage_freeze
     ):
         return 3
-    if capital_dd >= cfg.capital_budget_level2_dd and independent_damage:
+    if operating_dd >= cfg.capital_budget_level2_dd and independent_damage:
         return 2
-    if max(capital_dd, operating_dd) >= cfg.operating_dd_caution and (
+    if operating_dd >= cfg.operating_dd_caution and (
         votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
     ):
         return 1
@@ -188,7 +193,6 @@ def _observe_capital_budget(
     held_damage_ratio: float,
     transition_damage: float,
     votes: int,
-    capital_dd: float,
     operating_dd: float,
     sector_stress: float,
     strategic_active: bool,
@@ -210,7 +214,6 @@ def _observe_capital_budget(
     observed_budget_level = 0
     if cfg.capital_budget_ladder_enabled:
         observed_budget_level = _observed_capital_budget_level(
-            capital_dd=capital_dd,
             operating_dd=operating_dd,
             worsening_damage=worsening_damage,
             independent_damage=independent_damage,
@@ -247,7 +250,6 @@ def _apply_capital_overlays(
     transition_damage: float,
     votes: int,
     held_damage_ratio: float,
-    capital_dd: float,
     operating_dd: float,
     strategic_damage_guard: bool,
 ) -> CapitalOverlays:
@@ -262,7 +264,6 @@ def _apply_capital_overlays(
             and held_damage_ratio < 0.50
             and _capital_budget_repair_drawdown_confirmed(
                 level=account.capital_budget_level,
-                capital_drawdown=capital_dd,
                 operating_drawdown=operating_dd,
                 cfg=cfg,
             )

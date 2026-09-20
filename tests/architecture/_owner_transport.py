@@ -1099,6 +1099,41 @@ def _current_holding_predicate_projection(stage: ast.FunctionDef) -> ast.Functio
     return current
 
 
+def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.FunctionDef:
+    """Bind the authorized cross-vintage policy change to historical topology.
+
+    Only the reviewed capital-ladder drawdown dependencies are projected. The remaining
+    market controls, tier progression and damage escalation stay exact.
+    """
+    current = copy.deepcopy(stage)
+    if current.name == "_capital_budget_repair_drawdown_confirmed":
+        assert ast.unparse(current.body[-1]) == "return operating_drawdown < threshold"
+        assert [arg.arg for arg in current.args.kwonlyargs] == ["level", "operating_drawdown", "cfg"]
+        current.args.kwonlyargs.insert(1, ast.arg(arg="capital_drawdown", annotation=ast.Name(id="float", ctx=ast.Load())))
+        current.args.kw_defaults.insert(1, None)
+        current.body[0] = ast.Expr(value=ast.Constant(value="Require drawdown repair before releasing a persistent capital tier."))
+        current.body[-1] = ast.parse("return max(capital_drawdown, operating_drawdown) < threshold").body[0]
+    elif current.name in {"_observe_capital_budget", "_observed_capital_budget_level"}:
+        index = next(i for i, arg in enumerate(current.args.kwonlyargs) if arg.arg == "operating_dd")
+        current.args.kwonlyargs.insert(index, ast.arg(arg="capital_dd", annotation=ast.Name(id="float", ctx=ast.Load())))
+        current.args.kw_defaults.insert(index, None)
+        if current.name == "_observe_capital_budget":
+            calls = [node for node in ast.walk(current) if isinstance(node, ast.Call)
+                     and isinstance(node.func, ast.Name) and node.func.id == "_observed_capital_budget_level"]
+            assert len(calls) == 1 and calls[0].keywords[0].arg == "operating_dd"
+            calls[0].keywords.insert(0, ast.keyword(arg="capital_dd", value=ast.Name(id="capital_dd", ctx=ast.Load())))
+    elif current.name == "_apply_capital_overlays":
+        assert current.args.kwonlyargs[6].arg == "operating_dd"
+        current.args.kwonlyargs.insert(6, ast.arg(arg="capital_dd", annotation=ast.Name(id="float", ctx=ast.Load())))
+        current.args.kw_defaults.insert(6, None)
+        calls = [node for node in ast.walk(current) if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name) and node.func.id == "_capital_budget_repair_drawdown_confirmed"]
+        assert len(calls) == 1
+        assert [keyword.arg for keyword in calls[0].keywords] == ["level", "operating_drawdown", "cfg"]
+        calls[0].keywords.insert(1, ast.keyword(arg="capital_drawdown", value=ast.Name(id="capital_dd", ctx=ast.Load())))
+    return current
+
+
 def expand_architecture_risk_stage(
     *,
     root: Path,
@@ -1129,6 +1164,7 @@ def expand_architecture_risk_stage(
         stage_name,
     )
     assert ast.dump(wrapper, include_attributes=False) == ast.dump(current, include_attributes=False)
+    current = architecture_capital_repair_projection(current)
     if stage_name == "_assess_break_conditions":
         _assert_current_holding_protection_surface(root=root, overrides=overrides)
         current = _current_holding_predicate_projection(current)
@@ -1181,7 +1217,7 @@ def expand_architecture_risk_stage(
         assert isinstance(call.func, ast.Name)
         if call.func.id not in risk_definitions:
             continue
-        callee = risk_definitions[call.func.id]
+        callee = architecture_capital_repair_projection(risk_definitions[call.func.id])
         assert not any(keyword.arg is None for keyword in call.keywords)
         parameters = {
             *(argument.arg for argument in callee.args.posonlyargs),

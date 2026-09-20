@@ -1,0 +1,49 @@
+{
+  "status": "NOT_ACCEPTED_CHAMPION_REGRESSION",
+  "source": "47d830ace565d8f659b99103fff41cf765c65466",
+  "delivery": "77bf13ec8688369bcd1dd5ed5c7f85e167796b51",
+  "baseline": "3af6aba18f133f4e22612769c703dac080d940d9",
+  "reserve": "CONFIRMATION_ECONOMICS_MET",
+  "reserve_coverage": "AFFECTED_PATHS_COVERED",
+  "champion": {
+    "B_W": 27.97313399886477,
+    "C_W": 15.352046550540328,
+    "gate": 23.28417871275582,
+    "B_DD": 0.27133435111722704,
+    "C_DD": 0.27133435111722704
+  },
+  "first_economic_difference": "2025-07-24: C buys sz300502 earlier/larger; later 2025-10-14 sells 32300 sz300308 under crisis cap. Causal tracing pending.",
+  "tests": "13 focused passed; Ruff passed; test fixes published and byte-verified.",
+  "next": "Trace held-account repair cadence; correct causal production regression; preserve fixed registered gates. No merge yet.",
+  "remote_originals": {
+    "archive": "UQUANT_PR75_RESERVE_AND_CI_REGRESSION_20260920.zip",
+    "bytes": 8181021,
+    "sha256": "332206fd341a591ab42f06e52094aea5e168b7e0f7f2edc2d43a477403a89134",
+    "parts": [
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_RESERVE_AND_CI_REGRESSION_20260920.part01",
+        "offset": 0,
+        "bytes": 4194304,
+        "sha256": "4e1bd419db7a2bd5c4f58f120762008544fee2aac608e7c7f4f4acc1d8f3265f",
+        "library_file_id": "libfile_377ee28939d081919672dd2b050bab09",
+        "file_id": "file_000000001f4881f5a8adc7fe9a0de021",
+        "name": "UQUANT_PR75_RESERVE_AND_CI_REGRESSION_20260920.part01"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_RESERVE_AND_CI_REGRESSION_20260920.part02",
+        "offset": 4194304,
+        "bytes": 3986717,
+        "sha256": "6a5b5d157c7beaecad1efb8f74c38ee2ceacd1348dc7635f993637ff94f54631",
+        "library_file_id": "libfile_bc992db3d1e481919286f0be5e6e6825",
+        "file_id": "file_000000004d4c81f580bc0f2d6a245c2d",
+        "name": "UQUANT_PR75_RESERVE_AND_CI_REGRESSION_20260920.part02"
+      }
+    ],
+    "verified_readback": true
+  },
+  "trace_operations": [
+    "trace-r24-champion-repair",
+    "trace-baseline-champion-repair"
+  ],
+  "current_workspace": "/workspace/scratch/69442dc8a3b4"
+}

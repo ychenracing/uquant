@@ -1,3 +1,9 @@
+# Resumed 2026-09-20 — current acceptance NOT MET
+
+The user explicitly resumed the task. Read adjacent `RESUME_20260920.json` before the original paused checkpoint below. The three reserve cases completed and passed; coverage passed with four real fills, all on previously known opportunity dates. Two exposed CI test expectations were corrected and 13 focused tests plus lint passed; verified source is `77bf13ec8688369bcd1dd5ed5c7f85e167796b51`. A newly completed ownership check revealed a genuine champion regression: B 27.97313399886477x, R24 15.352046550540328x, against unchanged minimum 23.28417871275582x; both DD 0.27133435111722704. No merge. Read-only B/C state tracing is in progress; do not rerun completed reserve. Complete incremental originals are in the two verified personal-space parts recorded in RESUME_20260920.json; combine with the original 61-part snapshot. R24 original task gates passed but this exposed regression must be resolved. No acceptance thresholds changed.
+
+---
+
 # UQUANT recovery handoff — PAUSED BY USER, 2026-09-20
 
 The latest instruction was: “停下所有工作。把任务、目标、状态、进度、数据全部保存到GitHub远端，并给我一份能从远端恢复工作的handoff prompt，我需要随时恢复工作。”

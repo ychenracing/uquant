@@ -1,0 +1,98 @@
+[
+  {
+    "path": "../allocation-evidence/baseline/2024.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/baseline/full.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/baseline/loo308.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/baseline/no_three.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/c1-fixed/2024.json.gz",
+    "source": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/c1-fixed/full.json.gz",
+    "source": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/c1-fixed/loo308.json.gz",
+    "source": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/c1-fixed/no_three.json.gz",
+    "source": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/c2/2024.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/c2/full.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/c2/loo308.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../allocation-evidence/c2/no_three.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  }
+]

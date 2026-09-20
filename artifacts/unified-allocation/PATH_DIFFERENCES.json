@@ -1,0 +1,16 @@
+{
+  "c1-fixed": {
+    "risk_state_different_days": 145,
+    "risk_cap_different_days": 153,
+    "holdings_different_days": 274,
+    "baseline_fees_and_slippage": 77292.35597369718,
+    "candidate_fees_and_slippage": 55840.77257865897
+  },
+  "c2": {
+    "risk_state_different_days": 5,
+    "risk_cap_different_days": 6,
+    "holdings_different_days": 279,
+    "baseline_fees_and_slippage": 77292.35597369718,
+    "candidate_fees_and_slippage": 79871.55434175918
+  }
+}

@@ -1,0 +1,1711 @@
+{
+  "baseline": {
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "observed_sessions": 328,
+    "exact_native_prefix": true,
+    "rows": [
+      {
+        "date": "2025-05-09",
+        "cash": 868111.8911119956,
+        "positions": {
+          "sz300308": 11800
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.4419374826830119,
+        "unreserved_cash_after": 0.12193748268301186,
+        "allocations": {
+          "sh688146": {
+            "allocation_reason": "CONFIRMED_RECOVERY_ADMISSION",
+            "budget_checks": [
+              {
+                "accepted": true,
+                "cash_room": 0.4419374826830119,
+                "correlation_cluster": [
+                  "sh688146"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.15248566706832456,
+                "effective_increment_room": 0.4419374826830119,
+                "funded_increment": 0.15248566706832456,
+                "gross_room": 0.4419374826830119,
+                "industry_room": 0.92,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.4419374826830119
+              }
+            ],
+            "final_target_weight": 0.15248566706832456,
+            "order_planning": {
+              "block": "NONE",
+              "difference_value": 299532.4587597961,
+              "planned_side": "BUY",
+              "restoration_exception": false,
+              "standard_trade_threshold": 98216.59455559979
+            },
+            "proposal_weight": 0.15248566706832456,
+            "rank_score": 0.45271436097457896
+          },
+          "sz300308": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.28945181561468736,
+                "correlation_cluster": [
+                  "sz300308"
+                ],
+                "correlation_room": 0.36193748268301196,
+                "desired_increment": 0.041937482683011895,
+                "effective_increment_room": 0.041937482683011895,
+                "funded_increment": 0.041937482683011895,
+                "gross_room": 0.28945181561468736,
+                "industry_room": 0.36193748268301196,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.041937482683011895,
+                "unreserved_cash": 0.28945181561468736
+              }
+            ],
+            "final_target_weight": 0.5580625173169881,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5580625173169881,
+            "rank_score": 0.18680592870463616
+          },
+          "sz300502": {
+            "allocation_reason": "CONFIRMED_RECOVERY_ADMISSION",
+            "budget_checks": [
+              {
+                "accepted": true,
+                "cash_room": 0.28945181561468736,
+                "correlation_cluster": [
+                  "sz300308",
+                  "sz300502"
+                ],
+                "correlation_room": 0.36193748268301196,
+                "desired_increment": 0.16751433293167553,
+                "effective_increment_room": 0.28945181561468736,
+                "funded_increment": 0.16751433293167553,
+                "gross_room": 0.28945181561468736,
+                "industry_room": 0.36193748268301196,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.28945181561468736
+              }
+            ],
+            "final_target_weight": 0.16751433293167553,
+            "order_planning": {
+              "block": "NONE",
+              "difference_value": 329053.74639604264,
+              "planned_side": "BUY",
+              "restoration_exception": false,
+              "standard_trade_threshold": 98216.59455559979
+            },
+            "proposal_weight": 0.16751433293167553,
+            "rank_score": 0.49733293394235073
+          }
+        },
+        "orders": [
+          {
+            "epoch_id": "",
+            "event_id": "evt_18bd9b04cc7b99e622e3fe02fda0566967d592c48a26bdf31d1e69a11abdff1d",
+            "exit_kind": "strategy",
+            "grant_id": "",
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000041",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "side": "BUY",
+            "signal_date": "2025-05-09",
+            "snapshot_kind": "ORIGIN",
+            "symbol": "sh688146",
+            "target_weight": 0.152485667068
+          },
+          {
+            "epoch_id": "",
+            "event_id": "evt_5da273d1dd46aa297fe316377e2142e8e3b463d692fe1884f424cae336db2a35",
+            "exit_kind": "strategy",
+            "grant_id": "",
+            "industry_at_entry": "optical",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000042",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "side": "BUY",
+            "signal_date": "2025-05-09",
+            "snapshot_kind": "ORIGIN",
+            "symbol": "sz300502",
+            "target_weight": 0.167514332932
+          }
+        ]
+      },
+      {
+        "date": "2025-05-12",
+        "cash": 230227.9032849096,
+        "positions": {
+          "sh688146": 10900,
+          "sz300308": 11800,
+          "sz300502": 5800
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.11541366921046572,
+        "unreserved_cash_after": 0.11541366921046572,
+        "allocations": {
+          "sh688146": {
+            "final_target_weight": 0.15578951954743547,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.15578951954743547,
+            "rank_score": 0.5423576727308095
+          },
+          "sz300308": {
+            "final_target_weight": 0.5641480351057785,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5641480351057785,
+            "rank_score": 0.23997023726814898
+          },
+          "sz300502": {
+            "final_target_weight": 0.16464877613632023,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.16464877613632023,
+            "rank_score": 0.5431779330558538
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-13",
+        "cash": 230227.9032849096,
+        "positions": {
+          "sh688146": 10900,
+          "sz300308": 11800,
+          "sz300502": 5800
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.11563105352389487,
+        "unreserved_cash_after": 0.11563105352389487,
+        "allocations": {
+          "sh688146": {
+            "final_target_weight": 0.154659587420925,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.154659587420925,
+            "rank_score": 0.5023926114264061
+          },
+          "sz300308": {
+            "final_target_weight": 0.5602323581856499,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5602323581856499,
+            "rank_score": 0.2689664019343032
+          },
+          "sz300502": {
+            "final_target_weight": 0.16947700086953021,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.16947700086953021,
+            "rank_score": 0.6545326220341158
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-14",
+        "cash": 230227.9032849096,
+        "positions": {
+          "sh688146": 10900,
+          "sz300308": 11800,
+          "sz300502": 5800
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.1138620383438509,
+        "unreserved_cash_after": 0.1138620383438509,
+        "allocations": {
+          "sh688146": {
+            "final_target_weight": 0.151808317301927,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.151808317301927,
+            "rank_score": 0.4332220214852092
+          },
+          "sz300308": {
+            "final_target_weight": 0.5630997176792507,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5630997176792507,
+            "rank_score": 0.2936869514388152
+          },
+          "sz300502": {
+            "final_target_weight": 0.17122992667497128,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.17122992667497128,
+            "rank_score": 0.68289272208245
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-15",
+        "cash": 230227.9032849096,
+        "positions": {
+          "sh688146": 10900,
+          "sz300308": 11800,
+          "sz300502": 5800
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.11738416112583017,
+        "unreserved_cash_after": 0.11738416112583017,
+        "allocations": {
+          "sh688146": {
+            "final_target_weight": 0.15572619434281684,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.15572619434281684,
+            "rank_score": 0.46031143972997435
+          },
+          "sz300308": {
+            "final_target_weight": 0.5548283799570896,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5548283799570896,
+            "rank_score": 0.21147814990720015
+          },
+          "sz300502": {
+            "final_target_weight": 0.1720612645742634,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.1720612645742634,
+            "rank_score": 0.6198771108533178
+          }
+        },
+        "orders": []
+      }
+    ]
+  },
+  "c1-fixed": {
+    "source": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+    "observed_sessions": 328,
+    "exact_native_prefix": true,
+    "rows": [
+      {
+        "date": "2025-05-09",
+        "cash": 868111.8911119956,
+        "positions": {
+          "sz300308": 11800
+        },
+        "anchors": {
+          "sz300308": 0.6
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.4419374826830119,
+        "unreserved_cash_after": 0.041937482683011895,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "CORE_ADMISSION",
+            "budget_checks": [
+              {
+                "accepted": true,
+                "cash_room": 0.4419374826830119,
+                "correlation_cluster": [
+                  "sh688019"
+                ],
+                "correlation_room": 0.75,
+                "desired_increment": 0.4,
+                "effective_increment_room": 0.4419374826830119,
+                "funded_increment": 0.4,
+                "gross_room": 0.4419374826830119,
+                "industry_room": 0.75,
+                "minimum_increment": 0.05,
+                "phase": "CORE_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.4419374826830119
+              }
+            ],
+            "final_target_weight": 0.4,
+            "order_planning": {
+              "block": "NONE",
+              "difference_value": 785732.7564447983,
+              "planned_side": "BUY",
+              "restoration_exception": false,
+              "standard_trade_threshold": 98216.59455559979
+            },
+            "proposal_weight": 0.4,
+            "rank_score": 0.8676005898287148
+          },
+          "sh688146": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.041937482683011895,
+                "correlation_cluster": [
+                  "sh688146"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.15248566706832456,
+                "effective_increment_room": 0.041937482683011895,
+                "funded_increment": 0.041937482683011895,
+                "gross_room": 0.041937482683011895,
+                "industry_room": 0.52,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.041937482683011895
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.45271436097457896
+          },
+          "sh688233": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.041937482683011895,
+                "correlation_cluster": [
+                  "sh688233"
+                ],
+                "correlation_room": 0.75,
+                "desired_increment": 0.4,
+                "effective_increment_room": 0.041937482683011895,
+                "funded_increment": 0.041937482683011895,
+                "gross_room": 0.041937482683011895,
+                "industry_room": 0.35,
+                "minimum_increment": 0.05,
+                "phase": "CORE_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.041937482683011895
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.866240330040599
+          },
+          "sz300308": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.041937482683011895,
+                "correlation_cluster": [
+                  "sz300308"
+                ],
+                "correlation_room": 0.36193748268301196,
+                "desired_increment": 0.041937482683011895,
+                "effective_increment_room": 0.041937482683011895,
+                "funded_increment": 0.041937482683011895,
+                "gross_room": 0.041937482683011895,
+                "industry_room": 0.36193748268301196,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.041937482683011895,
+                "unreserved_cash": 0.041937482683011895
+              }
+            ],
+            "final_target_weight": 0.5580625173169881,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5580625173169881,
+            "rank_score": 0.18680592870463616
+          },
+          "sz300502": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.041937482683011895,
+                "correlation_cluster": [
+                  "sz300308",
+                  "sz300502"
+                ],
+                "correlation_room": 0.36193748268301196,
+                "desired_increment": 0.16751433293167553,
+                "effective_increment_room": 0.041937482683011895,
+                "funded_increment": 0.041937482683011895,
+                "gross_room": 0.041937482683011895,
+                "industry_room": 0.36193748268301196,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.041937482683011895
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.49733293394235073
+          }
+        },
+        "orders": [
+          {
+            "epoch_id": "",
+            "event_id": "evt_9ef817485a01d225c815c14fd3b2845ba148138689b6d592263db1d93773f2af",
+            "exit_kind": "strategy",
+            "grant_id": "",
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "mechanism": "LEADER_SELECTION",
+            "order_id": "O000000041",
+            "origin_lifecycle": "CORE",
+            "origin_subsystem": "LEADER",
+            "reason_code": "strategy_target",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "side": "BUY",
+            "signal_date": "2025-05-09",
+            "snapshot_kind": "ORIGIN",
+            "symbol": "sh688019",
+            "target_weight": 0.4
+          }
+        ]
+      },
+      {
+        "date": "2025-05-12",
+        "cash": 66059.76916491974,
+        "positions": {
+          "sh688019": 7400,
+          "sz300308": 11800
+        },
+        "anchors": {
+          "sz300308": 0.6
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.033229899180943184,
+        "unreserved_cash_after": 0.033229899180943184,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "RETAINED_HOLDING",
+            "entry_gate": "EXISTING_HOLDING_OR_COMMITMENT",
+            "final_target_weight": 0.4006797375859998,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 0.0,
+              "restoration_exception": false,
+              "standard_trade_threshold": 99398.088458246
+            },
+            "proposal_weight": 0.4006797375859998,
+            "rank_score": 0.8514442883384103
+          },
+          "sh688110": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.033229899180943184,
+                "correlation_cluster": [
+                  "sh688110"
+                ],
+                "correlation_room": 0.75,
+                "desired_increment": 0.4,
+                "effective_increment_room": 0.03322989918094321,
+                "funded_increment": 0.033229899180943184,
+                "gross_room": 0.03322989918094321,
+                "industry_room": 0.75,
+                "minimum_increment": 0.05,
+                "phase": "CORE_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.033229899180943184
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.9321861679816217
+          },
+          "sh688146": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.033229899180943184,
+                "correlation_cluster": [
+                  "sh688146"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.20561838495634824,
+                "effective_increment_room": 0.03322989918094321,
+                "funded_increment": 0.033229899180943184,
+                "gross_room": 0.03322989918094321,
+                "industry_room": 0.5193202624140003,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.033229899180943184
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.5423576727308095
+          },
+          "sh688233": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.033229899180943184,
+                "correlation_cluster": [
+                  "sh688233"
+                ],
+                "correlation_room": 0.75,
+                "desired_increment": 0.4,
+                "effective_increment_room": 0.03322989918094321,
+                "funded_increment": 0.033229899180943184,
+                "gross_room": 0.03322989918094321,
+                "industry_room": 0.3493202624140002,
+                "minimum_increment": 0.05,
+                "phase": "CORE_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.033229899180943184
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.8472282292110452
+          },
+          "sz002409": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.033229899180943184,
+                "correlation_cluster": [
+                  "sz002409"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.11438161504365181,
+                "effective_increment_room": 0.03322989918094321,
+                "funded_increment": 0.033229899180943184,
+                "gross_room": 0.03322989918094321,
+                "industry_room": 0.92,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.033229899180943184
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.30170330610969553
+          },
+          "sz300308": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.033229899180943184,
+                "correlation_cluster": [
+                  "sz300308"
+                ],
+                "correlation_room": 0.3539096367669431,
+                "desired_increment": 0.03390963676694303,
+                "effective_increment_room": 0.03322989918094321,
+                "funded_increment": 0.033229899180943184,
+                "gross_room": 0.03322989918094321,
+                "industry_room": 0.3539096367669431,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.03390963676694303,
+                "unreserved_cash": 0.033229899180943184
+              }
+            ],
+            "final_target_weight": 0.566090363233057,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.566090363233057,
+            "rank_score": 0.23997023726814898
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-13",
+        "cash": 66059.76916491974,
+        "positions": {
+          "sh688019": 7400,
+          "sz300308": 11800
+        },
+        "anchors": {
+          "sz300308": 0.6
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.03360257718372896,
+        "unreserved_cash_after": 0.03360257718372896,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "RETAINED_HOLDING",
+            "entry_gate": "EXISTING_HOLDING_OR_COMMITMENT",
+            "final_target_weight": 0.3990002065722329,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 0.0,
+              "restoration_exception": false,
+              "standard_trade_threshold": 98295.688458246
+            },
+            "proposal_weight": 0.3990002065722329,
+            "rank_score": 0.8535054161659783
+          },
+          "sh688146": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03360257718372896,
+                "correlation_cluster": [
+                  "sh688146"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.1484654411340966,
+                "effective_increment_room": 0.033602577183729054,
+                "funded_increment": 0.03360257718372896,
+                "gross_room": 0.033602577183729054,
+                "industry_room": 0.5209997934277671,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.03360257718372896
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.5023926114264061
+          },
+          "sh688498": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03360257718372896,
+                "correlation_cluster": [
+                  "sh688498",
+                  "sz300308"
+                ],
+                "correlation_room": 0.352602783755962,
+                "desired_increment": 0.17153455886590346,
+                "effective_increment_room": 0.033602577183729054,
+                "funded_increment": 0.03360257718372896,
+                "gross_room": 0.033602577183729054,
+                "industry_room": 0.92,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.03360257718372896
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.5804562618763287
+          },
+          "sz300308": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03360257718372896,
+                "correlation_cluster": [
+                  "sz300308"
+                ],
+                "correlation_room": 0.352602783755962,
+                "desired_increment": 0.03260278375596193,
+                "effective_increment_room": 0.03260278375596193,
+                "funded_increment": 0.03260278375596193,
+                "gross_room": 0.033602577183729054,
+                "industry_room": 0.352602783755962,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.03260278375596193,
+                "unreserved_cash": 0.03360257718372896
+              }
+            ],
+            "final_target_weight": 0.567397216244038,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.567397216244038,
+            "rank_score": 0.2689664019343032
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-14",
+        "cash": 66059.76916491974,
+        "positions": {
+          "sh688019": 7400,
+          "sz300308": 11800
+        },
+        "anchors": {
+          "sz300308": 0.6
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.03314982114645645,
+        "unreserved_cash_after": 0.03314982114645645,
+        "allocations": {
+          "sh600487": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03314982114645645,
+                "correlation_cluster": [
+                  "sh600487"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.1592147663149012,
+                "effective_increment_room": 0.03314982114645648,
+                "funded_increment": 0.03314982114645645,
+                "gross_room": 0.03314982114645648,
+                "industry_room": 0.3486418172860031,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.03314982114645645
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.42899053185646585
+          },
+          "sh688019": {
+            "allocation_reason": "RETAINED_HOLDING",
+            "final_target_weight": 0.3954919961395466,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 0.0,
+              "restoration_exception": false,
+              "standard_trade_threshold": 99638.19845824598
+            },
+            "proposal_weight": 0.3954919961395466,
+            "rank_score": 0.8630796046171589
+          },
+          "sh688146": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03314982114645645,
+                "correlation_cluster": [
+                  "sh688146"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.16078523368509884,
+                "effective_increment_room": 0.03314982114645648,
+                "funded_increment": 0.03314982114645645,
+                "gross_room": 0.03314982114645648,
+                "industry_room": 0.5245080038604535,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.03314982114645645
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.4332220214852092
+          },
+          "sz300308": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03314982114645645,
+                "correlation_cluster": [
+                  "sz300308"
+                ],
+                "correlation_room": 0.3486418172860031,
+                "desired_increment": 0.028641817286003013,
+                "effective_increment_room": 0.028641817286003013,
+                "funded_increment": 0.028641817286003013,
+                "gross_room": 0.03314982114645648,
+                "industry_room": 0.3486418172860031,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.028641817286003013,
+                "unreserved_cash": 0.03314982114645645
+              }
+            ],
+            "final_target_weight": 0.571358182713997,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.571358182713997,
+            "rank_score": 0.2936869514388152
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-15",
+        "cash": 66059.76916491974,
+        "positions": {
+          "sh688019": 7400,
+          "sz300308": 11800
+        },
+        "anchors": {
+          "sz300308": 0.6
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.03420638994761346,
+        "unreserved_cash_after": 0.03420638994761346,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "RETAINED_HOLDING",
+            "final_target_weight": 0.40231515431475806,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 0.0,
+              "restoration_exception": false,
+              "standard_trade_threshold": 96560.56845824601
+            },
+            "proposal_weight": 0.40231515431475806,
+            "rank_score": 0.875496564972648
+          },
+          "sh688146": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03420638994761346,
+                "correlation_cluster": [
+                  "sh688146"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.1363647676454739,
+                "effective_increment_room": 0.0342063899476136,
+                "funded_increment": 0.03420638994761346,
+                "gross_room": 0.0342063899476136,
+                "industry_room": 0.517684845685242,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.03420638994761346
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.46031143972997435
+          },
+          "sz300308": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03420638994761346,
+                "correlation_cluster": [
+                  "sz300308"
+                ],
+                "correlation_room": 0.3565215442623717,
+                "desired_increment": 0.03652154426237164,
+                "effective_increment_room": 0.0342063899476136,
+                "funded_increment": 0.03420638994761346,
+                "gross_room": 0.0342063899476136,
+                "industry_room": 0.3565215442623717,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.03652154426237164,
+                "unreserved_cash": 0.03420638994761346
+              }
+            ],
+            "final_target_weight": 0.5634784557376283,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5634784557376283,
+            "rank_score": 0.21147814990720015
+          },
+          "sz300502": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.03420638994761346,
+                "correlation_cluster": [
+                  "sz300308",
+                  "sz300502"
+                ],
+                "correlation_room": 0.3565215442623717,
+                "desired_increment": 0.18363523235452622,
+                "effective_increment_room": 0.0342063899476136,
+                "funded_increment": 0.03420638994761346,
+                "gross_room": 0.0342063899476136,
+                "industry_room": 0.3565215442623717,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.03420638994761346
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.6198771108533178
+          }
+        },
+        "orders": []
+      }
+    ]
+  },
+  "c2": {
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "observed_sessions": 328,
+    "exact_native_prefix": true,
+    "rows": [
+      {
+        "date": "2025-05-09",
+        "cash": 868111.8911119956,
+        "positions": {
+          "sz300308": 11800
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.4419374826830119,
+        "unreserved_cash_after": 0.0,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "CORE_ADMISSION",
+            "budget_checks": [
+              {
+                "accepted": true,
+                "cash_room": 0.12193748268301186,
+                "correlation_cluster": [
+                  "sh688019"
+                ],
+                "correlation_room": 0.75,
+                "desired_increment": 0.4,
+                "effective_increment_room": 0.12193748268301186,
+                "funded_increment": 0.12193748268301186,
+                "gross_room": 0.12193748268301186,
+                "industry_room": 0.5975143329316754,
+                "minimum_increment": 0.05,
+                "phase": "CORE_ADMISSION",
+                "position_slots": 3,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.12193748268301186
+              }
+            ],
+            "final_target_weight": 0.12193748268301186,
+            "order_planning": {
+              "block": "NONE",
+              "difference_value": 239525.6859561569,
+              "planned_side": "BUY",
+              "restoration_exception": false,
+              "standard_trade_threshold": 98216.59455559979
+            },
+            "proposal_weight": 0.12193748268301186,
+            "rank_score": 0.8676005898287148
+          },
+          "sh688146": {
+            "allocation_reason": "CONFIRMED_RECOVERY_ADMISSION",
+            "budget_checks": [
+              {
+                "accepted": true,
+                "cash_room": 0.2744231497513364,
+                "correlation_cluster": [
+                  "sh688146"
+                ],
+                "correlation_room": 0.92,
+                "desired_increment": 0.15248566706832456,
+                "effective_increment_room": 0.2744231497513364,
+                "funded_increment": 0.15248566706832456,
+                "gross_room": 0.2744231497513364,
+                "industry_room": 0.92,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.2744231497513364
+              }
+            ],
+            "final_target_weight": 0.15248566706832456,
+            "order_planning": {
+              "block": "NONE",
+              "difference_value": 299532.4587597961,
+              "planned_side": "BUY",
+              "restoration_exception": false,
+              "standard_trade_threshold": 98216.59455559979
+            },
+            "proposal_weight": 0.15248566706832456,
+            "rank_score": 0.45271436097457896
+          },
+          "sh688233": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.0,
+                "correlation_cluster": [
+                  "sh688146",
+                  "sh688233"
+                ],
+                "correlation_room": 0.5975143329316754,
+                "desired_increment": 0.4,
+                "effective_increment_room": 0.0,
+                "funded_increment": 0.0,
+                "gross_room": 0.0,
+                "industry_room": 0.4755768502486636,
+                "minimum_increment": 0.05,
+                "phase": "CORE_ADMISSION",
+                "position_slots": 2,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.0
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.866240330040599
+          },
+          "sz300308": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.12193748268301186,
+                "correlation_cluster": [
+                  "sz300308",
+                  "sz300502"
+                ],
+                "correlation_room": 0.19442314975133645,
+                "desired_increment": 0.041937482683011895,
+                "effective_increment_room": 0.041937482683011895,
+                "funded_increment": 0.041937482683011895,
+                "gross_room": 0.12193748268301186,
+                "industry_room": 0.19442314975133645,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 4,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.041937482683011895,
+                "unreserved_cash": 0.12193748268301186
+              }
+            ],
+            "final_target_weight": 0.5580625173169881,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5580625173169881,
+            "rank_score": 0.18680592870463616
+          },
+          "sz300502": {
+            "allocation_reason": "CONFIRMED_RECOVERY_ADMISSION",
+            "budget_checks": [
+              {
+                "accepted": true,
+                "cash_room": 0.4419374826830119,
+                "correlation_cluster": [
+                  "sz300308",
+                  "sz300502"
+                ],
+                "correlation_room": 0.36193748268301196,
+                "desired_increment": 0.16751433293167553,
+                "effective_increment_room": 0.36193748268301196,
+                "funded_increment": 0.16751433293167553,
+                "gross_room": 0.4419374826830119,
+                "industry_room": 0.36193748268301196,
+                "minimum_increment": 0.05,
+                "phase": "CONFIRMED_RECOVERY_ADMISSION",
+                "position_slots": 5,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.4419374826830119
+              }
+            ],
+            "final_target_weight": 0.16751433293167553,
+            "order_planning": {
+              "block": "NONE",
+              "difference_value": 329053.74639604264,
+              "planned_side": "BUY",
+              "restoration_exception": false,
+              "standard_trade_threshold": 98216.59455559979
+            },
+            "proposal_weight": 0.16751433293167553,
+            "rank_score": 0.49733293394235073
+          }
+        },
+        "orders": [
+          {
+            "epoch_id": "",
+            "event_id": "evt_ac51ffa5f73bd2c813b43fde53c1fc7eda451e0075784ef63019d4371bc6c09a",
+            "exit_kind": "strategy",
+            "grant_id": "",
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "mechanism": "LEADER_SELECTION",
+            "order_id": "O000000041",
+            "origin_lifecycle": "CORE",
+            "origin_subsystem": "LEADER",
+            "reason_code": "strategy_target",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "side": "BUY",
+            "signal_date": "2025-05-09",
+            "snapshot_kind": "ORIGIN",
+            "symbol": "sh688019",
+            "target_weight": 0.121937482683
+          },
+          {
+            "epoch_id": "",
+            "event_id": "evt_18bd9b04cc7b99e622e3fe02fda0566967d592c48a26bdf31d1e69a11abdff1d",
+            "exit_kind": "strategy",
+            "grant_id": "",
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000042",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "side": "BUY",
+            "signal_date": "2025-05-09",
+            "snapshot_kind": "ORIGIN",
+            "symbol": "sh688146",
+            "target_weight": 0.152485667068
+          },
+          {
+            "epoch_id": "",
+            "event_id": "evt_5da273d1dd46aa297fe316377e2142e8e3b463d692fe1884f424cae336db2a35",
+            "exit_kind": "strategy",
+            "grant_id": "",
+            "industry_at_entry": "optical",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000043",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "side": "BUY",
+            "signal_date": "2025-05-09",
+            "snapshot_kind": "ORIGIN",
+            "symbol": "sz300502",
+            "target_weight": 0.167514332932
+          }
+        ]
+      },
+      {
+        "date": "2025-05-12",
+        "cash": 3238.19730186963,
+        "positions": {
+          "sh688019": 2200,
+          "sh688146": 10900,
+          "sz300308": 11800,
+          "sz300502": 5600
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.0,
+        "unreserved_cash_after": 0.0,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "RETAINED_HOLDING",
+            "entry_gate": "EXISTING_HOLDING_OR_COMMITMENT",
+            "final_target_weight": 0.11880205237686302,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 0.0,
+              "restoration_exception": false,
+              "standard_trade_threshold": 99664.94486509348
+            },
+            "proposal_weight": 0.11880205237686302,
+            "rank_score": 0.8514442883384103
+          },
+          "sh688110": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.0,
+                "correlation_cluster": [
+                  "sh688110",
+                  "sh688146"
+                ],
+                "correlation_room": 0.5940926745002175,
+                "desired_increment": 0.4,
+                "effective_increment_room": 0.0,
+                "funded_increment": 0.0,
+                "gross_room": -0.006798347117655146,
+                "industry_room": 0.75,
+                "minimum_increment": 0.05,
+                "phase": "CORE_ADMISSION",
+                "position_slots": 2,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.0
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.9321861679816217
+          },
+          "sh688146": {
+            "final_target_weight": 0.15590732549978242,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.15590732549978242,
+            "rank_score": 0.5423576727308095
+          },
+          "sh688233": {
+            "allocation_reason": "CAPITAL_LIMIT",
+            "budget_checks": [
+              {
+                "accepted": false,
+                "cash_room": 0.0,
+                "correlation_cluster": [
+                  "sh688146",
+                  "sh688233"
+                ],
+                "correlation_room": 0.5940926745002175,
+                "desired_increment": 0.4,
+                "effective_increment_room": 0.0,
+                "funded_increment": 0.0,
+                "gross_room": -0.006798347117655146,
+                "industry_room": 0.47529062212335454,
+                "minimum_increment": 0.05,
+                "phase": "CORE_ADMISSION",
+                "position_slots": 2,
+                "reserved_for_intent": 0.0,
+                "symbol_room": 0.6,
+                "unreserved_cash": 0.0
+              }
+            ],
+            "final_target_weight": 0.0,
+            "order_planning": {
+              "block": "NO_TARGET"
+            },
+            "proposal_weight": 0.0,
+            "rank_score": 0.8472282292110452
+          },
+          "sz300308": {
+            "final_target_weight": 0.5645746363093342,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5645746363093342,
+            "rank_score": 0.23997023726814898
+          },
+          "sz300502": {
+            "allocation_reason": "RECOVERY_COHORT_REMAINDER",
+            "budget_checks": [
+              {
+                "accepted": true,
+                "cash_room": 0.008422888879180718,
+                "correlation_cluster": [
+                  "sz300308",
+                  "sz300502"
+                ],
+                "correlation_room": 0.19633391963817093,
+                "desired_increment": 0.008422888879180718,
+                "effective_increment_room": 0.0016245417615254887,
+                "funded_increment": 0.0016245417615254887,
+                "gross_room": 0.0016245417615254887,
+                "industry_room": 0.19633391963817098,
+                "minimum_increment": 0.0,
+                "phase": "RECOVERY_COHORT_REMAINDER",
+                "position_slots": 3,
+                "reserved_for_intent": 0.008422888879180718,
+                "symbol_room": 0.44090855594750517,
+                "unreserved_cash": 0.0
+              }
+            ],
+            "final_target_weight": 0.1607159858140203,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 3238.1973018695717,
+              "restoration_exception": false,
+              "standard_trade_threshold": 99664.94486509348
+            },
+            "proposal_weight": 0.1607159858140203,
+            "rank_score": 0.5431779330558538
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-13",
+        "cash": 3238.19730186963,
+        "positions": {
+          "sh688019": 2200,
+          "sh688146": 10900,
+          "sz300308": 11800,
+          "sz300502": 5600
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.0016308156559187539,
+        "unreserved_cash_after": 0.0016308156559187539,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "RETAINED_HOLDING",
+            "entry_gate": "EXISTING_HOLDING_OR_COMMITMENT",
+            "final_target_weight": 0.11744380453305824,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 0.0,
+              "restoration_exception": false,
+              "standard_trade_threshold": 99281.52486509348
+            },
+            "proposal_weight": 0.11744380453305824,
+            "rank_score": 0.8535054161659783
+          },
+          "sh688146": {
+            "final_target_weight": 0.15508217687955134,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.15508217687955134,
+            "rank_score": 0.5023926114264061
+          },
+          "sz300308": {
+            "final_target_weight": 0.5617631283945881,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5617631283945881,
+            "rank_score": 0.2689664019343032
+          },
+          "sz300502": {
+            "final_target_weight": 0.1640800745368836,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.1640800745368836,
+            "rank_score": 0.6545326220341158
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-14",
+        "cash": 3238.19730186963,
+        "positions": {
+          "sh688019": 2200,
+          "sh688146": 10900,
+          "sz300308": 11800,
+          "sz300502": 5600
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.0016051593688829317,
+        "unreserved_cash_after": 0.0016051593688829317,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "RETAINED_HOLDING",
+            "final_target_weight": 0.11614469382824757,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 0.0,
+              "restoration_exception": false,
+              "standard_trade_threshold": 100868.40486509349
+            },
+            "proposal_weight": 0.11614469382824757,
+            "rank_score": 0.8630796046171589
+          },
+          "sh688146": {
+            "final_target_weight": 0.1521561188612713,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.1521561188612713,
+            "rank_score": 0.4332220214852092
+          },
+          "sz300308": {
+            "final_target_weight": 0.5643898114195408,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5643898114195408,
+            "rank_score": 0.2936869514388152
+          },
+          "sz300502": {
+            "final_target_weight": 0.1657042165220574,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.1657042165220574,
+            "rank_score": 0.68289272208245
+          }
+        },
+        "orders": []
+      },
+      {
+        "date": "2025-05-15",
+        "cash": 3238.19730186963,
+        "positions": {
+          "sh688019": 2200,
+          "sh688146": 10900,
+          "sz300308": 11800,
+          "sz300502": 5600
+        },
+        "anchors": {
+          "sh688146": 0.16000000000000003,
+          "sz300308": 0.6,
+          "sz300502": 0.16000000000000003
+        },
+        "risk": {
+          "state": "NORMAL",
+          "system_gross_cap": 1.0,
+          "target_gross_cap": 1.0
+        },
+        "unreserved_cash_before": 0.0016574857750993048,
+        "unreserved_cash_after": 0.0016574857750993048,
+        "allocations": {
+          "sh688019": {
+            "allocation_reason": "RETAINED_HOLDING",
+            "final_target_weight": 0.11823162690385132,
+            "order_planning": {
+              "block": "NO_TRADE_BAND",
+              "difference_value": 0.0,
+              "restoration_exception": false,
+              "standard_trade_threshold": 97684.0148650935
+            },
+            "proposal_weight": 0.11823162690385132,
+            "rank_score": 0.875496564972648
+          },
+          "sh688146": {
+            "final_target_weight": 0.1563351488070042,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.1563351488070042,
+            "rank_score": 0.46031143972997435
+          },
+          "sz300308": {
+            "final_target_weight": 0.5569979906655419,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.5569979906655419,
+            "rank_score": 0.21147814990720015
+          },
+          "sz300502": {
+            "final_target_weight": 0.1667777478485032,
+            "order_planning": {
+              "block": "STICKY_HOLD"
+            },
+            "proposal_weight": 0.1667777478485032,
+            "rank_score": 0.6198771108533178
+          }
+        },
+        "orders": []
+      }
+    ]
+  }
+}

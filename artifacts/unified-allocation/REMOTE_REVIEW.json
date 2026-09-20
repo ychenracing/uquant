@@ -1,0 +1,33 @@
+{
+  "main": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+  "protected": false,
+  "rulesets": [],
+  "candidate_head": "788fdaa17c6b1f5edc60ab550147d0167bceaadf",
+  "checks": [
+    {
+      "id": 35543861772,
+      "name": "Strategic Ownership Acceptance",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "id": 35543861756,
+      "name": "Absolute Generalization Acceptance",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "id": 35543861700,
+      "name": "Strategic Grant Acceptance",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "id": 35543861747,
+      "name": "Engineering gates",
+      "status": "queued",
+      "conclusion": null
+    }
+  ],
+  "checks_counted_as_passed": false
+}

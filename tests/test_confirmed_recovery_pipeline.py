@@ -50,22 +50,24 @@ def test_actual_tactical_probe_precedes_confirmed_recovery_and_fills(recovery_pr
     assert first.positions[probe.symbol].shares == second.positions[probe.symbol].shares
     confirmed, decision = snapshots["2025-05-08"]
     assert decision.risk_summary["freeze_new_risk"] is False
-    assert len(confirmed.pending_orders) == 1
+    assert len(confirmed.pending_orders) == 2
     prices = {symbol: float(engine._raw[symbol].loc["2025-05-08", "close"]) for symbol in SYMBOLS}
     held_weights, _ = current_weights(confirmed, prices)
     fresh = {order.symbol: order.target_weight for order in confirmed.pending_orders}
-    # The shared queue fully sizes the stronger request first. Residual room
-    # below the trade minimum does not fabricate a second funded request.
-    assert fresh == pytest.approx({"sz300502": .23552815772293376})
-    assert sum(fresh.values()) + held_weights[probe.symbol] <= DEFAULT_CONFIG.recovery_target_gross
+    # Frozen native path: the stronger fresh peer receives more scarce capital;
+    # the already filled probe is not sold or resized to finance that preference.
+    assert fresh == pytest.approx({"sz300394": .0730090507054782,
+                                  "sz300502": .20356709107112828})
+    assert sum(fresh.values()) + held_weights[probe.symbol] == pytest.approx(
+        DEFAULT_CONFIG.recovery_target_gross)
     assert all(order.side == "BUY" and order.mechanism == "RECOVERY_COHORT"
                and order.origin_subsystem == "RECOVERY" and not order.grant_id and not order.epoch_id
                for order in confirmed.pending_orders)
     filled, _ = snapshots["2025-05-09"]
-    assert set(filled.positions) == {probe.symbol, "sz300502"}
+    assert set(filled.positions) == set(SYMBOLS)
     assert filled.positions[probe.symbol].shares == first.positions[probe.symbol].shares
     assert all(p.shares > 0 for p in filled.positions.values())
-    assert len([fill for fill in filled.fills if fill.side == "BUY"]) == 2
+    assert len([fill for fill in filled.fills if fill.side == "BUY"]) == 3
     assert filled.cash >= 0
 
 
@@ -88,8 +90,8 @@ def test_real_partial_recovery_keeps_fills_and_cancels_lost_current_proof(recove
         frame.loc[date, "volume"] = 100 / DEFAULT_CONFIG.max_volume_participation
         frame.loc[date, "amount"] = frame.loc[date, "close"] * frame.loc[date, "volume"]
     fills = engine.execution.execute_open(date=date, account=account, panel=panel)
-    assert len(fills) == 1 and account.pending_orders
-    assert {fill.symbol for fill in fills} == {"sz300502"}
+    assert len(fills) == 2 and account.pending_orders
+    assert {fill.symbol for fill in fills} == {"sz300394", "sz300502"}
     shares = {symbol: position.shares for symbol, position in account.positions.items()}
     decision = engine.decide(symbols=SYMBOLS, as_of=str(date.date()), account=account)
     account.pending_orders = list(decision.pending_orders)
@@ -133,8 +135,7 @@ def test_only_actual_risk_sales_preserve_flat_cohort_restoration(recovery_prefix
             origin_subsystem="RECOVERY", mechanism="RECOVERY_COHORT", origin_lifecycle="RECOVERY",
         ) for symbol in SYMBOLS))
     fills = engine.execution.execute_open(date=pd.Timestamp("2025-10-14"), account=account, panel=panel)
-    assert {fill.symbol for fill in fills} == {"sz300308", "sz300502"}
-    assert all(fill.side == "SELL" for fill in fills)
+    assert len(fills) == 3 and all(fill.side == "SELL" for fill in fills)
     assert all(fill.exit_kind == ("crisis" if exit_owner == "risk" else "strategy") for fill in fills)
     assert not account.positions
     account.capital_budget_level = 1
@@ -172,8 +173,7 @@ def test_recovery_admission_cannot_bypass_protected_owner_structure(recovery_pre
                           freeze_new_risk=True, reduction_level=3)
     _decide(policy, account, shock, panel, leaders, hard)
     fills = engine.execution.execute_open(date=pd.Timestamp("2025-10-14"), account=account, panel=panel)
-    assert {fill.symbol for fill in fills} == {"sz300308", "sz300502"}
-    assert not account.positions
+    assert len(fills) == 3 and not account.positions
     date = pd.Timestamp("2025-10-16")
     prices = {symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()}
     for symbol, frame in panel.items():
@@ -185,5 +185,4 @@ def test_recovery_admission_cannot_bypass_protected_owner_structure(recovery_pre
     assert not any(target.weight > 0 for target in targets), (targets, account.anchor_weights,
                                                              risk.evidence.get("core_allocation"))
     assert all(row["restore_block"] == "STRUCTURE_NOT_REPAIRED"
-               for symbol, row in risk.evidence["core_allocation"]["symbols"].items()
-               if symbol in account.protected_weights)
+               for row in risk.evidence["core_allocation"]["symbols"].values())

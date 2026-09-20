@@ -1,0 +1,247 @@
+{
+  "operations": [
+    {
+      "operation_id": "20260920T230009-c7d66a20621e",
+      "name": "allocation-c1-static",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "1073ae15ea2919d2620d5396ffbf6cfa54dd3364",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:00:09.106206+00:00",
+      "updated_at_utc": "2026-09-20T23:00:19.120472+00:00"
+    },
+    {
+      "operation_id": "20260920T230219-c234e634fc4c",
+      "name": "allocation-observe-baseline",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "1073ae15ea2919d2620d5396ffbf6cfa54dd3364",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:02:19.755558+00:00",
+      "updated_at_utc": "2026-09-20T23:02:54.770366+00:00"
+    },
+    {
+      "operation_id": "20260920T225149-7a064f6373e1",
+      "name": "allocation-runtime",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T22:51:49.886100+00:00",
+      "updated_at_utc": "2026-09-20T22:52:14.898911+00:00"
+    },
+    {
+      "operation_id": "20260920T225748-18daac8d8054",
+      "name": "allocation-c1-recovery-recheck",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "1073ae15ea2919d2620d5396ffbf6cfa54dd3364",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T22:57:48.468101+00:00",
+      "updated_at_utc": "2026-09-20T22:58:53.488783+00:00"
+    },
+    {
+      "operation_id": "20260920T230329-2ffabd9f600f",
+      "name": "allocation-divergence-baseline",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "1073ae15ea2919d2620d5396ffbf6cfa54dd3364",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:03:29.497887+00:00",
+      "updated_at_utc": "2026-09-20T23:05:09.531428+00:00"
+    },
+    {
+      "operation_id": "20260920T225626-4d5f51bc16c6",
+      "name": "allocation-baseline-screen",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "db798b3d7a052fdb67c95e2e1d5570737b50f932",
+        "tracked_dirty": true
+      },
+      "started_at_utc": "2026-09-20T22:56:26.396124+00:00",
+      "updated_at_utc": "2026-09-20T23:14:01.633760+00:00"
+    },
+    {
+      "operation_id": "20260920T225317-4a553c2f7fea",
+      "name": "allocation-preregister-push",
+      "status": "EXITED",
+      "returncode": 128,
+      "git": {
+        "head": "ec7459366a3d629007952602feab4506361bb829",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T22:53:17.484158+00:00",
+      "updated_at_utc": "2026-09-20T22:53:32.494478+00:00"
+    },
+    {
+      "operation_id": "20260920T230556-17da2b524344",
+      "name": "allocation-corrected-publish",
+      "status": "REMOTE_VERIFICATION_RECORDED",
+      "returncode": null,
+      "git": null,
+      "started_at_utc": "2026-09-20T23:05:56.415112+00:00",
+      "updated_at_utc": "2026-09-20T23:06:42.793604+00:00"
+    },
+    {
+      "operation_id": "20260920T230952-084ab42f7075",
+      "name": "allocation-c2-queue-check",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:09:52.192623+00:00",
+      "updated_at_utc": "2026-09-20T23:09:57.201431+00:00"
+    },
+    {
+      "operation_id": "20260920T230237-b50aa612ffea",
+      "name": "allocation-observe-c1",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "1073ae15ea2919d2620d5396ffbf6cfa54dd3364",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:02:37.264595+00:00",
+      "updated_at_utc": "2026-09-20T23:03:12.283986+00:00"
+    },
+    {
+      "operation_id": "20260920T230910-15809a35d5dd",
+      "name": "allocation-divergence-c1-fixed",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:09:10.425766+00:00",
+      "updated_at_utc": "2026-09-20T23:10:55.452897+00:00"
+    },
+    {
+      "operation_id": "20260920T225506-005795638bd7",
+      "name": "allocation-register-connector",
+      "status": "REMOTE_VERIFICATION_RECORDED",
+      "returncode": null,
+      "git": null,
+      "started_at_utc": "2026-09-20T22:55:06.946315+00:00",
+      "updated_at_utc": "2026-09-20T22:55:51.306722+00:00"
+    },
+    {
+      "operation_id": "20260920T231553-ba0de6aad17e",
+      "name": "allocation-divergence-c2",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:15:53.388697+00:00",
+      "updated_at_utc": "2026-09-20T23:17:33.415322+00:00"
+    },
+    {
+      "operation_id": "20260920T225815-572664f521ed",
+      "name": "allocation-c1-publish",
+      "status": "REMOTE_VERIFICATION_RECORDED",
+      "returncode": null,
+      "git": null,
+      "started_at_utc": "2026-09-20T22:58:15.525330+00:00",
+      "updated_at_utc": "2026-09-20T22:59:12.990862+00:00"
+    },
+    {
+      "operation_id": "20260920T225605-051be605adea",
+      "name": "allocation-c1-correctness",
+      "status": "EXITED",
+      "returncode": 1,
+      "git": {
+        "head": "db798b3d7a052fdb67c95e2e1d5570737b50f932",
+        "tracked_dirty": true
+      },
+      "started_at_utc": "2026-09-20T22:56:05.391222+00:00",
+      "updated_at_utc": "2026-09-20T22:57:05.409872+00:00"
+    },
+    {
+      "operation_id": "20260920T230439-9ddc39f0a68a",
+      "name": "allocation-c1-fixed-screen",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:04:39.184619+00:00",
+      "updated_at_utc": "2026-09-20T23:22:14.399406+00:00"
+    },
+    {
+      "operation_id": "20260920T231023-974728698059",
+      "name": "allocation-c2-publish",
+      "status": "REMOTE_VERIFICATION_RECORDED",
+      "returncode": null,
+      "git": null,
+      "started_at_utc": "2026-09-20T23:10:23.955224+00:00",
+      "updated_at_utc": "2026-09-20T23:10:57.811610+00:00"
+    },
+    {
+      "operation_id": "20260920T230512-869228d2a73d",
+      "name": "allocation-c1-risk-state-check",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:05:12.505473+00:00",
+      "updated_at_utc": "2026-09-20T23:06:17.531315+00:00"
+    },
+    {
+      "operation_id": "20260920T231057-b2134b6cf042",
+      "name": "allocation-c2-screen",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "09fe2c9dde3f063d757807028338af1ddfe4e61a",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:10:57.857106+00:00",
+      "updated_at_utc": "2026-09-20T23:28:13.071505+00:00"
+    },
+    {
+      "operation_id": "20260920T233108-dec0ea658c80",
+      "name": "allocation-c2-static",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+        "tracked_dirty": false
+      },
+      "started_at_utc": "2026-09-20T23:31:08.560981+00:00",
+      "updated_at_utc": "2026-09-20T23:31:18.573877+00:00"
+    }
+  ],
+  "reuse": "C2 changes only request priority; shared capital/execution tests and corrected recovery/risk tests remain applicable; its mixed-queue checks run separately.",
+  "initial_test_result": "42 passed, 5 failed due to old allocation-specific fill expectations; adapted expectations and all 7 recovery tests passed; then 8 corrected risk-state checks passed.",
+  "unrun": [
+    "full local suite",
+    "full Absolute",
+    "complete eight-scenario economic acceptance",
+    "future holdout"
+  ],
+  "withdrawal": "Production and tests on delivery branch restored byte-for-byte to baseline; failed implementations preserved as patches and source history. No new live policy delivered.",
+  "account_checks": "12 complete native accounts: exact codec roundtrip, cash>=0, fill_date>signal_date",
+  "c2_static": {
+    "mypy": "passed for three changed production files",
+    "ruff": "passed for three changed production files and shared-queue test",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b"
+  }
+}

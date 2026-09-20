@@ -1,0 +1,449 @@
+diff --git a/tests/test_confirmed_recovery_pipeline.py b/tests/test_confirmed_recovery_pipeline.py
+index adb3adb..97a17bd 100644
+--- a/tests/test_confirmed_recovery_pipeline.py
++++ b/tests/test_confirmed_recovery_pipeline.py
+@@ -50,24 +50,22 @@ def test_actual_tactical_probe_precedes_confirmed_recovery_and_fills(recovery_pr
+     assert first.positions[probe.symbol].shares == second.positions[probe.symbol].shares
+     confirmed, decision = snapshots["2025-05-08"]
+     assert decision.risk_summary["freeze_new_risk"] is False
+-    assert len(confirmed.pending_orders) == 2
++    assert len(confirmed.pending_orders) == 1
+     prices = {symbol: float(engine._raw[symbol].loc["2025-05-08", "close"]) for symbol in SYMBOLS}
+     held_weights, _ = current_weights(confirmed, prices)
+     fresh = {order.symbol: order.target_weight for order in confirmed.pending_orders}
+-    # Frozen native path: the stronger fresh peer receives more scarce capital;
+-    # the already filled probe is not sold or resized to finance that preference.
+-    assert fresh == pytest.approx({"sz300394": .0730090507054782,
+-                                  "sz300502": .20356709107112828})
+-    assert sum(fresh.values()) + held_weights[probe.symbol] == pytest.approx(
+-        DEFAULT_CONFIG.recovery_target_gross)
++    # The shared queue fully sizes the stronger request first. Residual room
++    # below the trade minimum does not fabricate a second funded request.
++    assert fresh == pytest.approx({"sz300502": .23552815772293376})
++    assert sum(fresh.values()) + held_weights[probe.symbol] <= DEFAULT_CONFIG.recovery_target_gross
+     assert all(order.side == "BUY" and order.mechanism == "RECOVERY_COHORT"
+                and order.origin_subsystem == "RECOVERY" and not order.grant_id and not order.epoch_id
+                for order in confirmed.pending_orders)
+     filled, _ = snapshots["2025-05-09"]
+-    assert set(filled.positions) == set(SYMBOLS)
++    assert set(filled.positions) == {probe.symbol, "sz300502"}
+     assert filled.positions[probe.symbol].shares == first.positions[probe.symbol].shares
+     assert all(p.shares > 0 for p in filled.positions.values())
+-    assert len([fill for fill in filled.fills if fill.side == "BUY"]) == 3
++    assert len([fill for fill in filled.fills if fill.side == "BUY"]) == 2
+     assert filled.cash >= 0
+ 
+ 
+@@ -90,8 +88,8 @@ def test_real_partial_recovery_keeps_fills_and_cancels_lost_current_proof(recove
+         frame.loc[date, "volume"] = 100 / DEFAULT_CONFIG.max_volume_participation
+         frame.loc[date, "amount"] = frame.loc[date, "close"] * frame.loc[date, "volume"]
+     fills = engine.execution.execute_open(date=date, account=account, panel=panel)
+-    assert len(fills) == 2 and account.pending_orders
+-    assert {fill.symbol for fill in fills} == {"sz300394", "sz300502"}
++    assert len(fills) == 1 and account.pending_orders
++    assert {fill.symbol for fill in fills} == {"sz300502"}
+     shares = {symbol: position.shares for symbol, position in account.positions.items()}
+     decision = engine.decide(symbols=SYMBOLS, as_of=str(date.date()), account=account)
+     account.pending_orders = list(decision.pending_orders)
+@@ -135,7 +133,8 @@ def test_only_actual_risk_sales_preserve_flat_cohort_restoration(recovery_prefix
+             origin_subsystem="RECOVERY", mechanism="RECOVERY_COHORT", origin_lifecycle="RECOVERY",
+         ) for symbol in SYMBOLS))
+     fills = engine.execution.execute_open(date=pd.Timestamp("2025-10-14"), account=account, panel=panel)
+-    assert len(fills) == 3 and all(fill.side == "SELL" for fill in fills)
++    assert {fill.symbol for fill in fills} == {"sz300308", "sz300502"}
++    assert all(fill.side == "SELL" for fill in fills)
+     assert all(fill.exit_kind == ("crisis" if exit_owner == "risk" else "strategy") for fill in fills)
+     assert not account.positions
+     account.capital_budget_level = 1
+@@ -173,7 +172,8 @@ def test_recovery_admission_cannot_bypass_protected_owner_structure(recovery_pre
+                           freeze_new_risk=True, reduction_level=3)
+     _decide(policy, account, shock, panel, leaders, hard)
+     fills = engine.execution.execute_open(date=pd.Timestamp("2025-10-14"), account=account, panel=panel)
+-    assert len(fills) == 3 and not account.positions
++    assert {fill.symbol for fill in fills} == {"sz300308", "sz300502"}
++    assert not account.positions
+     date = pd.Timestamp("2025-10-16")
+     prices = {symbol: float(frame.loc[date, "close"]) for symbol, frame in panel.items()}
+     for symbol, frame in panel.items():
+@@ -185,4 +185,5 @@ def test_recovery_admission_cannot_bypass_protected_owner_structure(recovery_pre
+     assert not any(target.weight > 0 for target in targets), (targets, account.anchor_weights,
+                                                              risk.evidence.get("core_allocation"))
+     assert all(row["restore_block"] == "STRUCTURE_NOT_REPAIRED"
+-               for row in risk.evidence["core_allocation"]["symbols"].values())
++               for symbol, row in risk.evidence["core_allocation"]["symbols"].items()
++               if symbol in account.protected_weights)
+diff --git a/tests/test_unified_admission_queue.py b/tests/test_unified_admission_queue.py
+new file mode 100644
+index 0000000..971bf7f
+--- /dev/null
++++ b/tests/test_unified_admission_queue.py
+@@ -0,0 +1,34 @@
++"""Shared competition uses real capital and preserves recovery ownership."""
++from dataclasses import replace
++
++import pytest
++from test_unified_core_book import _inputs
++
++from uquant.config import DEFAULT_CONFIG
++from uquant.portfolio import PortfolioAllocator
++from uquant.portfolio.allocation_book import AllocationBook
++from uquant.portfolio.pipeline import _admit_new_cores
++from uquant.types import AccountState, Opportunity, Target
++
++
++@pytest.mark.parametrize('recovery_stronger', [False, True])
++def test_mixed_requests_share_one_budget(monkeypatch, recovery_stronger):
++    date, panel, leaders, risk = _inputs()
++    ordinary, recovery = list(leaders)[:2]
++    leaders = {s: replace(v, score=.95 if (s == recovery) == recovery_stronger else .8)
++               for s, v in leaders.items()}
++    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
++    account.anchor_weights = {recovery: .2}
++    book = AllocationBook(PortfolioAllocator(DEFAULT_CONFIG), date, risk, panel, leaders,
++                          account, dict.fromkeys(leaders, 10.), {}, set(), {}, {}, {}, .2)
++    monkeypatch.setattr('uquant.portfolio.pipeline._core_requests', lambda *a, **kw: {ordinary: .2})
++    target = Target(recovery, .2, 'RECOVERY', .9, .9, 'confirmed recovery',
++                    origin_subsystem='RECOVERY', mechanism='RECOVERY_COHORT')
++    _admit_new_cores(book, candidates=[ordinary], opportunity=Opportunity.RECOVERY,
++                     market={}, recovery=(target,))
++    winner = recovery
++    assert book.proposed == pytest.approx({winner: .2})
++    assert book.cash_room == pytest.approx(0)
++    assert sum(book.committed.values()) == pytest.approx(.2)
++    assert set(book.recovery_targets) == {recovery}
++    assert set(account.anchor_weights) == {recovery}
+diff --git a/uquant/portfolio/pipeline.py b/uquant/portfolio/pipeline.py
+index 1cd86fa..e3b334a 100644
+--- a/uquant/portfolio/pipeline.py
++++ b/uquant/portfolio/pipeline.py
+@@ -721,19 +721,19 @@ def _affordable_core_candidates(
+     return selected, blocked
+ 
+ 
+-def _admit_new_cores(
++def _core_requests(
+     book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
+-) -> None:
++) -> dict[str, float]:
+     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
+         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
+         for symbol in candidates:
+             book.record(symbol)["entry_gate"] = block
+-        return
++        return {}
+     budget = _ordinary_admission_budget(book)
+     if budget is None:
+         for symbol in candidates:
+             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
+-        return
++        return {}
+     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
+     deployment_pending = _mature_deployment_pending(book, eligible, market)
+     eligible = [symbol for symbol in eligible if symbol not in deployment_pending]
+@@ -742,6 +742,7 @@ def _admit_new_cores(
+     allowances = {s: cast(float, independent_budget) if _current_independent_entry(
+         book.record(s).get("entry", {}), book.date) else budget for s in eligible}
+     selected, blocked = _affordable_core_candidates(book, eligible, occupied, allowances, cycle_weights)
++    requests = {}
+     for symbol in candidates:
+         if symbol in occupied:
+             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
+@@ -765,10 +766,37 @@ def _admit_new_cores(
+         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
+             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
+             continue
+-        if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=book.policy.cfg.min_trade_weight):
+-            book.account.protected_weights.pop(symbol, None)
+-            book.reasons[symbol] = "confirmed core admitted from available account capital"
+-            _record_completed_transfer(book, symbol)
++        requests[symbol] = weight
++    return requests
++
++
++def _admit_new_cores(
++    book: AllocationBook, *, candidates: list[str], opportunity: Opportunity,
++    market: dict[str, Any], recovery: tuple[Target, ...] = (),
++) -> None:
++    """One recovery-first queue; all admissions compete for the same real cash."""
++    requests = _core_requests(book, candidates=candidates, opportunity=opportunity, market=market)
++    recovery_requests = {t.symbol: t for t in recovery
++                         if t.symbol in book.leaders and t.weight > book.weights_now.get(t.symbol, 0.0)}
++    # A recovery-qualified symbol keeps its original ownership and requested size.
++    requests.update({s: t.weight for s, t in recovery_requests.items()})
++    funded_recovery = set()
++    for symbol in sorted(requests, key=lambda s: (s not in recovery_requests, -book.leaders[s].score, s)):
++        weight = requests[symbol]
++        recovered = symbol in recovery_requests
++        if book.fund(symbol, weight,
++                     phase="CONFIRMED_RECOVERY_ADMISSION" if recovered else "CORE_ADMISSION",
++                     minimum=book.policy.cfg.min_trade_weight,
++                     concentration_cap=book.policy.cfg.recovery_target_gross if recovered else None):
++            if recovered:
++                funded_recovery.add(symbol)
++                book.recovery_targets[symbol] = recovery_requests[symbol]
++            else:
++                book.account.protected_weights.pop(symbol, None)
++                book.reasons[symbol] = "confirmed core admitted from available account capital"
++                _record_completed_transfer(book, symbol)
++            continue
++        if recovered:
+             continue
+         weak = _degraded_transfer(
+             book.policy, challenger=symbol, proposed=book.proposed, weights_now=book.weights_now,
+@@ -782,6 +810,13 @@ def _admit_new_cores(
+             book.record(weak)["allocation_reason"] = "CONFIRMED_BOUNDED_TRANSFER"
+             book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"
+             break
++    if recovery:
++        known = (funded_recovery | {s for s, w in book.weights_now.items() if w > 0}
++                 | {o.symbol for o in book.account.pending_orders})
++        book.account.anchor_weights = {s: w for s, w in book.account.anchor_weights.items() if s in known}
++        book.account.candidate_tenure["recovery_cohort_locked"] = int(len(book.account.anchor_weights) >= 3)
++        if not book.account.anchor_weights:
++            book.policy._release_recovery_anchor(book.account)
+ 
+ 
+ def _retained_order_identity(book: AllocationBook, target: Target) -> Target:
+@@ -946,10 +981,9 @@ def _allocate_strategy(
+         user_panel=qualification_panel or user_panel)
+     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
+                                   trace=book.trace, certificates=certificates, market=market)
+-    recovery_active = False if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
++    recovery_requests = () if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
+     caution_probes = (_research_caution_probe(book, opportunity)
+                      if caution_book_was_settled and not liabilities else set())
+-    recovery_active = recovery_active or bool(caution_probes)
+     _ordinary_exits(book)
+     _pending_intents(book, buy_open=not frozen and not liabilities,
+                      market=market, certificates=certificates)
+@@ -958,15 +992,17 @@ def _allocate_strategy(
+         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
+         _restore_ordinary_holdings(book)
+     awaiting_settlement = _failed_deployment_awaits_settlement(account)
+-    if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
+-        _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market)
++    if not frozen and not liabilities and not awaiting_settlement and not caution_probes and recovery_requests is not None:
++        # Fresh recovery and ordinary requests share a single allocation pass.
++        _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market,
++                         recovery=recovery_requests)
+         add_mature_leaders(book, opportunity)
+     else:
+         for symbol in candidates:
+             book.record(symbol)["entry_gate"] = (
+                 "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY" if liabilities
+                 else "FAILED_DEPLOYMENT_UNSETTLED" if awaiting_settlement
+-                else "RECOVERY_ALLOCATION_ACTIVE"
++                else "TACTICAL_RECOVERY_ACTIVE" if recovery_requests is None else "CAUTION_PROBE_ACTIVE"
+             )
+     repair_symbol = ""
+     if frozen and not liabilities and not awaiting_settlement and strategic_universe is not None:
+diff --git a/uquant/portfolio/recovery/cohort_admission.py b/uquant/portfolio/recovery/cohort_admission.py
+index 5b3e76a..a7c6b84 100644
+--- a/uquant/portfolio/recovery/cohort_admission.py
++++ b/uquant/portfolio/recovery/cohort_admission.py
+@@ -12,7 +12,6 @@ from ...features import scalar
+ from ...types import AccountState, LeaderScore, Risk, RiskAssessment, Target
+ from .targets import (
+     awaiting_recovery_cohort_targets,
+-    locked_recovery_cohort_targets,
+     recovery_cohort_targets,
+ )
+ 
+@@ -42,54 +41,6 @@ class RecoverySelection:
+     secondaries: list[str]
+ 
+ 
+-def _locked_cohort_targets(
+-    self: RecoveryPortfolioPolicy,
+-    *,
+-    risk: RiskAssessment,
+-    leaders: dict[str, LeaderScore],
+-    account: AccountState,
+-    proposed: dict[str, float],
+-    bounded_recovery_repair: bool,
+-) -> tuple[Target, ...] | None:
+-    if account.candidate_tenure.get("recovery_cohort_locked", 0) != 1:
+-        return None
+-    pending_buys = {
+-        order.symbol
+-        for order in account.pending_orders
+-        if order.side == "BUY" and order.symbol in account.anchor_weights
+-    }
+-    unfinished = {
+-        symbol: min(self.cfg.max_symbol_weight, max(0.0, target_weight))
+-        for symbol, target_weight in account.anchor_weights.items()
+-        if symbol not in proposed or symbol in pending_buys
+-    }
+-    if risk.freeze_new_risk and not bounded_recovery_repair:
+-        unfinished = {}
+-    gross_budget = min(
+-        self.cfg.max_gross,
+-        cast(_RecoveryGrossPolicy, self)._confirmed_recovery_gross(risk=risk, account=account),
+-    )
+-    held_gross = sum(min(self.cfg.max_symbol_weight, max(0.0, weight)) for weight in proposed.values())
+-    requested = sum(
+-        max(0.0, target_weight - proposed.get(symbol, 0.0)) for symbol, target_weight in unfinished.items()
+-    )
+-    remaining = max(0.0, gross_budget - held_gross)
+-    scale = min(1.0, remaining / requested) if requested > 0 else 0.0
+-    proposed.update(
+-        {
+-            symbol: proposed.get(symbol, 0.0) + max(0.0, target_weight - proposed.get(symbol, 0.0)) * scale
+-            for symbol, target_weight in unfinished.items()
+-            if proposed.get(symbol, 0.0) + max(0.0, target_weight - proposed.get(symbol, 0.0)) * scale > 1e-12
+-        }
+-    )
+-    return locked_recovery_cohort_targets(
+-        self=self,
+-        proposed=proposed,
+-        leaders=leaders,
+-        account=account,
+-    )
+-
+-
+ def scan_recovery_evidence(
+     self: RecoveryPortfolioPolicy,
+     *,
+@@ -182,8 +133,6 @@ def _filter_recovery_candidates(
+             account.recovery_anchor_date,
+             date,
+         )
+-        if recovery_elapsed > self.cfg.recovery_add_window_days:
+-            candidates = []
+     return candidates, recovery_elapsed, deep_count, admission_depth
+ 
+ 
+@@ -498,19 +447,9 @@ def cohort_admission_targets(
+     risk_neutral_recovery_transfer: bool,
+     weak_secular_market: bool,
+ ) -> tuple[Target, ...] | None:
+-    """Evaluate locked, candidate, weighting, and commit stages in order."""
++    """Evaluate current candidates, weighting and ownership without an allocation lock."""
+ 
+     proposed = dict(anchored_held)
+-    locked = _locked_cohort_targets(
+-        self,
+-        risk=risk,
+-        leaders=leaders,
+-        account=account,
+-        proposed=proposed,
+-        bounded_recovery_repair=bounded_recovery_repair,
+-    )
+-    if locked is not None:
+-        return locked
+     candidates, crash_depth = scan_recovery_evidence(
+         self,
+         date=date,
+diff --git a/uquant/portfolio/recovery/current_cohort.py b/uquant/portfolio/recovery/current_cohort.py
+index 575fdb7..d378761 100644
+--- a/uquant/portfolio/recovery/current_cohort.py
++++ b/uquant/portfolio/recovery/current_cohort.py
+@@ -109,8 +109,7 @@ def _pending_members(book: AllocationBook) -> list[PendingOrder]:
+ 
+ def _book_available(book: AllocationBook, members: set[str], restorable: set[str],
+                     pending: list[PendingOrder]) -> bool:
+-    live = {symbol for symbol, weight in book.weights_now.items() if weight > 0}
+-    if book.owned or live - members:
++    if book.owned:
+         return False
+     # Old ordinary risk snapshots are history, not ownership of fresh cash.
+     current_account = replace(book.account, protected_weights=protected_weights_for_current_episode(book.account))
+@@ -164,40 +163,6 @@ def _continue_members(book: AllocationBook, pending: list[PendingOrder], members
+         policy._release_recovery_anchor(account)
+ 
+ 
+-def _fund_members(book: AllocationBook, targets: tuple[Target, ...], members: set[str],
+-                   leaders: dict[str, LeaderScore]) -> None:
+-    account, policy = book.account, book.policy
+-    funded = set(members)
+-    requests = {target.symbol: target.weight - book.committed.get(target.symbol, 0.0)
+-                for target in targets if target.symbol in leaders
+-                and target.weight > book.committed.get(target.symbol, 0.0)}
+-    industries = {leaders[symbol].industry for symbol in requests}
+-    increments = dict(requests)
+-    if len(requests) > 1 and len(industries) == 1:
+-        industry_used = sum(weight for symbol, weight in book.committed.items()
+-                            if symbol in leaders and leaders[symbol].industry in industries)
+-        remaining = max(0.0, min(book.cash_room, book.gross_cap - sum(book.committed.values()),
+-                                policy.cfg.recovery_target_gross - industry_used))
+-        # Entry weights already express current leadership. Share the remaining
+-        # real capital in those proportions without weighting the demand twice.
+-        total = sum(requests.values())
+-        increments = {symbol: request * min(remaining, total) / total
+-                      for symbol, request in requests.items()}
+-    for target in targets:
+-        if target.symbol not in leaders or target.weight <= book.weights_now.get(target.symbol, 0.0):
+-            continue
+-        reserved = min(target.weight, book.committed.get(target.symbol, 0.0))
+-        desired = reserved + increments.get(target.symbol, 0.0)
+-        if book.fund(target.symbol, desired, phase="CONFIRMED_RECOVERY_ADMISSION",
+-                     minimum=policy.cfg.min_trade_weight, concentration_cap=policy.cfg.recovery_target_gross):
+-            funded.add(target.symbol)
+-            book.recovery_targets[target.symbol] = target
+-    if account.anchor_weights:
+-        _prune_anchors(book, funded)
+-        if not funded:
+-            policy._release_recovery_anchor(account)
+-
+-
+ def _advance_tactical_clock(book: AllocationBook) -> None:
+     """Consume at most one observed session, retaining the original overheat reset."""
+     account, policy = book.account, book.policy
+@@ -340,38 +305,38 @@ def _manage_tactical_holding(book: AllocationBook, opportunity: Opportunity, fro
+     return _retain_or_exit_tactical(book, symbol, promotable, frozen)
+ 
+ 
+-def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunity, frozen: bool) -> bool:
+-    """Return whether this session belongs to an actual confirmed recovery book."""
++def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunity, frozen: bool) -> tuple[Target, ...] | None:
++    """Retain actual owners; return fresh requests for the shared admission queue."""
+     account, policy, risk = book.account, book.policy, book.risk
+     _advance_tactical_clock(book)
+     _settle_tactical_holding(book)
+     if _manage_tactical_holding(book, opportunity, frozen):
+-        return True
++        return None  # Tactical lifecycle retains its separate admission exclusion.
+     members = _filled_members(book)
+     restorable = {symbol for symbol, weight in account.protected_weights.items()
+                   if weight > 0 and recovery_owner_open(account, symbol, account.last_shock_date)}
+     pending = _pending_members(book)
+     if not _book_available(book, members, restorable, pending):
+-        return False
++        return ()
+     _prune_anchors(book, members | restorable | {order.symbol for order in pending})
+     book.recovery_restore_symbols = restorable
+     weak = _weak_market(book)
+     if weak is None:
+         _retain_members(book, members | restorable)
+-        return bool(members or restorable)
++        return ()
+     if _graduate(book, members, opportunity, weak):
+-        return True
++        return ()
+     _retain_members(book, members | restorable)
+     leaders = _actual_leaders(book)
+     if pending:
+         _continue_members(book, pending, members, leaders, frozen=frozen)
+-        return True
++        return ()
+     if restorable:
+-        return True  # Saved risk rights use the shared restoration checks, never fresh admission.
++        return ()  # Saved risk rights use the shared restoration checks, never fresh admission.
+     if frozen or opportunity is not Opportunity.RECOVERY:
+-        return bool(members or restorable)
++        return ()
+     if not _observation_is_new(book):
+-        return bool(members or restorable)
++        return ()
+     targets = cohort_admission_targets(
+         policy, date=book.date, risk=risk, user_panel=book.user_panel, leaders=leaders,
+         account=account, weights_now=book.weights_now,
+@@ -381,6 +346,5 @@ def allocate_confirmed_recovery(book: AllocationBook, *, opportunity: Opportunit
+         weak_secular_market=weak,
+     )
+     if targets is None:
+-        return bool(members or restorable)
+-    _fund_members(book, targets, members, leaders)
+-    return True
++        return ()
++    return targets

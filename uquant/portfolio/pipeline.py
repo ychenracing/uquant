@@ -721,19 +721,19 @@ def _affordable_core_candidates(
     return selected, blocked
 
 
-def _core_requests(
+def _admit_new_cores(
     book: AllocationBook, *, candidates: list[str], opportunity: Opportunity, market: dict[str, Any],
-) -> dict[str, float]:
+) -> None:
     if not _core_opportunity_open(opportunity) or book.risk.state is not Risk.NORMAL:
         block = "OPPORTUNITY_NOT_OPEN" if not _core_opportunity_open(opportunity) else "RISK_NOT_NORMAL"
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = block
-        return {}
+        return
     budget = _ordinary_admission_budget(book)
     if budget is None:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
-        return {}
+        return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
     deployment_pending = _mature_deployment_pending(book, eligible, market)
     eligible = [symbol for symbol in eligible if symbol not in deployment_pending]
@@ -742,7 +742,6 @@ def _core_requests(
     allowances = {s: cast(float, independent_budget) if _current_independent_entry(
         book.record(s).get("entry", {}), book.date) else budget for s in eligible}
     selected, blocked = _affordable_core_candidates(book, eligible, occupied, allowances, cycle_weights)
-    requests = {}
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
@@ -766,37 +765,10 @@ def _core_requests(
         if weight + 1e-12 < book.policy.cfg.min_trade_weight:
             book.record(symbol)["entry_gate"] = "ORDINARY_INITIAL_CAPITAL_BELOW_TRADE_MINIMUM"
             continue
-        requests[symbol] = weight
-    return requests
-
-
-def _admit_new_cores(
-    book: AllocationBook, *, candidates: list[str], opportunity: Opportunity,
-    market: dict[str, Any], recovery: tuple[Target, ...] = (),
-) -> None:
-    """One recovery-first queue; all admissions compete for the same real cash."""
-    requests = _core_requests(book, candidates=candidates, opportunity=opportunity, market=market)
-    recovery_requests = {t.symbol: t for t in recovery
-                         if t.symbol in book.leaders and t.weight > book.weights_now.get(t.symbol, 0.0)}
-    # A recovery-qualified symbol keeps its original ownership and requested size.
-    requests.update({s: t.weight for s, t in recovery_requests.items()})
-    funded_recovery = set()
-    for symbol in sorted(requests, key=lambda s: (s not in recovery_requests, -book.leaders[s].score, s)):
-        weight = requests[symbol]
-        recovered = symbol in recovery_requests
-        if book.fund(symbol, weight,
-                     phase="CONFIRMED_RECOVERY_ADMISSION" if recovered else "CORE_ADMISSION",
-                     minimum=book.policy.cfg.min_trade_weight,
-                     concentration_cap=book.policy.cfg.recovery_target_gross if recovered else None):
-            if recovered:
-                funded_recovery.add(symbol)
-                book.recovery_targets[symbol] = recovery_requests[symbol]
-            else:
-                book.account.protected_weights.pop(symbol, None)
-                book.reasons[symbol] = "confirmed core admitted from available account capital"
-                _record_completed_transfer(book, symbol)
-            continue
-        if recovered:
+        if book.fund(symbol, weight, phase="CORE_ADMISSION", minimum=book.policy.cfg.min_trade_weight):
+            book.account.protected_weights.pop(symbol, None)
+            book.reasons[symbol] = "confirmed core admitted from available account capital"
+            _record_completed_transfer(book, symbol)
             continue
         weak = _degraded_transfer(
             book.policy, challenger=symbol, proposed=book.proposed, weights_now=book.weights_now,
@@ -810,13 +782,6 @@ def _admit_new_cores(
             book.record(weak)["allocation_reason"] = "CONFIRMED_BOUNDED_TRANSFER"
             book.record(symbol)["entry_gate"] = "AWAIT_REDUCTION_SETTLEMENT"
             break
-    if recovery:
-        known = (funded_recovery | {s for s, w in book.weights_now.items() if w > 0}
-                 | {o.symbol for o in book.account.pending_orders})
-        book.account.anchor_weights = {s: w for s, w in book.account.anchor_weights.items() if s in known}
-        book.account.candidate_tenure["recovery_cohort_locked"] = int(len(book.account.anchor_weights) >= 3)
-        if not book.account.anchor_weights:
-            book.policy._release_recovery_anchor(book.account)
 
 
 def _retained_order_identity(book: AllocationBook, target: Target) -> Target:
@@ -981,9 +946,10 @@ def _allocate_strategy(
         user_panel=qualification_panel or user_panel)
     candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
                                   trace=book.trace, certificates=certificates, market=market)
-    recovery_requests = () if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
+    recovery_active = False if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
     caution_probes = (_research_caution_probe(book, opportunity)
                      if caution_book_was_settled and not liabilities else set())
+    recovery_active = recovery_active or bool(caution_probes)
     _ordinary_exits(book)
     _pending_intents(book, buy_open=not frozen and not liabilities,
                      market=market, certificates=certificates)
@@ -992,17 +958,15 @@ def _allocate_strategy(
         book.committed, book.cash_room = committed_capital(account=account, prices=prices, proposed=proposed)
         _restore_ordinary_holdings(book)
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
-    if not frozen and not liabilities and not awaiting_settlement and not caution_probes and recovery_requests is not None:
-        # Fresh recovery and ordinary requests share a single allocation pass.
-        _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market,
-                         recovery=recovery_requests)
+    if not frozen and not liabilities and not awaiting_settlement and not recovery_active:
+        _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market)
         add_mature_leaders(book, opportunity)
     else:
         for symbol in candidates:
             book.record(symbol)["entry_gate"] = (
                 "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY" if liabilities
                 else "FAILED_DEPLOYMENT_UNSETTLED" if awaiting_settlement
-                else "TACTICAL_RECOVERY_ACTIVE" if recovery_requests is None else "CAUTION_PROBE_ACTIVE"
+                else "RECOVERY_ALLOCATION_ACTIVE"
             )
     repair_symbol = ""
     if frozen and not liabilities and not awaiting_settlement and strategic_universe is not None:

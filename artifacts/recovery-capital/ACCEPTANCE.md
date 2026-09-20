@@ -44,3 +44,24 @@ strategic ownership veto remains. Existing ordinary held-position additions keep
 their recovery exclusion. Do not change exit, deployment confirmation, selection,
 size, gross, industry/correlation caps or order execution. This replaces portfolio
 exclusivity with the existing cash/capacity checks; no new state/config.
+
+## C1 rejection and C2 revision, before C2 replay
+
+C1 2024 wealth ratio .9778411, orders52->60 and fill days41->46 fail the
+unchanged burden gates. Holding median29->32 and exposure61.42%->64.60% do not
+establish benefit. Four new symbols earn net positive cashflow, but existing
+recovery members lose more through changed capital/risk timing.
+
+A concrete first conflict occurs on 2025-05-12: the May9 recovery targets are
+unchanged, yet sz300502 fills5600 of5800 shares then its remainder is cancelled;
+baseline fills5800. Alphabetical execution lets the new ordinary BUY consume cash
+first as next-open prices/costs change. Close-weight headroom is not sufficient
+to promise both full recovery and simultaneous residual admission.
+
+C2 retains C1's shared-book owner maintenance, but ordinary admission waits only
+while the existing recovery targets have a positive BUY commitment above actual
+held weight in AllocationBook.committed. Once those intents settle, ordinary
+entries use actual residual cash. Replace the original whole-recovery-lifecycle
+veto with this actual-commitment veto. No new timer, state, config, stock rule,
+executor priority or parameter change. Test the same 2024 path first, then expand
+only if no hard failure. Numeric gates remain unchanged.

@@ -132,3 +132,17 @@ def test_native_residual_admission_preserves_healthy_holdings(restriction, recov
         )
         assert all(t.origin_subsystem == "RECOVERY" for t in mixed if t.symbol in before)
         assert {t.symbol for t in mixed if t.symbol in before} == set(before)
+
+
+def test_recovery_buy_commitment_settles_before_residual_admission():
+    account, dates, panel, leaders, risk, prices, _, candidate = _funded_book(.25, recovery=True)
+    owner = next(iter(account.positions))
+    account.last_shock_date = str(dates[-3].date())
+    account.protected_weights[owner] = .47
+    targets = PortfolioAllocator(DEFAULT_CONFIG).allocate(
+        date=dates[-2], opportunity=Opportunity.TREND, risk=risk,
+        user_panel=panel, leaders=leaders, account=account, prices=prices,
+    )
+    assert any(t.symbol == owner and t.mechanism == 'POST_SHOCK_RESTORATION' for t in targets)
+    assert not any(t.symbol == candidate and t.weight > 0 for t in targets)
+    assert risk.evidence['core_allocation']['symbols'][candidate]['entry_gate'] == 'RECOVERY_CAPITAL_COMMITTED'

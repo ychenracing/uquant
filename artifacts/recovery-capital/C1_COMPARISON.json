@@ -1,0 +1,51 @@
+{
+  "rows": [
+    {
+      "case": "2024-offset0",
+      "baseline": {
+        "wealth": 12.916708872013151,
+        "drawdown": 0.22148648804525484,
+        "orders": 52,
+        "operation_days": 41,
+        "turnover": 10.713564332088392,
+        "cost_burden": 0.01622179132369359,
+        "fees": 30049.676873698998,
+        "slippage": 47242.67909999818,
+        "mean_gross": 0.6141970436248757,
+        "median_continuous_sessions": 29,
+        "holding_episodes": 23,
+        "open_episodes": 0
+      },
+      "candidate": {
+        "wealth": 12.63048877282912,
+        "drawdown": 0.22148648804525484,
+        "orders": 60,
+        "operation_days": 46,
+        "turnover": 11.136487851047447,
+        "cost_burden": 0.016825869026271183,
+        "fees": 30826.343041759,
+        "slippage": 49045.21130000018,
+        "mean_gross": 0.645959459720762,
+        "median_continuous_sessions": 32,
+        "holding_episodes": 27,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 0.9778410969837533,
+      "drawdown_delta": 0.0,
+      "failures": [
+        "orders",
+        "operation_days"
+      ],
+      "baseline_source": "dd5ef43931c3e316f3808d4ef04f34e3953be194",
+      "candidate_source": "4bb3aad3d5826a6b334dcd53460acebaf5c9c29b",
+      "raw_sha256": {
+        "../cross-vintage/native/recovery-main/2024-offset0.json.gz": "a73a359014630d162a545d54b9037bcada0c1b21d8b4fe76dfb5755d17cfd553",
+        "../cross-vintage/native/recovery-c1/2024-offset0.json.gz": "75b1947cfc4c46fbe2d5ac4e97f227c89e256706cf6c835949e535bc6e08d582"
+      }
+    }
+  ],
+  "paired_cases": 1,
+  "geometric_wealth_ratio": 0.9778410969837533,
+  "individually_improved": 0,
+  "note": "Partial comparison is not final acceptance; seven cases and mechanism/correctness gates required."
+}

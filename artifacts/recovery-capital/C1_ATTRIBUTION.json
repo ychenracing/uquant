@@ -1,0 +1,1131 @@
+{
+  "recovery-main": {
+    "net": {
+      "sz300308": 12275903.464056049,
+      "sz300394": -31389.47409787198,
+      "sz300502": 2279519.12574639,
+      "sz300223": -38690.93444831995,
+      "sh600487": 33532.046519400086,
+      "sz300666": -5554.733463180077,
+      "sh688200": -6861.185078220005,
+      "sh688256": 175078.4602877641,
+      "sh688120": -83013.31115985588,
+      "sh688268": -35122.28598647996,
+      "sh688041": 3435.9518952000653,
+      "sh688361": -12808.353693959973,
+      "sz300604": -68017.90933080006,
+      "sz002281": -70979.0841104399,
+      "sh688146": 9418385.966890626
+    },
+    "fills": {
+      "sz300308": [
+        {
+          "signal_date": "2024-01-03",
+          "fill_date": "2024-01-04",
+          "side": "BUY",
+          "shares": 9100,
+          "gross_value": 665037.1727999998,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-01-17",
+          "fill_date": "2024-01-18",
+          "side": "SELL",
+          "shares": 9100,
+          "gross_value": 613681.2045,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-02-20",
+          "fill_date": "2024-02-21",
+          "side": "BUY",
+          "shares": 1100,
+          "gross_value": 117809.99229999998,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-05-24",
+          "fill_date": "2024-05-27",
+          "side": "SELL",
+          "shares": 1000,
+          "gross_value": 117012.87,
+          "mechanism": "STRATEGIC_DAMAGE_GUARD"
+        },
+        {
+          "signal_date": "2024-05-30",
+          "fill_date": "2024-05-31",
+          "side": "SELL",
+          "shares": 100,
+          "gross_value": 11047.441499999999,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2025-04-03",
+          "fill_date": "2025-04-07",
+          "side": "BUY",
+          "shares": 13800,
+          "gross_value": 1080239.16,
+          "mechanism": "TACTICAL_REBOUND"
+        },
+        {
+          "signal_date": "2025-04-07",
+          "fill_date": "2025-04-08",
+          "side": "SELL",
+          "shares": 2000,
+          "gross_value": 146433.42,
+          "mechanism": "CAPITAL_BUDGET"
+        },
+        {
+          "signal_date": "2025-10-15",
+          "fill_date": "2025-10-16",
+          "side": "SELL",
+          "shares": 1300,
+          "gross_value": 454726.81799999997,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2025-10-24",
+          "fill_date": "2025-10-27",
+          "side": "SELL",
+          "shares": 1200,
+          "gross_value": 602972.424,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2026-06-23",
+          "fill_date": "2026-06-24",
+          "side": "SELL",
+          "shares": 9300,
+          "gross_value": 12204356.427,
+          "mechanism": "SECTOR_GUARD"
+        }
+      ],
+      "sz300394": [
+        {
+          "signal_date": "2024-01-03",
+          "fill_date": "2024-01-04",
+          "side": "BUY",
+          "shares": 21900,
+          "gross_value": 665066.6022,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-01-17",
+          "fill_date": "2024-01-18",
+          "side": "SELL",
+          "shares": 21900,
+          "gross_value": 622913.2632,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-02-20",
+          "fill_date": "2024-02-21",
+          "side": "BUY",
+          "shares": 2700,
+          "gross_value": 118437.7194,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-05-13",
+          "fill_date": "2024-05-14",
+          "side": "SELL",
+          "shares": 2700,
+          "gross_value": 129977.4924,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sz300502": [
+        {
+          "signal_date": "2024-01-03",
+          "fill_date": "2024-01-04",
+          "side": "BUY",
+          "shares": 29100,
+          "gross_value": 664114.3509,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-01-31",
+          "fill_date": "2024-02-01",
+          "side": "SELL",
+          "shares": 29100,
+          "gross_value": 590255.5536,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-02-20",
+          "fill_date": "2024-02-21",
+          "side": "BUY",
+          "shares": 4000,
+          "gross_value": 120496.376,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-07",
+          "side": "SELL",
+          "shares": 4000,
+          "gross_value": 179720.1,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2025-05-09",
+          "fill_date": "2025-05-12",
+          "side": "BUY",
+          "shares": 5800,
+          "gross_value": 332202.07019999996,
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "signal_date": "2025-10-15",
+          "fill_date": "2025-10-16",
+          "side": "SELL",
+          "shares": 4200,
+          "gross_value": 949480.1694,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2025-10-27",
+          "fill_date": "2025-10-28",
+          "side": "SELL",
+          "shares": 1600,
+          "gross_value": 449836.1135999999,
+          "mechanism": "RISK_GROSS_CAP"
+        },
+        {
+          "signal_date": "2025-10-30",
+          "fill_date": "2025-10-31",
+          "side": "BUY",
+          "shares": 4300,
+          "gross_value": 1140148.8098000002,
+          "mechanism": "POST_SHOCK_RESTORATION"
+        },
+        {
+          "signal_date": "2026-06-23",
+          "fill_date": "2026-06-24",
+          "side": "SELL",
+          "shares": 4300,
+          "gross_value": 2371226.4,
+          "mechanism": "SECTOR_GUARD"
+        }
+      ],
+      "sz300223": [
+        {
+          "signal_date": "2024-03-12",
+          "fill_date": "2024-03-13",
+          "side": "BUY",
+          "shares": 5600,
+          "gross_value": 372996.62399999995,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-03-27",
+          "fill_date": "2024-03-28",
+          "side": "SELL",
+          "shares": 5600,
+          "gross_value": 334657.008,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        }
+      ],
+      "sh600487": [
+        {
+          "signal_date": "2024-04-26",
+          "fill_date": "2024-04-29",
+          "side": "BUY",
+          "shares": 71500,
+          "gross_value": 951042.092,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-06-12",
+          "fill_date": "2024-06-13",
+          "side": "SELL",
+          "shares": 71500,
+          "gross_value": 985570.4430000001,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sz300666": [
+        {
+          "signal_date": "2024-04-26",
+          "fill_date": "2024-04-29",
+          "side": "BUY",
+          "shares": 8200,
+          "gross_value": 376107.9322,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-05-27",
+          "fill_date": "2024-05-28",
+          "side": "SELL",
+          "shares": 8200,
+          "gross_value": 370932.89579999994,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        }
+      ],
+      "sh688200": [
+        {
+          "signal_date": "2024-04-29",
+          "fill_date": "2024-04-30",
+          "side": "BUY",
+          "shares": 1500,
+          "gross_value": 103837.734,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-05-24",
+          "fill_date": "2024-05-27",
+          "side": "SELL",
+          "shares": 1500,
+          "gross_value": 97077.32549999999,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688256": [
+        {
+          "signal_date": "2024-05-20",
+          "fill_date": "2024-05-21",
+          "side": "BUY",
+          "shares": 1000,
+          "gross_value": 129538.40899999997,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-07-04",
+          "fill_date": "2024-07-05",
+          "side": "SELL",
+          "shares": 1000,
+          "gross_value": 128072.799,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2024-10-31",
+          "fill_date": "2024-11-01",
+          "side": "BUY",
+          "shares": 2300,
+          "gross_value": 686826.7406,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-02-06",
+          "fill_date": "2025-02-07",
+          "side": "SELL",
+          "shares": 2300,
+          "gross_value": 864337.2975000001,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688120": [
+        {
+          "signal_date": "2024-07-22",
+          "fill_date": "2024-07-23",
+          "side": "BUY",
+          "shares": 11200,
+          "gross_value": 762462.5007999999,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-08-21",
+          "fill_date": "2024-08-22",
+          "side": "SELL",
+          "shares": 3400,
+          "gross_value": 208333.85760000002,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2024-08-21",
+          "fill_date": "2024-08-23",
+          "side": "SELL",
+          "shares": 7000,
+          "gross_value": 424153.422,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2024-08-21",
+          "fill_date": "2024-08-26",
+          "side": "SELL",
+          "shares": 800,
+          "gross_value": 47677.0752,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688268": [
+        {
+          "signal_date": "2024-07-22",
+          "fill_date": "2024-07-23",
+          "side": "BUY",
+          "shares": 6200,
+          "gross_value": 318998.67999999993,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-07-22",
+          "fill_date": "2024-07-24",
+          "side": "BUY",
+          "shares": 1200,
+          "gross_value": 56996.94,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-07",
+          "side": "SELL",
+          "shares": 1900,
+          "gross_value": 87312.6,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-08",
+          "side": "SELL",
+          "shares": 2700,
+          "gross_value": 123563.313,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-09",
+          "side": "SELL",
+          "shares": 2300,
+          "gross_value": 107762.12999999999,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-12",
+          "side": "SELL",
+          "shares": 500,
+          "gross_value": 22592.385,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        }
+      ],
+      "sh688041": [
+        {
+          "signal_date": "2024-10-31",
+          "fill_date": "2024-11-01",
+          "side": "BUY",
+          "shares": 4800,
+          "gross_value": 608244.4367999999,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-01-24",
+          "fill_date": "2025-01-27",
+          "side": "SELL",
+          "shares": 4800,
+          "gross_value": 612303.8832,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688361": [
+        {
+          "signal_date": "2024-11-08",
+          "fill_date": "2024-11-11",
+          "side": "BUY",
+          "shares": 1100,
+          "gross_value": 110836.72599999998,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-12-18",
+          "fill_date": "2024-12-19",
+          "side": "SELL",
+          "shares": 1100,
+          "gross_value": 98131.77,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sz300604": [
+        {
+          "signal_date": "2024-11-08",
+          "fill_date": "2024-11-11",
+          "side": "BUY",
+          "shares": 6500,
+          "gross_value": 350049.69999999995,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-11-26",
+          "fill_date": "2024-11-27",
+          "side": "SELL",
+          "shares": 6500,
+          "gross_value": 282337.37999999995,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sz002281": [
+        {
+          "signal_date": "2024-12-26",
+          "fill_date": "2024-12-27",
+          "side": "BUY",
+          "shares": 6800,
+          "gross_value": 392207.81599999993,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-02-05",
+          "fill_date": "2025-02-06",
+          "side": "SELL",
+          "shares": 6300,
+          "gross_value": 297629.07300000003,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2025-02-06",
+          "fill_date": "2025-02-07",
+          "side": "SELL",
+          "shares": 500,
+          "gross_value": 23946.03,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688146": [
+        {
+          "signal_date": "2025-05-09",
+          "fill_date": "2025-05-12",
+          "side": "BUY",
+          "shares": 10900,
+          "gross_value": 305516.11089999997,
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "signal_date": "2025-10-15",
+          "fill_date": "2025-10-16",
+          "side": "SELL",
+          "shares": 10900,
+          "gross_value": 463265.87039999996,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2025-10-30",
+          "fill_date": "2025-10-31",
+          "side": "BUY",
+          "shares": 25900,
+          "gross_value": 1248435.7886,
+          "mechanism": "POST_SHOCK_RESTORATION"
+        },
+        {
+          "signal_date": "2026-06-23",
+          "fill_date": "2026-06-26",
+          "side": "SELL",
+          "shares": 25900,
+          "gross_value": 10517821.65,
+          "mechanism": "SECTOR_GUARD"
+        }
+      ]
+    },
+    "equity": 25833417.744026303
+  },
+  "recovery-c1": {
+    "net": {
+      "sz300308": 11204400.816438887,
+      "sz300394": -31389.47409787198,
+      "sz300502": 1677669.3949144143,
+      "sz300223": -38690.93444831995,
+      "sh600487": 33532.046519400086,
+      "sz300666": -5554.733463180077,
+      "sh688200": -6861.185078220005,
+      "sh688256": 175078.4602877641,
+      "sh688120": -83013.31115985588,
+      "sh688268": -35122.28598647996,
+      "sh688041": 3435.9518952000653,
+      "sh688361": -12808.353693959973,
+      "sz300604": -68017.90933080006,
+      "sz002281": -70979.0841104399,
+      "sh688019": 8583.718008492026,
+      "sh688146": 8738353.517268077,
+      "sh688233": 103.38862248003716,
+      "sh688110": 119787.22602,
+      "sh688498": 1652470.2970526523
+    },
+    "fills": {
+      "sz300308": [
+        {
+          "signal_date": "2024-01-03",
+          "fill_date": "2024-01-04",
+          "side": "BUY",
+          "shares": 9100,
+          "gross_value": 665037.1727999998,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-01-17",
+          "fill_date": "2024-01-18",
+          "side": "SELL",
+          "shares": 9100,
+          "gross_value": 613681.2045,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-02-20",
+          "fill_date": "2024-02-21",
+          "side": "BUY",
+          "shares": 1100,
+          "gross_value": 117809.99229999998,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-05-24",
+          "fill_date": "2024-05-27",
+          "side": "SELL",
+          "shares": 1000,
+          "gross_value": 117012.87,
+          "mechanism": "STRATEGIC_DAMAGE_GUARD"
+        },
+        {
+          "signal_date": "2024-05-30",
+          "fill_date": "2024-05-31",
+          "side": "SELL",
+          "shares": 100,
+          "gross_value": 11047.441499999999,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2025-04-03",
+          "fill_date": "2025-04-07",
+          "side": "BUY",
+          "shares": 13800,
+          "gross_value": 1080239.16,
+          "mechanism": "TACTICAL_REBOUND"
+        },
+        {
+          "signal_date": "2025-04-07",
+          "fill_date": "2025-04-08",
+          "side": "SELL",
+          "shares": 2000,
+          "gross_value": 146433.42,
+          "mechanism": "CAPITAL_BUDGET"
+        },
+        {
+          "signal_date": "2025-10-15",
+          "fill_date": "2025-10-16",
+          "side": "SELL",
+          "shares": 1200,
+          "gross_value": 419747.832,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2025-10-21",
+          "fill_date": "2025-10-22",
+          "side": "SELL",
+          "shares": 800,
+          "gross_value": 347723.92799999996,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2026-06-26",
+          "fill_date": "2026-06-29",
+          "side": "SELL",
+          "shares": 3300,
+          "gross_value": 4084611.3,
+          "mechanism": "SECTOR_GUARD"
+        },
+        {
+          "signal_date": "2026-07-02",
+          "fill_date": "2026-07-03",
+          "side": "SELL",
+          "shares": 6500,
+          "gross_value": 7337654.999999999,
+          "mechanism": "SECTOR_GUARD"
+        }
+      ],
+      "sz300394": [
+        {
+          "signal_date": "2024-01-03",
+          "fill_date": "2024-01-04",
+          "side": "BUY",
+          "shares": 21900,
+          "gross_value": 665066.6022,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-01-17",
+          "fill_date": "2024-01-18",
+          "side": "SELL",
+          "shares": 21900,
+          "gross_value": 622913.2632,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-02-20",
+          "fill_date": "2024-02-21",
+          "side": "BUY",
+          "shares": 2700,
+          "gross_value": 118437.7194,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-05-13",
+          "fill_date": "2024-05-14",
+          "side": "SELL",
+          "shares": 2700,
+          "gross_value": 129977.4924,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sz300502": [
+        {
+          "signal_date": "2024-01-03",
+          "fill_date": "2024-01-04",
+          "side": "BUY",
+          "shares": 29100,
+          "gross_value": 664114.3509,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-01-31",
+          "fill_date": "2024-02-01",
+          "side": "SELL",
+          "shares": 29100,
+          "gross_value": 590255.5536,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-02-20",
+          "fill_date": "2024-02-21",
+          "side": "BUY",
+          "shares": 4000,
+          "gross_value": 120496.376,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-07",
+          "side": "SELL",
+          "shares": 4000,
+          "gross_value": 179720.1,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2025-05-09",
+          "fill_date": "2025-05-12",
+          "side": "BUY",
+          "shares": 5600,
+          "gross_value": 320746.82639999996,
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "signal_date": "2025-10-15",
+          "fill_date": "2025-10-16",
+          "side": "SELL",
+          "shares": 5600,
+          "gross_value": 1265973.5592,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2025-10-28",
+          "fill_date": "2025-10-29",
+          "side": "BUY",
+          "shares": 3000,
+          "gross_value": 915914.9999999999,
+          "mechanism": "POST_SHOCK_RESTORATION"
+        },
+        {
+          "signal_date": "2026-06-26",
+          "fill_date": "2026-06-29",
+          "side": "SELL",
+          "shares": 3000,
+          "gross_value": 1666331.9999999998,
+          "mechanism": "SECTOR_GUARD"
+        }
+      ],
+      "sz300223": [
+        {
+          "signal_date": "2024-03-12",
+          "fill_date": "2024-03-13",
+          "side": "BUY",
+          "shares": 5600,
+          "gross_value": 372996.62399999995,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-03-27",
+          "fill_date": "2024-03-28",
+          "side": "SELL",
+          "shares": 5600,
+          "gross_value": 334657.008,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        }
+      ],
+      "sh600487": [
+        {
+          "signal_date": "2024-04-26",
+          "fill_date": "2024-04-29",
+          "side": "BUY",
+          "shares": 71500,
+          "gross_value": 951042.092,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-06-12",
+          "fill_date": "2024-06-13",
+          "side": "SELL",
+          "shares": 71500,
+          "gross_value": 985570.4430000001,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sz300666": [
+        {
+          "signal_date": "2024-04-26",
+          "fill_date": "2024-04-29",
+          "side": "BUY",
+          "shares": 8200,
+          "gross_value": 376107.9322,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-05-27",
+          "fill_date": "2024-05-28",
+          "side": "SELL",
+          "shares": 8200,
+          "gross_value": 370932.89579999994,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        }
+      ],
+      "sh688200": [
+        {
+          "signal_date": "2024-04-29",
+          "fill_date": "2024-04-30",
+          "side": "BUY",
+          "shares": 1500,
+          "gross_value": 103837.734,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-05-24",
+          "fill_date": "2024-05-27",
+          "side": "SELL",
+          "shares": 1500,
+          "gross_value": 97077.32549999999,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688256": [
+        {
+          "signal_date": "2024-05-20",
+          "fill_date": "2024-05-21",
+          "side": "BUY",
+          "shares": 1000,
+          "gross_value": 129538.40899999997,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-07-04",
+          "fill_date": "2024-07-05",
+          "side": "SELL",
+          "shares": 1000,
+          "gross_value": 128072.799,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2024-10-31",
+          "fill_date": "2024-11-01",
+          "side": "BUY",
+          "shares": 2300,
+          "gross_value": 686826.7406,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-02-06",
+          "fill_date": "2025-02-07",
+          "side": "SELL",
+          "shares": 2300,
+          "gross_value": 864337.2975000001,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688120": [
+        {
+          "signal_date": "2024-07-22",
+          "fill_date": "2024-07-23",
+          "side": "BUY",
+          "shares": 11200,
+          "gross_value": 762462.5007999999,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-08-21",
+          "fill_date": "2024-08-22",
+          "side": "SELL",
+          "shares": 3400,
+          "gross_value": 208333.85760000002,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2024-08-21",
+          "fill_date": "2024-08-23",
+          "side": "SELL",
+          "shares": 7000,
+          "gross_value": 424153.422,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        },
+        {
+          "signal_date": "2024-08-21",
+          "fill_date": "2024-08-26",
+          "side": "SELL",
+          "shares": 800,
+          "gross_value": 47677.0752,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688268": [
+        {
+          "signal_date": "2024-07-22",
+          "fill_date": "2024-07-23",
+          "side": "BUY",
+          "shares": 6200,
+          "gross_value": 318998.67999999993,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-07-22",
+          "fill_date": "2024-07-24",
+          "side": "BUY",
+          "shares": 1200,
+          "gross_value": 56996.94,
+          "mechanism": "STRATEGIC_COHORT"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-07",
+          "side": "SELL",
+          "shares": 1900,
+          "gross_value": 87312.6,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-08",
+          "side": "SELL",
+          "shares": 2700,
+          "gross_value": 123563.313,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-09",
+          "side": "SELL",
+          "shares": 2300,
+          "gross_value": 107762.12999999999,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "signal_date": "2024-08-06",
+          "fill_date": "2024-08-12",
+          "side": "SELL",
+          "shares": 500,
+          "gross_value": 22592.385,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        }
+      ],
+      "sh688041": [
+        {
+          "signal_date": "2024-10-31",
+          "fill_date": "2024-11-01",
+          "side": "BUY",
+          "shares": 4800,
+          "gross_value": 608244.4367999999,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-01-24",
+          "fill_date": "2025-01-27",
+          "side": "SELL",
+          "shares": 4800,
+          "gross_value": 612303.8832,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688361": [
+        {
+          "signal_date": "2024-11-08",
+          "fill_date": "2024-11-11",
+          "side": "BUY",
+          "shares": 1100,
+          "gross_value": 110836.72599999998,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-12-18",
+          "fill_date": "2024-12-19",
+          "side": "SELL",
+          "shares": 1100,
+          "gross_value": 98131.77,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sz300604": [
+        {
+          "signal_date": "2024-11-08",
+          "fill_date": "2024-11-11",
+          "side": "BUY",
+          "shares": 6500,
+          "gross_value": 350049.69999999995,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2024-11-26",
+          "fill_date": "2024-11-27",
+          "side": "SELL",
+          "shares": 6500,
+          "gross_value": 282337.37999999995,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sz002281": [
+        {
+          "signal_date": "2024-12-26",
+          "fill_date": "2024-12-27",
+          "side": "BUY",
+          "shares": 6800,
+          "gross_value": 392207.81599999993,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-02-05",
+          "fill_date": "2025-02-06",
+          "side": "SELL",
+          "shares": 6300,
+          "gross_value": 297629.07300000003,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2025-02-06",
+          "fill_date": "2025-02-07",
+          "side": "SELL",
+          "shares": 500,
+          "gross_value": 23946.03,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688019": [
+        {
+          "signal_date": "2025-05-09",
+          "fill_date": "2025-05-12",
+          "side": "BUY",
+          "shares": 2200,
+          "gross_value": 238385.94779999997,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-07-17",
+          "fill_date": "2025-07-18",
+          "side": "SELL",
+          "shares": 2200,
+          "gross_value": 247219.533,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688146": [
+        {
+          "signal_date": "2025-05-09",
+          "fill_date": "2025-05-12",
+          "side": "BUY",
+          "shares": 10900,
+          "gross_value": 305516.11089999997,
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "signal_date": "2025-10-15",
+          "fill_date": "2025-10-16",
+          "side": "SELL",
+          "shares": 10900,
+          "gross_value": 463265.87039999996,
+          "mechanism": "CRISIS"
+        },
+        {
+          "signal_date": "2025-10-28",
+          "fill_date": "2025-10-29",
+          "side": "BUY",
+          "shares": 27100,
+          "gross_value": 1296783.8883999998,
+          "mechanism": "POST_SHOCK_RESTORATION"
+        },
+        {
+          "signal_date": "2026-06-26",
+          "fill_date": "2026-06-29",
+          "side": "SELL",
+          "shares": 27100,
+          "gross_value": 9885669.434999999,
+          "mechanism": "SECTOR_GUARD"
+        }
+      ],
+      "sh688233": [
+        {
+          "signal_date": "2025-07-18",
+          "fill_date": "2025-07-21",
+          "side": "BUY",
+          "shares": 7800,
+          "gross_value": 249662.21279999995,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-08-04",
+          "fill_date": "2025-08-05",
+          "side": "SELL",
+          "shares": 7800,
+          "gross_value": 250020.5292,
+          "mechanism": "LEADER_LIFECYCLE_EXIT"
+        }
+      ],
+      "sh688110": [
+        {
+          "signal_date": "2025-08-07",
+          "fill_date": "2025-08-08",
+          "side": "BUY",
+          "shares": 3500,
+          "gross_value": 248748.5,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2025-10-27",
+          "fill_date": "2025-10-28",
+          "side": "SELL",
+          "shares": 3500,
+          "gross_value": 368880.75,
+          "mechanism": "RISK_GROSS_CAP"
+        }
+      ],
+      "sh688498": [
+        {
+          "signal_date": "2025-12-25",
+          "fill_date": "2025-12-26",
+          "side": "BUY",
+          "shares": 1400,
+          "gross_value": 637927.0898,
+          "mechanism": "LEADER_SELECTION"
+        },
+        {
+          "signal_date": "2026-07-02",
+          "fill_date": "2026-07-03",
+          "side": "SELL",
+          "shares": 1400,
+          "gross_value": 2292305.4000000004,
+          "mechanism": "SECTOR_GUARD"
+        }
+      ]
+    },
+    "equity": 25260977.54565824
+  },
+  "net_deltas": {
+    "sh600487": 0.0,
+    "sz300394": 0.0,
+    "sh688041": 0.0,
+    "sh688268": 0.0,
+    "sh688233": 103.38862248003716,
+    "sz300308": -1071502.6476171613,
+    "sh688146": -680032.4496225491,
+    "sz002281": 0.0,
+    "sz300223": 0.0,
+    "sh688200": 0.0,
+    "sh688498": 1652470.2970526523,
+    "sz300604": 0.0,
+    "sh688256": 0.0,
+    "sh688019": 8583.718008492026,
+    "sh688120": 0.0,
+    "sz300502": -601849.7308319756,
+    "sh688361": 0.0,
+    "sz300666": 0.0,
+    "sh688110": 119787.22602
+  }
+}

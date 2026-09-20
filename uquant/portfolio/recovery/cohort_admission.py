@@ -159,7 +159,6 @@ def _filter_recovery_candidates(
         )
     ):
         candidates = []
-    candidates.sort(key=lambda item: (crash_depth.get(item.symbol, 0.0), -item.score, item.symbol))
     continuous_freeze = bool(risk.evidence.get("freeze_new_risk", False))
     if continuous_freeze and not level1_recovery_repair and not risk_neutral_recovery_transfer:
         candidates = []
@@ -237,15 +236,16 @@ def _recovery_selection(
                 account.replacement_tenure[tenure_key] = 0
         return None, None
     previous_members = set(account.anchor_weights)
-    cohort = set(account.anchor_weights) | {item.symbol for item in candidates}
-    selected = sorted(
-        cohort,
+    additions = sorted(
+        {item.symbol for item in candidates} - previous_members,
         key=lambda symbol: (
-            crash_depth.get(symbol, 0.0),
             -leaders[symbol].score,
+            crash_depth.get(symbol, 0.0),
             symbol,
         ),
-    )[: min(3, self.cfg.max_positions)]
+    )
+    selected = list(account.anchor_weights)
+    selected.extend(additions[:max(0, min(3, self.cfg.max_positions) - len(selected))])
     candidate_members = set(selected)
     targets = _await_recovery_confirmation(
         self,

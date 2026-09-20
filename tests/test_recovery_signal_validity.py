@@ -6,7 +6,7 @@ import pytest
 from test_lifecycle_and_risk import _leader
 
 from uquant.config import DEFAULT_CONFIG
-from uquant.portfolio.recovery.cohort_admission import scan_recovery_evidence
+from uquant.portfolio.recovery.cohort_admission import _recovery_selection, scan_recovery_evidence
 from uquant.types import AccountState
 
 
@@ -31,3 +31,20 @@ def test_recent_breakout_expires_and_requires_current_structure_and_liquidity(de
     again, _ = scan_recovery_evidence(policy, date=dates[-1], user_panel={'a': frame},
                                       leaders={'a': _leader('a', .9)}, account=account)
     assert again == candidates
+
+
+def test_selection_preserves_owned_members_and_ranks_eligible_additions_by_strength():
+    account = AccountState.empty(100)
+    account.anchor_weights = {'held': .6}
+    leaders = {name: _leader(name, score) for name, score in
+               [('held', .05), ('strong', .9), ('second', .8), ('deepest', .1)]}
+    policy = SimpleNamespace(cfg=DEFAULT_CONFIG)
+    selected, targets = _recovery_selection(policy, leaders=leaders, account=account,
+        anchored_held={'held': .6}, candidates=[leaders[s] for s in ('deepest', 'strong', 'second')],
+        crash_depth={'held': -.1, 'strong': -.2, 'second': -.3, 'deepest': -.5},
+        recovery_elapsed=1, deep_count=2, admission_depth=-.15,
+        risk=SimpleNamespace(), freeze_active=False)
+    assert targets is None
+    assert selected.selected == ['held', 'strong', 'second']
+    assert selected.lead == 'held'
+    assert account.anchor_weights == {'held': .6}

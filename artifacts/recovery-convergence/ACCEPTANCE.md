@@ -15,3 +15,7 @@ Acceptance, registered before candidate execution:
 - Preserve historical original artifacts unchanged; adapt only current tests tied to the removed private implementation. Keep actual order identity/attribution tests.
 
 B: no evidence-supported economic candidate identified in PR76/77. Do not repeat failed strategies or claim A achieves B. No new return/risk trade-off or relaxation of old contracts.
+
+## Validation implementation detail (before candidate execution)
+
+The historical trace projection omits several newer account fields. Supplement it with `behavior_check.py`: capture complete allocator inputs/outputs from unchanged baseline native backtests, then apply the candidate allocator to each identical input. Compare complete targets, account and risk evidence bytes without dropping any field or numerical tolerance. Source-linked identifiers remain the exact baseline fixture identifiers; the candidate source SHA is recorded separately, never presented as baseline production. The engine and executor are unchanged. Add the 34-symbol 2024-01-02 through 2024-06-03 recovery path to the three existing short paths. This is an exact decision-replay test, not a separately source-bound candidate economic backtest.

@@ -24,18 +24,6 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
             account: AccountState,
         ) -> float: ...
 
-        def _recovery_anchor_substitution(
-            self,
-            *,
-            date: pd.Timestamp,
-            risk: RiskAssessment,
-            user_panel: dict[str, pd.DataFrame],
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-            weights_now: dict[str, float],
-            anchor_elapsed: int,
-            risk_neutral_only: bool = False,
-        ) -> tuple[Target, ...] | None: ...
 
 
 RecoveryPortfolioPolicy.__module__ = "uquant.portfolio_recovery"

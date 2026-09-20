@@ -174,6 +174,10 @@ def test_architecture_portfolio_public_routes_preserve_exact_owner_identity() ->
         if private_name in RETIRED_LEADER_METHODS:
             assert_retired_leader_owners_absent(ROOT)
             continue
+        if private_name in {"_recovery_anchor_substitution", "_pending_recovery_substitution_targets",
+                            "_confirmed_recovery_substitution_targets"}:
+            assert not hasattr(importlib.import_module("uquant.portfolio.recovery.targets"), private_name)
+            continue
         legacy_module = importlib.import_module(legacy_owner)
         public_module = importlib.import_module(public_owner)
         assert getattr(legacy_module, private_name) is getattr(public_module, public_name)
@@ -186,6 +190,9 @@ def test_architecture_portfolio_importers_keep_exact_local_legacy_bindings() -> 
         public_owner, public_name = PORTFOLIO_PUBLIC_ROUTES[(legacy_owner, private_name)]
         if private_name in RETIRED_LEADER_METHODS:
             assert_retired_leader_owners_absent(ROOT)
+            continue
+        if private_name in {"_recovery_anchor_substitution", "_pending_recovery_substitution_targets",
+                            "_confirmed_recovery_substitution_targets"}:
             continue
         importer_name = str(row["importer"])
         importer = importlib.import_module(importer_name)

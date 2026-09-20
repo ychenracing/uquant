@@ -1140,17 +1140,6 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
             assert len(calls) == 1
             assert [keyword.arg for keyword in calls[0].keywords[:2]] == ["capital_dd", "operating_dd"]
     elif current.name == "_apply_capital_overlays":
-        freeze = next(node for node in current.body if isinstance(node, ast.Assign)
-                      and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "freeze_new_risk")
-        assert ast.unparse(freeze.value) == (
-            "bool(strategic_damage_guard or (account.capital_budget_level >= 1 and "
-            "(account.capital_budget_repair_streak < cfg.capital_budget_repair_days or "
-            "operating_dd >= cfg.operating_dd_caution)) or account.chronic_level >= 1)"
-        )
-        freeze.value = ast.parse(
-            "bool(strategic_damage_guard or account.capital_budget_level >= 1 or account.chronic_level >= 1)",
-            mode="eval",
-        ).body
         assert current.args.kwonlyargs[6].arg == "operating_dd"
         current.args.kwonlyargs.insert(6, ast.arg(arg="capital_dd", annotation=ast.Name(id="float", ctx=ast.Load())))
         current.args.kw_defaults.insert(6, None)

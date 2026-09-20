@@ -108,13 +108,15 @@ def scan_recovery_evidence(
         close = scalar(row, "close")
         ma20 = scalar(row, f"ma{self.cfg.trend_fast}")
         ret120 = scalar(row, f"ret{self.cfg.trend_slow}", 0.0)
-        previous_high = float(frame["close"].iloc[-11:-1].max()) if len(frame) >= 11 else float("nan")
+        recent = frame["close"].tail(10 + self.cfg.recovery_add_window_days)
+        recent_breakout = bool(
+            recent.ge(recent.shift().rolling(10).max()).tail(self.cfg.recovery_add_window_days).any()
+        )
         if (
             math.isfinite(close)
             and math.isfinite(ma20)
-            and math.isfinite(previous_high)
             and close >= ma20
-            and close >= previous_high
+            and recent_breakout
             and ret120 < 0
             and self._liquidity_confirmed(user_panel[symbol], date)
         ):

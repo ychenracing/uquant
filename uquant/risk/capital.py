@@ -290,11 +290,7 @@ def _apply_capital_overlays(
     if strategic_guard_level2_overlay:
         account.candidate_tenure["strategic_guard_level2_epoch"] = account.strategic_epoch
     freeze_new_risk = bool(
-        strategic_damage_guard
-        or (account.capital_budget_level >= 1
-            and (account.capital_budget_repair_streak < cfg.capital_budget_repair_days
-                 or deployed_dd >= cfg.operating_dd_caution))
-        or account.chronic_level >= 1
+        strategic_damage_guard or account.capital_budget_level >= 1 or account.chronic_level >= 1
     )
     overlay_cap = cfg.max_gross
     if account.capital_budget_level >= 4:

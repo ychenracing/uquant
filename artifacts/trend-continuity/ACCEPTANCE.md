@@ -55,3 +55,17 @@ new accounts start empty. Report concentration of gains, worst deterioration,
 and average gross exposure; historical evidence cannot establish generalization.
 A candidate failing these gates may be rejected without running remaining cases;
 unrun cases are explicitly unverified. No full Absolute pass is claimed.
+
+## H2 registration, after H1 rejection and before H2 replay
+
+The unchanged-main 2024-start diagnostic covers 627 sessions and exactly
+reproduces every baseline decision digest. It found no ret60-only restoration
+block, so that speculation is discarded. Instead 40 READY candidate/day records
+on 13 sessions were rejected by DEPLOYMENT_CONFIRMATION_PENDING with NORMAL
+risk and cash above 5%; these span nine symbols, not selected winners.
+
+H2 removes only `_mature_deployment_pending` and its special same-day settled
+strategic-rotation exception. Existing stock eligibility, market rearm, cycle
+sizing, maturity cap, available cash, risk and concentration remain unchanged.
+This is the second and final economic mechanism in this task; do not combine H1.
+The fixed gates and sentinel/final case sets above are unchanged.

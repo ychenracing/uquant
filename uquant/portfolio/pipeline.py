@@ -662,28 +662,6 @@ def _mature_admission_weights(book: AllocationBook, eligible: list[str],
     return mature_cycle_weights(book, symbols, opportunity)
 
 
-def _mature_deployment_pending(
-    book: AllocationBook, eligible: list[str], market: dict[str, Any],
-) -> set[str]:
-    """Keep flat-book mature capital pending until its cycle is observable."""
-    deployed_ordinary = any(
-        weight > 1e-12 and symbol not in book.owned
-        for symbol, weight in book.weights_now.items()
-    )
-    settled_strategic_rotation = (
-        book.account.strategic_epochs_completed > 0
-        and book.account.strategic_last_exit_date == str(book.date.date())
-        and market.get("persistent_mature_entry_open") is True
-    )
-    market["settled_strategic_rotation_open"] = settled_strategic_rotation
-    return {
-        symbol for symbol in eligible
-        if book.record(symbol).get("entry", {}).get("qualification_quorum") == "ORDINARY_CORE"
-        and not (deployed_ordinary or settled_strategic_rotation)
-        and market.get("leader_cycle_armed") is not True
-    }
-
-
 def _ordinary_admission_weight(
     book: AllocationBook, *, symbol: str, selected_count: int, allowance: float,
     cycle_weights: dict[str, float],
@@ -735,8 +713,6 @@ def _admit_new_cores(
             book.record(symbol)["entry_gate"] = "ORDINARY_MARKET_EVIDENCE_UNAVAILABLE"
         return
     occupied, eligible, immature_occupied = _fresh_core_selection(book, candidates)
-    deployment_pending = _mature_deployment_pending(book, eligible, market)
-    eligible = [symbol for symbol in eligible if symbol not in deployment_pending]
     independent_budget = _ordinary_admission_budget(book, independently_qualified=True)
     cycle_weights = _mature_admission_weights(book, eligible, opportunity)
     allowances = {s: cast(float, independent_budget) if _current_independent_entry(
@@ -745,9 +721,6 @@ def _admit_new_cores(
     for symbol in candidates:
         if symbol in occupied:
             book.record(symbol)["entry_gate"] = "EXISTING_HOLDING_OR_COMMITMENT"
-            continue
-        if symbol in deployment_pending:
-            book.record(symbol)["entry_gate"] = "DEPLOYMENT_CONFIRMATION_PENDING"
             continue
         if symbol not in eligible:
             book.record(symbol)["entry_gate"] = (

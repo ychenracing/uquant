@@ -105,6 +105,7 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 持仓事实。`protected_weights_for_current_episode()` 排除未跨越当前冲击的普通旧权利，
 读取不修改持久账户；战略权利保留原有身份和授权。恢复后再次受损的判断还要求真实正股数
 连续持仓，战略空仓权利本身不能满足该条件。
+`portfolio/strategic/authority.py` 的既有权威清理入口负责终止已结清普通保护快照：全现金、无有效执行或战略责任、当前事件不再有效，且真实普通成交完整归属并净结清时才删除派生权重。只读持仓视图不执行该清理；成交和历史经济事实不变，有歧义的权利不释放。
 [risk/protected_recovery.py](../uquant/risk/protected_recovery.py) 的 `capture_protected_holdings()`
 统一新冲击快照：先按旧 `last_shock_date` 读取有效权利，再合并实际持仓；调用方随后更新
 冲击日期。持仓事实辅助模块不拥有风险上限、目标或新的持久状态。

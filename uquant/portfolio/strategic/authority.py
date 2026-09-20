@@ -258,6 +258,16 @@ def _classify_owner_authority(
             orphan_fields.add(field_name)
 
 
+def _ordinary_deployment_closed(account: AccountState, symbol: str) -> bool:
+    """Prove physical closure from complete attributed ordinary fills."""
+    fills = [fill for fill in account.fills if fill.symbol == symbol]
+    return bool(fills and fills[-1].side == "SELL"
+                and all(fill.order_id and fill.event_id and not fill.grant_id
+                        and not fill.epoch_id for fill in fills)
+                and any(fill.side == "BUY" for fill in fills)
+                and sum(fill.shares if fill.side == "BUY" else -fill.shares for fill in fills) == 0)
+
+
 def normalize_orphan_strategic_capital_residue(
     account: AccountState,
 ) -> tuple[str, ...]:
@@ -274,15 +284,10 @@ def normalize_orphan_strategic_capital_residue(
     for symbol in tuple(account.protected_weights):
         if symbol in current_protection:
             continue
-        fills = [fill for fill in account.fills if fill.symbol == symbol]
         # An unbound weight alone is ambiguous. Actual complete ordinary fills
         # prove that this physical deployment ended; no live execution or
         # strategic owner exists above. Keep every economic record unchanged.
-        if (fills and fills[-1].side == "SELL"
-                and all(fill.order_id and fill.event_id and not fill.grant_id
-                        and not fill.epoch_id for fill in fills)
-                and any(fill.side == "BUY" for fill in fills)
-                and sum(fill.shares if fill.side == "BUY" else -fill.shares for fill in fills) == 0):
+        if _ordinary_deployment_closed(account, symbol):
             account.protected_weights.pop(symbol)
             normalized.add("protected_weights")
     for ownership_field, weights_field in (

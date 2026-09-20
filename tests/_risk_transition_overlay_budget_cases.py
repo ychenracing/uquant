@@ -165,10 +165,10 @@ def test_protected_restore_cannot_use_overweight_members_to_hide_a_missing_membe
 
     assert account.protected_weights == {symbol: 0.30 for symbol in symbols}
 
-def test_capital_budget_reuses_continuous_confirmation_for_gradual_release() -> None:
+def test_capital_budget_releases_confirmed_repaired_restrictions() -> None:
     account = AccountState.empty(100.0)
     account.capital_budget_level = 4
-    for expected_level in (4, 4, 3, 2, 1, 0):
+    for expected_level in (4, 4, 0):
         _update_capital_budget_ladder(account, observed_level=0,
                                      repair_confirmed=True, repair_days=3)
         assert account.capital_budget_level == expected_level

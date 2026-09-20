@@ -1108,14 +1108,15 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
     """
     current = copy.deepcopy(stage)
     if current.name == "_update_capital_budget_ladder":
-        assert current.body[0].value.value == "Escalate immediately; after confirmation release one tier per session."
+        assert current.body[0].value.value == "Escalate immediately; release repaired restrictions after full confirmation."
         current.body[0].value.value = "Escalate immediately and repair at most one capital tier per window."
         repair = current.body[3]
         assert ast.unparse(repair.body[0]) == "account.capital_budget_repair_streak = min(account.capital_budget_repair_streak + 1, repair_days)"
-        assert len(repair.body[1].body) == 1
-        assert ast.unparse(repair.body[1].body[0]) == "account.capital_budget_level = max(observed_level, current - 1)"
+        assert len(repair.body[1].body) == 2
+        assert ast.unparse(repair.body[1].body[0]) == "account.capital_budget_level = observed_level"
+        assert ast.unparse(repair.body[1].body[1]) == "account.capital_budget_repair_streak = 0"
+        repair.body[1].body[0] = ast.parse("account.capital_budget_level = max(observed_level, current - 1)").body[0]
         repair.body[0] = ast.parse("account.capital_budget_repair_streak += 1").body[0]
-        repair.body[1].body.append(ast.parse("account.capital_budget_repair_streak = 0").body[0])
     if current.name in {"_capital_budget_repair_drawdown_confirmed", "_observe_capital_budget",
                         "_observed_capital_budget_level", "_apply_capital_overlays"}:
         names = {"deployed_drawdown": "operating_drawdown", "deployed_dd": "operating_dd"}
@@ -1147,6 +1148,8 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
                  and isinstance(node.func, ast.Name) and node.func.id == "_capital_budget_repair_drawdown_confirmed"]
         assert len(calls) == 1
         assert [keyword.arg for keyword in calls[0].keywords] == ["level", "operating_drawdown", "cfg"]
+        assert ast.unparse(calls[0].keywords[0].value) == "1"
+        calls[0].keywords[0].value = ast.parse("account.capital_budget_level", mode="eval").body
         calls[0].keywords.insert(1, ast.keyword(arg="capital_drawdown", value=ast.Name(id="capital_dd", ctx=ast.Load())))
     return current
 

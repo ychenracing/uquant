@@ -29,6 +29,22 @@ def test_repair_uses_current_exposure_and_preserves_history(deployed_dd, expecte
     assert result.freeze_new_risk
 
 
+@pytest.mark.parametrize('level', [1, 2, 3, 4])
+def test_full_release_requires_strict_repair_independent_of_historical_tier(level):
+    account = AccountState.empty(100)
+    account.capital_budget_level = level
+    for _ in range(DEFAULT_CONFIG.capital_budget_repair_days):
+        apply_capital_overlays(account=account, cfg=DEFAULT_CONFIG, observed_budget_level=0,
+            transition_damage=0.1, votes=0, held_damage_ratio=0,
+            deployed_dd=DEFAULT_CONFIG.operating_dd_caution, strategic_damage_guard=False)
+    assert account.capital_budget_level == level
+    for day in range(DEFAULT_CONFIG.capital_budget_repair_days):
+        apply_capital_overlays(account=account, cfg=DEFAULT_CONFIG, observed_budget_level=0,
+            transition_damage=0.1, votes=0, held_damage_ratio=0,
+            deployed_dd=0, strategic_damage_guard=False)
+        assert account.capital_budget_level == (0 if day + 1 == DEFAULT_CONFIG.capital_budget_repair_days else level)
+
+
 @pytest.mark.parametrize('deployed_dd,expected', [(0.0, 0), (0.13, 1)])
 def test_damage_and_repair_use_the_same_current_exposure(deployed_dd, expected):
     account = AccountState.empty(2_000_000)

@@ -72,7 +72,7 @@ def _update_capital_budget_ladder(
     repair_confirmed: bool,
     repair_days: int,
 ) -> None:
-    """Escalate immediately; after confirmation release one tier per session."""
+    """Escalate immediately; release repaired restrictions after full confirmation."""
     current = account.capital_budget_level
     if observed_level > current:
         account.capital_budget_level = observed_level
@@ -81,7 +81,8 @@ def _update_capital_budget_ladder(
     if observed_level < current and repair_confirmed:
         account.capital_budget_repair_streak = min(account.capital_budget_repair_streak + 1, repair_days)
         if account.capital_budget_repair_streak >= repair_days:
-            account.capital_budget_level = max(observed_level, current - 1)
+            account.capital_budget_level = observed_level
+            account.capital_budget_repair_streak = 0
         return
     account.capital_budget_repair_streak = 0
 
@@ -95,10 +96,10 @@ def _capital_budget_repair_drawdown_confirmed(
     """Repair current deployed risk, without requiring cash to earn back history.
 
     Historical losses and the capital high-water mark remain account facts.
-    Both escalation and repair use continuous deployed exposure. Requiring
+    Repair uses continuous deployed exposure. Requiring
     historical high-water recovery made a settled cash account's freeze circular:
     no new exposure until profits, but no profits without new exposure.
-    Market confirmation and gradual tier release remain in the shared ladder.
+    Full release uses the strictest tier threshold and market confirmation.
     """
 
     threshold = (
@@ -279,7 +280,7 @@ def _apply_capital_overlays(
             and votes <= 1
             and held_damage_ratio < 0.50
             and _capital_budget_repair_drawdown_confirmed(
-                level=account.capital_budget_level,
+                level=1,  # Full release requires the strictest existing repair threshold.
                 deployed_drawdown=deployed_dd,
                 cfg=cfg,
             )

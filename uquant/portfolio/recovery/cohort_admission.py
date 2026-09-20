@@ -108,7 +108,10 @@ def scan_recovery_evidence(
         close = scalar(row, "close")
         ma20 = scalar(row, f"ma{self.cfg.trend_fast}")
         ret120 = scalar(row, f"ret{self.cfg.trend_slow}", 0.0)
-        signal_days = self.cfg.recovery_add_window_days if account.anchor_weights else 1
+        signal_days = (
+            self.cfg.recovery_add_window_days
+            if account.anchor_weights and symbol not in account.anchor_weights else 1
+        )
         recent = frame["close"].tail(10 + signal_days)
         recent_breakout = bool(
             recent.ge(recent.shift().rolling(10).max()).tail(signal_days).any()

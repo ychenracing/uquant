@@ -51,13 +51,16 @@ def test_selection_preserves_owned_members_and_ranks_eligible_additions_by_stren
     assert account.anchor_weights == {'held': .6}
 
 
-def test_empty_book_requires_a_fresh_breakout():
+@pytest.mark.parametrize('anchors', [{}, {'a': .5}])
+def test_initial_entry_and_owned_remainders_require_a_fresh_breakout(anchors):
     dates = pd.bdate_range('2025-01-02', periods=12)
     frame = pd.DataFrame({'close': [100.] * 10 + [110., 108.],
                           'ma20': 105., 'ret120': -.4}, index=dates)
     policy = SimpleNamespace(cfg=DEFAULT_CONFIG, _liquidity_confirmed=lambda frame, date: True)
+    account = AccountState.empty(100)
+    account.anchor_weights = anchors
     candidates, _ = scan_recovery_evidence(policy, date=dates[-1], user_panel={'a': frame},
-        leaders={'a': _leader('a', .9)}, account=AccountState.empty(100))
+        leaders={'a': _leader('a', .9)}, account=account)
     assert candidates == []
 
 def test_empty_cohort_preserves_depth_order_before_strength():

@@ -104,8 +104,21 @@ def run_failed_grant_fixture(
                 else material_rates.get(symbol, 0.001)
             )
             changes = [rate] * len(dates)
+            # Repeated one-session cross-industry disagreements interrupt the
+            # short consecutive risk-repair streak. Healthy observations still
+            # accumulate in the independent bounded flat-book owner, so this
+            # fixture reaches actual candidate-bound reauthorization.
+            if symbol not in INDEX_SYMBOLS:
+                first = dates.get_loc(pd.Timestamp("2023-01-03"))
+                if type(first) is not int:
+                    raise ValueError("absolute recovery start session is ambiguous")
+                shock = 0.12 if symbol in {"sz300502", "sz300394"} else -0.12
+                for index in range(first + 3, len(dates), 4):
+                    changes[index] = shock
+                    if index + 1 < len(dates):
+                        changes[index + 1] = (1.0 + rate) ** 2 / (1.0 + shock) - 1.0
             if symbol == "sh688019":
-                locked_index = dates.get_loc(pd.Timestamp("2023-02-02"))
+                locked_index = dates.get_loc(pd.Timestamp("2023-02-13"))
                 if type(locked_index) is not int:
                     raise ValueError("absolute recovery locked session is ambiguous")
                 changes[locked_index + 1 :] = [-0.009] * (
@@ -116,7 +129,7 @@ def run_failed_grant_fixture(
                 symbol=symbol,
                 dates=dates,
                 daily_returns=changes,
-                locked_session="2023-02-02" if symbol == "sh688019" else "",
+                locked_session="2023-02-13" if symbol == "sh688019" else "",
             )
         return _run_fixture(
             data=data,

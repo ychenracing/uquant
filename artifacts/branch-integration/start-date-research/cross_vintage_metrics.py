@@ -47,6 +47,7 @@ def read_metrics(path, common='2025-01-16', end='2026-08-05'):
         assert [row['date'] for row in daily] == [day for day in dates if day > prefix['checkpoint']]
     else:
         assert [row['date'] for row in daily] == dates
+    assert math.isclose(account.capital_peak, max(account.initial_cash, *equity.values()), rel_tol=1e-10)
     full_dd = drawdown(equity.values(), account.initial_cash)
     assert math.isclose(full_dd, result['max_drawdown'], abs_tol=1e-10)
     window = [row for row in daily if common < row['date'] <= end]

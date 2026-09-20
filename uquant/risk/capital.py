@@ -141,6 +141,7 @@ def _independent_capital_damage(
 
 def _observed_capital_budget_level(
     *,
+    capital_dd: float,
     deployed_dd: float,
     worsening_damage: bool,
     independent_damage: bool,
@@ -150,8 +151,12 @@ def _observed_capital_budget_level(
     held_damage_ratio: float,
     cfg: SystemConfig,
 ) -> int:
+    # Market/holding warnings corroborate a loss; they do not turn settled
+    # history into damage in a new deployment that is below its caution line.
+    if deployed_dd < cfg.operating_dd_caution:
+        return 0
     if (
-        deployed_dd >= cfg.capital_dd_crisis
+        capital_dd >= cfg.capital_dd_crisis
         and worsening_damage
         and votes >= 4
         and sector_stress >= 0.50
@@ -159,13 +164,13 @@ def _observed_capital_budget_level(
     ):
         return 4
     if (
-        deployed_dd >= cfg.capital_budget_level3_dd
+        capital_dd >= cfg.capital_budget_level3_dd
         and worsening_damage
         and votes >= 4
         and transition_damage >= cfg.transition_damage_freeze
     ):
         return 3
-    if deployed_dd >= cfg.capital_budget_level2_dd and independent_damage:
+    if capital_dd >= cfg.capital_budget_level2_dd and independent_damage:
         return 2
     if deployed_dd >= cfg.operating_dd_caution and (
         votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
@@ -207,6 +212,7 @@ def _observe_capital_budget(
     held_damage_ratio: float,
     transition_damage: float,
     votes: int,
+    capital_dd: float,
     deployed_dd: float,
     sector_stress: float,
     strategic_active: bool,
@@ -228,6 +234,7 @@ def _observe_capital_budget(
     observed_budget_level = 0
     if cfg.capital_budget_ladder_enabled:
         observed_budget_level = _observed_capital_budget_level(
+            capital_dd=capital_dd,
             deployed_dd=deployed_dd,
             worsening_damage=worsening_damage,
             independent_damage=independent_damage,

@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path.cwd()
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'artifacts/branch-integration'))
 from run_pairs import CONTRACT, run  # noqa: E402
 

@@ -46,6 +46,7 @@ _ECONOMIC_ADDITIONS = frozenset(
         "uquant/portfolio/capital.py",
         "uquant/portfolio/allocation_book.py",
         "uquant/portfolio/recovery/current_cohort.py",
+        "uquant/portfolio/leaders/cycle.py",
         "uquant/portfolio/leaders/extensions.py",
         "uquant/portfolio/recovery/cohort_admission.py",
         "uquant/portfolio/recovery/tactical_admission.py",
@@ -1106,6 +1107,9 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
     market controls, tier progression and damage escalation stay exact.
     """
     current = copy.deepcopy(stage)
+    if current.name == "_observed_capital_budget_level":
+        first = current.body.pop(0)
+        assert ast.unparse(first) == "if deployed_dd < cfg.operating_dd_caution:\n    return 0"
     if current.name in {"_capital_budget_repair_drawdown_confirmed", "_observe_capital_budget",
                         "_observed_capital_budget_level", "_apply_capital_overlays"}:
         names = {"deployed_drawdown": "operating_drawdown", "deployed_dd": "operating_dd"}
@@ -1123,14 +1127,12 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
         current.body[0] = ast.Expr(value=ast.Constant(value="Require drawdown repair before releasing a persistent capital tier."))
         current.body[-1] = ast.parse("return max(capital_drawdown, operating_drawdown) < threshold").body[0]
     elif current.name in {"_observe_capital_budget", "_observed_capital_budget_level"}:
-        index = next(i for i, arg in enumerate(current.args.kwonlyargs) if arg.arg == "operating_dd")
-        current.args.kwonlyargs.insert(index, ast.arg(arg="capital_dd", annotation=ast.Name(id="float", ctx=ast.Load())))
-        current.args.kw_defaults.insert(index, None)
+        assert any(arg.arg == "capital_dd" for arg in current.args.kwonlyargs)
         if current.name == "_observe_capital_budget":
             calls = [node for node in ast.walk(current) if isinstance(node, ast.Call)
                      and isinstance(node.func, ast.Name) and node.func.id == "_observed_capital_budget_level"]
-            assert len(calls) == 1 and calls[0].keywords[0].arg == "operating_dd"
-            calls[0].keywords.insert(0, ast.keyword(arg="capital_dd", value=ast.Name(id="capital_dd", ctx=ast.Load())))
+            assert len(calls) == 1
+            assert [keyword.arg for keyword in calls[0].keywords[:2]] == ["capital_dd", "operating_dd"]
     elif current.name == "_apply_capital_overlays":
         assert current.args.kwonlyargs[6].arg == "operating_dd"
         current.args.kwonlyargs.insert(6, ast.arg(arg="capital_dd", annotation=ast.Name(id="float", ctx=ast.Load())))

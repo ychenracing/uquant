@@ -190,6 +190,7 @@ def _base_capital_stages(
         held_damage_ratio=market.held_damage_ratio,
         transition_damage=market.transition_damage,
         votes=market.votes,
+        capital_dd=market.capital_dd,
         deployed_dd=market.deployed_dd,
         sector_stress=market.sector_stress,
         strategic_active=breaks.strategic_active,

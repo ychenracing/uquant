@@ -112,6 +112,7 @@ def _capture_shock(route, *, date, panel, account, equity):
     if route == "risk_transition":
         _prepare_new_crisis(_RiskTransitionContext(
             **common, previous=Risk.NORMAL, shock_rearmed=True, narrow_anchor_guard=False,
+            deployed_dd=0.20,
             independent_damage=True, reasons=[], sector_guard=sector_guard,
             credible_reserve=False, overlay_cap=1.0,
         ))

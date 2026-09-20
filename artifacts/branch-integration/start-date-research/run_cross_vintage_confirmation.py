@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path.cwd()
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'artifacts/branch-integration'))
 from run_pairs import CONTRACT, run  # noqa: E402
 
@@ -39,7 +40,20 @@ def main():
                        data_dir=ROOT / 'data/frozen', contract=CONTRACT, end=contract['end'])
         destination = output / (name + '.json.gz')
         prefix = ROOT.parent / 'cross-vintage/confirmation-prefixes' / (a + '-prefix.json')
-        assert prefix.exists() and not destination.exists()
+        assert prefix.exists()
+        if destination.exists():
+            # B continuation is independent of the candidate revision. Reuse
+            # only its already-validated exact baseline/prefix, never a C run.
+            import gzip
+            from cross_vintage_metrics import read_metrics
+            assert checkout == baseline
+            payload = json.loads(gzip.decompress(destination.read_bytes()))
+            expected_prefix = json.loads(prefix.read_text())
+            assert payload['source_head'] == contract['baseline']
+            assert payload['prefix'] == expected_prefix
+            group = next(g for g in contract['confirmation'] if name.startswith(g['id'] + '-'))
+            read_metrics(destination, group['common_close'], contract['end'])
+            return {'case': name, 'exit_code': 0, 'source_root': str(checkout), 'reused_baseline': True}
         command = [sys.executable, str(ROOT / 'artifacts/branch-integration/start-date-research/resume_cross_vintage.py'),
                    '--prefix', str(prefix), '--output', str(destination), '--end', contract['end']]
         with (output / (name + '.log')).open('x') as log:

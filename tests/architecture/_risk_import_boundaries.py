@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 from .test_risk_boundaries import (
     _COMPATIBILITY_NAMES,
     _INVENTORY,
@@ -30,8 +32,19 @@ def test_risk_facade_preserves_consumed_names_reflection_and_live_anchor_seam(
         assert function.__module__ == "uquant.risk"
         assert function.__name__ == name
         assert function.__qualname__ == name
-        assert str(inspect.signature(function)) == reflection[name]["signature"]
-        assert function.__doc__ == reflection[name]["raw_docstring"]
+        signature = reflection[name]["signature"]
+        if name == "_capital_budget_repair_drawdown_confirmed":
+            # Reviewed recovery dependency: historical loss is no longer a
+            # prerequisite for releasing repaired deployed risk.
+            signature = signature.replace("capital_drawdown: 'float', ", "").replace(
+                "operating_drawdown", "deployed_drawdown"
+            )
+            assert hashlib.sha256(function.__doc__.encode()).hexdigest() == (
+                "633f3a346544fd12a5af4accab2e2e234ceb956329ce6d1921cd77f4e6389843"
+            )
+        else:
+            assert function.__doc__ == reflection[name]["raw_docstring"]
+        assert str(inspect.signature(function)) == signature
 
     observed: list[bool] = []
     original = risk_module._update_dynamic_anchors

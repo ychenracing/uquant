@@ -37,7 +37,7 @@ def test_damage_and_repair_use_the_same_current_exposure(deployed_dd, expected):
     result = observe_capital_budget(account=account, cfg=DEFAULT_CONFIG,
         sector_guard=SectorGuardTransition(False, False, False, False, 0, 0, None),
         reference_anchor_break=False, held_damage_ratio=0, transition_damage=0.6, votes=2,
-        deployed_dd=deployed_dd, sector_stress=0.2, strategic_active=False)
+        capital_dd=0.13, deployed_dd=deployed_dd, sector_stress=0.2, strategic_active=False)
     assert result.observed_budget_level == expected
     assert account.capital_peak == 2_024_610
 
@@ -103,3 +103,30 @@ def test_legacy_peak_initialization_uses_existing_facts(held, expected):
     decoded = account_from_dict(raw, require_hashes=False)
     assert decoded.deployed_peak == expected
     assert {k: v for k, v in decoded.to_dict().items() if k != 'deployed_peak'} == raw
+
+
+@pytest.mark.parametrize('value', [-1.0, float('nan'), 'invalid'])
+def test_deployed_peak_rejects_invalid_durable_values(value):
+    from uquant.account import account_from_dict
+
+    raw = AccountState.empty(100.0).to_dict()
+    raw['deployed_peak'] = value
+    with pytest.raises(RuntimeError, match='deployed_peak'):
+        account_from_dict(raw, require_hashes=False)
+
+
+@pytest.mark.parametrize('capital_dd,deployed_dd,damage,votes,expected', [
+    (0.25, 0.0, False, 4, 0),
+    (0.13, 0.09, True, 2, 2),
+    (0.18, 0.09, True, 4, 3),
+    (0.25, 0.09, True, 4, 4),
+    (0.25, 0.07, True, 4, 0),
+    (0.13, 0.09, False, 2, 1),
+])
+def test_accumulated_loss_reduces_budget_only_with_independent_damage(capital_dd, deployed_dd, damage, votes, expected):
+    from uquant.risk.capital import _observed_capital_budget_level
+    assert _observed_capital_budget_level(
+        capital_dd=capital_dd, deployed_dd=deployed_dd, independent_damage=damage,
+        worsening_damage=damage, votes=votes, sector_stress=0.8,
+        transition_damage=0.8, held_damage_ratio=float(damage), cfg=DEFAULT_CONFIG,
+    ) == expected

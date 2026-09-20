@@ -88,3 +88,17 @@ requires structural leadership and its existing shock proof. No sizing, entry,
 exit-structure, risk cap, timer or config changes. This is more protective for the
 observed economic exposure, not a risk relaxation. First test2024 and the directly
 affected loo308; unchanged task gates and complete seven cases required for success.
+
+## C3 outcome and closeout
+
+C3 2024 is economically unchanged. Main loo308 wealth4.3719385->3.5495100
+(retention.8118847) violates.90; maximum drawdown remains27.6026%. The original
+May26 response was already a sector reduction; C3 escalated it to full evacuation,
+losing retained positions and delaying subsequent participation. The equal-name
+condition therefore has a real severity-discrimination role, not redundant cost.
+Revert C3; do not combine it with rejected C1/C2 or retune the loss threshold.
+No independent evidence currently supports another bounded mechanism. Remaining
+selection/risk-composition hypotheses need a broader, predeclared decision sample
+and independent validation; isolated known winners do not justify another rule.
+Stop unsupported trials, preserve originals, and leave production main unchanged.
+This is an unsuccessful economic research delivery, not engineering success.

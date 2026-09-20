@@ -160,6 +160,11 @@ def _decode_account_core_fields(
         "cooldown_until": payload.get("cooldown_until", ""),
         "operating_peak": operating_peak,
         "capital_peak": capital_peak,
+        "deployed_peak": payload.get(
+            "deployed_peak",
+            capital_peak if any(item.get("shares", 0) > 0 for item in payload.get("positions", {}).values())
+            else payload["cash"],
+        ),
     }
 
 

@@ -38,6 +38,7 @@ class AccountState:
     cooldown_until: str = ""
     operating_peak: float = 0.0
     capital_peak: float = 0.0
+    deployed_peak: float = 0.0
     leader_tenure: dict[str, int] = field(default_factory=dict)
     candidate_tenure: dict[str, int] = field(default_factory=dict)
     replacement_tenure: dict[str, int] = field(default_factory=dict)
@@ -120,6 +121,7 @@ class AccountState:
             cash=cash,
             operating_peak=cash,
             capital_peak=cash,
+            deployed_peak=cash,
         )
 
     def to_dict(self) -> dict[str, Any]:

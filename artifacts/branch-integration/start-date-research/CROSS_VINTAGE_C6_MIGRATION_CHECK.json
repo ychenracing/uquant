@@ -1,0 +1,11 @@
+{
+  "source_checkpoint_sha256": "f65857ce7a9603dbcb5ca797bee4173cdb68ce7c3da0d7dd7d28dd53f9314617",
+  "migrated_checkpoint_sha256": "442e225492e7a9b61b7f0edff780f5335fe466428a3054e2a73402774d405b71",
+  "all_original_fields_equal_except_code_identity_audit": true,
+  "added_derived_field": {
+    "deployed_peak": 1755651.0013816166,
+    "basis": "Actual source account is flat; initialize from preserved cash"
+  },
+  "pending_orders_unchanged": true,
+  "historical_capital_peak_unchanged": true
+}

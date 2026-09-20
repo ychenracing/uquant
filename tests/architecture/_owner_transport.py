@@ -1106,6 +1106,15 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
     market controls, tier progression and damage escalation stay exact.
     """
     current = copy.deepcopy(stage)
+    if current.name in {"_capital_budget_repair_drawdown_confirmed", "_observe_capital_budget",
+                        "_observed_capital_budget_level", "_apply_capital_overlays"}:
+        names = {"deployed_drawdown": "operating_drawdown", "deployed_dd": "operating_dd"}
+        assert any(arg.arg in names for arg in current.args.kwonlyargs)
+        for node in ast.walk(current):
+            if isinstance(node, ast.Name) and node.id in names:
+                node.id = names[node.id]
+            elif isinstance(node, (ast.arg, ast.keyword)) and node.arg in names:
+                node.arg = names[node.arg]
     if current.name == "_capital_budget_repair_drawdown_confirmed":
         assert ast.unparse(current.body[-1]) == "return operating_drawdown < threshold"
         assert [arg.arg for arg in current.args.kwonlyargs] == ["level", "operating_drawdown", "cfg"]

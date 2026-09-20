@@ -51,6 +51,20 @@ def _portfolio_drawdowns(account: AccountState, equity: float) -> tuple[float, f
 portfolio_drawdowns = _portfolio_drawdowns
 
 
+def deployed_drawdown(account: AccountState, equity: float) -> float:
+    """Measure continuous exposure without resetting losses on a repair label.
+
+    The operating peak can restart during recovery; the lifetime capital peak
+    never restarts. This risk-only peak ends when the actual book is flat.
+    Legacy held books conservatively inherit the recorded capital high water.
+    """
+    if any(position.shares > 0 for position in account.positions.values()):
+        account.deployed_peak = max(account.deployed_peak or account.capital_peak or equity, equity)
+    else:
+        account.deployed_peak = equity
+    return max(0.0, 1.0 - equity / max(account.deployed_peak, 1e-12))
+
+
 def _update_capital_budget_ladder(
     account: AccountState,
     *,
@@ -76,13 +90,13 @@ def _update_capital_budget_ladder(
 def _capital_budget_repair_drawdown_confirmed(
     *,
     level: int,
-    operating_drawdown: float,
+    deployed_drawdown: float,
     cfg: SystemConfig,
 ) -> bool:
     """Repair current deployed risk, without requiring cash to earn back history.
 
     Historical losses and the capital high-water mark remain account facts.
-    Both escalation and repair use the current deployed episode. Requiring
+    Both escalation and repair use continuous deployed exposure. Requiring
     historical high-water recovery made a settled cash account's freeze circular:
     no new exposure until profits, but no profits without new exposure.
     Market confirmation and gradual tier release remain in the shared ladder.
@@ -97,7 +111,7 @@ def _capital_budget_repair_drawdown_confirmed(
         if level >= 2
         else cfg.operating_dd_caution
     )
-    return operating_drawdown < threshold
+    return deployed_drawdown < threshold
 
 
 def _independent_capital_damage(
@@ -127,7 +141,7 @@ def _independent_capital_damage(
 
 def _observed_capital_budget_level(
     *,
-    operating_dd: float,
+    deployed_dd: float,
     worsening_damage: bool,
     independent_damage: bool,
     votes: int,
@@ -137,7 +151,7 @@ def _observed_capital_budget_level(
     cfg: SystemConfig,
 ) -> int:
     if (
-        operating_dd >= cfg.capital_dd_crisis
+        deployed_dd >= cfg.capital_dd_crisis
         and worsening_damage
         and votes >= 4
         and sector_stress >= 0.50
@@ -145,15 +159,15 @@ def _observed_capital_budget_level(
     ):
         return 4
     if (
-        operating_dd >= cfg.capital_budget_level3_dd
+        deployed_dd >= cfg.capital_budget_level3_dd
         and worsening_damage
         and votes >= 4
         and transition_damage >= cfg.transition_damage_freeze
     ):
         return 3
-    if operating_dd >= cfg.capital_budget_level2_dd and independent_damage:
+    if deployed_dd >= cfg.capital_budget_level2_dd and independent_damage:
         return 2
-    if operating_dd >= cfg.operating_dd_caution and (
+    if deployed_dd >= cfg.operating_dd_caution and (
         votes >= 2 or (votes >= 1 and held_damage_ratio > 0)
     ):
         return 1
@@ -193,7 +207,7 @@ def _observe_capital_budget(
     held_damage_ratio: float,
     transition_damage: float,
     votes: int,
-    operating_dd: float,
+    deployed_dd: float,
     sector_stress: float,
     strategic_active: bool,
 ) -> CapitalObservation:
@@ -214,7 +228,7 @@ def _observe_capital_budget(
     observed_budget_level = 0
     if cfg.capital_budget_ladder_enabled:
         observed_budget_level = _observed_capital_budget_level(
-            operating_dd=operating_dd,
+            deployed_dd=deployed_dd,
             worsening_damage=worsening_damage,
             independent_damage=independent_damage,
             votes=votes,
@@ -250,7 +264,7 @@ def _apply_capital_overlays(
     transition_damage: float,
     votes: int,
     held_damage_ratio: float,
-    operating_dd: float,
+    deployed_dd: float,
     strategic_damage_guard: bool,
 ) -> CapitalOverlays:
     """Apply the existing persistent ladder and cap overlays in order."""
@@ -264,7 +278,7 @@ def _apply_capital_overlays(
             and held_damage_ratio < 0.50
             and _capital_budget_repair_drawdown_confirmed(
                 level=account.capital_budget_level,
-                operating_drawdown=operating_dd,
+                deployed_drawdown=deployed_dd,
                 cfg=cfg,
             )
         ),

@@ -688,6 +688,7 @@ def _validate_strategy_risk_state(state: AccountState) -> None:
     """
     _finite_number(state.operating_peak, field="operating_peak", minimum=0.0)
     _finite_number(state.capital_peak, field="capital_peak", minimum=0.0)
+    _finite_number(state.deployed_peak, field="deployed_peak", minimum=0.0)
     if not isinstance(state.opportunity, str) or state.opportunity not in {
         item.value for item in Opportunity
     }:

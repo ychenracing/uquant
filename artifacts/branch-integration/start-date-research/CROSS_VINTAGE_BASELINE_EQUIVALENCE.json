@@ -1,0 +1,17 @@
+{
+  "baseline": "3af6aba18f133f4e22612769c703dac080d940d9",
+  "reused_producer": "33e310ec6aee04b50b2fa907c3e5935e1c88c557",
+  "changed_production_files": [
+    "uquant/engine.py",
+    "uquant/validation/absolute_generalization/contract.py"
+  ],
+  "engine_AST_equal": true,
+  "only_other_change": "Absolute validation registry SHA constant, outside daily engine/replay decisions. Source producer retained, not relabelled.",
+  "native_control": {
+    "baseline_control_sha256": "0143fc0052ad2903066479292fb70d18acddde97583bf55252004f406023fb5f",
+    "C9_original_sha256": "312b4d7a93f8d685a9ae8d62083a105197adc1f57d1bf12b7cf0d02f7d97f8c8",
+    "all_equity_points_equal": true,
+    "sessions": 627
+  },
+  "scope": "C9 baseline economic curves reused as B under unchanged daily behavior/data/config/runtime. C candidates require new replay evidence."
+}

@@ -193,17 +193,17 @@ def test_capital_budget_repair_requires_drawdown_recovery() -> None:
 
     assert not _capital_budget_repair_drawdown_confirmed(
         level=3,
-        operating_drawdown=0.24,
+        deployed_drawdown=0.24,
         cfg=cfg,
     )
     assert _capital_budget_repair_drawdown_confirmed(
         level=3,
-        operating_drawdown=cfg.capital_budget_level3_dd - 0.001,
+        deployed_drawdown=cfg.capital_budget_level3_dd - 0.001,
         cfg=cfg,
     )
     assert _capital_budget_repair_drawdown_confirmed(
         level=1,
-        operating_drawdown=0.0,
+        deployed_drawdown=0.0,
         cfg=cfg,
     )
 

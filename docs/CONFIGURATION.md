@@ -250,6 +250,10 @@ damage guard 或 acute evacuation；策略目标还必须不低于当前总仓�
 
 ## 修复与侦察仓
 
+`recovery_substitution_edge`、`recovery_substitution_max_ret20` 和
+`recovery_substitution_shock_window` 仅保留配置身份兼容；旧恢复锚替换生成器已退役，
+当前日频决策不读取这三个常量进行替换准入。现行恢复组准入和资金恢复逻辑保持独立。
+
 | 参数 | 默认值 |
 |---|---:|
 | `recovery_confirm_days` | 2 |

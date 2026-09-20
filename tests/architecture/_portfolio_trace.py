@@ -70,7 +70,6 @@ _STAGE_METHODS = {
     ),
     "recovery": (
         "_confirmed_recovery_gross",
-        "_recovery_anchor_substitution",
     ),
     "handoff": (
         "_allocate_strategy",

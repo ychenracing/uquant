@@ -26,7 +26,6 @@ _PORTFOLIO_REFERENCE_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
 _RECOVERY_PACKAGE_PATHS = (
     "uquant/portfolio/recovery/__init__.py",
     "uquant/portfolio/recovery/admission.py",
-    "uquant/portfolio/recovery/substitution.py",
     "uquant/portfolio/recovery/targets.py",
 )
 _ADMISSION_TARGET_HELPERS = {
@@ -212,64 +211,6 @@ def test_portfolio_recovery_owners_and_thin_facade_are_complete() -> None:
     assert imports == {"RecoveryPortfolioPolicy"}
 
 
-def test_portfolio_recovery_substitution_method_and_targets_are_ast_exact() -> None:
-    immutable = _immutable_method(
-        "uquant/portfolio_recovery.py",
-        "RecoveryPortfolioPolicy",
-        "_recovery_anchor_substitution",
-    )
-    candidate = expand_reviewed_architecture_owner(
-        root=ROOT,
-        relative="uquant/portfolio/recovery/substitution.py",
-        name="_recovery_anchor_substitution",
-        candidate=None,
-    )
-    targets = _function_nodes(
-        (ROOT / "uquant/portfolio/recovery/targets.py").read_text(encoding="utf-8")
-    )
-    immutable_pending = next(
-        node.value
-        for node in ast.walk(immutable)
-        if isinstance(node, ast.Return)
-        and isinstance(node.value, ast.Call)
-        and isinstance(node.value.func, ast.Attribute)
-        and node.value.func.attr == "_targets"
-    )
-    immutable_confirmed = next(
-        node.value
-        for node in ast.walk(immutable)
-        if isinstance(node, ast.Assign)
-        and any(isinstance(target, ast.Name) and target.id == "targets" for target in node.targets)
-        and isinstance(node.value, ast.Call)
-        and isinstance(node.value.func, ast.Attribute)
-        and node.value.func.attr == "_targets"
-    )
-    assert ast.dump(
-        targets["_pending_recovery_substitution_targets"].body[0].value,
-        include_attributes=False,
-    ) == ast.dump(immutable_pending, include_attributes=False)
-    assert ast.dump(
-        targets["_confirmed_recovery_substitution_targets"].body[0].value,
-        include_attributes=False,
-    ) == ast.dump(immutable_confirmed, include_attributes=False)
-    _assert_delegation_arguments(candidate.body, _SUBSTITUTION_TARGET_HELPERS)
-
-    class ExpandTargets(ast.NodeTransformer):
-        def visit_Return(self, node: ast.Return) -> ast.Return:
-            if _delegation(node) == "_pending_recovery_substitution_targets":
-                return ast.Return(value=copy.deepcopy(immutable_pending))
-            return self.generic_visit(node)
-
-        def visit_Assign(self, node: ast.Assign) -> ast.Assign:
-            if _delegation(node) == "_confirmed_recovery_substitution_targets":
-                expanded = copy.deepcopy(node)
-                expanded.value = copy.deepcopy(immutable_confirmed)
-                return expanded
-            return self.generic_visit(node)
-
-    expanded = ExpandTargets().visit(candidate)
-    assert isinstance(expanded, ast.FunctionDef)
-    assert _normalized_method(expanded) == _normalized_method(immutable)
 
 
 def test_portfolio_recovery_admission_slice_and_target_builders_are_ast_exact() -> None:
@@ -331,20 +272,6 @@ def test_portfolio_recovery_cannot_short_circuit_the_combined_book() -> None:
 
 
 def test_portfolio_recovery_ast_gate_rejects_recovery_rule_mutations() -> None:
-    substitution = _immutable_method(
-        "uquant/portfolio_recovery.py",
-        "RecoveryPortfolioPolicy",
-        "_recovery_anchor_substitution",
-    )
-    threshold = copy.deepcopy(substitution)
-    numeric = next(
-        node
-        for node in ast.walk(threshold)
-        if isinstance(node, ast.Constant) and isinstance(node.value, float)
-    )
-    numeric.value = float(numeric.value) + 0.01
-    assert _normalized_method(threshold) != _normalized_method(substitution)
-
     immutable_slice = _immutable_admission_slice()
     comparison = copy.deepcopy(immutable_slice)
     compare = next(

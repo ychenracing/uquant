@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 
-import pandas as pd
 import pytest
 from test_attribution_identity import (
     _identity,
@@ -22,7 +21,6 @@ from uquant.execution import (
     plan_orders,
     reconcile_account_orders,
 )
-from uquant.portfolio import PortfolioAllocator
 
 
 @pytest.mark.parametrize(
@@ -317,38 +315,17 @@ def test_blocked_recovery_replacement_retains_event_and_link_next_session() -> N
             "route": "recovery_anchor_substitution",
         }
     )
-    leaders = {
-        symbol: domain.LeaderScore(
-            symbol=symbol,
-            score=0.8,
-            confidence=0.9,
-            mature=True,
-            emerging=False,
-            industry=industry,
-            components={},
-        )
-        for symbol, industry in {
-            "sz300308": "film",
-            "sz300502": "optical",
-        }.items()
-    }
-    targets = PortfolioAllocator(DEFAULT_CONFIG)._recovery_anchor_substitution(
-        date=pd.Timestamp("2026-01-06"),
-        risk=domain.RiskAssessment(
-            state=domain.Risk.NORMAL,
-            target_gross_cap=1.0,
-            votes=0,
-            evidence={},
-            reasons=(),
-            shock_state="NONE",
-        ),
-        user_panel={},
-        leaders=leaders,
-        account=account,
-        weights_now={"sz300308": 0.30, "sz300502": 0.0},
-        anchor_elapsed=DEFAULT_CONFIG.recovery_add_window_days + 1,
-    )
-    assert targets is not None
+    # Historical substitution intents still retain their execution identity.
+    # Their retired private strategy is not needed to exercise this contract.
+    targets = (domain.Target(
+        symbol=retained.symbol, weight=retained.target_weight,
+        reason=retained.reason, lifecycle=domain.Lifecycle.CORE.value,
+        alpha_score=0.8, confidence=0.9,
+        origin_lifecycle=domain.Lifecycle.CORE.value,
+        origin_subsystem=domain.OriginSubsystem.RECOVERY.value,
+        mechanism=domain.AttributionMechanism.RECOVERY_SUBSTITUTION.value,
+        replaces_symbol="sh688008",
+    ),)
     targets = _attach_target_attribution(
         signal_date="2026-01-06",
         targets=targets,

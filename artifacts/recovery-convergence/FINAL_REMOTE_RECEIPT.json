@@ -1,0 +1,10 @@
+{
+  "library_file_id": "libfile_772d5860543c8191ba7074bc37642744",
+  "file_id": "file_000000008ed481f5872dc10b8dea04c8",
+  "file_name": "UQUANT_PR78_EVIDENCE.zip",
+  "bytes": 282184,
+  "sha256": "02e3f7c829af53777e4128e4bdb0fc690811822abf92e0ea6ddfaef705560e28",
+  "remote_readback_byte_equal": true,
+  "source_bundle_head": "b45a8097e76bf72f3456368ce04c1d682db7812d",
+  "source_bundle_prerequisite": "dd5ef43931c3e316f3808d4ef04f34e3953be194"
+}

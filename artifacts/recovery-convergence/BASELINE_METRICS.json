@@ -1,0 +1,49 @@
+{
+  "scope": "baseline native backtests; candidate exact allocator-input comparison is separate, not a fresh source-bound backtest",
+  "rows": [
+    {
+      "case": "early_ai_entry",
+      "sessions": 14,
+      "wealth": 1.01384756179632,
+      "max_drawdown": 0.03088831036438877,
+      "orders": 1,
+      "operation_days": 4,
+      "turnover": 0.9559125529618878,
+      "cost_burden": 0.0012034948591365248,
+      "raw_sha256": "bb18624d81783fdbecbd0180c29f57d1eb67ef030106ce9086d8e0bf23d276db"
+    },
+    {
+      "case": "late_2024_rotation",
+      "sessions": 23,
+      "wealth": 0.9664648184460801,
+      "max_drawdown": 0.07477293882799319,
+      "orders": 1,
+      "operation_days": 1,
+      "turnover": 0.5981947064184071,
+      "cost_burden": 0.000753127732977801,
+      "raw_sha256": "d346e7a4d6d9c0b7db003276bd2e3fb9f710d31fec976c01c4b46c8fc31333c5"
+    },
+    {
+      "case": "recent_shock",
+      "sessions": 23,
+      "wealth": 0.9459452761120002,
+      "max_drawdown": 0.05405472388799981,
+      "orders": 6,
+      "operation_days": 2,
+      "turnover": 1.9350231564687745,
+      "cost_burden": 0.0029085115383715677,
+      "raw_sha256": "5eac5d9248692e80a3644fe3f21283ba1ebe43b5b1abb8d1a97861746899ed3d"
+    },
+    {
+      "case": "recovery_2024",
+      "sessions": 99,
+      "wealth": 0.9529296518088537,
+      "max_drawdown": 0.10140134063724326,
+      "orders": 20,
+      "operation_days": 13,
+      "turnover": 3.6927653992005673,
+      "cost_burden": 0.005402999833232792,
+      "raw_sha256": "5f58190a80923066b796d70fa39b5e7cc6e2741e483e581739a7b898f1a2704c"
+    }
+  ]
+}

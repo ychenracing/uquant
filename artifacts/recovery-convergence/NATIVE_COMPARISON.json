@@ -1,0 +1,45 @@
+{
+  "source_head": "29c2f23aefd1dafc96543f44d2acd20fed2568f5",
+  "production_tree": "2d8940d2684bceafd94bae699f3cb0262035b145",
+  "runtime": {
+    "python": "3.12.13",
+    "numpy": "2.5.1",
+    "pandas": "3.0.5"
+  },
+  "exact_equal_fields": [
+    "equity_curve",
+    "final_wealth",
+    "max_drawdown",
+    "fees",
+    "slippage_cost",
+    "gross_turnover",
+    "annual_turnover",
+    "account_orders",
+    "submitted_account_orders",
+    "unfilled_account_submissions",
+    "round_trips",
+    "median_holding_days"
+  ],
+  "sessions": 99,
+  "wealth": 0.9529296518088537,
+  "max_drawdown": 0.10140134063724326,
+  "wealth_delta": 0,
+  "drawdown_delta": 0,
+  "turnover_delta": 0,
+  "cost_delta": 0,
+  "order_count_delta": 0,
+  "operation_days_delta": 0,
+  "raw_sha256": "eaa6dbcd95edd23ce7cf16b7afe187544d177736d7511bd4cb640d4f0cf12806",
+  "baseline_execution": {
+    "orders": 20,
+    "operation_days": 13,
+    "turnover": 3.6927653992005673,
+    "cost_burden": 0.005402999833232792
+  },
+  "candidate_execution": {
+    "orders": 20,
+    "operation_days": 13,
+    "turnover": 3.6927653992005673,
+    "cost_burden": 0.005402999833232792
+  }
+}

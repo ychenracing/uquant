@@ -95,7 +95,7 @@ def _capital_budget_repair_drawdown_confirmed(
     """Repair current deployed risk, without requiring cash to earn back history.
 
     Historical losses and the capital high-water mark remain account facts.
-    Both escalation and repair use continuous deployed exposure. Requiring
+    Current-book repair uses continuous deployed exposure. Requiring
     historical high-water recovery made a settled cash account's freeze circular:
     no new exposure until profits, but no profits without new exposure.
     Market confirmation and gradual tier release remain in the shared ladder.
@@ -271,6 +271,8 @@ def _apply_capital_overlays(
 ) -> CapitalOverlays:
     """Apply the existing persistent ladder and cap overlays in order."""
 
+    # A settled damaged cash book belongs to the bounded flat-book repair
+    # owner. Do not let the short deployed-risk streak bypass its certificate.
     _update_capital_budget_ladder(
         account,
         observed_level=observed_budget_level,
@@ -280,7 +282,11 @@ def _apply_capital_overlays(
             and held_damage_ratio < 0.50
             and _capital_budget_repair_drawdown_confirmed(
                 level=account.capital_budget_level,
-                deployed_drawdown=deployed_dd,
+                deployed_drawdown=(
+                    deployed_dd
+                    if any(position.shares > 0 for position in account.positions.values())
+                    else max(0.0, 1.0 - account.cash / max(account.capital_peak, 1e-12))
+                ),
                 cfg=cfg,
             )
         ),

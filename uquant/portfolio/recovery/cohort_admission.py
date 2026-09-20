@@ -108,9 +108,10 @@ def scan_recovery_evidence(
         close = scalar(row, "close")
         ma20 = scalar(row, f"ma{self.cfg.trend_fast}")
         ret120 = scalar(row, f"ret{self.cfg.trend_slow}", 0.0)
-        recent = frame["close"].tail(10 + self.cfg.recovery_add_window_days)
+        signal_days = self.cfg.recovery_add_window_days if account.anchor_weights else 1
+        recent = frame["close"].tail(10 + signal_days)
         recent_breakout = bool(
-            recent.ge(recent.shift().rolling(10).max()).tail(self.cfg.recovery_add_window_days).any()
+            recent.ge(recent.shift().rolling(10).max()).tail(signal_days).any()
         )
         if (
             math.isfinite(close)
@@ -239,9 +240,9 @@ def _recovery_selection(
     additions = sorted(
         {item.symbol for item in candidates} - previous_members,
         key=lambda symbol: (
-            -leaders[symbol].score,
-            crash_depth.get(symbol, 0.0),
-            symbol,
+            (-leaders[symbol].score, crash_depth.get(symbol, 0.0), symbol)
+            if previous_members else
+            (crash_depth.get(symbol, 0.0), -leaders[symbol].score, symbol)
         ),
     )
     selected = list(account.anchor_weights)

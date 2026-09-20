@@ -23,6 +23,7 @@ def test_recent_breakout_expires_and_requires_current_structure_and_liquidity(de
     frame = pd.DataFrame({'close': prices, 'ma20': 105., 'ret120': -.4}, index=dates)
     policy = SimpleNamespace(cfg=DEFAULT_CONFIG, _liquidity_confirmed=lambda frame, date: liquid)
     account = AccountState.empty(100)
+    account.anchor_weights = {'held': .5}
     candidates, _ = scan_recovery_evidence(policy, date=dates[-1], user_panel={'a': frame},
                                            leaders={'a': _leader('a', .9)}, account=account)
     assert bool(candidates) is expected
@@ -48,3 +49,24 @@ def test_selection_preserves_owned_members_and_ranks_eligible_additions_by_stren
     assert selected.selected == ['held', 'strong', 'second']
     assert selected.lead == 'held'
     assert account.anchor_weights == {'held': .6}
+
+
+def test_empty_book_requires_a_fresh_breakout():
+    dates = pd.bdate_range('2025-01-02', periods=12)
+    frame = pd.DataFrame({'close': [100.] * 10 + [110., 108.],
+                          'ma20': 105., 'ret120': -.4}, index=dates)
+    policy = SimpleNamespace(cfg=DEFAULT_CONFIG, _liquidity_confirmed=lambda frame, date: True)
+    candidates, _ = scan_recovery_evidence(policy, date=dates[-1], user_panel={'a': frame},
+        leaders={'a': _leader('a', .9)}, account=AccountState.empty(100))
+    assert candidates == []
+
+def test_empty_cohort_preserves_depth_order_before_strength():
+    leaders = {name: _leader(name, score) for name, score in
+               [('deep', .1), ('second', .8), ('third', .9)]}
+    selected, targets = _recovery_selection(SimpleNamespace(cfg=DEFAULT_CONFIG),
+        leaders=leaders, account=AccountState.empty(100), anchored_held={},
+        candidates=list(leaders.values()), crash_depth={'deep': -.5, 'second': -.4, 'third': -.3},
+        recovery_elapsed=0, deep_count=3, admission_depth=-.15,
+        risk=SimpleNamespace(), freeze_active=False)
+    assert targets is None
+    assert selected.selected == ['deep', 'second', 'third']

@@ -18,14 +18,14 @@ from uquant.validation.absolute_generalization.artifacts import reject_self_asse
 
 @pytest.mark.parametrize("entry", ("entry", "repair_entry", "rearm_certificate"))
 @pytest.mark.parametrize(
-    "check",
+    "check_name,check",
     (
-        {"as_of": "2023-01-03", "passed": True},
-        {"as_of": "2023-01-03", "passed": False, "value": 0.6, "minimum": 0.7},
+        ("structure", {"as_of": "2023-01-03", "passed": True}),
+        ("confidence", {"as_of": "2023-01-03", "passed": False, "value": 0.6, "minimum": 0.7}),
     ),
 )
 def test_strict_round_trip_accepts_entry_checks_in_cell_and_shard(
-    check: dict[str, object], entry: str,
+    check_name: str, check: dict[str, object], entry: str,
 ) -> None:
     """Keep both production entry-check DTO forms at their exact symbol path."""
     from uquant.contracts.strict_json import strict_json_loads
@@ -39,12 +39,12 @@ def test_strict_round_trip_accepts_entry_checks_in_cell_and_shard(
             "predicate_results": [{
                 "code": "current_independent_core", "passed": True,
                 "economic_authority": False, "orphan_residue": False,
-                "authoritative_state": {"checks": {"confidence": check}},
+                "authoritative_state": {"checks": {check_name: check}},
             }],
         })
     else:
         decision["risk_summary"]["core_allocation"] = {
-            "symbols": {"sh600487": {entry: {"checks": {"confidence": check}}}}
+            "symbols": {"sh600487": {entry: {"checks": {check_name: check}}}}
         }
     replay = replace(
         replay,
@@ -68,7 +68,7 @@ def test_runtime_risk_evidence_accepts_strict_entry_checks(entry: str) -> None:
         entry, "checks", "confidence",
     )
     reject_self_assertion_claims(
-        {"as_of": "2023-01-03", "passed": True}, path=path,
+        {"as_of": "2023-01-03", "passed": True, "value": 1.0, "minimum": 0.7}, path=path,
     )
 
 
@@ -89,7 +89,7 @@ def test_reachability_risk_evidence_accepts_strict_entry_checks(
         "symbols", "sh600487", entry, "checks", "confidence",
     )
     reject_self_assertion_claims(
-        {"as_of": "2023-01-03", "passed": True}, path=path,
+        {"as_of": "2023-01-03", "passed": True, "value": 1.0, "minimum": 0.7}, path=path,
     )
 
 
@@ -110,7 +110,7 @@ def test_reachability_risk_evidence_rejects_shifted_paths(
     )
     with pytest.raises(ValueError, match="self-asserted pass"):
         reject_self_assertion_claims(
-            {"as_of": "2023-01-03", "passed": True}, path=path,
+            {"as_of": "2023-01-03", "passed": True, "value": 1.0, "minimum": 0.7}, path=path,
         )
 
 
@@ -146,7 +146,7 @@ def test_entry_check_path_rejects_shifted_symbol_layers(tail: tuple[str, ...]) -
         "risk_summary", *tail,
     )
     with pytest.raises(ValueError, match="self-asserted pass"):
-        reject_self_assertion_claims({"as_of": "2023-01-03", "passed": True}, path=path)
+        reject_self_assertion_claims({"as_of": "2023-01-03", "passed": True, "value": 1.0, "minimum": 0.7}, path=path)
 
 
 def test_entry_check_path_rejects_nested_fake_replay_root() -> None:
@@ -156,7 +156,7 @@ def test_entry_check_path_rejects_nested_fake_replay_root() -> None:
         "entry", "checks", "confidence",
     )
     with pytest.raises(ValueError, match="self-asserted pass"):
-        reject_self_assertion_claims({"as_of": "2023-01-03", "passed": True}, path=path)
+        reject_self_assertion_claims({"as_of": "2023-01-03", "passed": True, "value": 1.0, "minimum": 0.7}, path=path)
 
 
 @pytest.mark.parametrize("owner", ("strategic_cash_rearm", "flat_book_capital_repair", "untrusted"))
@@ -165,7 +165,7 @@ def test_entry_check_path_rejects_nested_fake_replay_root() -> None:
 def test_rearm_certificate_checks_require_exact_owner_and_dto(
     owner: str, prefix: tuple[str | int, ...], malformed: bool,
 ) -> None:
-    check = {"as_of": "2023-01-03", "passed": True}
+    check = {"as_of": "2023-01-03", "passed": True, "value": 1.0, "minimum": 0.7}
     if malformed:
         check["capability_pass"] = True
     predicate = {

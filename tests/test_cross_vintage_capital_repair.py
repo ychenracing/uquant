@@ -9,7 +9,9 @@ from uquant.types import AccountState
 
 @pytest.mark.parametrize('deployed_dd,expected', [(0.0, 0), (0.15, 1)])
 def test_repair_uses_current_exposure_and_preserves_history(deployed_dd, expected):
-    account = AccountState.empty(2_000_000)
+    from test_account_schema_v3_integrity import _position_state
+
+    account = _position_state()
     account.cash = 1_755_651
     account.capital_peak = 2_024_610
     account.operating_peak = account.cash
@@ -130,3 +132,15 @@ def test_accumulated_loss_reduces_budget_only_with_independent_damage(capital_dd
         worsening_damage=damage, votes=votes, sector_stress=0.8,
         transition_damage=0.8, held_damage_ratio=float(damage), cfg=DEFAULT_CONFIG,
     ) == expected
+
+
+def test_damaged_flat_book_keeps_its_bounded_repair_owner():
+    account = AccountState.empty(1_000_000)
+    account.capital_peak = 1_200_000
+    account.capital_budget_level = 1
+    for _ in range(DEFAULT_CONFIG.capital_budget_repair_days):
+        apply_capital_overlays(account=account, cfg=DEFAULT_CONFIG, observed_budget_level=0,
+            transition_damage=0.1, votes=0, held_damage_ratio=0,
+            deployed_dd=0, strategic_damage_guard=False)
+    assert account.capital_budget_level == 1
+    assert account.capital_budget_repair_streak == 0

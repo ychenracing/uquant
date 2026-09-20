@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from architecture._cross_vintage_api_projection import cross_vintage_api_projection
 
 from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.types import (
@@ -294,15 +295,17 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
         "target": "40deb0e6450d7bdb5eaf7da4ff263501ac70c4a970aa1a56695bfe1b104b982d",
     }
 
-    # The optional native ordinary-order receipt is the sole authorized additive
-    # serialization change; preserve every historical model digest below.
+    # Project only the reviewed receipt and deployed-exposure peak additions;
+    # preserve every historical model digest below.
     account_payload = serialized["account"]
     assert isinstance(account_payload, dict)
     assert account_payload["schema_version"] == 8
     rearm_payload = dict(account_payload["strategic_cash_rearm"])
     assert rearm_payload.pop("consumed_order") is None
     historical_account = {**account_payload, "strategic_cash_rearm": rearm_payload}
-    assert _canonical_sha256(account_payload) == (
+    assert historical_account.pop("deployed_peak") == account_payload["capital_peak"]
+    assert _canonical_sha256({key: value for key, value in account_payload.items()
+                              if key != "deployed_peak"}) == (
         "c4f0c04de39c776a3b5244eb79b5e11c8a75aad83f9bcae4726edc4045b751ca"
     )
     historical_serialized = {**serialized, "account": historical_account}
@@ -310,8 +313,9 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
 
 
 def test_model_field_order_defaults_factories_and_flat_account_schema_are_frozen() -> None:
-    expected_module = PUBLIC_API["modules"]["uquant.types"]
-    expected_schema = PUBLIC_API["account_state_schema"]
+    projected = cross_vintage_api_projection(PUBLIC_API)
+    expected_module = projected["modules"]["uquant.types"]
+    expected_schema = projected["account_state_schema"]
     assert isinstance(expected_module, Mapping)
     assert isinstance(expected_schema, Mapping)
     observed_module = public_module_contract("uquant.types")
@@ -322,7 +326,7 @@ def test_model_field_order_defaults_factories_and_flat_account_schema_are_frozen
     assert observed_module["dataclasses"] == expected_module["dataclasses"]
     assert observed_module["enums"] == expected_module["enums"]
     assert observed_module["functions"] == expected_module["functions"]
-    assert len(dataclasses.fields(AccountState)) == 84
+    assert len(dataclasses.fields(AccountState)) == 85
     assert [field.name for field in dataclasses.fields(AccountState)] == expected_schema["field_order"]
     assert list(empty.to_dict()) == expected_schema["serialized_key_order"]
     assert empty.to_dict() == expected_schema["empty_state"]

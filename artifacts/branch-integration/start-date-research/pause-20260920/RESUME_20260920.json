@@ -1,20 +1,27 @@
 {
-  "status": "NOT_ACCEPTED_CHAMPION_REGRESSION",
-  "source": "47d830ace565d8f659b99103fff41cf765c65466",
-  "delivery": "77bf13ec8688369bcd1dd5ed5c7f85e167796b51",
+  "status": "R26_SENTINELS_PASSED_FIXED_MATRIX_RUNNING_NOT_MERGED",
+  "source": {
+    "local": "0beca9d1b3f991b633621219770f9da7a389b72b",
+    "remote": "2b1279e70c21d697e3fa325211db86753e5af973",
+    "full_tree": "e8342eb5be19a89ee87e0e2560be7ed64bc612ab"
+  },
+  "delivery": "pending final fixed economics and relevant checks",
   "baseline": "3af6aba18f133f4e22612769c703dac080d940d9",
   "reserve": "CONFIRMATION_ECONOMICS_MET",
   "reserve_coverage": "AFFECTED_PATHS_COVERED",
   "champion": {
-    "B_W": 27.97313399886477,
-    "C_W": 15.352046550540328,
-    "gate": 23.28417871275582,
-    "B_DD": 0.27133435111722704,
-    "C_DD": 0.27133435111722704
+    "R24": "FAIL W15.352046550540328",
+    "R25": "PASS but legacy FAIL G2.962395938461834; rejected",
+    "R26": "PASS W28.138745177514686 DD0.27133435111722704",
+    "cause": "Ordinary holding incorrectly supplied second strategic cohort member; R26 requires two actual live strategic members. First economic difference Oct15,2025; July recovery unchanged."
   },
   "first_economic_difference": "2025-07-24: C buys sz300502 earlier/larger; later 2025-10-14 sells 32300 sz300308 under crisis cap. Causal tracing pending.",
   "tests": "13 focused passed; Ruff passed; test fixes published and byte-verified.",
-  "next": "Trace held-account repair cadence; correct causal production regression; preserve fixed registered gates. No merge yet.",
+  "next": [
+    "Finish R26 remaining18 native and4 legacy/cost runs under recovered/uquant-r26 .cloud-task-journal; inspect before retry.",
+    "Evaluate unchanged core and original23 gates; then run all registered initial and reserve confirmations on R26, retain prior failures and disclose reserve already observed.",
+    "Finalize source/evidence/complexity/report; preserve raw originals; relevant checks and normal merge only after acceptance."
+  ],
   "remote_originals": {
     "archive": "UQUANT_PR75_RESERVE_AND_CI_REGRESSION_20260920.zip",
     "bytes": 8181021,
@@ -45,5 +52,55 @@
     "trace-r24-champion-repair",
     "trace-baseline-champion-repair"
   ],
-  "current_workspace": "/workspace/scratch/69442dc8a3b4"
+  "current_workspace": "/workspace/scratch/69442dc8a3b4/recovered/uquant-r26",
+  "previous_r24_status": {
+    "status": "NOT_ACCEPTED_CHAMPION_REGRESSION",
+    "source": "47d830ace565d8f659b99103fff41cf765c65466",
+    "delivery": "77bf13ec8688369bcd1dd5ed5c7f85e167796b51",
+    "champion": {
+      "B_W": 27.97313399886477,
+      "C_W": 15.352046550540328,
+      "gate": 23.28417871275582,
+      "B_DD": 0.27133435111722704,
+      "C_DD": 0.27133435111722704
+    },
+    "next": "Trace held-account repair cadence; correct causal production regression; preserve fixed registered gates. No merge yet."
+  },
+  "r26_remote_originals": {
+    "archive": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.zip",
+    "bytes": 11972161,
+    "sha256": "aca3291f91f2fbc794876b88f00a5447a6da733ea96246cfe11502a2b981723c",
+    "files": 164,
+    "parts": [
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part01",
+        "offset": 0,
+        "bytes": 4194304,
+        "sha256": "4d16f0bd2590ae7ff9bef7b2a5517053b69370361f72ed54ba4994d9564726d4",
+        "file_id": "file_000000003e8881f5b1dbcb03a1b9aa92",
+        "library_file_id": "libfile_7f74f7668c6c8191adbb94fe14257e2b",
+        "file_name": "UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part01"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part02",
+        "offset": 4194304,
+        "bytes": 4194304,
+        "sha256": "773ad0ba85f86cecd44c9c9b93bab3ac4e99b9a2963f69dc6e5776b140f78878",
+        "file_id": "file_000000000dbc81f58070d99882125592",
+        "library_file_id": "libfile_cad15b1ac74481919e0d17a8cf7c57e3",
+        "file_name": "UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part02"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part03",
+        "offset": 8388608,
+        "bytes": 3583553,
+        "sha256": "df5fb365814308a78c90c72cfb43fbe7af34e25a0f2645f149abd2bf58205936",
+        "file_id": "file_000000006a3881f5ae7c1f109675d286",
+        "library_file_id": "libfile_2aad49492f148191b75e008e0ff63f5f",
+        "file_name": "UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part03"
+      }
+    ],
+    "readback_byte_identical": true
+  },
+  "r26_tests": "58 focused risk tests and194 architecture/lifecycle tests PASS; Ruff and mypy passed. One invalid test filename invocation retained then corrected."
 }

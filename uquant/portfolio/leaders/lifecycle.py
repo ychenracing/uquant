@@ -91,9 +91,15 @@ def _leader_lifecycle_exit_confirmed(
         account.replacement_tenure[key] = 0
         return False
     row = frame.loc[date]
+    peak_mfe = position.highest_close / max(position.avg_cost, 1e-12) - 1.0
+    protected_winner = peak_mfe >= 0.20
     broken = bool(
         not leader.mature
-        and scalar(row, "close") < scalar(row, f"ma{self.cfg.trend_medium}")
+        and scalar(row, "close")
+        < scalar(
+            row,
+            f"ma{self.cfg.trend_medium if protected_winner else self.cfg.trend_fast}",
+        )
     )
     clock = f"lifecycle_exit_session:{symbol}"
     session = date.toordinal()

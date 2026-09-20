@@ -271,8 +271,6 @@ def _apply_capital_overlays(
 ) -> CapitalOverlays:
     """Apply the existing persistent ladder and cap overlays in order."""
 
-    # A settled damaged cash book belongs to the bounded flat-book repair
-    # owner. Do not let the short deployed-risk streak bypass its certificate.
     _update_capital_budget_ladder(
         account,
         observed_level=observed_budget_level,
@@ -282,11 +280,7 @@ def _apply_capital_overlays(
             and held_damage_ratio < 0.50
             and _capital_budget_repair_drawdown_confirmed(
                 level=account.capital_budget_level,
-                deployed_drawdown=(
-                    deployed_dd
-                    if any(position.shares > 0 for position in account.positions.values())
-                    else max(0.0, 1.0 - account.cash / max(account.capital_peak, 1e-12))
-                ),
+                deployed_drawdown=deployed_dd,
                 cfg=cfg,
             )
         ),

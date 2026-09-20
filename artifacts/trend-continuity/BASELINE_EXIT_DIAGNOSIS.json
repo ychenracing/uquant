@@ -1,0 +1,152 @@
+[
+  {
+    "case": "full",
+    "symbol": "sz300223",
+    "signal": "2023-02-21",
+    "close": 76.07,
+    "ma20": 78.5745,
+    "ma60": 75.681,
+    "above_ma60": true,
+    "forward20_return": 0.062371180990399955
+  },
+  {
+    "case": "full",
+    "symbol": "sz300502",
+    "signal": "2025-11-13",
+    "close": 232.036,
+    "ma20": 252.78095,
+    "ma60": 240.14028333333334,
+    "above_ma60": false,
+    "forward20_return": 0.3483072713937063
+  },
+  {
+    "case": "full",
+    "symbol": "sh688233",
+    "signal": "2026-03-13",
+    "close": 75.986,
+    "ma20": 83.968,
+    "ma60": 80.21783333333333,
+    "above_ma60": false,
+    "forward20_return": -0.01923152581682186
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sz300394",
+    "signal": "2024-05-13",
+    "close": 47.47,
+    "ma20": 54.9073,
+    "ma60": 51.34818333333333,
+    "above_ma60": false,
+    "forward20_return": -0.09712983507289141
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sh688200",
+    "signal": "2024-05-24",
+    "close": 64.999,
+    "ma20": 71.03675000000001,
+    "ma60": 67.02478333333333,
+    "above_ma60": false,
+    "forward20_return": 0.01623627857362031
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sz300308",
+    "signal": "2024-05-30",
+    "close": 112.719,
+    "ma20": 120.90755000000001,
+    "ma60": 118.74074999999999,
+    "above_ma60": false,
+    "forward20_return": 0.2944173544616644
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sh600487",
+    "signal": "2024-06-12",
+    "close": 13.868,
+    "ma20": 14.284,
+    "ma60": 13.108166666666667,
+    "above_ma60": true,
+    "forward20_return": 0.13738901969080253
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sh688256",
+    "signal": "2024-07-04",
+    "close": 128.832,
+    "ma20": 132.9567,
+    "ma60": 118.14965000000001,
+    "above_ma60": true,
+    "forward20_return": 0.2765396030737175
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sz300502",
+    "signal": "2024-08-06",
+    "close": 45.225,
+    "ma20": 51.731700000000004,
+    "ma60": 50.22678333333333,
+    "above_ma60": false,
+    "forward20_return": -0.01945302723512843
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sh688120",
+    "signal": "2024-08-21",
+    "close": 61.278,
+    "ma20": 65.389,
+    "ma60": 63.16393333333333,
+    "above_ma60": false,
+    "forward20_return": -0.07914631730987554
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sz300604",
+    "signal": "2024-11-26",
+    "close": 44.25,
+    "ma20": 46.771499999999996,
+    "ma60": 38.559666666666665,
+    "above_ma60": true,
+    "forward20_return": 0.10483068164760923
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sh688361",
+    "signal": "2024-12-18",
+    "close": 89.85,
+    "ma20": 97.0475,
+    "ma60": 81.45683333333334,
+    "above_ma60": true,
+    "forward20_return": 0.057608560408112464
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sh688041",
+    "signal": "2025-01-24",
+    "close": 130.591,
+    "ma20": 140.6245,
+    "ma60": 132.79366666666667,
+    "above_ma60": false,
+    "forward20_return": 0.18443932808296792
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sh688256",
+    "signal": "2025-02-06",
+    "close": 377.51,
+    "ma20": 432.8068,
+    "ma60": 388.40685,
+    "above_ma60": false,
+    "forward20_return": 0.33674978893294827
+  },
+  {
+    "case": "2024-offset0",
+    "symbol": "sz002281",
+    "signal": "2025-02-06",
+    "close": 47.82,
+    "ma20": 49.8935,
+    "ma60": 47.772666666666666,
+    "above_ma60": true,
+    "forward20_return": 0.07784046040199555
+  }
+]

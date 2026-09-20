@@ -814,6 +814,7 @@ def _admit_new_cores(
         known = (funded_recovery | {s for s, w in book.weights_now.items() if w > 0}
                  | {o.symbol for o in book.account.pending_orders})
         book.account.anchor_weights = {s: w for s, w in book.account.anchor_weights.items() if s in known}
+        book.account.candidate_tenure["recovery_cohort_locked"] = int(len(book.account.anchor_weights) >= 3)
         if not book.account.anchor_weights:
             book.policy._release_recovery_anchor(book.account)
 

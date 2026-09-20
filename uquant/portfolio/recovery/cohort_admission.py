@@ -389,6 +389,10 @@ def _commit_recovery_cohort(
         selection.crash_depth.get(symbol, 0.0) <= -0.15 for symbol in selection.selected
     ):
         account.candidate_tenure["confirmed_anchor_pair"] = 1
+    if len(selection.selected) == 3 and all(
+        selection.crash_depth.get(symbol, 0.0) <= -0.15 for symbol in selection.selected
+    ):
+        account.candidate_tenure["recovery_cohort_locked"] = 1
     if not account.recovery_anchor_date:
         account.recovery_anchor_date = str(date.date())
         account.candidate_tenure["recovery_reserve_qualified"] = 0

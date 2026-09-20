@@ -1,0 +1,53 @@
+{
+  "rows": [
+    {
+      "case": "2024",
+      "baseline": {
+        "wealth": 12.916708872013151,
+        "drawdown": 0.22148648804525484,
+        "orders": 52,
+        "operation_days": 41,
+        "turnover": 10.713564332088392,
+        "cost_burden": 0.01622179132369359,
+        "fees": 30049.676873698998,
+        "slippage": 47242.67909999818,
+        "mean_gross": 0.6141970436248757,
+        "median_continuous_sessions": 29,
+        "holding_episodes": 23,
+        "open_episodes": 0
+      },
+      "candidate": {
+        "wealth": 2.76331781371067,
+        "drawdown": 0.22148648804525484,
+        "orders": 61,
+        "operation_days": 47,
+        "turnover": 13.66908491913824,
+        "cost_burden": 0.02065235015543908,
+        "fees": 19447.500578661,
+        "slippage": 36393.27199999797,
+        "mean_gross": 0.42595876242651276,
+        "median_continuous_sessions": 23,
+        "holding_episodes": 29,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 0.21393358332152218,
+      "drawdown_delta": 0.0,
+      "common_failures": [
+        "orders",
+        "turnover",
+        "cost"
+      ],
+      "route_A_wealth": false,
+      "route_B_wealth": false,
+      "baseline_source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "candidate_source": "1073ae15ea2919d2620d5396ffbf6cfa54dd3364"
+    }
+  ],
+  "paired_cases": 1,
+  "complete": false,
+  "geometric_wealth_ratio": 0.21393358332152218,
+  "worst_wealth_ratio": 0.21393358332152218,
+  "economic_route_A": false,
+  "economic_route_B": false,
+  "note": "Complexity and correctness are separate mandatory conditions. Partial results cannot pass."
+}

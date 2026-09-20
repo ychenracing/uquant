@@ -1,0 +1,46 @@
+{
+  "note": "Necessary exposure/breadth comparison only; active guard, shock and concentrated-owner arbitration still require native replay.",
+  "rows": [
+    {
+      "source": "../cross-vintage/native/continuity-main/loo-sz300308.json.gz",
+      "source_head": "7439d43abb8970a1ddff93883c49414e29aecad8",
+      "date": "2026-05-26",
+      "held": {
+        "sh600487": 24800,
+        "sh601869": 5700,
+        "sh688146": 3900,
+        "sh688498": 1300,
+        "sz002281": 8000
+      },
+      "observation": {
+        "symbol_count": 5,
+        "equal_return": -0.03430735615467042,
+        "weighted_return": -0.04927083669483897,
+        "positive_breadth": 0.2,
+        "negative_exposure": 0.9247493723508347,
+        "recovery_breadth": 0.2
+      },
+      "leadership_divergence": 0.5053574269476817
+    },
+    {
+      "source": "../cross-vintage/native/recovery-c2/2024-offset0.json.gz",
+      "source_head": "470ca217c2863ed36623298bf05c88eb001f7540",
+      "date": "2026-06-23",
+      "held": {
+        "sh688146": 26600,
+        "sh688498": 1400,
+        "sz300308": 9500,
+        "sz300502": 3100
+      },
+      "observation": {
+        "symbol_count": 3,
+        "equal_return": -0.04333588908688746,
+        "weighted_return": -0.048415063671837205,
+        "positive_breadth": 0.0,
+        "negative_exposure": 1.0,
+        "recovery_breadth": 1.0
+      },
+      "leadership_divergence": 0.5581941023480763
+    }
+  ]
+}

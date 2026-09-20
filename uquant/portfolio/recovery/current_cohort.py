@@ -110,12 +110,11 @@ def _pending_members(book: AllocationBook) -> list[PendingOrder]:
 def _book_available(book: AllocationBook, members: set[str], restorable: set[str],
                     pending: list[PendingOrder]) -> bool:
     live = {symbol for symbol, weight in book.weights_now.items() if weight > 0}
-    if book.owned:
+    if book.owned or live - members:
         return False
     # Old ordinary risk snapshots are history, not ownership of fresh cash.
     current_account = replace(book.account, protected_weights=protected_weights_for_current_episode(book.account))
-    # An ordinary neighbour does not revoke an actual recovery owner's rights.
-    return bool(members or pending or restorable or (not live and pullback_book_settled(current_account)))
+    return bool(members or pending or restorable or pullback_book_settled(current_account))
 
 
 def _prune_anchors(book: AllocationBook, known: set[str]) -> None:

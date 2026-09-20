@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -262,7 +264,7 @@ def test_sector_guard_uses_weighted_exposure_when_equal_weight_breadth_is_benign
     assert second.observation.negative_exposure >= cfg.sector_weighted_negative_exposure
 
 
-def test_confirmed_acute_sector_collapse_requires_full_weighted_and_breadth_damage() -> None:
+def test_confirmed_acute_sector_collapse_requires_economic_damage() -> None:
     dates = pd.bdate_range("2026-06-01", periods=4)
     cfg = policy_inputs(sector_recovery_ma=3)
 
@@ -311,6 +313,21 @@ def test_confirmed_acute_sector_collapse_requires_full_weighted_and_breadth_dama
         cfg,
         leadership_divergence=cfg.sector_guard_divergence,
     )
+    assert acute.observation is not None
+    unequal = replace(acute, observation=replace(
+        acute.observation, equal_return=-.02, weighted_return=-.06, negative_exposure=.8,
+    ))
+    assert risk_module._acute_sector_evacuation_required(
+        unequal, cfg, leadership_divergence=cfg.sector_guard_divergence,
+    )
+    for rejected in (
+        replace(unequal, shock=False),
+        replace(unequal, observation=replace(unequal.observation, negative_exposure=.5)),
+        replace(unequal, observation=replace(unequal.observation, weighted_return=-.02)),
+    ):
+        assert not risk_module._acute_sector_evacuation_required(
+            rejected, cfg, leadership_divergence=cfg.sector_guard_divergence,
+        )
 
 
 def test_disabling_sector_guard_clears_persisted_state() -> None:

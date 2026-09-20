@@ -50,8 +50,8 @@ def _acute_sector_evacuation_required(
     """Identify a newly confirmed, full-book fast collapse.
 
     An ordinary synchronized sector break keeps the reviewed 40% gross cap.
-    Evacuation is reserved for the first observed session where both
-    equal-weight and economic-weight losses cross the existing fast-risk line
+    Evacuation is reserved for the first observed session where
+    economic-weight losses cross the existing fast-risk line
     and almost all deployed capital is losing while the technology leadership
     premium independently exceeds the existing sector-guard boundary.  Waiting for the ordinary
     two-shock sector confirmation repeats the same evidence and exposes the
@@ -74,7 +74,6 @@ def _acute_sector_evacuation_required(
         observation is not None
         and (transition.shock or single_holding_systemic_shock)
         and leadership_divergence >= cfg.sector_guard_divergence
-        and observation.equal_return <= cfg.risk_fast_return
         and observation.weighted_return <= cfg.risk_fast_return
         and observation.negative_exposure >= cfg.sector_weighted_negative_exposure
     )

@@ -65,3 +65,26 @@ entries use actual residual cash. Replace the original whole-recovery-lifecycle
 veto with this actual-commitment veto. No new timer, state, config, stock rule,
 executor priority or parameter change. Test the same 2024 path first, then expand
 only if no hard failure. Numeric gates remain unchanged.
+
+## C2 rejection; C3 independent hypothesis, before C3 replay
+
+C2 fully fills the original May9 recovery orders, fixing C1's immediate funding
+competition, but 2024 wealth ratio .9595039, orders59 and fill days46 still fail.
+Four extra ordinary round trips remain; median holding29 is unchanged. Do not
+add another residual-admission exception. Revert C1/C2 production and tests.
+
+C3 is an independent one-predicate deletion on main, not stacked onto C1/C2.
+The follow-up enumerates all held-day observations in the four existing main
+sentinels plus C2. Main loo-sz300308 on2026-05-26 has observable economic-weight
+return -4.927%, negative exposure92.47%, technology leadership divergence.5054,
+but equal-name return -3.431%. The acute guard requires both equal-name and
+exposure losses<=-4.5%, so the equal-name veto can mask an economic collapse.
+C2 June23 shows the same mismatch but is only supporting failure attribution.
+
+Remove only the final equal_return threshold from acute evacuation. Keep the
+existing economic loss threshold, negative exposure>=70%, sector shock, leadership
+divergence>=.50 and concentrated-owner arbitration. Single-name evidence still
+requires structural leadership and its existing shock proof. No sizing, entry,
+exit-structure, risk cap, timer or config changes. This is more protective for the
+observed economic exposure, not a risk relaxation. First test2024 and the directly
+affected loo308; unchanged task gates and complete seven cases required for success.

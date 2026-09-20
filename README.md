@@ -6,7 +6,7 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 
 生产经济性验收从 `2023-01-01` 开始。更早行情可以保留在数据集中形成均线、ATR 等因果特征，但只能作为 warm-up，不能进入初始权益、收益、回撤、订单、成交或换手统计，也不能成为发布门槛。
 
-## 核心优势
+## 核心能力
 
 - **同一决策内核**：日报与历史回放都调用 `ProductionEngine.decide()`，避免研究路径与日常路径出现行为差异。
 - **严格因果时点**：信号只读取决策日及以前的数据，成交最早发生在下一可交易日开盘。
@@ -26,6 +26,7 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 |---|---:|
 | 初始资金 | 2,000,000 元 |
 | 最大总仓位 | 100% |
+| 普通趋势名义入场预算 | 80%（仍受当前风险预算约束） |
 | 常规单票最大权重 | 60% |
 | 证据确认的战略主导者特例上限 | 95% |
 | 最大持仓数 | 6 |
@@ -34,15 +35,28 @@ uquant 是专门面向 2023 年以来 A 股 AI 产业链的日频量化决策系
 | 最小交易金额 | 20,000 元 |
 | 最大成交量参与率 | 0.5% |
 
+上表是上限或名义设置，不是每次获准投入的仓位。普通新入场同时核验两个指数的有限
+120 日收益：至少一项为正且没有仍在使用的普通修复资本时，先取名义入场预算与当前
+`target_gross_cap` 的较小值，再分配给合格候选；两项均不为正时，共享默认 20% 初始额度，
+扣除实际普通持仓和 BUY 承诺。仍在使用的修复资本按原共享预算执行，不重复领取额度。
+资格、现金、挂单、集中度和最小交易门槛仍须同时满足，未成交 SELL 不释放可用资金。
+成熟领涨周期按自身确认和权重分配，不把普通均分份额当成所有新单的统一额度；
+仍受当前风险和共同资金账本约束。完整规则见[普通领涨](docs/STRATEGY.md#普通领涨)。
+
 95% 战略主导者权重不是常规入场上限。它只适用于账户中仅有一个已确认战略主导者、
 `NORMAL/CAUTION` 且 `reduction_level <= 1`、没有行业/战略损伤/急性撤离 guard、策略本身
 也不要求减仓的场景；只能冻结既有敞口，不能新增风险。`CRISIS` 和其他硬风险上限始终生效。
 
 ## 验证与证据边界
 
-当前验收入口先核对源码、独立政策、数据及运行环境，再执行真实账户。完整八分片聚合
-区分执行成功与经济达标；单场景诊断不能代替完整验收。命令和失败语义见
-[当前验收链](docs/ACCEPTANCE.md)。
+经济证据按各自合同解释：跨年份旧账户恢复、原 23 场景与已登记确认结果，不能替代完整
+Absolute 泛化矩阵。当前验收先核对源码、独立政策、数据及运行环境，再执行真实账户回放；
+Absolute 正式聚合需要同一运行与 attempt 的完整八分片，区分执行成功与经济达标。
+单场景诊断、工程测试通过或已合并 `main` 都不等于完整经济验收通过。
+适用合同、原始交付证据入口、命令和失败语义统一见[当前验收链](docs/ACCEPTANCE.md)。
+
+比较回测时必须注明股票池、起止日期、初始资金、成本、源码、配置、数据与运行环境身份。
+原结果保留生成时的身份，不能改贴为最新 HEAD 的新运行；更换股票池或起点后不能沿用原分数。
 
 生产、绩效门和泛化门共用经过摘要保护的 34 只 A 股 AI 产业链证券及点时行业身份。
 性能验收验证六个完整 AI-era 窗口；泛化验收在固定全集、行业、移除核心与随机池场景中
@@ -58,10 +72,11 @@ Future Holdout 从 `2026-08-06` 起只接受真实、按顺序追加的新 sessi
 
 ## 安装
 
-唯一受支持的解释器是 Python 3.12。使用锁定依赖：
+唯一受支持的解释器是 Python 3.12；正式验收锁定 Python 3.12.13 和 uv 0.11.33。
+先确认当前 `python` 使用所需解释器，再在仓库根目录安装锁定依赖：
 
 ```bash
-python -m pip install uv
+python -m pip install "uv==0.11.33"
 uv sync --frozen --extra dev
 ```
 
@@ -89,7 +104,13 @@ uv sync --frozen --extra dev --extra data
 需要限制总仓、普通单票或持仓数量时，使用同一个可选 `--config settings.json` 初始化并
 运行账户；只接受当前公开设置。范围、账户绑定和错误示例见[参数参考](docs/CONFIGURATION.md#日常加载)。
 
+以下历史日期、冻结数据和示例股票池只展示命令，不是最新信号。日常使用须指定已核验的
+当日数据、决策日及完整股票池，并在运行前备份账户。正常闭环是准备行情与券商快照 →
+一次 `daily` 完成对账和盘后决策 → 人工核对执行 → 下次同步真实成交。
+
 ### 1. 初始化账户
+
+仅首次建立账户时初始化；已有账户继续使用并备份，不要每日新建或重置历史状态。
 
 ```bash
 uv run uquant account-init \
@@ -103,15 +124,15 @@ uv run uquant account-init \
 账户会绑定当前数据前缀和生产代码指纹。账户文件必须使用 schema 8；其他整数版本由
 `UnsupportedAccountSchemaError` 拒绝，恢复方式见[运行手册](docs/OPERATIONS.md)。
 
-### 2. 同步券商快照
+### 2. 准备当日行情和券商快照
 
-```bash
-uv run uquant account-sync \
-  --account account_state.json \
-  --snapshot broker_snapshot.json
-```
+核对股票、指数及参考数据的因果前缀，并准备同一账户的完整 `broker_snapshot.json`。
+快照是现金、持仓、当日可卖数量和真实成交的权威来源；重复成交、订单身份、迟到成交及
+取消确认都要按真实记录对账。字段和示例见[券商快照](docs/OPERATIONS.md#券商快照)。
 
-券商快照是现金、持仓、当日可卖数量和真实成交的权威来源。完整字段见[运行手册](docs/OPERATIONS.md)。
+下一步带 `--broker-snapshot` 的 `daily` 已包含同步，不需要先运行 `account-sync`。
+`account-sync` 只用于单独对账或切换预演；已经同步该快照的副本随后运行 `daily` 时，
+省略同一份 `--broker-snapshot`，不要重复同步。
 
 ### 3. 生成盘后决策
 
@@ -122,12 +143,14 @@ uv run uquant daily \
   --date 2026-07-21 \
   --account account_state.json \
   --broker-snapshot broker_snapshot.json \
-  --output daily_report_2026-07-21.md
+  --output daily_report_2026-07-21.md \
+  --html-output daily_report_2026-07-21.html
 ```
 
 日报包含机会状态、风险状态、Risk Sentinel、目标总仓、目标持仓数、逐票目标权重、
 订单意图和决策证据。日常只运行这一次 `uquant daily`，不需要再运行独立 Sentinel CLI；
-生成意图后仍需人工核对券商状态。
+生成意图后仍需人工核对券商状态，并归档运行后账户、快照与日报。缺少有效信号或预算时，
+没有新订单也是有效结果；不要靠重置账户或反复运行制造买单。
 
 真实 Future Holdout 使用 `python -m scripts.production_observation run` 一次性完成输入验证、
 运行前备份、session 追加、确定性回放、日报、Lane 报告与 receipt 封存。它仍不连接券商、
@@ -154,7 +177,7 @@ uv run uquant backtest \
 `PortfolioAllocator` 才能从已确认观察创建唯一的 `StrategicGrantIntent`；风险模块仍独占
 `target_gross_cap`。
 
-授冠意图以确定性 `grant_id` 绑定证券、资格证据、账户和生产源码身份。停牌、涨停、容量、
+授冠意图以确定性 `grant_id` 绑定证券、资格证据、账户、生产源码身份。停牌、涨停、容量、
 手数、暂时现金不足、部分成交、待确认订单或重启只会暂停同一授冠的执行；恢复时按真实未成交
 数量重新经过风险和组合分配。候选或原授权证据失效、数据身份变化、永久退出
 允许证券池、观察窗口耗尽或发现其他活动战略 owner 时，旧授冠会明确终结并撤销陈旧订单。
@@ -177,6 +200,29 @@ Target 和 Order；资格参考只提供同行、行业 breadth 与见证证据�
 `0 / 1 / 2 / 3` 分别要求 `20 / 40 / 60 / 60` 个健康交易日；候选切换不会清零这个账户时钟，
 但每个候选仍须独立完成原资格确认。账户达到 `READY` 后只为当日合格候选签发一次性、
 确定性 authorization，并继续通过唯一的 Risk 和 `PortfolioAllocator` 生成受限 Target。
+
+## 账户连续性与风险恢复
+
+账户使用同一现金、持仓、订单与成交账本；以下峰值仅承担不同风险度量，不是三套资金账户：
+
+| 字段 | 含义与重置边界 |
+|---|---|
+| `capital_peak` | 终身权益高水位，保留全部历史损失，不因修复清零 |
+| `operating_peak` | 短周期运行峰值，可在空仓或确认修复时重新定基 |
+| `deployed_peak` | 连续实际持仓期间只升不降，真正空仓时以当前权益重新定基 |
+
+预算修复依据当前部署损伤和市场确认，不要求已结清的现金账户先赚回终身历史高点才能
+重新准入，也不会用恢复标签抹掉仍在持有的损伤。确认后逐级释放预算；解除新增冻结不等于
+恢复满仓。新部署峰值仍不高于终身高水位的危机线时，统一资本覆盖层保留既有危机总仓上限，
+只有严格高于该线才解除这一继承上限；其他风险与执行约束继续有效。
+旧 schema 8 缺少 `deployed_peak` 时，有正持仓则从已记录资本高水位保守初始化，空仓则用真实现金。
+不能通过手改峰值、`schema_version` 或 `code_hash` 绕过校验；升级和恢复见[运行手册](docs/OPERATIONS.md)。
+
+恢复组合首次从空仓建立仍要求当日突破；已有恢复组合的新成员可在原入场窗口内保留突破
+证据，但必须继续满足当日结构、深度、流动性和资金权限。已有成员余量仍要求当日突破，
+不把等待窗口变成追加许可。战略组合同步破坏要求至少两只仍有实际持仓的战略成员，普通
+持仓不能凑足这一人数；单一战略成员仍受尾部、资本预算和市场风险保护。
+完整机制见[策略与风控](docs/STRATEGY.md)和[架构说明](docs/ARCHITECTURE.md)。
 
 ## 数据格式
 
@@ -208,9 +254,11 @@ date,open,high,low,close,volume
 | `research/` | 与生产导入隔离的离线研究工具 |
 | `scripts/` | 仓库内运维、观察与验证入口，不进入 wheel |
 | `tests/` | 行为、不变量和失败路径测试 |
+| `tools/cloud_guard/` | 云端命令记录、局部检查点与外部写入回读记录，不参与策略 |
 
 ## 文档导航
 
+- [当前验收链](docs/ACCEPTANCE.md)
 - [架构说明](docs/ARCHITECTURE.md)
 - [策略与风控](docs/STRATEGY.md)
 - [参数参考](docs/CONFIGURATION.md)
@@ -220,6 +268,7 @@ date,open,high,low,close,volume
 - [Risk Sentinel](docs/RISK_SENTINEL.md)
 - [开发指南](docs/DEVELOPMENT.md)
 - [质量契约](docs/QUALITY.md)
+- [云端执行与恢复](tools/cloud_guard/README.md)
 - [经济权限与因果执行决策](docs/decisions/0001-economic-authority-and-causal-execution.md)
 - [源码身份与 holdout epoch 决策](docs/decisions/0002-source-identity-and-holdout-epochs.md)
 - [历史证据索引](https://github.com/ychenracing/uquant/blob/7fcf9562e6c7f96250811acd80c2dd4ee46485e3/artifacts/README.md)
@@ -229,20 +278,21 @@ date,open,high,low,close,volume
 
 ## 本地质量检查
 
-本地验证按影响面从 L1 开始，只有下一级无法证明安全时才升级；完整 L4 是稳定候选的
-一次性验收门，不是每次文档或小修订的内循环。以下是纯文档/构建治理改动的 L1 示例：
+按改动选择最小充分验证。纯 README/说明文字修改先核对事实、命令、链接与相关文档契约，
+不默认重跑 wheel 构建、全仓编译或完整回测。相关文档检查示例：
 
 ```bash
-uv run pytest -q tests/test_reproducible_wheel_build.py \
-  tests/architecture/test_repository_governance.py
-uv run ruff check scripts/build_reproducible_wheel.py \
-  tests/test_reproducible_wheel_build.py
-uv run python -m compileall -q uquant scripts research tests
+uv run pytest -q tests/architecture/test_repository_governance.py \
+  -k 'canonical_docs_have_resolved_internal_links or bounded_dominant_incumbent_exception'
 ```
 
-其他改动应把路径替换为直接受影响的测试和模块。L1→L4 的升级条件、完整开发、构建、
-安全和发布命令只在[开发指南](docs/DEVELOPMENT.md)维护；性能与泛化经济门、窗口与证据解释
+代码修改运行失败项及直接受影响的检查；只有现有证据不足或有效合同明确要求时才扩大验证。
+未运行、排队、失败与通过必须分开报告，不把未结束的 Actions 当作成功。
+L1→L4 的升级条件、完整开发、构建、安全和发布命令只在[开发指南](docs/DEVELOPMENT.md)维护；性能与泛化经济门、窗口与证据解释
 只在[性能与证据](docs/PERFORMANCE.md)维护，避免命令副本漂移。
+
+云端工程任务按[cloud guard](tools/cloud_guard/README.md)记录长命令和重要外部写入，并核验
+实际远端保存。它不能自动重启模型回合或保证不中断；仅有本地检查点不等于已远端保全。
 
 ## 使用限制
 

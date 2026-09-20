@@ -1,0 +1,51 @@
+{
+  "main": "3af6aba18f133f4e22612769c703dac080d940d9",
+  "source_head": "3b27fc422a5fb4bd5f21b5ce34af9a746919de87",
+  "pr": 75,
+  "merged": false,
+  "workflow_runs": [
+    {
+      "id": 35498927748,
+      "name": "Engineering gates",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 554,
+      "jobs_url": "https://api.github.com/repos/ychenracing/uquant/actions/runs/35498927748/jobs",
+      "logs_url": "https://api.github.com/repos/ychenracing/uquant/actions/runs/35498927748/logs",
+      "workflow_id": 330693114
+    },
+    {
+      "id": 35498927802,
+      "name": "Strategic Ownership Acceptance",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 462,
+      "jobs_url": "https://api.github.com/repos/ychenracing/uquant/actions/runs/35498927802/jobs",
+      "logs_url": "https://api.github.com/repos/ychenracing/uquant/actions/runs/35498927802/logs",
+      "workflow_id": 344816180
+    },
+    {
+      "id": 35498927864,
+      "name": "Absolute Generalization Acceptance",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 429,
+      "jobs_url": "https://api.github.com/repos/ychenracing/uquant/actions/runs/35498927864/jobs",
+      "logs_url": "https://api.github.com/repos/ychenracing/uquant/actions/runs/35498927864/logs",
+      "workflow_id": 347736964
+    },
+    {
+      "id": 35498927758,
+      "name": "Strategic Grant Acceptance",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 467,
+      "jobs_url": "https://api.github.com/repos/ychenracing/uquant/actions/runs/35498927758/jobs",
+      "logs_url": "https://api.github.com/repos/ychenracing/uquant/actions/runs/35498927758/logs",
+      "workflow_id": 343952186
+    }
+  ],
+  "paused": true,
+  "remote_cancellation": "Unavailable in exposed connector; queued runs not canceled",
+  "captured_at": "2026-09-20T09:07:52.775Z"
+}

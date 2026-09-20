@@ -1,0 +1,36 @@
+{
+  "status": "REMOTE_DOWNLOAD_AND_FULL_RESTORE_VERIFIED",
+  "verified_at": "2026-09-20T09:08:17.306046+00:00",
+  "parts": 61,
+  "archive_bytes": 445563802,
+  "archive_sha256": "472528b1d4a9a26820dbd2f8964d3e717d38306ad9504dc9f37df5de162c54fc",
+  "restored_files": 34248,
+  "verification": "Downloaded all61 saved Library files by stable IDs. Restore script checked every part length/hash/offset, entire archive length/hash, and every restored file length/SHA256. Original jobs not executed.",
+  "excluded_categories": [
+    "Git internals (source snapshots and incremental bundles included)",
+    "installed virtual environments and Python caches",
+    "duplicate prior transport ZIPs/readback copies (canonical source data and receipts included)"
+  ],
+  "excluded_files": [
+    {
+      "path": "cross-vintage/r20-source.bundle",
+      "bytes": 124500676,
+      "reason": "Redundant or interrupted transport bundle. Exact source snapshots, all smaller incremental bundles and complete pending patches are included."
+    },
+    {
+      "path": "cross-vintage/.r20-source.bundle.lock.71FrE5",
+      "bytes": 119275520,
+      "reason": "Redundant or interrupted transport bundle. Exact source snapshots, all smaller incremental bundles and complete pending patches are included."
+    },
+    {
+      "path": "cross-vintage/.r20-source.bundle.lock.xWOL0w",
+      "bytes": 59506688,
+      "reason": "Redundant or interrupted transport bundle. Exact source snapshots, all smaller incremental bundles and complete pending patches are included."
+    },
+    {
+      "path": "cross-vintage/r20-source.bundle.lock",
+      "bytes": 123887712,
+      "reason": "Redundant or interrupted transport bundle. Exact source snapshots, all smaller incremental bundles and complete pending patches are included."
+    }
+  ]
+}

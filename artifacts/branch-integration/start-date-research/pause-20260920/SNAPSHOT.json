@@ -1,0 +1,620 @@
+{
+  "archive": "workspace-snapshot.zip",
+  "bytes": 445563802,
+  "sha256": "472528b1d4a9a26820dbd2f8964d3e717d38306ad9504dc9f37df5de162c54fc",
+  "files": 34248,
+  "unique_objects": 4112,
+  "parts": [
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part001",
+      "offset": 0,
+      "bytes": 7340032,
+      "sha256": "d2dca433d0a26fa63a8daedd69149448e9bf37de76692b80d834bdc543fe7ce9",
+      "library_file_id": "libfile_75feb3f51a1481919d20a25165a9898a",
+      "file_id": "file_00000000d6ac81f5b0d17bc3294dda0c",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part001",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part002",
+      "offset": 7340032,
+      "bytes": 7340032,
+      "sha256": "9e47020879f87d1e594666bc09f06aef1d07c286d70d7f1ef77355515d957052",
+      "library_file_id": "libfile_672f3f35455c8191982b6d908dbcbac3",
+      "file_id": "file_000000005c3081f9ac26fffb6073898b",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part002",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part003",
+      "offset": 14680064,
+      "bytes": 7340032,
+      "sha256": "58ba56c81ccc426a468a27e3c6fa765fe3f1c0bcce85be41c2a1b40abc864e5f",
+      "library_file_id": "libfile_479c18527dbc8191a488e496c1765df5",
+      "file_id": "file_00000000df5c81f98719b4ffeb645a01",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part003",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part004",
+      "offset": 22020096,
+      "bytes": 7340032,
+      "sha256": "fc2c93b8ef5b1d52f56c868621f3dd7ed62adfa32e1f4c3b41e5011109378c81",
+      "library_file_id": "libfile_64dfa19de7008191b1c1b9fe5656708a",
+      "file_id": "file_00000000c7ec81f9a13d118f423d810a",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part004",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part005",
+      "offset": 29360128,
+      "bytes": 7340032,
+      "sha256": "1c350c28d8ef6d81eee5beda570d1d98db344b475fc945af435049bd9a7baa42",
+      "library_file_id": "libfile_b8dc818b40e08191b92173b8271caa0e",
+      "file_id": "file_00000000495481f98a1f82f68c51a1a4",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part005",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part006",
+      "offset": 36700160,
+      "bytes": 7340032,
+      "sha256": "c9332a19ae7e4992d1d07c9f22e5e5400a5691751293c05863ed95eecb45ed07",
+      "library_file_id": "libfile_6873a7ec4a388191a63f47a1e3a1ae73",
+      "file_id": "file_00000000a94c81f982c406d86b89d7bc",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part006",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part007",
+      "offset": 44040192,
+      "bytes": 7340032,
+      "sha256": "c60748c5b6b45a3e1cc854a5640b276ddd1456fc0c2e1b7a9cdc101fb43c4d8a",
+      "library_file_id": "libfile_62de770ddaf4819185dd48422300a4ef",
+      "file_id": "file_000000003c1881f98f9cbb87e262766e",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part007",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part008",
+      "offset": 51380224,
+      "bytes": 7340032,
+      "sha256": "7453cb1fb2eaf75efe596c730e4927f9102180d48a28752c4d8471680faca758",
+      "library_file_id": "libfile_51e15929ff708191b3b528c8356f531a",
+      "file_id": "file_00000000e8f481f99dda357f4fb0b650",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part008",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part009",
+      "offset": 58720256,
+      "bytes": 7340032,
+      "sha256": "d8540968b663a7116d2b8d3aec537c888db205b7da85a01836a701762eea1f9d",
+      "library_file_id": "libfile_3fac94a484448191a9006f478408f71e",
+      "file_id": "file_000000004b7c81f983c7cfabb9ded25c",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part009",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part010",
+      "offset": 66060288,
+      "bytes": 7340032,
+      "sha256": "569be16dcaeae8b5b5976d1d8199f8a141b3eff2c28d2ee4fdb05269b33b84d8",
+      "library_file_id": "libfile_493b8c89a9c481919d6320029bdb90fb",
+      "file_id": "file_00000000588481f9b201c3a455aedfec",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part010",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part011",
+      "offset": 73400320,
+      "bytes": 7340032,
+      "sha256": "53bce097003e352f22dd5441b263838a217d5dec5468a7e65a4e46fc7deb6a5a",
+      "library_file_id": "libfile_0da8e8a0f7dc819195bd1a017fe257d1",
+      "file_id": "file_000000008d2481f9a81f702e89c84887",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part011",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part012",
+      "offset": 80740352,
+      "bytes": 7340032,
+      "sha256": "063588991a79d3a2385f263a2361b239c30ba36f17c79ffd94992bba0be40cad",
+      "library_file_id": "libfile_5a437ea0db708191ba29118ac8c27ea9",
+      "file_id": "file_00000000d11881f9b66a8c4539087496",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part012",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part013",
+      "offset": 88080384,
+      "bytes": 7340032,
+      "sha256": "af6a0e6f5c7b7a6197495acc072ed787f6267f608f92afba7bef1dfd24740b9d",
+      "library_file_id": "libfile_45c6e71f69a48191ae90eba885015739",
+      "file_id": "file_00000000252081f99c1dd1a206de054a",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part013",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part014",
+      "offset": 95420416,
+      "bytes": 7340032,
+      "sha256": "c200345782b107b246c2a71bc1209b8a3460b246462da5d640f5a68a6af9b426",
+      "library_file_id": "libfile_253f03e939ac81918fe373836db14f48",
+      "file_id": "file_0000000042d081f9b2f1e201cae274b0",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part014",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part015",
+      "offset": 102760448,
+      "bytes": 7340032,
+      "sha256": "3c2c07e1681ea78521037dad2fd53500b24f31ba828d7018e691ab8eb14e4e17",
+      "library_file_id": "libfile_a8eb282fad4c8191a8ebf739bdd55c2d",
+      "file_id": "file_00000000a4a881f9986e14927aaa46a6",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part015",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part016",
+      "offset": 110100480,
+      "bytes": 7340032,
+      "sha256": "27f939feea46743d5a84fd9ae86be48a4cb1af2cef20b8a808b5b1640e65d30c",
+      "library_file_id": "libfile_07be972b3ec081918f41394bd73fc183",
+      "file_id": "file_00000000bd7c81f9a13864a1bb159534",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part016",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part017",
+      "offset": 117440512,
+      "bytes": 7340032,
+      "sha256": "88b57e07ef5c00ec4193c260b68acf9c1a9cfb7e29bcce54df774a0740655699",
+      "library_file_id": "libfile_935b5874b9908191a2c694a64225184b",
+      "file_id": "file_00000000ff8481f99fd79d7e3de6222c",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part017",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part018",
+      "offset": 124780544,
+      "bytes": 7340032,
+      "sha256": "692581c85c2e5487ed9838ce8ba1b979caf8b8b44842c96c99c2cf0d19ee12f5",
+      "library_file_id": "libfile_246ef055d408819186af9bd4afbd3ba5",
+      "file_id": "file_00000000535c81f9ba7a12d594da3e95",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part018",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part019",
+      "offset": 132120576,
+      "bytes": 7340032,
+      "sha256": "e5942399b8a53450121a62f0a742f25596598b6727fdb8a0249b6e5c8d24b99b",
+      "library_file_id": "libfile_b7c906ccb110819183751e22077bc45d",
+      "file_id": "file_00000000685c81f983352b74c0881615",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part019",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part020",
+      "offset": 139460608,
+      "bytes": 7340032,
+      "sha256": "a8b29ec2c890c34cbc0c09224d4ddc505bd026331080fd654388065255b76246",
+      "library_file_id": "libfile_cdc697b56ab481919fbf36c376ef7929",
+      "file_id": "file_00000000caa081f99de7397bcc2a9820",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part020",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part021",
+      "offset": 146800640,
+      "bytes": 7340032,
+      "sha256": "14b4eef4c55a6d3b0baaa454aa5c2e6f26fe86dc9b2e12bae7e0dc495cf1137e",
+      "library_file_id": "libfile_47e56ec8544c8191b8548bbf10cabf8f",
+      "file_id": "file_00000000cba081f9b83386d1e8078be6",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part021",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part022",
+      "offset": 154140672,
+      "bytes": 7340032,
+      "sha256": "505881705bdcf7649294fdb1dc88c3a98617ef9b90528d27bde273bb85045cb5",
+      "library_file_id": "libfile_00380355b9988191a46c8bf08ab18395",
+      "file_id": "file_0000000069a881f58e2102d3390cd5bc",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part022",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part023",
+      "offset": 161480704,
+      "bytes": 7340032,
+      "sha256": "799e9d9242c63c8ec71b7af014db4eab2a59047eeb40323a399368cb1a5d166b",
+      "library_file_id": "libfile_cc99ccb40c908191bfcfdc8d0deba911",
+      "file_id": "file_00000000e7e481f59588924a87f57dfa",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part023",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part024",
+      "offset": 168820736,
+      "bytes": 7340032,
+      "sha256": "0ed5ab4906b68b49ddf89cb027011197318b65cb2f871195b7f277cf94c65929",
+      "library_file_id": "libfile_8300dfb67f788191b57e30e5484cdabc",
+      "file_id": "file_00000000062081f5b4ad292c3ac8e3ca",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part024",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part025",
+      "offset": 176160768,
+      "bytes": 7340032,
+      "sha256": "61ac29e45403ec6e273b122c50dd58187750117332d17190cc2a3b3ca5a590a0",
+      "library_file_id": "libfile_4145799bd84481918a0f106ee5e7c6b7",
+      "file_id": "file_00000000f40081f59c77b9a40d9cddc9",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part025",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part026",
+      "offset": 183500800,
+      "bytes": 7340032,
+      "sha256": "5648b62c18fa4ca138025ad08bd5fb7c08fbe1dc17ade5f74e643e72211ef8f3",
+      "library_file_id": "libfile_ca7e1d9220b881918c5cda47d0f59fd5",
+      "file_id": "file_0000000011c081f598f31081f3967bb2",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part026",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part027",
+      "offset": 190840832,
+      "bytes": 7340032,
+      "sha256": "4ba7c4475b3f0fead2f2154ee35159ecce39cee1f88a65a8c38ad950b13f3cc5",
+      "library_file_id": "libfile_943e880f6eac8191945aff7b203575ce",
+      "file_id": "file_00000000cffc81f5bb5a872efd15056a",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part027",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part028",
+      "offset": 198180864,
+      "bytes": 7340032,
+      "sha256": "d4430acc32d9f0c66909fc6c8b804af909a8f983de1da726c6262ab4e44d5701",
+      "library_file_id": "libfile_53935214971c81918a9e8b90735c8b37",
+      "file_id": "file_00000000a4f081f5aea15f1aad79bcb4",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part028",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part029",
+      "offset": 205520896,
+      "bytes": 7340032,
+      "sha256": "09da3bbc011fbeb101e46c37a8623c973237feb1032d8566c840e501374e5289",
+      "library_file_id": "libfile_630d95f46a888191aabdffdab9ea9f70",
+      "file_id": "file_00000000697881f5b728db32cbe7bfea",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part029",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part030",
+      "offset": 212860928,
+      "bytes": 7340032,
+      "sha256": "d5139fc6f4f77bb257257104642a84df70bf9810f231737e6822fab39d3c5ea7",
+      "library_file_id": "libfile_991bd77b18048191bb0f2e1e3249abbc",
+      "file_id": "file_00000000ace481f5bc83b23000a069db",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part030",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part031",
+      "offset": 220200960,
+      "bytes": 7340032,
+      "sha256": "02c5b07e4a935da906aa35e344e77016f8f3b1eb67e4ed0fd84e17ef543d8e14",
+      "library_file_id": "libfile_2de4ec3a7c2c8191b301c6955647a8a6",
+      "file_id": "file_0000000095d481f5a88313442bcae9a4",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part031",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part032",
+      "offset": 227540992,
+      "bytes": 7340032,
+      "sha256": "02be2b7b1c9fb739cb27dd30b9966286c13f37c3f8c120d9ab3c416ab63485c1",
+      "library_file_id": "libfile_2e3c2bb1adc88191badb0891f68d8ee2",
+      "file_id": "file_00000000d3fc81f59714521265d53470",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part032",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part033",
+      "offset": 234881024,
+      "bytes": 7340032,
+      "sha256": "c03fed54462a694d714519a41b5edfee2eadf5f653264199c392c054f8005d18",
+      "library_file_id": "libfile_265c9cf93f9081918d2e555f17f71364",
+      "file_id": "file_000000005a9881f59b1562f7617ff519",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part033",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part034",
+      "offset": 242221056,
+      "bytes": 7340032,
+      "sha256": "4505b86f4926dde47d89a03c3837a71ecf5704fbdb053d82b32e189e9e3d2df5",
+      "library_file_id": "libfile_ea487c9a98ec8191a04587b00d23dc05",
+      "file_id": "file_00000000b01881f5a8449c6d48d3a515",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part034",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part035",
+      "offset": 249561088,
+      "bytes": 7340032,
+      "sha256": "ea364b54b0549c07b3f2778634adcb86cd598043c538965dbcd71e008d7ac099",
+      "library_file_id": "libfile_0b96f9ac2e1c819198c3079bc9f76d63",
+      "file_id": "file_00000000e31081f5a527d043509c581c",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part035",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part036",
+      "offset": 256901120,
+      "bytes": 7340032,
+      "sha256": "ffe8ddadcc03c2079c2a4b410c7a49d50e8d789b15bfb821a0bf00e907a8b6fd",
+      "library_file_id": "libfile_3f72b0eba4fc819190a7eb638aafdd5d",
+      "file_id": "file_0000000050fc81f5ade85cb54302658d",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part036",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part037",
+      "offset": 264241152,
+      "bytes": 7340032,
+      "sha256": "e27aa6bb45a18af9927b3e9f3e5d95361163881ca3381d4e415bf4960f72f23e",
+      "library_file_id": "libfile_c399838dff6481918f5d955a393a678f",
+      "file_id": "file_00000000a9fc81f591b944d885559ecc",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part037",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part038",
+      "offset": 271581184,
+      "bytes": 7340032,
+      "sha256": "3d50408386292674c32ff7b0e86eb9ba33690e518893c891e9b884e2c0531c59",
+      "library_file_id": "libfile_85296b1c0cd48191b432b996e83fa23d",
+      "file_id": "file_0000000039b081f58ee26e2cd51a615c",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part038",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part039",
+      "offset": 278921216,
+      "bytes": 7340032,
+      "sha256": "2555c778a3f9a001b894c5566c41a97c4b4121eb2f05bc2c3e8436558cec3e7d",
+      "library_file_id": "libfile_4070886056e481919bbefe3bcc2ab379",
+      "file_id": "file_00000000cd1081f59282ca9d1cad8d70",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part039",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part040",
+      "offset": 286261248,
+      "bytes": 7340032,
+      "sha256": "e55d5716848b418756ca76301971768a03de01fa5ce975768cdb7f6c23fa0689",
+      "library_file_id": "libfile_ad8faddcf6fc8191915a6e9aa78fb286",
+      "file_id": "file_00000000fa0c81f59f4b0b67c87dd6de",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part040",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part041",
+      "offset": 293601280,
+      "bytes": 7340032,
+      "sha256": "c3bb677d4dc545a81cf7bf603d98dc50768b87034e2a32733ee7510510361263",
+      "library_file_id": "libfile_01efe6127a308191995586f1eb27f9bb",
+      "file_id": "file_000000007d0881f5a31b35b0741b703b",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part041",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part042",
+      "offset": 300941312,
+      "bytes": 7340032,
+      "sha256": "1509898cf93b99047f8186f3d6f94300ec64436357fad76864063f5606112411",
+      "library_file_id": "libfile_eb3745e9039481919bdc4c3a32ce5f70",
+      "file_id": "file_00000000822481f583ffd32902138adb",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part042",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part043",
+      "offset": 308281344,
+      "bytes": 7340032,
+      "sha256": "ba47a8c094b45dd31c3441cede8fa04ec1e698ee47e48d32e2adb534ba236ca0",
+      "library_file_id": "libfile_85a38c0eb4f08191a2975fa1f057d9ed",
+      "file_id": "file_00000000715481f5b7ba1a61655c3795",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part043",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part044",
+      "offset": 315621376,
+      "bytes": 7340032,
+      "sha256": "b33a160514ad532bd16349febd13447a1d0450faf1353d972be1aed9944421c4",
+      "library_file_id": "libfile_6d1e52792fec8191b520524b675db582",
+      "file_id": "file_00000000d13c81f5b46658eebb4a202e",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part044",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part045",
+      "offset": 322961408,
+      "bytes": 7340032,
+      "sha256": "8dd2da3d81c717bfd08187fff07057edc4f6bcf3105646efdddcd6edcc2046d7",
+      "library_file_id": "libfile_7c68fe5b50a081919537dd7b5869ff0c",
+      "file_id": "file_000000005f0881f59024ae1f51e7c402",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part045",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part046",
+      "offset": 330301440,
+      "bytes": 7340032,
+      "sha256": "e2c74719ac17c910847d6677f4d67719e73eb7139e5d4073c9c5b11c1ac01ebc",
+      "library_file_id": "libfile_4cb12e79c7648191b042e88a205f1ead",
+      "file_id": "file_00000000280481f5ab58524eef5fcd6b",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part046",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part047",
+      "offset": 337641472,
+      "bytes": 7340032,
+      "sha256": "b0c89e6df71c7d0e792be3e67776a45c6a803667cc6f7d469a2bc48e2238a82f",
+      "library_file_id": "libfile_270258e43a0081919621cec20d8e4670",
+      "file_id": "file_00000000372081f58b462e6fbc107b57",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part047",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part048",
+      "offset": 344981504,
+      "bytes": 7340032,
+      "sha256": "dca53329f09e3d5bbb9428a90f7ac9909b091d8047aacc8f0575fde1997ff2f6",
+      "library_file_id": "libfile_e6f6d4bfe9c881919d2c974caf6b95f2",
+      "file_id": "file_00000000a41481f5b35de216315eac8a",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part048",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part049",
+      "offset": 352321536,
+      "bytes": 7340032,
+      "sha256": "e4d1b4df67da80ba87baba2ea85c76c417f9ab47f7aa977e71432d5518a60a2a",
+      "library_file_id": "libfile_8f9a795bb2d88191843e67f14614bf4f",
+      "file_id": "file_0000000019b481f5a7bc0fc1fb227928",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part049",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part050",
+      "offset": 359661568,
+      "bytes": 7340032,
+      "sha256": "2fbe9da05f117ddd718f6c73686fdfba3c2f7381f63daa175474592c363ed454",
+      "library_file_id": "libfile_190d8312341c8191913aad82f66930fa",
+      "file_id": "file_00000000b93c81f5ba34779d3db33f1d",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part050",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part051",
+      "offset": 367001600,
+      "bytes": 7340032,
+      "sha256": "ddf66c360b0db3f48302d5f380bd00e768a30dc80304ab6da9613e28fc6ecff7",
+      "library_file_id": "libfile_15197b70a9448191bb05846690403609",
+      "file_id": "file_00000000f01881f5957f1aa1840e80af",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part051",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part052",
+      "offset": 374341632,
+      "bytes": 7340032,
+      "sha256": "33187ca1ee875c1416e27dcbd5f01c259232c89ad77a9a8fa40d0e7b3495e4ce",
+      "library_file_id": "libfile_77f853dc13908191a9623f5e3c3d249c",
+      "file_id": "file_00000000816481f5b9ecc935450138a8",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part052",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part053",
+      "offset": 381681664,
+      "bytes": 7340032,
+      "sha256": "74cb684d55f6782671a9394572b7ebb815495b535aa0c2245ecbb03411daeaac",
+      "library_file_id": "libfile_beeeb3d2b0ec819192d96e7930f67a94",
+      "file_id": "file_000000006c3481f5932646dac120a1a4",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part053",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part054",
+      "offset": 389021696,
+      "bytes": 7340032,
+      "sha256": "fbf70c7afd86319c958b37bd04228fbb571d8de446c9ae68aaa2c45145bbaa83",
+      "library_file_id": "libfile_acf4fff125c08191931376392e02ca1e",
+      "file_id": "file_000000007d2c81f590a836d823472f2f",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part054",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part055",
+      "offset": 396361728,
+      "bytes": 7340032,
+      "sha256": "74b5e1498280410ab7bfd263feb7ee280f9676768178df671fd5421375906111",
+      "library_file_id": "libfile_706d708b84b88191b22b08cf9abc4e1e",
+      "file_id": "file_00000000531881f5857f4c1703ba04a7",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part055",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part056",
+      "offset": 403701760,
+      "bytes": 7340032,
+      "sha256": "5cf61c7b7744faab9cae93f479574986d1ed38e50b85effce2df94e2bb8f10c3",
+      "library_file_id": "libfile_3dad8d1262c08191956105033d65b2fa",
+      "file_id": "file_00000000237081f58999b69594ef8b43",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part056",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part057",
+      "offset": 411041792,
+      "bytes": 7340032,
+      "sha256": "8734d6d113d63f129e752057382b9450d96f36782512cfab139f149ec004b325",
+      "library_file_id": "libfile_cbf9784cecc4819196ee96cb7767c85f",
+      "file_id": "file_00000000efc881f591b192a3ed65fe5e",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part057",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part058",
+      "offset": 418381824,
+      "bytes": 7340032,
+      "sha256": "c277820e83b08abbc43fc64cfe86ab8885ba3cc774f9664472196cbd4c72a917",
+      "library_file_id": "libfile_406aa0e1c4248191b0882528283ffed2",
+      "file_id": "file_00000000b39481f5b30b169f6df35bc6",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part058",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part059",
+      "offset": 425721856,
+      "bytes": 7340032,
+      "sha256": "aee769284fa66da562f693f6d0cb5cd680feccebbc8a3a8ff761aaf46e421ea5",
+      "library_file_id": "libfile_3bf1678aa4c0819184573095acddd976",
+      "file_id": "file_000000008d2c81f59d7934e5801335b9",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part059",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part060",
+      "offset": 433061888,
+      "bytes": 7340032,
+      "sha256": "8c04ebda937d9e66068fd2c75cd4bad9f30368b1928c689db4c941057225c1ba",
+      "library_file_id": "libfile_af84c1650a6481918652e2db5397d552",
+      "file_id": "file_00000000ce8481f5bf5840a16dcfb3fc",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part060",
+      "current_version_number": 0
+    },
+    {
+      "name": "UQUANT_PAUSED_WORKSPACE_20260920.part061",
+      "offset": 440401920,
+      "bytes": 5161882,
+      "sha256": "c04c3b930bb92b5d328989b096c12693f7153637375439977fb230e5f96ccf73",
+      "library_file_id": "libfile_ce2aaab541d081919b62afefa0ee4a36",
+      "file_id": "file_000000001cbc81f59a87198d0b5f04b4",
+      "path": "/uquant/UQUANT_PAUSED_WORKSPACE_20260920.part061",
+      "current_version_number": 0
+    }
+  ],
+  "storage": "Persistent personal ChatGPT Library"
+}

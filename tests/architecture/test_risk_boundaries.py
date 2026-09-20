@@ -42,6 +42,7 @@ from ._risk_ownership import (
 )
 from ._risk_trace import _RISK_ACCOUNT_FIELDS, risk_trace_replay
 from ._owner_transport import (
+    architecture_capital_repair_projection,
     ARCHITECTURE_SOURCE_SURFACE_ADDITIONS,
     architecture_resource_surface_projection,
     expand_architecture_risk_assessment,
@@ -1010,6 +1011,7 @@ def test_risk_moved_helper_bodies_are_exactly_bound_to_immutable_source() -> Non
         candidate = _top_level_definitions(
             ast.parse((ROOT / owner).read_text(encoding="utf-8"), filename=owner)
         )
+        candidate[name] = architecture_capital_repair_projection(candidate[name])
         if name == "_persistent_crisis_cap":
             # Prove the complete forwarding interface before binding its retained
             # implementation to the immutable body; no risk rule is waived.

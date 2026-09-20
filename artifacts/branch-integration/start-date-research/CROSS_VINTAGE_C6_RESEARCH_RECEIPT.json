@@ -1,0 +1,18 @@
+{
+  "library_file_id": "libfile_2badbc9f0ef8819185e841cc35401028",
+  "sha256": "6fa9f438aa4911ebb1249464638c9150ae6fea0399d1179a88dec177cd75002c",
+  "bytes": 5952231,
+  "byte_equal_readback": true,
+  "economic_originals": [
+    "cross-vintage/native/c5/2025-offset5.json.gz",
+    "cross-vintage/native/c5/2024-offset0.json.gz",
+    "cross-vintage/native/c5/full.json.gz",
+    "cross-vintage/native/c5/attempts/2024-offset0/cee56c20cbfc43a587aa458d53c3d299/result.json.gz",
+    "cross-vintage/native/c5/attempts/2025-offset5/9753e522292d47aab96fab5929f30aa0/result.json.gz",
+    "cross-vintage/native/c5/attempts/full/4afe490594c64c20961944ee97880fce/result.json.gz",
+    "cross-vintage/c5/legacy-2024-offset0.json.gz",
+    "cross-vintage/native/c6/2025-offset5.json.gz",
+    "cross-vintage/c6/legacy-2024-offset0.json.gz"
+  ],
+  "scope": "C5/C6 source bundle; C5 originals; only C6 completed published sentinel files at archive time; test/research patches."
+}

@@ -1,0 +1,71 @@
+{
+  "producer": "55e0380db633852dd4c811836619cf8ac40613c9",
+  "scope": "Single-mechanism counterfactual from actual R22 Jan8 checkpoint; not full acceptance. R22 confirmed outcomes are now development evidence.",
+  "migration_economic_hash_preserved": true,
+  "prefix_curve_unchanged": true,
+  "old_protection": {
+    "sh688256": 0.21153437393580019,
+    "sz300502": 0.204126160730211
+  },
+  "released_protection": {},
+  "old_jan10_orders": [],
+  "candidate_jan10_orders": [
+    {
+      "order_id": "O000000017",
+      "signal_date": "2024-01-10",
+      "snapshot_kind": "ORIGIN",
+      "symbol": "sh688041",
+      "side": "BUY",
+      "target_weight": 0.6,
+      "reduction_policy": "FIFO",
+      "reason_code": "recovery_cohort",
+      "exit_kind": "strategy",
+      "event_id": "evt_738bf1deab5588881b8141203dca42f8c9410ae550e7f6477a9a2c5389266f44",
+      "origin_subsystem": "RECOVERY",
+      "mechanism": "TACTICAL_REBOUND",
+      "origin_lifecycle": "RECOVERY",
+      "replaces_symbol": null,
+      "industry_at_entry": "compute",
+      "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+      "grant_id": "",
+      "epoch_id": ""
+    }
+  ],
+  "actual_next_day_fills": [
+    {
+      "signal_date": "2024-01-10",
+      "fill_date": "2024-01-11",
+      "symbol": "sh688041",
+      "side": "BUY",
+      "shares": 59900,
+      "price": 66.677611,
+      "gross_value": 3993988.8989,
+      "commission": 998.497224725,
+      "stamp_duty": 0.0,
+      "transfer_fee": 39.939888989,
+      "slippage_cost": 3989.9988999996795,
+      "reason": "controlled oversold rebound probe",
+      "lifecycle": "RECOVERY",
+      "order_id": "O000000017",
+      "fill_id": "",
+      "reduction_policy": "FIFO",
+      "reason_code": "recovery_cohort",
+      "exit_kind": "strategy",
+      "sold_tranches": [],
+      "event_id": "evt_738bf1deab5588881b8141203dca42f8c9410ae550e7f6477a9a2c5389266f44",
+      "origin_subsystem": "RECOVERY",
+      "mechanism": "TACTICAL_REBOUND",
+      "origin_lifecycle": "RECOVERY",
+      "replaces_symbol": null,
+      "industry_at_entry": "compute",
+      "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+      "grant_id": "",
+      "epoch_id": ""
+    }
+  ],
+  "original_trace_matching": {
+    "legacy": 131,
+    "native": 238
+  },
+  "boundary": "Initial Jan9 checkpoint correction clears stale weights after that session entry check and misses Jan10. Starting at actual Jan8 allows the same production normalization Jan9, matching native Jan10 instruction and Jan11 fill. No cash, fills, peak, or obligations reset."
+}

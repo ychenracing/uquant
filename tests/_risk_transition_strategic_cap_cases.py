@@ -45,6 +45,7 @@ def test_strategic_label_cannot_bypass_confirmed_capital_budget_damage() -> None
             "strategic_cohort_active": 1,
             "strategic_cohort_started": 1,
         },
+        # Current deployed damage must remain binding even with a strategic label.
         operating_peak=225.0,
         capital_peak=260.0,
     )
@@ -71,7 +72,8 @@ def test_strategic_label_cannot_bypass_confirmed_capital_budget_damage() -> None
     assert assessment.target_gross_cap <= cfg.capital_budget_level2_cap
     assert assessment.reduction_level >= 2
 
-def test_mature_strategic_cohort_break_uses_concentrated_cohort_severity() -> None:
+@pytest.mark.parametrize("cohort_members", [1, 2, 3])
+def test_mature_strategic_cohort_break_uses_concentrated_cohort_severity(cohort_members: int) -> None:
     dates = pd.bdate_range("2026-01-02", periods=160)
     symbols = ("strategic_a", "strategic_b", "strategic_c")
     damaged = _damaged_holding_frame(dates)
@@ -88,8 +90,8 @@ def test_mature_strategic_cohort_break_uses_concentrated_cohort_severity() -> No
             )
             for symbol in symbols
         },
-        strategic_cohort_symbols=list(symbols),
-        strategic_cohort_targets={symbol: 1.0 / 3.0 for symbol in symbols},
+        strategic_cohort_symbols=list(symbols[:cohort_members]),
+        strategic_cohort_targets={symbol: 1.0 / cohort_members for symbol in symbols[:cohort_members]},
         candidate_tenure={
             "strategic_cohort_active": 1,
             "strategic_cohort_started": 1,
@@ -113,6 +115,10 @@ def test_mature_strategic_cohort_break_uses_concentrated_cohort_severity() -> No
         )
 
     assert assessment is not None
+    if cohort_members == 1:
+        assert assessment.severity != "COHORT_BREAK"
+        assert account.shock_severity != "COHORT_BREAK"
+        return
     assert assessment.state is Risk.CRISIS
     assert assessment.severity == "COHORT_BREAK"
     assert account.shock_severity == "COHORT_BREAK"

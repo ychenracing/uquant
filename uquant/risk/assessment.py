@@ -191,7 +191,7 @@ def _base_capital_stages(
         transition_damage=market.transition_damage,
         votes=market.votes,
         capital_dd=market.capital_dd,
-        operating_dd=market.operating_dd,
+        deployed_dd=market.deployed_dd,
         sector_stress=market.sector_stress,
         strategic_active=breaks.strategic_active,
     )
@@ -209,8 +209,7 @@ def _base_capital_stages(
         transition_damage=market.transition_damage,
         votes=market.votes,
         held_damage_ratio=market.held_damage_ratio,
-        capital_dd=market.capital_dd,
-        operating_dd=market.operating_dd,
+        deployed_dd=market.deployed_dd,
         strategic_damage_guard=strategic_guard,
     )
     return _BaseCapitalStages(observation, strategic_guard, overlays)
@@ -401,6 +400,7 @@ def _final_base_resolution(
         previous=previous,
         shock_rearmed=breaks.shock_rearmed,
         capital_dd=market.capital_dd,
+        deployed_dd=market.deployed_dd,
         votes=market.votes,
         sector_stress=market.sector_stress,
         narrow_anchor_guard=breaks.narrow_anchor_guard,
@@ -434,6 +434,7 @@ def _final_base_resolution(
             "broad_speed": market.broad_speed,
             "operating_drawdown": market.operating_dd,
             "capital_drawdown": market.capital_dd,
+            "deployed_drawdown": market.deployed_dd,
             "strategic_cohort_active": breaks.strategic_active,
             "strategic_current_gross": breaks.strategic_current_gross,
             "sector_guard_active": market.sector_guard.active,

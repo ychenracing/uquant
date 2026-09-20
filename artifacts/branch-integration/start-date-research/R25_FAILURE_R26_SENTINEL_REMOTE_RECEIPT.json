@@ -1,0 +1,36 @@
+{
+  "archive": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.zip",
+  "bytes": 11972161,
+  "sha256": "aca3291f91f2fbc794876b88f00a5447a6da733ea96246cfe11502a2b981723c",
+  "files": 164,
+  "parts": [
+    {
+      "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part01",
+      "offset": 0,
+      "bytes": 4194304,
+      "sha256": "4d16f0bd2590ae7ff9bef7b2a5517053b69370361f72ed54ba4994d9564726d4",
+      "file_id": "file_000000003e8881f5b1dbcb03a1b9aa92",
+      "library_file_id": "libfile_7f74f7668c6c8191adbb94fe14257e2b",
+      "file_name": "UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part01"
+    },
+    {
+      "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part02",
+      "offset": 4194304,
+      "bytes": 4194304,
+      "sha256": "773ad0ba85f86cecd44c9c9b93bab3ac4e99b9a2963f69dc6e5776b140f78878",
+      "file_id": "file_000000000dbc81f58070d99882125592",
+      "library_file_id": "libfile_cad15b1ac74481919e0d17a8cf7c57e3",
+      "file_name": "UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part02"
+    },
+    {
+      "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part03",
+      "offset": 8388608,
+      "bytes": 3583553,
+      "sha256": "df5fb365814308a78c90c72cfb43fbe7af34e25a0f2645f149abd2bf58205936",
+      "file_id": "file_000000006a3881f5ae7c1f109675d286",
+      "library_file_id": "libfile_2aad49492f148191b75e008e0ff63f5f",
+      "file_name": "UQUANT_PR75_R25_FAILURE_R26_SENTINELS_20260920.part03"
+    }
+  ],
+  "readback_byte_identical": true
+}

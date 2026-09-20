@@ -21,7 +21,7 @@ from ..market_risk import (
 from ..reference import ReferenceContext
 from ..risk_sector import SectorGuardTransition, update_sector_guard
 from ..types import AccountState, LeaderScore, Risk, RiskAssessment
-from .capital import portfolio_drawdowns
+from .capital import deployed_drawdown, portfolio_drawdowns
 from .recovery_state import reset_recovery_owner_rearm
 
 
@@ -39,6 +39,7 @@ class MarketBookEvidence:
     leader_failure: float
     operating_dd: float
     capital_dd: float
+    deployed_dd: float
     tech_speed: float
     broad_speed: float
     transition_damage: float
@@ -487,13 +488,13 @@ def _apply_live_book_votes(
     held: _HeldBookState,
     guard: SectorGuardTransition,
     operating_dd: float,
-    capital_dd: float,
+    deployed_dd: float,
     cfg: SystemConfig,
 ) -> None:
     state.indicators.update(
         live_book_damage=(guard.active or held.damage_ratio >= cfg.concentrated_break_ratio),
         capital_damage=(
-            capital_dd >= cfg.capital_budget_level2_dd + cfg.capital_damage_entry_band
+            deployed_dd >= cfg.capital_budget_level2_dd + cfg.capital_damage_entry_band
             or (operating_dd >= cfg.operating_dd_caution and held.damage_ratio > 0.0)
         ),
     )
@@ -557,6 +558,7 @@ def assess_market_and_book_evidence(
     normal_vol = float(tech.loc[:date, "close"].pct_change(fill_method=None).tail(60).std(ddof=0))
     vol_ratio = recent_vol / normal_vol if normal_vol > 1e-12 else 1.0
     operating_dd, capital_dd = portfolio_drawdowns(account, equity)
+    deployed_dd = deployed_drawdown(account, equity)
     tech_speed = min(scalar(tech.loc[date], "ret5", 0.0), scalar(tech.loc[date], "ret10", 0.0))
     broad_speed = min(scalar(broad.loc[date], "ret5", 0.0), scalar(broad.loc[date], "ret10", 0.0))
     breadth20 = 1.0 - metrics.below
@@ -592,7 +594,7 @@ def assess_market_and_book_evidence(
         held=held,
         guard=sector_guard,
         operating_dd=operating_dd,
-        capital_dd=capital_dd,
+        deployed_dd=deployed_dd,
         cfg=cfg,
     )
     return MarketBookEvidence(
@@ -606,6 +608,7 @@ def assess_market_and_book_evidence(
         leader_failure=metrics.leader_failure,
         operating_dd=operating_dd,
         capital_dd=capital_dd,
+        deployed_dd=deployed_dd,
         tech_speed=tech_speed,
         broad_speed=broad_speed,
         transition_damage=transition_damage,

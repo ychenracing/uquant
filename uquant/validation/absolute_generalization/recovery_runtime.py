@@ -498,20 +498,24 @@ def _failed_recovery_payload(
     first_grant: StrategicGrantIntent | None = None
     first_epoch: StrategicEpoch | None = None
     first_index = -1
+    terminal_grants: dict[str, tuple[StrategicGrantIntent, int]] = {}
     for index, row in enumerate(transitions):
         state = cast(Mapping[str, object], row["state"])
         account = _account(
             cast(AbsoluteGeneralizationReplayPayload, state["account_payload"])
         )
         grant = account.strategic_grant
-        if grant is None or not grant.terminal or grant.filled_shares != 0:
-            continue
-        epoch = next(
-            (item for item in account.strategic_epochs if item.epoch_id == grant.epoch_id),
-            None,
-        )
-        if epoch is not None and epoch.terminal:
-            first_grant, first_epoch, first_index = grant, epoch, index
+        if grant is not None and grant.terminal and grant.filled_shares == 0:
+            terminal_grants.setdefault(grant.epoch_id, (grant, index))
+        # The grant may expire at one close, with its epoch reconciled on the
+        # next session when a successor replaces the current-grant pointer.
+        # Keep both actual observations; never manufacture a terminal epoch.
+        for epoch in account.strategic_epochs:
+            if epoch.terminal and epoch.epoch_id in terminal_grants:
+                first_grant, first_index = terminal_grants[epoch.epoch_id]
+                first_epoch = epoch
+                break
+        if first_epoch is not None:
             break
     if first_grant is None or first_epoch is None:
         raise RuntimeError("absolute recovery has no terminal unfilled predecessor")

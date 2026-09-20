@@ -36,6 +36,7 @@ class _RiskTransitionContext:
     previous: Risk
     shock_rearmed: bool
     capital_dd: float
+    deployed_dd: float
     votes: int
     sector_stress: float
     narrow_anchor_guard: bool
@@ -55,7 +56,7 @@ def _observed_risk(ctx: _RiskTransitionContext) -> Risk:
     if (
         ctx.shock_rearmed
         and not protected_weights_for_current_episode(account)
-        and ctx.capital_dd >= cfg.capital_dd_crisis
+        and ctx.deployed_dd >= cfg.capital_dd_crisis
         and ctx.votes >= 4
     ):
         return Risk.CRISIS
@@ -63,7 +64,7 @@ def _observed_risk(ctx: _RiskTransitionContext) -> Risk:
         ctx.reasons.append("narrow-market concentrated anchor damage")
         return Risk.RISK_OFF
     if (
-        (ctx.capital_dd >= cfg.capital_dd_risk_off or ctx.operating_dd >= 0.10)
+        (ctx.deployed_dd >= cfg.capital_dd_risk_off or ctx.operating_dd >= 0.10)
         and ctx.votes >= 3
         and ctx.sector_stress >= 0.50
         # Broad/index warnings without damage in the owned book are a level-1
@@ -181,6 +182,7 @@ def resolve_risk_transition(
     previous: Risk,
     shock_rearmed: bool,
     capital_dd: float,
+    deployed_dd: float,
     votes: int,
     sector_stress: float,
     narrow_anchor_guard: bool,
@@ -204,6 +206,7 @@ def resolve_risk_transition(
         previous=previous,
         shock_rearmed=shock_rearmed,
         capital_dd=capital_dd,
+        deployed_dd=deployed_dd,
         votes=votes,
         sector_stress=sector_stress,
         narrow_anchor_guard=narrow_anchor_guard,

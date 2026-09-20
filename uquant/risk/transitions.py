@@ -134,6 +134,17 @@ def _cohort_break_state(
         and not protected_weights_for_current_episode(account)
         and mature_live_cohort
         and len(held_damage) >= 2
+        # Ordinary additions do not expand a strategic cohort. Its synchronized
+        # break requires at least two live members; single-name tail protection
+        # remains owned by _strategic_tail_state and the capital ladder.
+        and (
+            not strategic_active
+            or sum(
+                position.shares > 0
+                for symbol, position in account.positions.items()
+                if symbol in account.strategic_cohort_symbols
+            ) >= 2
+        )
         and held_damage_ratio >= 1.0 - 1e-12
         and operating_dd
         >= (cfg.strategic_cohort_tail_line if strategic_active else cfg.recovery_cohort_tail_line)

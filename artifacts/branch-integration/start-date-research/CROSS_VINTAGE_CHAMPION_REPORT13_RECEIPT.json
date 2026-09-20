@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "source": "0beca9d1b3f991b633621219770f9da7a389b72b",
+  "scenario": "report-13",
+  "final_wealth": 40.48948805541266,
+  "max_drawdown": 0.27139914597186277,
+  "diagnostic_only": true,
+  "scope": "Original targeted runner output and cache preserved. This runner emits compact report-13 facts, not a raw daily replay; no canonical shard aggregate is claimed. Champion-5 actual raw replay is in the main archive.",
+  "output_sha256": "34658c61f4a8a7b063bbf08230940b3719682d66a3cf286d52af2fd439abba69",
+  "archive": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_CHAMPION_REPORT13_20260920.zip",
+  "archive_bytes": 9445,
+  "archive_sha256": "57f0cc2b182a77a4e3c4ceec9f547163c9056f058a42216da982dc6318e45115",
+  "remote": {
+    "file_id": "file_0000000051cc8209ba80ed9bcf143b23",
+    "library_file_id": "libfile_366be2ce185c8191bdf19c496f16ddd4",
+    "file_name": "UQUANT_PR75_R26_CHAMPION_REPORT13_20260920.zip"
+  },
+  "readback_byte_identical": true
+}

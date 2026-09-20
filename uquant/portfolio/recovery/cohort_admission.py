@@ -100,6 +100,7 @@ def scan_recovery_evidence(
 ) -> tuple[list[LeaderScore], dict[str, float]]:
     candidates: list[LeaderScore] = []
     crash_depth: dict[str, float] = {}
+    fresh_symbols: set[str] = set()
     for symbol, score in leaders.items():
         if symbol not in user_panel or date not in user_panel[symbol].index:
             continue
@@ -108,20 +109,35 @@ def scan_recovery_evidence(
         close = scalar(row, "close")
         ma20 = scalar(row, f"ma{self.cfg.trend_fast}")
         ret120 = scalar(row, f"ret{self.cfg.trend_slow}", 0.0)
-        previous_high = float(frame["close"].iloc[-11:-1].max()) if len(frame) >= 11 else float("nan")
+        signal_days = (
+            self.cfg.recovery_add_window_days
+            if account.anchor_weights and symbol not in account.anchor_weights else 1
+        )
+        recent = frame["close"].tail(10 + signal_days)
+        breakouts = recent.ge(recent.shift().rolling(10).max()).tail(signal_days)
         if (
             math.isfinite(close)
             and math.isfinite(ma20)
-            and math.isfinite(previous_high)
             and close >= ma20
-            and close >= previous_high
+            and bool(breakouts.any())
             and ret120 < 0
             and self._liquidity_confirmed(user_panel[symbol], date)
         ):
             candidates.append(score)
             crash_depth[symbol] = ret120
+            if bool(breakouts.iloc[-1]):
+                fresh_symbols.add(symbol)
         elif symbol in account.anchor_weights and math.isfinite(ret120):
             crash_depth[symbol] = ret120
+    # Keep the original depth priority for current breakouts. Older retained
+    # observations supplement that set, ranked by their still-current strength;
+    # widening evidence validity must not displace a currently eligible member.
+    candidates.sort(key=lambda item: (
+        item.symbol not in fresh_symbols,
+        crash_depth[item.symbol] if item.symbol in fresh_symbols else -item.score,
+        -item.score if item.symbol in fresh_symbols else crash_depth[item.symbol],
+        item.symbol,
+    ))
     return candidates, crash_depth
 
 
@@ -157,7 +173,6 @@ def _filter_recovery_candidates(
         )
     ):
         candidates = []
-    candidates.sort(key=lambda item: (crash_depth.get(item.symbol, 0.0), -item.score, item.symbol))
     continuous_freeze = bool(risk.evidence.get("freeze_new_risk", False))
     if continuous_freeze and not level1_recovery_repair and not risk_neutral_recovery_transfer:
         candidates = []
@@ -235,15 +250,9 @@ def _recovery_selection(
                 account.replacement_tenure[tenure_key] = 0
         return None, None
     previous_members = set(account.anchor_weights)
-    cohort = set(account.anchor_weights) | {item.symbol for item in candidates}
-    selected = sorted(
-        cohort,
-        key=lambda symbol: (
-            crash_depth.get(symbol, 0.0),
-            -leaders[symbol].score,
-            symbol,
-        ),
-    )[: min(3, self.cfg.max_positions)]
+    additions = [item.symbol for item in candidates if item.symbol not in previous_members]
+    selected = list(account.anchor_weights)
+    selected.extend(additions[:max(0, min(3, self.cfg.max_positions) - len(selected))])
     candidate_members = set(selected)
     targets = _await_recovery_confirmation(
         self,

@@ -10,6 +10,7 @@ from ._analysis import (
     public_api_snapshot,
     public_module_names,
 )
+from ._cross_vintage_api_projection import cross_vintage_api_projection
 
 
 def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_current_contract(
@@ -25,7 +26,7 @@ def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_c
     # Runtime targets and fills belong to strategy acceptance, not API identity.
     # The sealed historical trace remains evidence of the superseded strategy.
     assert "decision_fill_account_trace" not in expected
-    assert observed == expected
+    assert observed == cross_vintage_api_projection(expected)
 
 
 def test_public_api_contract_uses_current_governance_identity(

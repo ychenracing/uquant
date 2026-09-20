@@ -1,0 +1,7 @@
+{
+  "library_file_id": "libfile_1a7bbe0a3ec48191a64831d12e1e0101",
+  "sha256": "dda094046ddf51931011f21dfe69b4917052aec69d7e98bb0064f2bb2b90fa12",
+  "bytes": 19066968,
+  "byte_equal_readback": true,
+  "scope": "C1 C2 C3 completed originals except c3-fixed active outputs; source bundle through C4; exact uncommitted test patches"
+}

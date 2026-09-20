@@ -1,0 +1,1092 @@
+{
+  "producer": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+  "scope": "R22 actual economic paths verified directly. R19 native causal diagnostics reused only after exact daily economics and fill economics equality. R19 legacy selections are NOT reused. Source-bound grant and epoch IDs remain in original evidence.",
+  "equivalence": [
+    {
+      "candidate": "native/r22/2024-offset0.json.gz",
+      "comparison": "native/r19/2024-offset0.json.gz",
+      "sha256": [
+        "d0a20c9e24a205249645d36c4e3d57bf6d0d1389abbb7b7c622a05143d7a9197",
+        "43e161268d289753bea5e99c8a85dd6ea87989de5d6e45b1e3a628136c2eba47"
+      ],
+      "checks": {
+        "equity_curve": true,
+        "daily_replay_evidence": true,
+        "fill_economics_excluding_source_bound_grant_epoch_ids": true
+      },
+      "points": 627
+    },
+    {
+      "candidate": "r22/legacy-2024-offset0.json.gz",
+      "comparison": "r11/legacy-2024-offset0.json.gz",
+      "sha256": [
+        "76db745a8f55c45ee75d881f529db261daeb09521df2458037bed3668bdf8719",
+        "43e6670c6a29322e610d568288a533dcf40975350b0c8a81ea112019959b9d13"
+      ],
+      "checks": {
+        "equity_curve": true,
+        "daily_replay_evidence": true,
+        "fill_economics_excluding_source_bound_grant_epoch_ids": true
+      },
+      "points": 627
+    }
+  ],
+  "native_causal_proof": {
+    "producer": "873cf657dd9796ee7a102aac964e17ed7c60f069",
+    "r11_diagnostic_producer": "522c775ed6a2f32d4382d70b60e3ec2a82a3c0c8",
+    "sources": {
+      "../cross-vintage/native/r11/2024-offset0.json.gz": "34c94fa9ffafbd5c4d3241e393320b859bfb9a96438f4d156f905cec29d064c1",
+      "../cross-vintage/native/r19/2024-offset0.json.gz": "43e161268d289753bea5e99c8a85dd6ea87989de5d6e45b1e3a628136c2eba47",
+      "../cross-vintage/r11-native-diagnostic.json.gz": "efe647dbb8268a5dbadd7cb7c301033163aefb7fbfef6b9600afb84621b1d679",
+      "../cross-vintage/r19/legacy-2024-offset0.json.gz": "fb1ea30f4b1185f4cf844cae1dd3788a2aa3b36c62863748dae31953322664ae"
+    },
+    "prefix_equivalence": {
+      "through": "2025-05-08",
+      "sessions": 323,
+      "checks": {
+        "equity_curve": true,
+        "daily_replay_evidence": true
+      },
+      "scope": "Cash, shares, marks, and equity exactly match. Risk logic and market scoring are unchanged from R11; reuse its causal pre-admission diagnostics only, not its later economic outcome."
+    },
+    "native_first_target_divergence": {
+      "date": "2025-05-09",
+      "R11": [
+        [
+          "sz300308",
+          0.558062517317,
+          "strategy_target"
+        ]
+      ],
+      "C": [
+        [
+          "sh688146",
+          0.152485667068,
+          "recovery_cohort"
+        ],
+        [
+          "sz300308",
+          0.558062517317,
+          "strategy_target"
+        ],
+        [
+          "sz300502",
+          0.167514332932,
+          "recovery_cohort"
+        ]
+      ],
+      "C_risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 1.0
+      },
+      "C_orders": [
+        {
+          "epoch_id": "",
+          "event_id": "evt_18bd9b04cc7b99e622e3fe02fda0566967d592c48a26bdf31d1e69a11abdff1d",
+          "exit_kind": "strategy",
+          "grant_id": "",
+          "industry_at_entry": "materials",
+          "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+          "mechanism": "RECOVERY_COHORT",
+          "order_id": "O000000041",
+          "origin_lifecycle": "RECOVERY",
+          "origin_subsystem": "RECOVERY",
+          "reason_code": "recovery_cohort",
+          "reduction_policy": "FIFO",
+          "replaces_symbol": null,
+          "side": "BUY",
+          "signal_date": "2025-05-09",
+          "snapshot_kind": "ORIGIN",
+          "symbol": "sh688146",
+          "target_weight": 0.152485667068
+        },
+        {
+          "epoch_id": "",
+          "event_id": "evt_5da273d1dd46aa297fe316377e2142e8e3b463d692fe1884f424cae336db2a35",
+          "exit_kind": "strategy",
+          "grant_id": "",
+          "industry_at_entry": "optical",
+          "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+          "mechanism": "RECOVERY_COHORT",
+          "order_id": "O000000042",
+          "origin_lifecycle": "RECOVERY",
+          "origin_subsystem": "RECOVERY",
+          "reason_code": "recovery_cohort",
+          "reduction_policy": "FIFO",
+          "replaces_symbol": null,
+          "side": "BUY",
+          "signal_date": "2025-05-09",
+          "snapshot_kind": "ORIGIN",
+          "symbol": "sz300502",
+          "target_weight": 0.167514332932
+        }
+      ]
+    },
+    "market_proof": [
+      {
+        "symbol": "sh688146",
+        "as_of": "2025-05-09",
+        "close": 27.831,
+        "ma20": 27.5425,
+        "ret120": -0.1724599328000952,
+        "recent_breakout_sessions": [
+          "2025-05-06",
+          "2025-05-07",
+          "2025-05-08"
+        ],
+        "fresh_breakout": false,
+        "liquidity_confirmed": true,
+        "positive_amount_observations": 20,
+        "median_amount": 49778338.0,
+        "reused_unchanged_market_rank": 0.45271436097457896
+      },
+      {
+        "symbol": "sz300502",
+        "as_of": "2025-05-09",
+        "close": 54.776,
+        "ma20": 43.09855,
+        "ret120": -0.1744634675669159,
+        "recent_breakout_sessions": [
+          "2025-05-08",
+          "2025-05-09"
+        ],
+        "fresh_breakout": true,
+        "liquidity_confirmed": true,
+        "positive_amount_observations": 20,
+        "median_amount": 3152939967.0,
+        "reused_unchanged_market_rank": 0.49733293394235073
+      }
+    ],
+    "risk_before_admission": [
+      {
+        "date": "2025-05-08",
+        "capital_budget_level": 1,
+        "repair_streak": 5,
+        "deployed_drawdown": 0.0,
+        "capital_drawdown": 0.08871647696487106,
+        "freeze": true
+      },
+      {
+        "date": "2025-05-09",
+        "capital_budget_level": 0,
+        "repair_streak": 5,
+        "deployed_drawdown": 0.010050023884971004,
+        "capital_drawdown": 0.09787489813735473,
+        "freeze": false
+      }
+    ],
+    "native_actual_buys": [
+      {
+        "commission": 270.05978999999996,
+        "epoch_id": "",
+        "event_id": "evt_c2c76d21f6ba4e8fef04a9168b65aa8415f11b57b2c7421726d4d5915b1f9278",
+        "exit_kind": "strategy",
+        "fill_date": "2025-04-07",
+        "fill_id": "",
+        "grant_id": "",
+        "gross_value": 1080239.16,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+        "lifecycle": "RECOVERY",
+        "mechanism": "TACTICAL_REBOUND",
+        "order_id": "O000000039",
+        "origin_lifecycle": "RECOVERY",
+        "origin_subsystem": "RECOVERY",
+        "price": 78.2782,
+        "reason": "controlled oversold rebound probe",
+        "reason_code": "recovery_cohort",
+        "reduction_policy": "FIFO",
+        "replaces_symbol": null,
+        "shares": 13800,
+        "side": "BUY",
+        "signal_date": "2025-04-03",
+        "slippage_cost": 1079.1599999999362,
+        "sold_tranches": [],
+        "stamp_duty": 0.0,
+        "symbol": "sz300308",
+        "transfer_fee": 10.8023916
+      },
+      {
+        "commission": 76.379027725,
+        "epoch_id": "",
+        "event_id": "evt_18bd9b04cc7b99e622e3fe02fda0566967d592c48a26bdf31d1e69a11abdff1d",
+        "exit_kind": "strategy",
+        "fill_date": "2025-05-12",
+        "fill_id": "",
+        "grant_id": "",
+        "gross_value": 305516.11089999997,
+        "industry_at_entry": "materials",
+        "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+        "lifecycle": "RECOVERY",
+        "mechanism": "RECOVERY_COHORT",
+        "order_id": "O000000041",
+        "origin_lifecycle": "RECOVERY",
+        "origin_subsystem": "RECOVERY",
+        "price": 28.029000999999997,
+        "reason": "recovery cohort construction",
+        "reason_code": "recovery_cohort",
+        "reduction_policy": "FIFO",
+        "replaces_symbol": null,
+        "shares": 10900,
+        "side": "BUY",
+        "signal_date": "2025-05-09",
+        "slippage_cost": 305.2108999999582,
+        "sold_tranches": [],
+        "stamp_duty": 0.0,
+        "symbol": "sh688146",
+        "transfer_fee": 3.055161109
+      },
+      {
+        "commission": 83.05051755,
+        "epoch_id": "",
+        "event_id": "evt_5da273d1dd46aa297fe316377e2142e8e3b463d692fe1884f424cae336db2a35",
+        "exit_kind": "strategy",
+        "fill_date": "2025-05-12",
+        "fill_id": "",
+        "grant_id": "",
+        "gross_value": 332202.07019999996,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+        "lifecycle": "RECOVERY",
+        "mechanism": "RECOVERY_COHORT",
+        "order_id": "O000000042",
+        "origin_lifecycle": "RECOVERY",
+        "origin_subsystem": "RECOVERY",
+        "price": 57.276219,
+        "reason": "recovery cohort construction",
+        "reason_code": "recovery_cohort",
+        "reduction_policy": "FIFO",
+        "replaces_symbol": null,
+        "shares": 5800,
+        "side": "BUY",
+        "signal_date": "2025-05-09",
+        "slippage_cost": 331.87019999997887,
+        "sold_tranches": [],
+        "stamp_duty": 0.0,
+        "symbol": "sz300502",
+        "transfer_fee": 3.3220207019999997
+      }
+    ]
+  },
+  "native_actual_buys": [
+    {
+      "commission": 76.379027725,
+      "epoch_id": "",
+      "event_id": "evt_18bd9b04cc7b99e622e3fe02fda0566967d592c48a26bdf31d1e69a11abdff1d",
+      "exit_kind": "strategy",
+      "fill_date": "2025-05-12",
+      "fill_id": "",
+      "grant_id": "",
+      "gross_value": 305516.11089999997,
+      "industry_at_entry": "materials",
+      "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+      "lifecycle": "RECOVERY",
+      "mechanism": "RECOVERY_COHORT",
+      "order_id": "O000000041",
+      "origin_lifecycle": "RECOVERY",
+      "origin_subsystem": "RECOVERY",
+      "price": 28.029000999999997,
+      "reason": "recovery cohort construction",
+      "reason_code": "recovery_cohort",
+      "reduction_policy": "FIFO",
+      "replaces_symbol": null,
+      "shares": 10900,
+      "side": "BUY",
+      "signal_date": "2025-05-09",
+      "slippage_cost": 305.2108999999582,
+      "sold_tranches": [],
+      "stamp_duty": 0.0,
+      "symbol": "sh688146",
+      "transfer_fee": 3.055161109
+    },
+    {
+      "commission": 83.05051755,
+      "epoch_id": "",
+      "event_id": "evt_5da273d1dd46aa297fe316377e2142e8e3b463d692fe1884f424cae336db2a35",
+      "exit_kind": "strategy",
+      "fill_date": "2025-05-12",
+      "fill_id": "",
+      "grant_id": "",
+      "gross_value": 332202.07019999996,
+      "industry_at_entry": "optical",
+      "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+      "lifecycle": "RECOVERY",
+      "mechanism": "RECOVERY_COHORT",
+      "order_id": "O000000042",
+      "origin_lifecycle": "RECOVERY",
+      "origin_subsystem": "RECOVERY",
+      "price": 57.276219,
+      "reason": "recovery cohort construction",
+      "reason_code": "recovery_cohort",
+      "reduction_policy": "FIFO",
+      "replaces_symbol": null,
+      "shares": 5800,
+      "side": "BUY",
+      "signal_date": "2025-05-09",
+      "slippage_cost": 331.87019999997887,
+      "sold_tranches": [],
+      "stamp_duty": 0.0,
+      "symbol": "sz300502",
+      "transfer_fee": 3.3220207019999997
+    }
+  ],
+  "legacy": {
+    "economic_hash_preserved": true,
+    "unchanged_prefix": true,
+    "early_risk": [
+      {
+        "date": "2025-01-17",
+        "budget": 1,
+        "freeze": true,
+        "deployed_drawdown": 0.0,
+        "capital_drawdown": 0.13284490059965137
+      },
+      {
+        "date": "2025-01-20",
+        "budget": 1,
+        "freeze": true,
+        "deployed_drawdown": 0.0,
+        "capital_drawdown": 0.13284490059965137
+      },
+      {
+        "date": "2025-01-21",
+        "budget": 1,
+        "freeze": true,
+        "deployed_drawdown": 0.0,
+        "capital_drawdown": 0.13284490059965137
+      },
+      {
+        "date": "2025-01-22",
+        "budget": 1,
+        "freeze": true,
+        "deployed_drawdown": 0.0,
+        "capital_drawdown": 0.13284490059965137
+      },
+      {
+        "date": "2025-01-23",
+        "budget": 0,
+        "freeze": false,
+        "deployed_drawdown": 0.0,
+        "capital_drawdown": 0.13284490059965137
+      }
+    ],
+    "actual_buys": [
+      {
+        "signal_date": "2025-04-03",
+        "fill_date": "2025-04-07",
+        "symbol": "sz300308",
+        "side": "BUY",
+        "shares": 13400,
+        "price": 78.2782,
+        "gross_value": 1048927.88,
+        "commission": 262.23197,
+        "stamp_duty": 0.0,
+        "transfer_fee": 10.4892788,
+        "slippage_cost": 1047.8799999999383,
+        "reason": "controlled oversold rebound probe",
+        "lifecycle": "RECOVERY",
+        "order_id": "O000000011",
+        "fill_id": "",
+        "reduction_policy": "FIFO",
+        "reason_code": "recovery_cohort",
+        "exit_kind": "strategy",
+        "sold_tranches": [],
+        "event_id": "evt_c2c76d21f6ba4e8fef04a9168b65aa8415f11b57b2c7421726d4d5915b1f9278",
+        "origin_subsystem": "RECOVERY",
+        "mechanism": "TACTICAL_REBOUND",
+        "origin_lifecycle": "RECOVERY",
+        "replaces_symbol": null,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+        "grant_id": "",
+        "epoch_id": ""
+      },
+      {
+        "signal_date": "2025-05-08",
+        "fill_date": "2025-05-09",
+        "symbol": "sz300394",
+        "side": "BUY",
+        "shares": 4300,
+        "price": 37.190152999999995,
+        "gross_value": 159917.6579,
+        "commission": 39.979414475,
+        "stamp_duty": 0.0,
+        "transfer_fee": 1.599176579,
+        "slippage_cost": 159.7578999999847,
+        "reason": "recovery cohort construction",
+        "lifecycle": "RECOVERY",
+        "order_id": "O000000013",
+        "fill_id": "",
+        "reduction_policy": "FIFO",
+        "reason_code": "recovery_cohort",
+        "exit_kind": "strategy",
+        "sold_tranches": [],
+        "event_id": "evt_7449b2c0ac245ec7dc5e4f1b78ddf88c460521f5d844a47dcb49fd9d5006d33f",
+        "origin_subsystem": "RECOVERY",
+        "mechanism": "RECOVERY_COHORT",
+        "origin_lifecycle": "RECOVERY",
+        "replaces_symbol": null,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+        "grant_id": "",
+        "epoch_id": ""
+      },
+      {
+        "signal_date": "2025-05-08",
+        "fill_date": "2025-05-09",
+        "symbol": "sz300502",
+        "side": "BUY",
+        "shares": 8400,
+        "price": 53.323269999999994,
+        "gross_value": 447915.46799999994,
+        "commission": 111.97886699999998,
+        "stamp_duty": 0.0,
+        "transfer_fee": 4.47915468,
+        "slippage_cost": 447.46799999992106,
+        "reason": "recovery cohort construction",
+        "lifecycle": "RECOVERY",
+        "order_id": "O000000014",
+        "fill_id": "",
+        "reduction_policy": "FIFO",
+        "reason_code": "recovery_cohort",
+        "exit_kind": "strategy",
+        "sold_tranches": [],
+        "event_id": "evt_158d9a1017daf7ca9ff8b0bb2018d803c618852467812bb21ae43104fe346f20",
+        "origin_subsystem": "RECOVERY",
+        "mechanism": "RECOVERY_COHORT",
+        "origin_lifecycle": "RECOVERY",
+        "replaces_symbol": null,
+        "industry_at_entry": "optical",
+        "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+        "grant_id": "",
+        "epoch_id": ""
+      }
+    ]
+  },
+  "inherited_budget": {
+    "scope": "R21 to R22 changes only the inherited crisis ceiling in economic source (uquant/risk/capital.py); identical frozen cases and actual native prefixes. Both candidate source identities and all raw fills remain intact.",
+    "authority": "Existing shared capital overlay; no new reserve/cash ledger, threshold, setting, or persistent field.",
+    "cases": {
+      "remove_all_three": {
+        "R21_sha256": "4d91fc44836d5826afcabce7d4bec4065406cb66ba0fae9057ec43a94236549e",
+        "R22_sha256": "15e11869a2b2f34623d5fef7dbb002331c848e354e0e444566e0520ca0bba3a4",
+        "input_equality": {
+          "start": true,
+          "end": true,
+          "symbols": true,
+          "config": true,
+          "runtime": true
+        },
+        "only_changed_registered_input": [
+          "uquant/risk/capital.py"
+        ],
+        "runner_and_contract_equal": true,
+        "R21_source": "3a4b62f509481fe0bcad8b49612dd47473e9d250",
+        "R22_source": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+        "R21_W": 3.304973854042735,
+        "R22_W": 3.504588687866668,
+        "R21_DD": 0.315005137328615,
+        "R22_DD": 0.2833451408175973,
+        "all_daily_cash_positions_marks_equal": false,
+        "all_equities_equal": false,
+        "first_economic_change": "2023-09-07",
+        "identical_daily_prefix_points": 166,
+        "previous_close": "2023-09-06",
+        "previous_actual_lifetime_peak": 3752516.6953022406,
+        "previous_deployed_peak_reconstructed_from_same_actual_positions": 2962581.42680084,
+        "inherited_loss_at_deployment_peak": 0.21050812898189553,
+        "R21_prior_decision": {
+          "risk": {
+            "state": "NORMAL",
+            "system_gross_cap": 1.0,
+            "target_gross_cap": 1.0
+          },
+          "target_gross": 0.7,
+          "targets": [
+            {
+              "symbol": "sh688200",
+              "weight": 0.121739130435,
+              "mechanism": "RECOVERY_COHORT"
+            },
+            {
+              "symbol": "sh688233",
+              "weight": 0.45652173913,
+              "mechanism": "RECOVERY_COHORT"
+            },
+            {
+              "symbol": "sz300604",
+              "weight": 0.121739130435,
+              "mechanism": "RECOVERY_COHORT"
+            }
+          ]
+        },
+        "R22_prior_decision": {
+          "risk": {
+            "state": "NORMAL",
+            "system_gross_cap": 1.0,
+            "target_gross_cap": 0.5
+          },
+          "target_gross": 0.5,
+          "targets": [
+            {
+              "symbol": "sh688200",
+              "weight": 0.086956521739,
+              "mechanism": "RECOVERY_COHORT"
+            },
+            {
+              "symbol": "sh688233",
+              "weight": 0.326086956522,
+              "mechanism": "RECOVERY_COHORT"
+            },
+            {
+              "symbol": "sz300604",
+              "weight": 0.086956521739,
+              "mechanism": "RECOVERY_COHORT"
+            }
+          ]
+        },
+        "R21_first_fills": [
+          {
+            "commission": 88.53694849999998,
+            "epoch_id": "",
+            "event_id": "evt_fbd49783a7c322d9acc631d09e37bee8f81765ccd282bc4168a9628da5c64a31",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 354147.79399999994,
+            "industry_at_entry": "semicap",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000016",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 95.71561999999999,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 3700,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 353.79399999993524,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sh688200",
+            "transfer_fee": 3.5414779399999996
+          },
+          {
+            "commission": 120.12725724999999,
+            "epoch_id": "",
+            "event_id": "evt_d2b11334e4c021fac0b92dfb46ff48e253f96cbdab2b3c83b6eb08054ebc71e3",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 480509.0289999999,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000017",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 31.821789999999996,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 15100,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 480.0289999999595,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sh688233",
+            "transfer_fee": 4.80509029
+          },
+          {
+            "commission": 89.9123225,
+            "epoch_id": "",
+            "event_id": "evt_4a905597e501cd2a40a07b8c943dcca304b7a874080d610ce5e72d590a1edeac",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 359649.29,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000018",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 37.85782,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 9500,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 359.2899999999659,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sz300604",
+            "transfer_fee": 3.5964929
+          }
+        ],
+        "R22_first_fills": [
+          {
+            "commission": 62.215152999999994,
+            "epoch_id": "",
+            "event_id": "evt_262ac684952eb793f6ceba3156ddba1499e97fa011c1f9f03fa719a41a7cefab",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 248860.61199999996,
+            "industry_at_entry": "semicap",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000016",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 95.71561999999999,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 2600,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 248.6119999999545,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sh688200",
+            "transfer_fee": 2.48860612
+          },
+          {
+            "commission": 120.12725724999999,
+            "epoch_id": "",
+            "event_id": "evt_2ae8ca7b7575a06682786294fa24a06a9e39093abfa4e3161ea3d09d9a5e9f1d",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 480509.0289999999,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000017",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 31.821789999999996,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 15100,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 480.0289999999595,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sh688233",
+            "transfer_fee": 4.80509029
+          },
+          {
+            "commission": 64.358294,
+            "epoch_id": "",
+            "event_id": "evt_22c5d6eb4802fb645d76e1a19b14aec17317749308d96ead07c96e8e323a16f3",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 257433.17599999998,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000018",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 37.85782,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 6800,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 257.1759999999756,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sz300604",
+            "transfer_fee": 2.57433176
+          }
+        ]
+      },
+      "loo-sz300308": {
+        "R21_sha256": "aa050c29b103d2660625af8f9e6532ffacd91243b961975cafdfd0d8fd047b25",
+        "R22_sha256": "8f8851e596020b6aa9f7146bb50d6e7b8cc4f8309140de95ce0f0f6919e9263c",
+        "input_equality": {
+          "start": true,
+          "end": true,
+          "symbols": true,
+          "config": true,
+          "runtime": true
+        },
+        "only_changed_registered_input": [
+          "uquant/risk/capital.py"
+        ],
+        "runner_and_contract_equal": true,
+        "R21_source": "3a4b62f509481fe0bcad8b49612dd47473e9d250",
+        "R22_source": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+        "R21_W": 6.185833489287278,
+        "R22_W": 4.371938528527714,
+        "R21_DD": 0.28639664576256096,
+        "R22_DD": 0.27602569468332283,
+        "all_daily_cash_positions_marks_equal": false,
+        "all_equities_equal": false,
+        "first_economic_change": "2023-09-07",
+        "identical_daily_prefix_points": 166,
+        "previous_close": "2023-09-06",
+        "previous_actual_lifetime_peak": 4252801.5064439,
+        "previous_deployed_peak_reconstructed_from_same_actual_positions": 3248891.1516481405,
+        "inherited_loss_at_deployment_peak": 0.23605859649800764,
+        "R21_prior_decision": {
+          "risk": {
+            "state": "NORMAL",
+            "system_gross_cap": 1.0,
+            "target_gross_cap": 1.0
+          },
+          "target_gross": 0.7,
+          "targets": [
+            {
+              "symbol": "sh688200",
+              "weight": 0.121739130435,
+              "mechanism": "RECOVERY_COHORT"
+            },
+            {
+              "symbol": "sh688233",
+              "weight": 0.45652173913,
+              "mechanism": "RECOVERY_COHORT"
+            },
+            {
+              "symbol": "sz300604",
+              "weight": 0.121739130435,
+              "mechanism": "RECOVERY_COHORT"
+            }
+          ]
+        },
+        "R22_prior_decision": {
+          "risk": {
+            "state": "NORMAL",
+            "system_gross_cap": 1.0,
+            "target_gross_cap": 0.5
+          },
+          "target_gross": 0.5,
+          "targets": [
+            {
+              "symbol": "sh688200",
+              "weight": 0.086956521739,
+              "mechanism": "RECOVERY_COHORT"
+            },
+            {
+              "symbol": "sh688233",
+              "weight": 0.326086956522,
+              "mechanism": "RECOVERY_COHORT"
+            },
+            {
+              "symbol": "sz300604",
+              "weight": 0.086956521739,
+              "mechanism": "RECOVERY_COHORT"
+            }
+          ]
+        },
+        "R21_first_fills": [
+          {
+            "commission": 98.1085105,
+            "epoch_id": "",
+            "event_id": "evt_fbd49783a7c322d9acc631d09e37bee8f81765ccd282bc4168a9628da5c64a31",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 392434.04199999996,
+            "industry_at_entry": "semicap",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000016",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 95.71561999999999,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 4100,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 392.04199999992824,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sh688200",
+            "transfer_fee": 3.92434042
+          },
+          {
+            "commission": 120.12725724999999,
+            "epoch_id": "",
+            "event_id": "evt_d2b11334e4c021fac0b92dfb46ff48e253f96cbdab2b3c83b6eb08054ebc71e3",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 480509.0289999999,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000017",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 31.821789999999996,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 15100,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 480.0289999999595,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sh688233",
+            "transfer_fee": 4.80509029
+          },
+          {
+            "commission": 98.43033199999999,
+            "epoch_id": "",
+            "event_id": "evt_4a905597e501cd2a40a07b8c943dcca304b7a874080d610ce5e72d590a1edeac",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 393721.328,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000018",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 37.85782,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 10400,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 393.3279999999627,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sz300604",
+            "transfer_fee": 3.93721328
+          }
+        ],
+        "R22_first_fills": [
+          {
+            "commission": 69.3938245,
+            "epoch_id": "",
+            "event_id": "evt_262ac684952eb793f6ceba3156ddba1499e97fa011c1f9f03fa719a41a7cefab",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 277575.29799999995,
+            "industry_at_entry": "semicap",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000016",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 95.71561999999999,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 2900,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 277.29799999994924,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sh688200",
+            "transfer_fee": 2.7757529799999996
+          },
+          {
+            "commission": 120.12725724999999,
+            "epoch_id": "",
+            "event_id": "evt_2ae8ca7b7575a06682786294fa24a06a9e39093abfa4e3161ea3d09d9a5e9f1d",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 480509.0289999999,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000017",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 31.821789999999996,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 15100,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 480.0289999999595,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sh688233",
+            "transfer_fee": 4.80509029
+          },
+          {
+            "commission": 70.03696699999999,
+            "epoch_id": "",
+            "event_id": "evt_22c5d6eb4802fb645d76e1a19b14aec17317749308d96ead07c96e8e323a16f3",
+            "exit_kind": "strategy",
+            "fill_date": "2023-09-07",
+            "fill_id": "",
+            "grant_id": "",
+            "gross_value": 280147.86799999996,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "lifecycle": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "order_id": "O000000018",
+            "origin_lifecycle": "RECOVERY",
+            "origin_subsystem": "RECOVERY",
+            "price": 37.85782,
+            "reason": "recovery cohort construction",
+            "reason_code": "recovery_cohort",
+            "reduction_policy": "FIFO",
+            "replaces_symbol": null,
+            "shares": 7400,
+            "side": "BUY",
+            "signal_date": "2023-09-06",
+            "slippage_cost": 279.86799999997345,
+            "sold_tranches": [],
+            "stamp_duty": 0.0,
+            "symbol": "sz300604",
+            "transfer_fee": 2.8014786799999998
+          }
+        ]
+      },
+      "full": {
+        "R21_sha256": "a32fa063a8667f57bd864cc5a3320fcbf05c8439d9d906f4854dc34af7d35080",
+        "R22_sha256": "60964cc0e06771fd2d73286871c06c705618b5dbf2f62cef6c6eec398e27a6c6",
+        "input_equality": {
+          "start": true,
+          "end": true,
+          "symbols": true,
+          "config": true,
+          "runtime": true
+        },
+        "only_changed_registered_input": [
+          "uquant/risk/capital.py"
+        ],
+        "runner_and_contract_equal": true,
+        "R21_source": "3a4b62f509481fe0bcad8b49612dd47473e9d250",
+        "R22_source": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+        "R21_W": 32.66263438259412,
+        "R22_W": 32.66263438259412,
+        "R21_DD": 0.27133916084354315,
+        "R22_DD": 0.27133916084354315,
+        "all_daily_cash_positions_marks_equal": true,
+        "all_equities_equal": true
+      },
+      "2024-offset0": {
+        "R21_sha256": "40bf7cf72c30692c6ec83fda0f1bce8f49e41d0169c38b66d1c4f7ff04ed55cb",
+        "R22_sha256": "d0a20c9e24a205249645d36c4e3d57bf6d0d1389abbb7b7c622a05143d7a9197",
+        "input_equality": {
+          "start": true,
+          "end": true,
+          "symbols": true,
+          "config": true,
+          "runtime": true
+        },
+        "only_changed_registered_input": [
+          "uquant/risk/capital.py"
+        ],
+        "runner_and_contract_equal": true,
+        "R21_source": "3a4b62f509481fe0bcad8b49612dd47473e9d250",
+        "R22_source": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+        "R21_W": 12.916708872013151,
+        "R22_W": 12.916708872013151,
+        "R21_DD": 0.22148648804525484,
+        "R22_DD": 0.22148648804525484,
+        "all_daily_cash_positions_marks_equal": true,
+        "all_equities_equal": true
+      },
+      "2025-offset0": {
+        "R21_sha256": "4b8e6092eb820988081c1e75041576016ad488c402e26c0fac359d2004e9d988",
+        "R22_sha256": "4395bfdde6c61b29af55323daf960dfbc31a13a7d80537e719ebc90e8a1a298a",
+        "input_equality": {
+          "start": true,
+          "end": true,
+          "symbols": true,
+          "config": true,
+          "runtime": true
+        },
+        "only_changed_registered_input": [
+          "uquant/risk/capital.py"
+        ],
+        "runner_and_contract_equal": true,
+        "R21_source": "3a4b62f509481fe0bcad8b49612dd47473e9d250",
+        "R22_source": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+        "R21_W": 15.241230373448285,
+        "R22_W": 15.241230373448285,
+        "R21_DD": 0.18840109175366904,
+        "R22_DD": 0.18840109175366904,
+        "all_daily_cash_positions_marks_equal": true,
+        "all_equities_equal": true
+      },
+      "2025-offset5": {
+        "R21_sha256": "8364be4640853aaadd9771e8b9cea8d4606bd9632b3e79d0d3f3dd4d084ee827",
+        "R22_sha256": "37ded52011ecad536df7c68f0684d111410beff2054b92a0e545494a851bb4d2",
+        "input_equality": {
+          "start": true,
+          "end": true,
+          "symbols": true,
+          "config": true,
+          "runtime": true
+        },
+        "only_changed_registered_input": [
+          "uquant/risk/capital.py"
+        ],
+        "runner_and_contract_equal": true,
+        "R21_source": "3a4b62f509481fe0bcad8b49612dd47473e9d250",
+        "R22_source": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+        "R21_W": 12.15771769585792,
+        "R22_W": 12.15771769585792,
+        "R21_DD": 0.1884371135339784,
+        "R22_DD": 0.1884371135339784,
+        "all_daily_cash_positions_marks_equal": true,
+        "all_equities_equal": true
+      }
+    },
+    "diagnostic_boundary": "Separate R19 July19 actual-checkpoint counterfactual has full DD30.0328912%, NOT a passing acceptance case. It demonstrates target80% to50% with unchanged inherited economics; final native R22 applies policy throughout actual history."
+  }
+}

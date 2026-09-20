@@ -1,0 +1,589 @@
+{
+  "status": "AFFECTED_PATHS_COVERED",
+  "scope": "Actual B checkpoint, paired risk-release observations, candidate order and next-session fill. This proves path reachability; separate fixed economic evaluator decides acceptance. No reserve substitutes a valid failure.",
+  "groups": {
+    "reserved-dates": {
+      "covered": true,
+      "same_actual_prefix": true,
+      "migration_economic_hash_unchanged": true,
+      "first_daily_economic_difference": {
+        "B": {
+          "date": "2025-04-07",
+          "cash": 1925221.7484710305,
+          "position_shares": {},
+          "close_marks": {}
+        },
+        "C": {
+          "date": "2025-04-07",
+          "cash": 774233.0291906307,
+          "position_shares": {
+            "sz300308": 14700
+          },
+          "close_marks": {
+            "sz300308": 73.2
+          }
+        }
+      },
+      "release_count": 193,
+      "release_examples": [
+        {
+          "B": {
+            "date": "2025-02-11",
+            "budget": 1,
+            "capital_drawdown": 0.10701296672704386,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          },
+          "C": {
+            "date": "2025-02-11",
+            "budget": 0,
+            "capital_drawdown": 0.10701296672704386,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        },
+        {
+          "B": {
+            "date": "2025-02-12",
+            "budget": 1,
+            "capital_drawdown": 0.10701296672704386,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          },
+          "C": {
+            "date": "2025-02-12",
+            "budget": 0,
+            "capital_drawdown": 0.10701296672704386,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        },
+        {
+          "B": {
+            "date": "2025-02-13",
+            "budget": 1,
+            "capital_drawdown": 0.10701296672704386,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          },
+          "C": {
+            "date": "2025-02-13",
+            "budget": 0,
+            "capital_drawdown": 0.10701296672704386,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        }
+      ],
+      "linked_release_signal_fill_count": 4,
+      "linked_examples": [
+        {
+          "release": {
+            "B": {
+              "date": "2025-03-19",
+              "budget": 1,
+              "capital_drawdown": 0.10701296672704386,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            },
+            "C": {
+              "date": "2025-03-19",
+              "budget": 0,
+              "capital_drawdown": 0.10701296672704386,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2025-04-03",
+            "opportunity": "CHOPPY",
+            "risk": {
+              "state": "CAUTION",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.6,
+            "targets": [
+              {
+                "symbol": "sz300308",
+                "weight": 0.6,
+                "lifecycle": "RECOVERY",
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_c2c76d21f6ba4e8fef04a9168b65aa8415f11b57b2c7421726d4d5915b1f9278",
+                "event_signal_date": "2025-04-03",
+                "event_target_weight_hex": "0x1.3333333333333p-1",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "TACTICAL_REBOUND",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000021",
+                "signal_date": "2025-04-03",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300308",
+                "side": "BUY",
+                "target_weight": 0.6,
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_c2c76d21f6ba4e8fef04a9168b65aa8415f11b57b2c7421726d4d5915b1f9278",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "TACTICAL_REBOUND",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2025-04-03",
+            "fill_date": "2025-04-07",
+            "symbol": "sz300308",
+            "side": "BUY",
+            "shares": 14700,
+            "price": 78.2782,
+            "gross_value": 1150689.54,
+            "commission": 287.672385,
+            "stamp_duty": 0.0,
+            "transfer_fee": 11.506895400000001,
+            "slippage_cost": 1149.5399999999322,
+            "reason": "controlled oversold rebound probe",
+            "lifecycle": "RECOVERY",
+            "order_id": "O000000021",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "recovery_cohort",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_c2c76d21f6ba4e8fef04a9168b65aa8415f11b57b2c7421726d4d5915b1f9278",
+            "origin_subsystem": "RECOVERY",
+            "mechanism": "TACTICAL_REBOUND",
+            "origin_lifecycle": "RECOVERY",
+            "replaces_symbol": null,
+            "industry_at_entry": "optical",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        },
+        {
+          "release": {
+            "B": {
+              "date": "2025-05-08",
+              "budget": 1,
+              "capital_drawdown": 0.10701296672704386,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            },
+            "C": {
+              "date": "2025-05-08",
+              "budget": 0,
+              "capital_drawdown": 0.014241248252338856,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2025-05-08",
+            "opportunity": "RECOVERY",
+            "risk": {
+              "state": "NORMAL",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.92,
+            "targets": [
+              {
+                "symbol": "sz300308",
+                "weight": 0.6,
+                "lifecycle": "RECOVERY",
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_764e68b03516cdfacf3b9b6cb8c5f7387010d8c83a630c7f9f9713c44c258b3a",
+                "event_signal_date": "2025-05-08",
+                "event_target_weight_hex": "0x1.3333333333333p-1",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sz300394",
+                "weight": 0.084471842277,
+                "lifecycle": "RECOVERY",
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_7449b2c0ac245ec7dc5e4f1b78ddf88c460521f5d844a47dcb49fd9d5006d33f",
+                "event_signal_date": "2025-05-08",
+                "event_target_weight_hex": "0x1.59ff258034b71p-4",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sz300502",
+                "weight": 0.235528157723,
+                "lifecycle": "RECOVERY",
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_158d9a1017daf7ca9ff8b0bb2018d803c618852467812bb21ae43104fe346f20",
+                "event_signal_date": "2025-05-08",
+                "event_target_weight_hex": "0x1.e25c9635a833fp-3",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000023",
+                "signal_date": "2025-05-08",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300308",
+                "side": "BUY",
+                "target_weight": 0.6,
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_764e68b03516cdfacf3b9b6cb8c5f7387010d8c83a630c7f9f9713c44c258b3a",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000024",
+                "signal_date": "2025-05-08",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300394",
+                "side": "BUY",
+                "target_weight": 0.084471842277,
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_7449b2c0ac245ec7dc5e4f1b78ddf88c460521f5d844a47dcb49fd9d5006d33f",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000025",
+                "signal_date": "2025-05-08",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300502",
+                "side": "BUY",
+                "target_weight": 0.235528157723,
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_158d9a1017daf7ca9ff8b0bb2018d803c618852467812bb21ae43104fe346f20",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2025-05-08",
+            "fill_date": "2025-05-09",
+            "symbol": "sz300308",
+            "side": "BUY",
+            "shares": 1200,
+            "price": 92.88279,
+            "gross_value": 111459.348,
+            "commission": 27.864837,
+            "stamp_duty": 0.0,
+            "transfer_fee": 1.1145934800000001,
+            "slippage_cost": 111.34799999999245,
+            "reason": "recovery cohort construction",
+            "lifecycle": "RECOVERY",
+            "order_id": "O000000023",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "recovery_cohort",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_764e68b03516cdfacf3b9b6cb8c5f7387010d8c83a630c7f9f9713c44c258b3a",
+            "origin_subsystem": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "origin_lifecycle": "RECOVERY",
+            "replaces_symbol": null,
+            "industry_at_entry": "optical",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        },
+        {
+          "release": {
+            "B": {
+              "date": "2025-05-08",
+              "budget": 1,
+              "capital_drawdown": 0.10701296672704386,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            },
+            "C": {
+              "date": "2025-05-08",
+              "budget": 0,
+              "capital_drawdown": 0.014241248252338856,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2025-05-08",
+            "opportunity": "RECOVERY",
+            "risk": {
+              "state": "NORMAL",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.92,
+            "targets": [
+              {
+                "symbol": "sz300308",
+                "weight": 0.6,
+                "lifecycle": "RECOVERY",
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_764e68b03516cdfacf3b9b6cb8c5f7387010d8c83a630c7f9f9713c44c258b3a",
+                "event_signal_date": "2025-05-08",
+                "event_target_weight_hex": "0x1.3333333333333p-1",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sz300394",
+                "weight": 0.084471842277,
+                "lifecycle": "RECOVERY",
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_7449b2c0ac245ec7dc5e4f1b78ddf88c460521f5d844a47dcb49fd9d5006d33f",
+                "event_signal_date": "2025-05-08",
+                "event_target_weight_hex": "0x1.59ff258034b71p-4",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sz300502",
+                "weight": 0.235528157723,
+                "lifecycle": "RECOVERY",
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_158d9a1017daf7ca9ff8b0bb2018d803c618852467812bb21ae43104fe346f20",
+                "event_signal_date": "2025-05-08",
+                "event_target_weight_hex": "0x1.e25c9635a833fp-3",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000023",
+                "signal_date": "2025-05-08",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300308",
+                "side": "BUY",
+                "target_weight": 0.6,
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_764e68b03516cdfacf3b9b6cb8c5f7387010d8c83a630c7f9f9713c44c258b3a",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000024",
+                "signal_date": "2025-05-08",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300394",
+                "side": "BUY",
+                "target_weight": 0.084471842277,
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_7449b2c0ac245ec7dc5e4f1b78ddf88c460521f5d844a47dcb49fd9d5006d33f",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000025",
+                "signal_date": "2025-05-08",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300502",
+                "side": "BUY",
+                "target_weight": 0.235528157723,
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_158d9a1017daf7ca9ff8b0bb2018d803c618852467812bb21ae43104fe346f20",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "RECOVERY_COHORT",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "optical",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2025-05-08",
+            "fill_date": "2025-05-09",
+            "symbol": "sz300394",
+            "side": "BUY",
+            "shares": 4700,
+            "price": 37.190152999999995,
+            "gross_value": 174793.7191,
+            "commission": 43.698429775,
+            "stamp_duty": 0.0,
+            "transfer_fee": 1.7479371910000001,
+            "slippage_cost": 174.61909999998326,
+            "reason": "recovery cohort construction",
+            "lifecycle": "RECOVERY",
+            "order_id": "O000000024",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "recovery_cohort",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_7449b2c0ac245ec7dc5e4f1b78ddf88c460521f5d844a47dcb49fd9d5006d33f",
+            "origin_subsystem": "RECOVERY",
+            "mechanism": "RECOVERY_COHORT",
+            "origin_lifecycle": "RECOVERY",
+            "replaces_symbol": null,
+            "industry_at_entry": "optical",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        }
+      ],
+      "outside_development_signal_dates": false,
+      "source_sha256": {
+        "confirmation/r26/reserved-dates-old-B.json.gz": "7d1d71dd2da7f2264dc2553f7e7dcfeb8bc79803fe26a07b40e1806c90b5c08c",
+        "confirmation/r26/reserved-dates-legacy-C.json.gz": "d914ce1774f646961e3aae3d23f44b550a909b27d929101c283dde2a52e701ad"
+      }
+    }
+  }
+}

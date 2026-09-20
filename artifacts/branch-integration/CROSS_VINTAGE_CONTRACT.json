@@ -1,0 +1,68 @@
+{
+  "contract_id": "cross-vintage-recovery-20260920",
+  "baseline": "3af6aba18f133f4e22612769c703dac080d940d9",
+  "original_contract": "START_DATE_CONTRACT.json",
+  "original_baseline": "28a4d4ead1e4dd3c98119eec0c57b9f294edf9ef",
+  "authority": "Attached implementation prompt and explicit user implementation authorization",
+  "common_close": "2025-01-16",
+  "end": "2026-08-05",
+  "old_starts": [
+    "2024-01-02",
+    "2024-01-09",
+    "2024-01-16"
+  ],
+  "new_starts": [
+    "2025-01-02",
+    "2025-01-09",
+    "2025-01-16"
+  ],
+  "reference": "max(B_new G, C_new G) across all three starts",
+  "gates": {
+    "native_old_ratio": 0.7,
+    "legacy_old_ratio": 0.7,
+    "each_new_retention": 0.9,
+    "full_drawdown": 0.3,
+    "suffix_cost2_retention": 0.9
+  },
+  "legacy": "Real B checkpoint after close processing; C resumes next session; preserve full prefix curve, high water and all economic facts; migrate_code_identity only",
+  "suffix_cost_cases": [
+    "2024-01-02-legacy",
+    "2025-01-09-native"
+  ],
+  "confirmation": [
+    {
+      "id": "different-recovery",
+      "old_start": "2023-01-19",
+      "new_start": "2023-07-03",
+      "common_close": "2023-07-03",
+      "pool": "full",
+      "basis": "Previously unused reserved old start, existing July tactical episode distinct from April/May 2025; full fixed endpoint, not return selection"
+    },
+    {
+      "id": "remove308",
+      "old_start": "2024-01-02",
+      "new_start": "2025-01-09",
+      "common_close": "2025-01-16",
+      "pool": "loo-sz300308",
+      "basis": "Existing registered exclusion with same development dates to isolate pool transfer"
+    }
+  ],
+  "reserve_confirmation": {
+    "id": "reserved-dates",
+    "old_start": "2024-01-23",
+    "new_start": "2025-01-23",
+    "common_close": "2025-01-23",
+    "pool": "full",
+    "basis": "Unused offset15 starts selected by calendar; use only uncovered path or after confirmation becomes development, never discard valid failures"
+  },
+  "confirmation_prefix": "Generate B natively through common close; keep B continuation and migrate same checkpoint into C; additionally run C-native old/new and B-new",
+  "confirmation_gates": "same 70% higher-reference old growth, 90% new retention, 30% full DD; actual affected path must trigger",
+  "runtime": {
+    "python": "3.12.13",
+    "numpy": "2.5.1",
+    "pandas": "3.0.5",
+    "uv": "0.11.33"
+  },
+  "data_manifest_sha256": "343009138d22f8d4a20768f706207fe4d4bcd03581b0c5945c5485ecbd28788d",
+  "status": "REGISTERED_BEFORE_CANDIDATE_RUN"
+}

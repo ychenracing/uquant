@@ -1,0 +1,51 @@
+{
+  "status": "CAUSAL_PATH_REPRODUCED",
+  "r24_final_wealth": 15.352046550540328,
+  "r26_final_wealth": 28.138745177514686,
+  "same_max_drawdown": true,
+  "first_cash_or_share_difference": "2025-10-15",
+  "before_difference_R24": {
+    "cash": 13936514.766025325,
+    "close_marks": {
+      "sz300308": 353.12,
+      "sz300502": 229.707
+    },
+    "date": "2025-10-15",
+    "position_shares": {
+      "sz300308": 6500,
+      "sz300502": 11300
+    }
+  },
+  "before_difference_R26": {
+    "cash": 2844862.0335133225,
+    "close_marks": {
+      "sz300308": 353.12,
+      "sz300502": 229.707
+    },
+    "date": "2025-10-15",
+    "position_shares": {
+      "sz300308": 38800,
+      "sz300502": 11300
+    }
+  },
+  "actual_cohort_symbols": [
+    "sz300308"
+  ],
+  "actual_positions": {
+    "sz300308": {
+      "shares": 38800,
+      "origins": [
+        "STRATEGIC"
+      ]
+    },
+    "sz300502": {
+      "shares": 11300,
+      "origins": [
+        "LEADER"
+      ]
+    }
+  },
+  "cause": "Synchronized cohort breadth counted an ordinary LEADER addition alongside one strategic member; fixed owner cardinality leaves independent tail, capital and market guards unchanged. July sizing and timing preserved; no threshold adjustment.",
+  "source_head": "0beca9d1b3f991b633621219770f9da7a389b72b",
+  "r26_raw_sha256": "032a43bf0759794df1837e587d31d2c845e513916a4c4436ffd3df65b69e3071"
+}

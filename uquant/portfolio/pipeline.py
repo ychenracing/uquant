@@ -774,14 +774,14 @@ def _admit_new_cores(
     book: AllocationBook, *, candidates: list[str], opportunity: Opportunity,
     market: dict[str, Any], recovery: tuple[Target, ...] = (),
 ) -> None:
-    """One current-strength queue; all admissions compete for the same real cash."""
+    """One recovery-first queue; all admissions compete for the same real cash."""
     requests = _core_requests(book, candidates=candidates, opportunity=opportunity, market=market)
     recovery_requests = {t.symbol: t for t in recovery
                          if t.symbol in book.leaders and t.weight > book.weights_now.get(t.symbol, 0.0)}
     # A recovery-qualified symbol keeps its original ownership and requested size.
     requests.update({s: t.weight for s, t in recovery_requests.items()})
     funded_recovery = set()
-    for symbol in sorted(requests, key=lambda s: (-book.leaders[s].score, s)):
+    for symbol in sorted(requests, key=lambda s: (s not in recovery_requests, -book.leaders[s].score, s)):
         weight = requests[symbol]
         recovered = symbol in recovery_requests
         if book.fund(symbol, weight,

@@ -26,9 +26,9 @@ def test_mixed_requests_share_one_budget(monkeypatch, recovery_stronger):
                     origin_subsystem='RECOVERY', mechanism='RECOVERY_COHORT')
     _admit_new_cores(book, candidates=[ordinary], opportunity=Opportunity.RECOVERY,
                      market={}, recovery=(target,))
-    winner = recovery if recovery_stronger else ordinary
+    winner = recovery
     assert book.proposed == pytest.approx({winner: .2})
     assert book.cash_room == pytest.approx(0)
     assert sum(book.committed.values()) == pytest.approx(.2)
-    assert set(book.recovery_targets) == ({recovery} if recovery_stronger else set())
-    assert set(account.anchor_weights) == ({recovery} if recovery_stronger else set())
+    assert set(book.recovery_targets) == {recovery}
+    assert set(account.anchor_weights) == {recovery}

@@ -72,17 +72,16 @@ def _update_capital_budget_ladder(
     repair_confirmed: bool,
     repair_days: int,
 ) -> None:
-    """Escalate immediately and repair at most one capital tier per window."""
+    """Escalate immediately; after confirmation release one tier per session."""
     current = account.capital_budget_level
     if observed_level > current:
         account.capital_budget_level = observed_level
         account.capital_budget_repair_streak = 0
         return
     if observed_level < current and repair_confirmed:
-        account.capital_budget_repair_streak += 1
+        account.capital_budget_repair_streak = min(account.capital_budget_repair_streak + 1, repair_days)
         if account.capital_budget_repair_streak >= repair_days:
             account.capital_budget_level = max(observed_level, current - 1)
-            account.capital_budget_repair_streak = 0
         return
     account.capital_budget_repair_streak = 0
 
@@ -151,10 +150,6 @@ def _observed_capital_budget_level(
     held_damage_ratio: float,
     cfg: SystemConfig,
 ) -> int:
-    # Market/holding warnings corroborate a loss; they do not turn settled
-    # history into damage in a new deployment that is below its caution line.
-    if deployed_dd < cfg.operating_dd_caution:
-        return 0
     if (
         capital_dd >= cfg.capital_dd_crisis
         and worsening_damage

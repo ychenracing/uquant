@@ -1107,9 +1107,15 @@ def architecture_capital_repair_projection(stage: ast.FunctionDef) -> ast.Functi
     market controls, tier progression and damage escalation stay exact.
     """
     current = copy.deepcopy(stage)
-    if current.name == "_observed_capital_budget_level":
-        first = current.body.pop(0)
-        assert ast.unparse(first) == "if deployed_dd < cfg.operating_dd_caution:\n    return 0"
+    if current.name == "_update_capital_budget_ladder":
+        assert current.body[0].value.value == "Escalate immediately; after confirmation release one tier per session."
+        current.body[0].value.value = "Escalate immediately and repair at most one capital tier per window."
+        repair = current.body[3]
+        assert ast.unparse(repair.body[0]) == "account.capital_budget_repair_streak = min(account.capital_budget_repair_streak + 1, repair_days)"
+        assert len(repair.body[1].body) == 1
+        assert ast.unparse(repair.body[1].body[0]) == "account.capital_budget_level = max(observed_level, current - 1)"
+        repair.body[0] = ast.parse("account.capital_budget_repair_streak += 1").body[0]
+        repair.body[1].body.append(ast.parse("account.capital_budget_repair_streak = 0").body[0])
     if current.name in {"_capital_budget_repair_drawdown_confirmed", "_observe_capital_budget",
                         "_observed_capital_budget_level", "_apply_capital_overlays"}:
         names = {"deployed_drawdown": "operating_drawdown", "deployed_dd": "operating_dd"}

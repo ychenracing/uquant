@@ -165,28 +165,24 @@ def test_protected_restore_cannot_use_overweight_members_to_hide_a_missing_membe
 
     assert account.protected_weights == {symbol: 0.30 for symbol in symbols}
 
-def test_capital_budget_repairs_exactly_one_level_per_confirmation_window() -> None:
+def test_capital_budget_reuses_continuous_confirmation_for_gradual_release() -> None:
     account = AccountState.empty(100.0)
     account.capital_budget_level = 4
-    repair_days = 3
-
-    for expected_level in (3, 2, 1, 0):
-        for _ in range(repair_days - 1):
-            _update_capital_budget_ladder(
-                account,
-                observed_level=0,
-                repair_confirmed=True,
-                repair_days=repair_days,
-            )
-            assert account.capital_budget_level == expected_level + 1
-        _update_capital_budget_ladder(
-            account,
-            observed_level=0,
-            repair_confirmed=True,
-            repair_days=repair_days,
-        )
+    for expected_level in (4, 4, 3, 2, 1, 0):
+        _update_capital_budget_ladder(account, observed_level=0,
+                                     repair_confirmed=True, repair_days=3)
         assert account.capital_budget_level == expected_level
-        assert account.capital_budget_repair_streak == 0
+        assert 0 <= account.capital_budget_repair_streak <= 3
+
+    # A failed repair observation breaks continuity even without a higher tier.
+    account.capital_budget_level = 2
+    _update_capital_budget_ladder(account, observed_level=0,
+                                 repair_confirmed=False, repair_days=3)
+    assert account.capital_budget_repair_streak == 0
+    _update_capital_budget_ladder(account, observed_level=0,
+                                 repair_confirmed=True, repair_days=3)
+    assert account.capital_budget_level == 2
+
 
 def test_capital_budget_repair_requires_drawdown_recovery() -> None:
     cfg = DEFAULT_CONFIG

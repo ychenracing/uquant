@@ -120,7 +120,7 @@ def test_deployed_peak_rejects_invalid_durable_values(value):
     (0.13, 0.09, True, 2, 2),
     (0.18, 0.09, True, 4, 3),
     (0.25, 0.09, True, 4, 4),
-    (0.25, 0.07, True, 4, 0),
+    (0.25, 0.07, True, 4, 4),
     (0.13, 0.09, False, 2, 1),
 ])
 def test_accumulated_loss_reduces_budget_only_with_independent_damage(capital_dd, deployed_dd, damage, votes, expected):

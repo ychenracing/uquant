@@ -45,6 +45,7 @@ def main():
             # B continuation is independent of the candidate revision. Reuse
             # only its already-validated exact baseline/prefix, never a C run.
             import gzip
+
             from cross_vintage_metrics import read_metrics
             assert checkout == baseline
             payload = json.loads(gzip.decompress(destination.read_bytes()))

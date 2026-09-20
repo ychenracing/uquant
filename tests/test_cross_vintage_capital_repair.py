@@ -7,27 +7,6 @@ from uquant.risk_sector import SectorGuardTransition
 from uquant.types import AccountState
 
 
-def test_held_exposure_confirms_each_tier_before_reopening_admission():
-    from test_account_schema_v3_integrity import _position_state
-
-    from uquant.risk.capital import _update_capital_budget_ladder
-
-    account = _position_state()
-    account.capital_budget_level = 2
-    for expected in (2, 2, 1, 1, 1, 0):
-        _update_capital_budget_ladder(account, observed_level=0,
-                                     repair_confirmed=True, repair_days=3)
-        assert account.capital_budget_level == expected
-
-    # The same ladder releases stale restrictions after actual exposure ends.
-    account.positions.clear()
-    account.capital_budget_level = 2
-    for expected in (2, 2, 1, 0):
-        _update_capital_budget_ladder(account, observed_level=0,
-                                     repair_confirmed=True, repair_days=3)
-        assert account.capital_budget_level == expected
-
-
 @pytest.mark.parametrize('deployed_dd,expected', [(0.0, 0), (0.15, 1)])
 def test_repair_uses_current_exposure_and_preserves_history(deployed_dd, expected):
     account = AccountState.empty(2_000_000)

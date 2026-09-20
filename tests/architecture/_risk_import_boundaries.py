@@ -43,7 +43,7 @@ def test_risk_facade_preserves_consumed_names_reflection_and_live_anchor_seam(
                 "294773e55572fe289edd183a6eac73dd633d325bf8bb249c2ca717d22b340e8a"
             )
         elif name == "_update_capital_budget_ladder":
-            assert function.__doc__ == "Escalate immediately; held exposure confirms each tier, flat cash reuses repair."
+            assert function.__doc__ == "Escalate immediately; after confirmation release one tier per session."
         else:
             assert function.__doc__ == reflection[name]["raw_docstring"]
         assert str(inspect.signature(function)) == signature

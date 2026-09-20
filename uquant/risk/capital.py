@@ -72,7 +72,7 @@ def _update_capital_budget_ladder(
     repair_confirmed: bool,
     repair_days: int,
 ) -> None:
-    """Escalate immediately; held exposure confirms each tier, flat cash reuses repair."""
+    """Escalate immediately; after confirmation release one tier per session."""
     current = account.capital_budget_level
     if observed_level > current:
         account.capital_budget_level = observed_level
@@ -82,8 +82,6 @@ def _update_capital_budget_ladder(
         account.capital_budget_repair_streak = min(account.capital_budget_repair_streak + 1, repair_days)
         if account.capital_budget_repair_streak >= repair_days:
             account.capital_budget_level = max(observed_level, current - 1)
-            if any(position.shares > 0 for position in account.positions.values()):
-                account.capital_budget_repair_streak = 0
         return
     account.capital_budget_repair_streak = 0
 

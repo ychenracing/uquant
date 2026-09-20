@@ -1,0 +1,16 @@
+{
+  "baseline": {
+    "function_lines": 43,
+    "comparison_nodes": 10,
+    "boolean_operands": 20,
+    "new_state_fields": 0,
+    "new_config": 0
+  },
+  "neutral": {
+    "function_lines": 37,
+    "comparison_nodes": 5,
+    "boolean_operands": 14,
+    "new_state_fields": 0,
+    "new_config": 0
+  }
+}

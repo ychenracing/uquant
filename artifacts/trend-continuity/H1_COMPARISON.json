@@ -1,0 +1,170 @@
+{
+  "rows": [
+    {
+      "case": "2024-offset0",
+      "baseline": {
+        "wealth": 12.916708872013151,
+        "drawdown": 0.22148648804525484,
+        "orders": 52,
+        "operation_days": 41,
+        "turnover": 10.713564332088392,
+        "cost_burden": 0.01622179132369359,
+        "fees": 30049.676873698998,
+        "slippage": 47242.67909999818,
+        "mean_gross": 0.6141970436248757,
+        "median_continuous_sessions": 29,
+        "holding_episodes": 23,
+        "open_episodes": 0
+      },
+      "candidate": {
+        "wealth": 10.2236437086906,
+        "drawdown": 0.21443433236427178,
+        "orders": 30,
+        "operation_days": 26,
+        "turnover": 6.771768903884664,
+        "cost_burden": 0.010300039295236258,
+        "fees": 20864.133118804,
+        "slippage": 31875.549499998346,
+        "mean_gross": 0.5315223075673138,
+        "median_continuous_sessions": 54,
+        "holding_episodes": 13,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 0.791505313775581,
+      "drawdown_delta": -0.007052155680983052,
+      "failures": [
+        "wealth"
+      ],
+      "baseline_source": "7439d43abb8970a1ddff93883c49414e29aecad8",
+      "candidate_source": "23f560e9028ae18c372d9ad3b71310beb509233d",
+      "raw_sha256": {
+        "../cross-vintage/native/continuity-main/2024-offset0.json.gz": "d17898004b3cb8d85f420105f9f75ee72ad6a60e403360dd6ce1b491401820a9",
+        "../cross-vintage/native/continuity-h1/2024-offset0.json.gz": "5cc92177aa28bc17978490b3213fa8ac996766d0038bccd4e9e9c0e354d4bc77"
+      }
+    },
+    {
+      "case": "full",
+      "baseline": {
+        "wealth": 32.66263438259412,
+        "drawdown": 0.27133916084354315,
+        "orders": 21,
+        "operation_days": 27,
+        "turnover": 4.650843743656146,
+        "cost_burden": 0.007118727602477331,
+        "fees": 69655.218211746,
+        "slippage": 105566.41659999825,
+        "mean_gross": 0.5630454051462348,
+        "median_continuous_sessions": 62.0,
+        "holding_episodes": 6,
+        "open_episodes": 0
+      },
+      "candidate": {
+        "wealth": 32.66209027992607,
+        "drawdown": 0.2714113356448494,
+        "orders": 21,
+        "operation_days": 27,
+        "turnover": 4.647868368780961,
+        "cost_burden": 0.007114087125709162,
+        "fees": 69641.494247854,
+        "slippage": 105540.04589999827,
+        "mean_gross": 0.5637015774651806,
+        "median_continuous_sessions": 62.0,
+        "holding_episodes": 6,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 0.9999833417396259,
+      "drawdown_delta": 7.217480130627951e-05,
+      "failures": [],
+      "baseline_source": "7439d43abb8970a1ddff93883c49414e29aecad8",
+      "candidate_source": "23f560e9028ae18c372d9ad3b71310beb509233d",
+      "raw_sha256": {
+        "../cross-vintage/native/continuity-main/full.json.gz": "4e71acf85703610b9c930e7b6db78cd60b37f83615c8e796e66df0ded413dbb0",
+        "../cross-vintage/native/continuity-h1/full.json.gz": "7651a3c3be79e94b6847e627ea59bfc12b7ce25a2a91c73814255aa9fd3d1294"
+      }
+    },
+    {
+      "case": "loo-sz300308",
+      "baseline": {
+        "wealth": 4.371938528527714,
+        "drawdown": 0.27602569468332283,
+        "orders": 95,
+        "operation_days": 75,
+        "turnover": 17.33591320642742,
+        "cost_burden": 0.026241110847220736,
+        "fees": 42984.581444575,
+        "slippage": 80950.86149999512,
+        "mean_gross": 0.3463864591650121,
+        "median_continuous_sessions": 24.0,
+        "holding_episodes": 44,
+        "open_episodes": 0
+      },
+      "candidate": {
+        "wealth": 5.00798337243347,
+        "drawdown": 0.234824810661018,
+        "orders": 61,
+        "operation_days": 52,
+        "turnover": 10.850144326079214,
+        "cost_burden": 0.016408511769965075,
+        "fees": 26031.488233062,
+        "slippage": 47108.06689999812,
+        "mean_gross": 0.3770203038022512,
+        "median_continuous_sessions": 61,
+        "holding_episodes": 29,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 1.14548348284301,
+      "drawdown_delta": -0.04120088402230482,
+      "failures": [],
+      "baseline_source": "7439d43abb8970a1ddff93883c49414e29aecad8",
+      "candidate_source": "23f560e9028ae18c372d9ad3b71310beb509233d",
+      "raw_sha256": {
+        "../cross-vintage/native/continuity-main/loo-sz300308.json.gz": "68da74cc46a63e1b850491fa3b5e4c3a77e702c09be8bc79477e4fcad0aefb68",
+        "../cross-vintage/native/continuity-h1/loo-sz300308.json.gz": "edea348b486409e48815abed94755a807433395baaebde3a3634a0027ad9b455"
+      }
+    },
+    {
+      "case": "remove_all_three",
+      "baseline": {
+        "wealth": 3.41007401426652,
+        "drawdown": 0.28462387948655166,
+        "orders": 83,
+        "operation_days": 71,
+        "turnover": 17.31152511044702,
+        "cost_burden": 0.026125827132624204,
+        "fees": 32434.951266966,
+        "slippage": 61961.42019999653,
+        "mean_gross": 0.37155439833641685,
+        "median_continuous_sessions": 28.0,
+        "holding_episodes": 38,
+        "open_episodes": 1
+      },
+      "candidate": {
+        "wealth": 3.7361511689530156,
+        "drawdown": 0.26417943691749124,
+        "orders": 56,
+        "operation_days": 45,
+        "turnover": 10.403233733885022,
+        "cost_burden": 0.01572174011387429,
+        "fees": 16844.65859397,
+        "slippage": 30343.503499998336,
+        "mean_gross": 0.36354026625511576,
+        "median_continuous_sessions": 52,
+        "holding_episodes": 27,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 1.0956217235527166,
+      "drawdown_delta": -0.020444442569060417,
+      "failures": [],
+      "baseline_source": "7439d43abb8970a1ddff93883c49414e29aecad8",
+      "candidate_source": "23f560e9028ae18c372d9ad3b71310beb509233d",
+      "raw_sha256": {
+        "../cross-vintage/native/continuity-main/remove_all_three.json.gz": "f9de26956e95f31f3250601218ba6cfb8e87b0a0954145be5f5ac54299808f28",
+        "../cross-vintage/native/continuity-h1/remove_all_three.json.gz": "ecdb396f4e7b5974446798060502820c3d3050cab33ce03d3d07034d7603458f"
+      }
+    }
+  ],
+  "paired_cases": 4,
+  "geometric_wealth_ratio": 0.99832975773825,
+  "individually_improved": 2,
+  "note": "Partial comparison is not final acceptance; seven cases and mechanism/correctness gates required."
+}

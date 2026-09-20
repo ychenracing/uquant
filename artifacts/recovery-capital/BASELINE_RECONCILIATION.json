@@ -1,0 +1,10 @@
+{
+  "source": "dd5ef43931c3e316f3808d4ef04f34e3953be194",
+  "decision_count": 627,
+  "all_decisions_equal": true,
+  "final_account_equal": true,
+  "wealth": 12.916708872013151,
+  "reference": "../cross-vintage/native/recovery-main/2024-offset0.json.gz",
+  "diagnostic": "../capital-baseline-diagnosis.json.gz",
+  "prior_mismatch_reason": "Old baseline source identity binds account/grant/epoch identities; no economic change. New same-source baseline matches exactly."
+}

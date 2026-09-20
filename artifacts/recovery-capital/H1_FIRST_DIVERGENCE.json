@@ -1,0 +1,312 @@
+{
+  "first_economic_control_divergence": {
+    "baseline": {
+      "date": "2024-01-17",
+      "opportunity": "WEAK",
+      "risk": {
+        "state": "CAUTION",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 1.0
+      },
+      "target_gross": 0.350955820916,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.0,
+          "lifecycle": "CORE",
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "symbol": "sz300394",
+          "weight": 0.0,
+          "lifecycle": "CORE",
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "symbol": "sz300502",
+          "weight": 0.350955820916,
+          "lifecycle": "CORE",
+          "mechanism": "RISK_FREEZE"
+        }
+      ],
+      "orders": [
+        {
+          "symbol": "sz300308",
+          "side": "SELL",
+          "target_weight": 0.0,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "symbol": "sz300394",
+          "side": "SELL",
+          "target_weight": 0.0,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        }
+      ]
+    },
+    "H1": {
+      "date": "2024-01-17",
+      "opportunity": "WEAK",
+      "risk": {
+        "state": "CAUTION",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 1.0
+      },
+      "target_gross": 0.676841671914,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.0,
+          "lifecycle": "CORE",
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        },
+        {
+          "symbol": "sz300394",
+          "weight": 0.325885850999,
+          "lifecycle": "CORE",
+          "mechanism": "RISK_FREEZE"
+        },
+        {
+          "symbol": "sz300502",
+          "weight": 0.350955820916,
+          "lifecycle": "CORE",
+          "mechanism": "RISK_FREEZE"
+        }
+      ],
+      "orders": [
+        {
+          "symbol": "sz300308",
+          "side": "SELL",
+          "target_weight": 0.0,
+          "mechanism": "STRATEGIC_TRAILING_EXIT"
+        }
+      ]
+    }
+  },
+  "recovery_control_days": [
+    {
+      "source": "baseline",
+      "date": "2025-05-06",
+      "opportunity": "RECOVERY",
+      "risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 0.5
+      },
+      "target_gross": 0.5,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.5,
+          "lifecycle": "RECOVERY",
+          "mechanism": "CAPITAL_BUDGET"
+        }
+      ],
+      "orders": []
+    },
+    {
+      "source": "baseline",
+      "date": "2025-05-07",
+      "opportunity": "RECOVERY",
+      "risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 0.82
+      },
+      "target_gross": 0.535312279283,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.535312279283,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RISK_FREEZE"
+        }
+      ],
+      "orders": []
+    },
+    {
+      "source": "baseline",
+      "date": "2025-05-08",
+      "opportunity": "RECOVERY",
+      "risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 1.0
+      },
+      "target_gross": 0.562503999574,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.562503999574,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RISK_FREEZE"
+        }
+      ],
+      "orders": []
+    },
+    {
+      "source": "baseline",
+      "date": "2025-05-09",
+      "opportunity": "RECOVERY",
+      "risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 1.0
+      },
+      "target_gross": 0.878062517317,
+      "targets": [
+        {
+          "symbol": "sh688146",
+          "weight": 0.152485667068,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "symbol": "sz300308",
+          "weight": 0.558062517317,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "symbol": "sz300502",
+          "weight": 0.167514332932,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        }
+      ],
+      "orders": [
+        {
+          "symbol": "sh688146",
+          "side": "BUY",
+          "target_weight": 0.152485667068,
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "symbol": "sz300502",
+          "side": "BUY",
+          "target_weight": 0.167514332932,
+          "mechanism": "RECOVERY_COHORT"
+        }
+      ]
+    },
+    {
+      "source": "H1",
+      "date": "2025-05-06",
+      "opportunity": "RECOVERY",
+      "risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 0.82
+      },
+      "target_gross": 0.533223938218,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.533223938218,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RISK_FREEZE"
+        }
+      ],
+      "orders": []
+    },
+    {
+      "source": "H1",
+      "date": "2025-05-07",
+      "opportunity": "RECOVERY",
+      "risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 1.0
+      },
+      "target_gross": 0.533223938218,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.533223938218,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RISK_FREEZE"
+        }
+      ],
+      "orders": []
+    },
+    {
+      "source": "H1",
+      "date": "2025-05-08",
+      "opportunity": "RECOVERY",
+      "risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 1.0
+      },
+      "target_gross": 0.880437516365,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.560437516365,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "symbol": "sz300394",
+          "weight": 0.084471842277,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "symbol": "sz300502",
+          "weight": 0.235528157723,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        }
+      ],
+      "orders": [
+        {
+          "symbol": "sz300394",
+          "side": "BUY",
+          "target_weight": 0.084471842277,
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "symbol": "sz300502",
+          "side": "BUY",
+          "target_weight": 0.235528157723,
+          "mechanism": "RECOVERY_COHORT"
+        }
+      ]
+    },
+    {
+      "source": "H1",
+      "date": "2025-05-09",
+      "opportunity": "RECOVERY",
+      "risk": {
+        "state": "NORMAL",
+        "system_gross_cap": 1.0,
+        "target_gross_cap": 1.0
+      },
+      "target_gross": 0.875287356648,
+      "targets": [
+        {
+          "symbol": "sz300308",
+          "weight": 0.553118222925,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "symbol": "sz300394",
+          "weight": 0.082830793513,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        },
+        {
+          "symbol": "sz300502",
+          "weight": 0.23933834021,
+          "lifecycle": "RECOVERY",
+          "mechanism": "RECOVERY_COHORT"
+        }
+      ],
+      "orders": []
+    }
+  ],
+  "identity_note": "Source-bound grant/epoch IDs already differ before economic decisions; compare actual controls separately without altering stored originals.",
+  "finding": "H1 first changes the Jan17 2024 sz300394 exit. By May2025 its actual account risk budget clears one session earlier and locks recovery members on May8 instead of May9. sh688146 ret120 on May8 is -0.14667031064953995, failing the then -0.15 depth requirement; May9 is -0.1724599328000952 and the held-anchor recent-breakout route can use May8 evidence. Thus absence is timing/qualification and subsequent cohort ownership, not a rejected sh688146 order due to cash or execution. The intervening account-dependent capital-budget difference is observed; no claim that one stock counterfactual proves portfolio benefit."
+}

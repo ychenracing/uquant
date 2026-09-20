@@ -1,0 +1,82 @@
+{
+  "source": "dd5ef43931c3e316f3808d4ef04f34e3953be194",
+  "raw_sha256": "49746b662da07976048eab809efca787ca721eeca7f5ede3ead2160ce07ef50f",
+  "days": 627,
+  "candidate_records": 208,
+  "distinct_days": 83,
+  "fundable_days": 60,
+  "fundable_symbols": [
+    "sh688019",
+    "sh688037",
+    "sh688110",
+    "sh688233",
+    "sh688268",
+    "sh688361",
+    "sh688498",
+    "sz002281",
+    "sz300604"
+  ],
+  "pending_days": 0,
+  "max_cash_recompute_error": 1.1102230246251565e-16,
+  "representative_budget_rows": [
+    {
+      "date": "2025-05-09",
+      "cash": 868111.8911119956,
+      "equity": 1964331.8911119956,
+      "cash_weight": 0.4419374826830119,
+      "gross_cap": 1.0,
+      "held_gross": 0.5580625173169881,
+      "committed_gross": 0.8780625173169881,
+      "unreserved_cash": 0.12193748268301186,
+      "pending_orders": 0,
+      "ready": [
+        "sh688019",
+        "sh688233",
+        "sz300666",
+        "sz300054",
+        "sh688268",
+        "sh688082"
+      ],
+      "fundable": {
+        "sh688019": 0.12193748268301186
+      }
+    },
+    {
+      "date": "2025-05-13",
+      "cash": 230227.9032849096,
+      "equity": 1991056.0032849098,
+      "cash_weight": 0.11563105352389487,
+      "gross_cap": 1.0,
+      "held_gross": 0.8843689464761051,
+      "committed_gross": 0.8843689464761051,
+      "unreserved_cash": 0.11563105352389487,
+      "pending_orders": 0,
+      "ready": [
+        "sh688110",
+        "sh688019",
+        "sh688233",
+        "sh688008",
+        "sz300666"
+      ],
+      "fundable": {}
+    },
+    {
+      "date": "2026-05-21",
+      "cash": 759084.2544288212,
+      "equity": 15039262.45442882,
+      "cash_weight": 0.050473502721889336,
+      "gross_cap": 1.0,
+      "held_gross": 0.9495264972781108,
+      "committed_gross": 0.9495264972781108,
+      "unreserved_cash": 0.050473502721889336,
+      "pending_orders": 0,
+      "ready": [
+        "sz002281"
+      ],
+      "fundable": {
+        "sz002281": 0.05047350272188922
+      }
+    }
+  ],
+  "full_daily_records": "capital-baseline-diagnosis.json.gz (preserved original; no parallel ledger)"
+}

@@ -1,0 +1,46 @@
+# Recovery-capital continuation: pre-candidate acceptance
+
+Base: dd5ef43931c3e316f3808d4ef04f34e3953be194 (PR76 merged).
+Use ../trend-continuity/ACCEPTANCE.md fixed numeric gates without relaxation.
+Six standard cases: full, 2024-offset0, 2025-offset0, loo-sz300308,
+loo-sz300502, remove_all_three; plus full-cost2. Same frozen data, account starts,
+execution costs, runtime and runners. All are previously observed windows.
+Run 2024 first, then directly affected sentinel cases; only promising candidates
+expand to full seven. A hard failure is rejection, not permission to change gates.
+
+Net wealth geometric ratio >=1.02; >=2 standard cases >=1.01; each >=0.90.
+Drawdown <=30% and delta <=1pp. Orders <=max(B+2,1.10B), fill days <=B+2.
+Equity-normalized turnover and cost burden <=1.10B. Cost2 relative to baseline
+cost2 and candidate standard >=0.90. Actual holding continuity improvement and
+no new persistent state/config/parallel engine. Preserve causal next-session
+execution, cash/commitments, risk and concentration, state and transaction checks.
+
+Candidate decision awaits reconciliation of original 208 records and H1 first
+key divergence. No H1/H2 retry or combination. First isolate ordinary admission
+from recovery ownership only if genuinely funded opportunities are blocked;
+retain normal deployment and holding-add protections. Counterfactual one-session
+shadow decisions identify the binding constraint, not economic benefit. Economic
+benefit requires new full-account replay under each actual producer identity.
+
+Budget: diagnose once using existing originals; one minimal candidate, then one
+mechanism-supported revision or a new directly evidenced hypothesis. Reassess
+based on evidence, not fixed trial count; no parameter grid search. If no justified
+remaining mechanism exists, preserve exact failures and report uncompleted goals.
+
+## C1, registered before replay
+
+All 208 unheld READY observations reconcile to 83 dates; no previous pending
+orders on these dates. Recovery targets do reserve same-day future BUY capital.
+60 dates retain enough genuinely unreserved capital for at least one ordinary
+admission after all existing guards; nine symbols, not selected by future return.
+627 daily cash recomputations differ by at most 1.12e-16; no duplicate reserve bug.
+
+C1 removes recovery ownership as a blanket exclusion of ordinary new entries.
+Recovery allocation stays first; ordinary entries use the remaining shared book.
+Existing recovery ownership must continue in a mixed ordinary/recovery book;
+remove the nonmember-holding veto for actual recovery members, pending intents
+and restoration rights. Empty fresh recovery still requires a settled book, and
+strategic ownership veto remains. Existing ordinary held-position additions keep
+their recovery exclusion. Do not change exit, deployment confirmation, selection,
+size, gross, industry/correlation caps or order execution. This replaces portfolio
+exclusivity with the existing cash/capacity checks; no new state/config.

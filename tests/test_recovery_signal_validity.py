@@ -34,7 +34,7 @@ def test_recent_breakout_expires_and_requires_current_structure_and_liquidity(de
     assert again == candidates
 
 
-def test_selection_preserves_owned_members_and_ranks_eligible_additions_by_strength():
+def test_selection_preserves_owned_members_and_original_depth_priority():
     account = AccountState.empty(100)
     account.anchor_weights = {'held': .6}
     leaders = {name: _leader(name, score) for name, score in
@@ -46,7 +46,7 @@ def test_selection_preserves_owned_members_and_ranks_eligible_additions_by_stren
         recovery_elapsed=1, deep_count=2, admission_depth=-.15,
         risk=SimpleNamespace(), freeze_active=False)
     assert targets is None
-    assert selected.selected == ['held', 'strong', 'second']
+    assert selected.selected == ['held', 'deepest', 'second']
     assert selected.lead == 'held'
     assert account.anchor_weights == {'held': .6}
 

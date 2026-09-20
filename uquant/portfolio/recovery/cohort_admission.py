@@ -242,11 +242,7 @@ def _recovery_selection(
     previous_members = set(account.anchor_weights)
     additions = sorted(
         {item.symbol for item in candidates} - previous_members,
-        key=lambda symbol: (
-            (-leaders[symbol].score, crash_depth.get(symbol, 0.0), symbol)
-            if previous_members else
-            (crash_depth.get(symbol, 0.0), -leaders[symbol].score, symbol)
-        ),
+        key=lambda symbol: (crash_depth.get(symbol, 0.0), -leaders[symbol].score, symbol),
     )
     selected = list(account.anchor_weights)
     selected.extend(additions[:max(0, min(3, self.cfg.max_positions) - len(selected))])

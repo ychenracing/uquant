@@ -647,7 +647,7 @@ def _ordinary_admission_budget(book: AllocationBook, *, independently_qualified:
                 book.account.candidate_tenure.pop(key)
     if max(values) > 0.0:
         if not book.account.candidate_tenure.get("ordinary_repair_capital_active", 0):
-            return book.policy.cfg.trend_entry_gross
+            return min(book.policy.cfg.trend_entry_gross, book.gross_cap)
         if independently_qualified:
             return max(0.0, book.policy.cfg.core_admission_weight
                        - max(0.0, ordinary - _repair_origin_commitment(book)))

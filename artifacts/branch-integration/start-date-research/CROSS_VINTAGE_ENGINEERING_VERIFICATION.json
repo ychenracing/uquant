@@ -1,0 +1,50 @@
+{
+  "checks": [
+    {
+      "operation": "20260920T110114-5ebc4516df49",
+      "name": "r26-risk-architecture-corrected",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "0beca9d1b3f991b633621219770f9da7a389b72b",
+        "tracked_dirty": false
+      }
+    },
+    {
+      "operation": "20260920T105751-7e4b68d50f2c",
+      "name": "r26-risk-regressions",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "a81ffc53726b9eb1aa2bbd6e7a29bc19f7a32930",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation": "20260920T110040-a1350997bef7",
+      "name": "r26-risk-architecture",
+      "status": "EXITED",
+      "returncode": 4,
+      "git": {
+        "head": "0beca9d1b3f991b633621219770f9da7a389b72b",
+        "tracked_dirty": false
+      }
+    }
+  ],
+  "focused_regressions": 58,
+  "architecture_and_lifecycle": 194,
+  "ruff": "PASS transitions and cohort tests",
+  "mypy": "PASS transitions.py --follow-imports=silent",
+  "source": "0beca9d1b3f991b633621219770f9da7a389b72b",
+  "review": "Reviewed full main-to-candidate production diff; unchanged R24 engineering retained with its original scope; R26 single-live-cohort mixed-book path reproduced in actual champion and positive two/three-member cases retained.",
+  "not_claimed": "Queued current HEAD CI is not a pass. Invalid test filename invocation retained (exit4), corrected invocation passed.",
+  "reviewed_production_diff": {
+    "baseline": "3af6aba18f133f4e22612769c703dac080d940d9",
+    "candidate": "0beca9d1b3f991b633621219770f9da7a389b72b",
+    "paths": 13,
+    "economic_production_paths": 11,
+    "new_live_trading_routes": 0,
+    "new_user_settings": 0
+  },
+  "source_worktree_clean_after_verification": true
+}

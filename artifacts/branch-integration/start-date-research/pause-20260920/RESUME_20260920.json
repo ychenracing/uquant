@@ -1,11 +1,11 @@
 {
-  "status": "R26_SENTINELS_PASSED_FIXED_MATRIX_RUNNING_NOT_MERGED",
+  "status": "R26_ALL_APPLICABLE_LOCAL_ACCEPTANCE_PASSED_READY_NORMAL_MERGE",
   "source": {
     "local": "0beca9d1b3f991b633621219770f9da7a389b72b",
     "remote": "2b1279e70c21d697e3fa325211db86753e5af973",
     "full_tree": "e8342eb5be19a89ee87e0e2560be7ed64bc612ab"
   },
-  "delivery": "pending final fixed economics and relevant checks",
+  "delivery": "Fixed economic gates, both targeted champion scenarios and252 relevant tests passed; all emitted originals byte-readback verified. Canonical full Ownership/Absolute aggregate not claimed.",
   "baseline": "3af6aba18f133f4e22612769c703dac080d940d9",
   "reserve": "CONFIRMATION_ECONOMICS_MET",
   "reserve_coverage": "AFFECTED_PATHS_COVERED",
@@ -18,9 +18,9 @@
   "first_economic_difference": "2025-07-24: C buys sz300502 earlier/larger; later 2025-10-14 sells 32300 sz300308 under crisis cap. Causal tracing pending.",
   "tests": "13 focused passed; Ruff passed; test fixes published and byte-verified.",
   "next": [
-    "Finish R26 remaining18 native and4 legacy/cost runs under recovered/uquant-r26 .cloud-task-journal; inspect before retry.",
-    "Evaluate unchanged core and original23 gates; then run all registered initial and reserve confirmations on R26, retain prior failures and disclose reserve already observed.",
-    "Finalize source/evidence/complexity/report; preserve raw originals; relevant checks and normal merge only after acceptance."
+    "Publish final delivery tree and byte-readback.",
+    "Read current PR75, main protection and checks; normal merge with expected head only.",
+    "Actual normal-merge SHA/readback is recorded in the PR75 description after merge. Always resolve current GitHub state before resuming; do not re-run completed work."
   ],
   "remote_originals": {
     "archive": "UQUANT_PR75_RESERVE_AND_CI_REGRESSION_20260920.zip",
@@ -102,5 +102,147 @@
     ],
     "readback_byte_identical": true
   },
-  "r26_tests": "58 focused risk tests and194 architecture/lifecycle tests PASS; Ruff and mypy passed. One invalid test filename invocation retained then corrected."
+  "r26_tests": "58 focused risk tests and194 architecture/lifecycle tests PASS; Ruff and mypy passed. One invalid test filename invocation retained then corrected.",
+  "fixed_acceptance": {
+    "core": "CORE_CROSS_VINTAGE_MET",
+    "original23": "ECONOMIC_MATRIX_MET",
+    "confirmation": "CONFIRMATION_ECONOMICS_MET",
+    "reserve": "CONFIRMATION_ECONOMICS_MET",
+    "confirmation-coverage": "AFFECTED_PATHS_COVERED",
+    "reserve-coverage": "AFFECTED_PATHS_COVERED"
+  },
+  "final_originals": {
+    "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.zip",
+    "bytes": 44431264,
+    "sha256": "9bbe76876a5088acddc57f3f898627b3b17b06ad59d226fb92a46df27687455f",
+    "entries": 337,
+    "parts": [
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part01",
+        "offset": 0,
+        "bytes": 4194304,
+        "sha256": "3aa5151b440e32c4014b98497aa8d4240e73fa3f7b594262110a5cd5138371c7",
+        "file_id": "file_000000000b1081f5ac5bf7be4cd2778e",
+        "library_file_id": "libfile_43e6fc7d773c81918634c0ae60997fd5",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part01"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part02",
+        "offset": 4194304,
+        "bytes": 4194304,
+        "sha256": "946f24765fce957a765d68d16d1ba57029503020acacbbbcb42f9ceb6a9be55d",
+        "file_id": "file_00000000e37c81f58b76178532ebd479",
+        "library_file_id": "libfile_818bceb79d3c8191a854b45c65a85338",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part02"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part03",
+        "offset": 8388608,
+        "bytes": 4194304,
+        "sha256": "ed2141b95f864012fd4d2c811ee7b5279f43cfadeaaa2b4c998aa38a05bfa16b",
+        "file_id": "file_00000000c25081f5885e7a92f0e03722",
+        "library_file_id": "libfile_76b26f158de48191916e35b6e1cce014",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part03"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part04",
+        "offset": 12582912,
+        "bytes": 4194304,
+        "sha256": "2ada9734f75c7d0a70d5e61b62cf292ae2e292a19a2b7fcf7869bac71661a9b7",
+        "file_id": "file_00000000574881f58ea4a101656ccd6d",
+        "library_file_id": "libfile_7de3b9d23bc48191a442f0b1d7a4ba50",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part04"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part05",
+        "offset": 16777216,
+        "bytes": 4194304,
+        "sha256": "fc0001c933336efd6072bd774a70e87cd9d172a09a98d62523ba2d47854fe7d6",
+        "file_id": "file_0000000065d481f5931bdccb6cacbf9a",
+        "library_file_id": "libfile_6ef94f59a270819196e4f3cc8d76aaea",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part05"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part06",
+        "offset": 20971520,
+        "bytes": 4194304,
+        "sha256": "252a69e185b34665555c831fd8e1f92dbf9aff50acceb179277c71192cd056ba",
+        "file_id": "file_00000000225881f5a03ee221932aeb62",
+        "library_file_id": "libfile_3e700a4875808191b0b5d24bc53fbec3",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part06"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part07",
+        "offset": 25165824,
+        "bytes": 4194304,
+        "sha256": "c896779b79ed7964a936860b5207ad886352ad875d482749bbdfc0fef0826e4c",
+        "file_id": "file_00000000a67881f5afecbecc78e7d618",
+        "library_file_id": "libfile_c522827c00ec8191b99a3836df6a2d9d",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part07"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part08",
+        "offset": 29360128,
+        "bytes": 4194304,
+        "sha256": "f96f80c5b1272ef82ffa7fb70beb22ab311622774845a254282ad2a264a54694",
+        "file_id": "file_00000000a7b081f5a824adc9c972430f",
+        "library_file_id": "libfile_8931beff17a08191ae74fff5d2e9b45e",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part08"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part09",
+        "offset": 33554432,
+        "bytes": 4194304,
+        "sha256": "9f906c467505c7db06e94944a4624de3e3716f00ab4b37f4d6e18bafea66af78",
+        "file_id": "file_00000000cf4c81f58374567384c1bd10",
+        "library_file_id": "libfile_b166aadf66bc8191b990b96891035da2",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part09"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part10",
+        "offset": 37748736,
+        "bytes": 4194304,
+        "sha256": "2e73adef29ff6c2ee76302e3ea4d933f5a70365d3db1479c7d41ece1403d44c1",
+        "file_id": "file_000000005cb881f5b9c13712b9196e81",
+        "library_file_id": "libfile_d8e1f739930c819196f87c7134b973b5",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part10"
+      },
+      {
+        "path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_ACCEPTANCE_20260920.part11",
+        "offset": 41943040,
+        "bytes": 2488224,
+        "sha256": "2f5117cec24cb979232850c47c04bbbc5a7ed865cb78a6e11968c1c556db512c",
+        "file_id": "file_00000000f86c81f5bf0835e2faacdb1a",
+        "library_file_id": "libfile_fc19342d08f08191925f0d5658d31865",
+        "file_name": "UQUANT_PR75_R26_ACCEPTANCE_20260920.part11"
+      }
+    ],
+    "report": {
+      "local_path": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_DELIVERY_REPORT_20260920.md",
+      "file_id": "file_00000000cf0081f59fe226ea1e322aea",
+      "library_file_id": "libfile_940d4b7ccaa88191b572e529be46eac1",
+      "file_name": "UQUANT_PR75_DELIVERY_REPORT_20260920.md",
+      "sha256": "851da2a16bea16c89426b90f230c18ae17e260682feb8f955c6f9934f31296c0"
+    },
+    "readback_byte_identical": true
+  },
+  "report13": {
+    "status": "PASS",
+    "source": "0beca9d1b3f991b633621219770f9da7a389b72b",
+    "scenario": "report-13",
+    "final_wealth": 40.48948805541266,
+    "max_drawdown": 0.27139914597186277,
+    "diagnostic_only": true,
+    "scope": "Original targeted runner output and cache preserved. This runner emits compact report-13 facts, not a raw daily replay; no canonical shard aggregate is claimed. Champion-5 actual raw replay is in the main archive.",
+    "output_sha256": "34658c61f4a8a7b063bbf08230940b3719682d66a3cf286d52af2fd439abba69",
+    "archive": "/workspace/scratch/69442dc8a3b4/UQUANT_PR75_R26_CHAMPION_REPORT13_20260920.zip",
+    "archive_bytes": 9445,
+    "archive_sha256": "57f0cc2b182a77a4e3c4ceec9f547163c9056f058a42216da982dc6318e45115",
+    "remote": {
+      "file_id": "file_0000000051cc8209ba80ed9bcf143b23",
+      "library_file_id": "libfile_366be2ce185c8191bdf19c496f16ddd4",
+      "file_name": "UQUANT_PR75_R26_CHAMPION_REPORT13_20260920.zip"
+    },
+    "readback_byte_identical": true
+  }
 }

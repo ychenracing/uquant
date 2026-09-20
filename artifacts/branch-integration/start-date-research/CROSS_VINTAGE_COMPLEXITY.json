@@ -1,0 +1,443 @@
+{
+  "baseline": "3af6aba18f133f4e22612769c703dac080d940d9",
+  "candidate": "0beca9d1b3f991b633621219770f9da7a389b72b",
+  "method": "Physical lines including comments/docstrings; existing architecture _function_rows branch counter; no research/tests/docs in production totals. Nesting counts lexical if/ternary/loop/try/with/match scopes, excluding nested function/class/lambda bodies, identically for B/C.",
+  "modules": [
+    {
+      "path": "uquant/account/codec.py",
+      "scope": "economic_production",
+      "B_lines": 323,
+      "C_lines": 328
+    },
+    {
+      "path": "uquant/account/validation_strategy.py",
+      "scope": "economic_production",
+      "B_lines": 744,
+      "C_lines": 745
+    },
+    {
+      "path": "uquant/models/account.py",
+      "scope": "economic_production",
+      "B_lines": 131,
+      "C_lines": 133
+    },
+    {
+      "path": "uquant/portfolio/pipeline.py",
+      "scope": "economic_production",
+      "B_lines": 1026,
+      "C_lines": 1026
+    },
+    {
+      "path": "uquant/portfolio/recovery/cohort_admission.py",
+      "scope": "economic_production",
+      "B_lines": 576,
+      "C_lines": 585
+    },
+    {
+      "path": "uquant/portfolio/strategic/authority.py",
+      "scope": "economic_production",
+      "B_lines": 305,
+      "C_lines": 326
+    },
+    {
+      "path": "uquant/risk/assessment.py",
+      "scope": "economic_production",
+      "B_lines": 614,
+      "C_lines": 615
+    },
+    {
+      "path": "uquant/risk/capital.py",
+      "scope": "economic_production",
+      "B_lines": 329,
+      "C_lines": 355
+    },
+    {
+      "path": "uquant/risk/market_book.py",
+      "scope": "economic_production",
+      "B_lines": 628,
+      "C_lines": 631
+    },
+    {
+      "path": "uquant/risk/transition_resolution.py",
+      "scope": "economic_production",
+      "B_lines": 240,
+      "C_lines": 243
+    },
+    {
+      "path": "uquant/risk/transitions.py",
+      "scope": "economic_production",
+      "B_lines": 607,
+      "C_lines": 618
+    },
+    {
+      "path": "uquant/validation/absolute_generalization/_recovery_runtime_fixtures.py",
+      "scope": "validation",
+      "B_lines": 226,
+      "C_lines": 239
+    },
+    {
+      "path": "uquant/validation/absolute_generalization/recovery_runtime.py",
+      "scope": "validation",
+      "B_lines": 838,
+      "C_lines": 842
+    }
+  ],
+  "changed_functions": [
+    {
+      "path": "uquant/account/codec.py",
+      "function": "_decode_account_core_fields",
+      "B": {
+        "lines": 31,
+        "branch_points": 4,
+        "max_control_nesting": 0
+      },
+      "C": {
+        "lines": 36,
+        "branch_points": 6,
+        "max_control_nesting": 1
+      }
+    },
+    {
+      "path": "uquant/account/validation_strategy.py",
+      "function": "_validate_strategy_risk_state",
+      "B": {
+        "lines": 58,
+        "branch_points": 17,
+        "max_control_nesting": 2
+      },
+      "C": {
+        "lines": 59,
+        "branch_points": 17,
+        "max_control_nesting": 2
+      }
+    },
+    {
+      "path": "uquant/models/account.py",
+      "function": "AccountState.empty",
+      "B": {
+        "lines": 10,
+        "branch_points": 0,
+        "max_control_nesting": 0
+      },
+      "C": {
+        "lines": 11,
+        "branch_points": 0,
+        "max_control_nesting": 0
+      }
+    },
+    {
+      "path": "uquant/portfolio/pipeline.py",
+      "function": "_ordinary_admission_budget",
+      "B": {
+        "lines": 19,
+        "branch_points": 13,
+        "max_control_nesting": 3
+      },
+      "C": {
+        "lines": 19,
+        "branch_points": 13,
+        "max_control_nesting": 3
+      }
+    },
+    {
+      "path": "uquant/portfolio/recovery/cohort_admission.py",
+      "function": "_filter_recovery_candidates",
+      "B": {
+        "lines": 45,
+        "branch_points": 16,
+        "max_control_nesting": 2
+      },
+      "C": {
+        "lines": 44,
+        "branch_points": 16,
+        "max_control_nesting": 2
+      }
+    },
+    {
+      "path": "uquant/portfolio/recovery/cohort_admission.py",
+      "function": "_recovery_selection",
+      "B": {
+        "lines": 60,
+        "branch_points": 10,
+        "max_control_nesting": 3
+      },
+      "C": {
+        "lines": 54,
+        "branch_points": 11,
+        "max_control_nesting": 3
+      }
+    },
+    {
+      "path": "uquant/portfolio/recovery/cohort_admission.py",
+      "function": "scan_recovery_evidence",
+      "B": {
+        "lines": 33,
+        "branch_points": 13,
+        "max_control_nesting": 3
+      },
+      "C": {
+        "lines": 49,
+        "branch_points": 14,
+        "max_control_nesting": 3
+      }
+    },
+    {
+      "path": "uquant/portfolio/strategic/authority.py",
+      "function": "_ordinary_deployment_closed",
+      "B": null,
+      "C": {
+        "lines": 8,
+        "branch_points": 13,
+        "max_control_nesting": 1
+      }
+    },
+    {
+      "path": "uquant/portfolio/strategic/authority.py",
+      "function": "normalize_orphan_strategic_capital_residue",
+      "B": {
+        "lines": 39,
+        "branch_points": 8,
+        "max_control_nesting": 3
+      },
+      "C": {
+        "lines": 49,
+        "branch_points": 11,
+        "max_control_nesting": 3
+      }
+    },
+    {
+      "path": "uquant/risk/assessment.py",
+      "function": "_base_capital_stages",
+      "B": {
+        "lines": 40,
+        "branch_points": 0,
+        "max_control_nesting": 0
+      },
+      "C": {
+        "lines": 39,
+        "branch_points": 0,
+        "max_control_nesting": 0
+      }
+    },
+    {
+      "path": "uquant/risk/assessment.py",
+      "function": "_final_base_resolution",
+      "B": {
+        "lines": 81,
+        "branch_points": 8,
+        "max_control_nesting": 3
+      },
+      "C": {
+        "lines": 83,
+        "branch_points": 8,
+        "max_control_nesting": 3
+      }
+    },
+    {
+      "path": "uquant/risk/capital.py",
+      "function": "_apply_capital_overlays",
+      "B": {
+        "lines": 66,
+        "branch_points": 16,
+        "max_control_nesting": 4
+      },
+      "C": {
+        "lines": 73,
+        "branch_points": 18,
+        "max_control_nesting": 4
+      }
+    },
+    {
+      "path": "uquant/risk/capital.py",
+      "function": "_capital_budget_repair_drawdown_confirmed",
+      "B": {
+        "lines": 19,
+        "branch_points": 3,
+        "max_control_nesting": 3
+      },
+      "C": {
+        "lines": 25,
+        "branch_points": 3,
+        "max_control_nesting": 3
+      }
+    },
+    {
+      "path": "uquant/risk/capital.py",
+      "function": "_observe_capital_budget",
+      "B": {
+        "lines": 58,
+        "branch_points": 8,
+        "max_control_nesting": 2
+      },
+      "C": {
+        "lines": 58,
+        "branch_points": 8,
+        "max_control_nesting": 2
+      }
+    },
+    {
+      "path": "uquant/risk/capital.py",
+      "function": "_observed_capital_budget_level",
+      "B": {
+        "lines": 34,
+        "branch_points": 15,
+        "max_control_nesting": 1
+      },
+      "C": {
+        "lines": 34,
+        "branch_points": 15,
+        "max_control_nesting": 1
+      }
+    },
+    {
+      "path": "uquant/risk/capital.py",
+      "function": "_update_capital_budget_ladder",
+      "B": {
+        "lines": 20,
+        "branch_points": 4,
+        "max_control_nesting": 2
+      },
+      "C": {
+        "lines": 19,
+        "branch_points": 4,
+        "max_control_nesting": 2
+      }
+    },
+    {
+      "path": "uquant/risk/capital.py",
+      "function": "deployed_drawdown",
+      "B": null,
+      "C": {
+        "lines": 12,
+        "branch_points": 4,
+        "max_control_nesting": 1
+      }
+    },
+    {
+      "path": "uquant/risk/market_book.py",
+      "function": "_apply_live_book_votes",
+      "B": {
+        "lines": 34,
+        "branch_points": 6,
+        "max_control_nesting": 0
+      },
+      "C": {
+        "lines": 34,
+        "branch_points": 6,
+        "max_control_nesting": 0
+      }
+    },
+    {
+      "path": "uquant/risk/market_book.py",
+      "function": "assess_market_and_book_evidence",
+      "B": {
+        "lines": 109,
+        "branch_points": 2,
+        "max_control_nesting": 1
+      },
+      "C": {
+        "lines": 111,
+        "branch_points": 2,
+        "max_control_nesting": 1
+      }
+    },
+    {
+      "path": "uquant/risk/transition_resolution.py",
+      "function": "_observed_risk",
+      "B": {
+        "lines": 26,
+        "branch_points": 13,
+        "max_control_nesting": 1
+      },
+      "C": {
+        "lines": 26,
+        "branch_points": 13,
+        "max_control_nesting": 1
+      }
+    },
+    {
+      "path": "uquant/risk/transition_resolution.py",
+      "function": "resolve_risk_transition",
+      "B": {
+        "lines": 64,
+        "branch_points": 4,
+        "max_control_nesting": 1
+      },
+      "C": {
+        "lines": 66,
+        "branch_points": 4,
+        "max_control_nesting": 1
+      }
+    },
+    {
+      "path": "uquant/risk/transitions.py",
+      "function": "_cohort_break_state",
+      "B": {
+        "lines": 46,
+        "branch_points": 12,
+        "max_control_nesting": 1
+      },
+      "C": {
+        "lines": 57,
+        "branch_points": 16,
+        "max_control_nesting": 1
+      }
+    },
+    {
+      "path": "uquant/validation/absolute_generalization/_recovery_runtime_fixtures.py",
+      "function": "run_failed_grant_fixture",
+      "B": {
+        "lines": 41,
+        "branch_points": 6,
+        "max_control_nesting": 4
+      },
+      "C": {
+        "lines": 54,
+        "branch_points": 11,
+        "max_control_nesting": 5
+      }
+    },
+    {
+      "path": "uquant/validation/absolute_generalization/recovery_runtime.py",
+      "function": "_failed_recovery_payload",
+      "B": {
+        "lines": 55,
+        "branch_points": 13,
+        "max_control_nesting": 2
+      },
+      "C": {
+        "lines": 59,
+        "branch_points": 13,
+        "max_control_nesting": 3
+      }
+    }
+  ],
+  "state": {
+    "account_fields_B": 84,
+    "account_fields_C": 85,
+    "new_derived_fields": [
+      "deployed_peak"
+    ],
+    "new_user_settings": 0,
+    "new_cash_or_reserve_books": 0,
+    "transient_evidence": "fresh-symbol set exists only during one scan; never persisted",
+    "crisis_budget": "existing shared overlay, existing threshold and cap; no additional state"
+  },
+  "corrections": [
+    "historical-loss/frozen-cash circular permission replaced by current deployed repair",
+    "one continuous healthy confirmation streak, not a new wait per tier",
+    "one scanner orders fresh original evidence before retained supplemental observations",
+    "owned members retained; lifecycle continues to own exits and substitutions",
+    "admission repair no longer erases inherited crisis risk capacity"
+  ],
+  "totals": {
+    "economic_production": {
+      "B": 5523,
+      "C": 5605
+    },
+    "validation": {
+      "B": 1064,
+      "C": 1081
+    }
+  }
+}

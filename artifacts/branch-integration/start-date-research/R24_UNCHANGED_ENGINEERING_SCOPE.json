@@ -1,0 +1,247 @@
+{
+  "producer": "47d830ace565d8f659b99103fff41cf765c65466",
+  "remote_source": "d18558fe23ede37d001fef6d3fa22f7926b4fefa",
+  "identical_full_tree": "49dedf21d05ba44d3dc0dc4c3e8a6130db463838",
+  "checks": [
+    {
+      "scope": "Closed ordinary rights, pending obligations, ambiguous rights and cash rearm",
+      "producer": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+      "operation": "20260920T073044-5cc6116d5fba",
+      "status": "PASS",
+      "journal": "uquant-r23/.cloud-task-journal/20260920T073044-5cc6116d5fba/latest.json",
+      "journal_sha256": "603623b4790a71a315fa4ebd796ae29da929421456076cf90dc8b9db24a63228",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 80,
+          "sha256": "12784721e0280443291002b595b03384e8588476665647b621a862f07297e08f"
+        }
+      }
+    },
+    {
+      "scope": "31 unchanged risk transition regressions",
+      "producer": "8c5d815ed77db457b2ff1e4bcb4a7f387dc01cb6",
+      "operation": "20260920T064426-ed030dcab2da",
+      "status": "PASS",
+      "journal": "uquant-r22/.cloud-task-journal/20260920T064426-ed030dcab2da/latest.json",
+      "journal_sha256": "0e8a164d1e302fb70b63476d6f289ebc1e5f3fa589b17f8564694dd688df5c54",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 729,
+          "sha256": "fd644ed17c22bcb69ea1f88d346249e520fc0bdd5f29ba925fede25bb25b2fb0"
+        }
+      }
+    },
+    {
+      "scope": "61 unchanged account migration/schema/integrity tests",
+      "producer": "873cf657dd9796ee7a102aac964e17ed7c60f069",
+      "operation": "20260920T053526-f03130b45616",
+      "status": "PASS",
+      "journal": "uquant-r19/.cloud-task-journal/20260920T053526-f03130b45616/latest.json",
+      "journal_sha256": "9073887eb646436400295b49eaade701a63fde9d7cc74bd84a556c0fa9e774cf",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 80,
+          "sha256": "1c296f620adc850f9ed88d75c847738d725f60f1de7a89002059c40eff811d9a"
+        }
+      }
+    },
+    {
+      "scope": "r24-static-verification",
+      "producer": "47d830ace565d8f659b99103fff41cf765c65466",
+      "operation": "20260920T075707-2bfa8e5ec5cf",
+      "status": "PASS",
+      "journal": "uquant-r24/.cloud-task-journal/20260920T075707-2bfa8e5ec5cf/latest.json",
+      "journal_sha256": "d0c1e480fe2fef28aa773e0050a2f639122e1a8a4607ae3f016531f263d5d8df",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 64,
+          "sha256": "410765ad7d80fe4cc2abca8dfe17abdcc5c9087d2234aa915a0390f3eae032b3"
+        }
+      }
+    },
+    {
+      "scope": "r24-portfolio-owner-boundaries",
+      "producer": "47d830ace565d8f659b99103fff41cf765c65466",
+      "operation": "20260920T074549-78c98888fb94",
+      "status": "PASS",
+      "journal": "uquant-r24/.cloud-task-journal/20260920T074549-78c98888fb94/latest.json",
+      "journal_sha256": "321aa6ca36bc48900acbdf8af330670b02176ee0c934d8b73fefb9a174f0d412",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 80,
+          "sha256": "99db33d5c94c6f7da021687c7391181685cc33299c5435b1c861e2db3be3ec87"
+        }
+      }
+    },
+    {
+      "scope": "r24-entry-funding-regression",
+      "producer": "55e0380db633852dd4c811836619cf8ac40613c9",
+      "operation": "20260920T074410-9bdbccb4c788",
+      "status": "PASS",
+      "journal": "uquant-r24/.cloud-task-journal/20260920T074410-9bdbccb4c788/latest.json",
+      "journal_sha256": "d96c6a3ea87bf4bf2e2958fa4cfd6be9b97cd0a0e62a3678d8d62c24c953617a",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 79,
+          "sha256": "f821d5094119d1488f96ccfdd07ef1106e3d8c5f2a72ebea56b672e486d86e14"
+        }
+      }
+    },
+    {
+      "scope": "r24-execution-and-repeat-safety",
+      "producer": "47d830ace565d8f659b99103fff41cf765c65466",
+      "operation": "20260920T075744-4b638a64d146",
+      "status": "PASS",
+      "journal": "uquant-r24/.cloud-task-journal/20260920T075744-4b638a64d146/latest.json",
+      "journal_sha256": "d044430d9ce7ee48a51ef032eda808ada2799990ed07c91de71549c2523e258b",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 80,
+          "sha256": "c4b808d34f4db00b333696dec1f3a43a2887d8bfe0cb7af07a3cb98ff43a7830"
+        }
+      }
+    },
+    {
+      "scope": "Authority regressions and unchanged repository function/module complexity gate",
+      "journal_producer": {
+        "head": "47d830ace565d8f659b99103fff41cf765c65466",
+        "tracked_dirty": true
+      },
+      "tested_delivery_commit": "f65f86df56a0139f73b684ec61db133bc2b92ffe",
+      "source_note": "Tests executed on the exact working files subsequently committed; AST equivalence and remote byte readback recorded separately.",
+      "operation": "20260920T081024-fa44e0ffb3c8",
+      "status": "PASS",
+      "journal": "uquant-r24-delivery/.cloud-task-journal/20260920T081024-fa44e0ffb3c8/latest.json",
+      "journal_sha256": "42bd534460eb5f559a2d612fb15351e33a364a7feb1c1420aeee51a82074a4b2",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 80,
+          "sha256": "eb27a136c18598aedc0e4f11e6893b614a04335a9faf3ec03433325d777e2663"
+        }
+      }
+    },
+    {
+      "scope": "Delivery lint and strict mypy",
+      "journal_producer": {
+        "head": "47d830ace565d8f659b99103fff41cf765c65466",
+        "tracked_dirty": true
+      },
+      "tested_delivery_commit": "f65f86df56a0139f73b684ec61db133bc2b92ffe",
+      "source_note": "Tests executed on the exact working files subsequently committed; AST equivalence and remote byte readback recorded separately.",
+      "operation": "20260920T081100-e73bd9cfa6fa",
+      "status": "PASS",
+      "journal": "uquant-r24-delivery/.cloud-task-journal/20260920T081100-e73bd9cfa6fa/latest.json",
+      "journal_sha256": "d0a9f7bb900e3fe8b8636f0a525da6246e1443fae355b3b101b812f6c6ada5c8",
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 64,
+          "sha256": "410765ad7d80fe4cc2abca8dfe17abdcc5c9087d2234aa915a0390f3eae032b3"
+        }
+      }
+    }
+  ],
+  "reuse_boundary": "Cited account, risk/scanner and strategic authority changes are byte-identical to their tested producers. Pipeline entry sizing and real execution/repeat integrations were checked on R24. Old CI is not represented as current HEAD CI.",
+  "additional_reused": "33 passed on byte-identical files before candidate commit; includes durable peak/restart/migration, current damage, retained historical facts, inherited budget, causal bounded scanner and member ownership",
+  "not_passed_or_not_run": [
+    "R19 broad affected-runtime batch timed out at 600s after 87 progress dots; not a pass. R17/R18 broad architecture batches also timed out.",
+    "Full GitHub Engineering/Ownership/Absolute queued or running at last read; final mutable status recorded separately.",
+    "No full 34-LOO, full Absolute matrix or expanded no_optical requirement introduced."
+  ],
+  "source_bundle": {
+    "path": "r24-source-since-main.bundle",
+    "bytes": 45740,
+    "sha256": "1c045c536474a7ca5339400746c738bae722c6012f310edf316514f393863e78",
+    "prerequisite": "3af6aba18f133f4e22612769c703dac080d940d9"
+  },
+  "delivery_equivalence": {
+    "status": "EXACT_PREDICATE_EXTRACTION_VERIFIED",
+    "economic_producer": "47d830ace565d8f659b99103fff41cf765c65466",
+    "economic_production_tree": "b925a8e3d994a034ae5a9d6f667a3b89dd9a8fed",
+    "changed_production_paths": [
+      "uquant/portfolio/strategic/authority.py"
+    ],
+    "old_file_sha256": "c440f964320699694b023b1fecb758d0d9ed53f9503aeebf53a71cc6093b4a26",
+    "new_file_sha256": "1a7b27c11bce0f235e05df195385eaf454827c788bd904706a1c2c8b6d5659c3",
+    "proof": "Inlining the new pure helper restores the complete prior module AST exactly. Same fill selection, condition ordering and short-circuit behavior; bool conversion is identical to the existing if truth test. No conditions, mutations, caller guards or other production files changed. Documentation changes are non-executable. Original replay identities remain R24; delivery source is mapped separately.",
+    "new_normalizer_branch_budget": "Verified by unchanged repository complexity gate; no baseline or thresholds edited.",
+    "delivery_local_commit": "f65f86df56a0139f73b684ec61db133bc2b92ffe",
+    "delivery_remote_commit": "3b27fc422a5fb4bd5f21b5ce34af9a746919de87",
+    "delivery_full_tree": "c0ba175bf205797e7ae6b958aa361128dcbae244",
+    "delivery_production_tree": "5a7eb89d36d94c491ccfd612629cd8f6b2f2a6d3",
+    "remote_files_byte_verified": [
+      "docs/STRATEGY.md",
+      "docs/ARCHITECTURE.md",
+      "uquant/portfolio/strategic/authority.py"
+    ]
+  },
+  "corrected_failure": {
+    "operation": "20260920T080917-d60e6d7c67ac",
+    "status": "FAIL_ON_R24_ECONOMIC_PRODUCER",
+    "cause": "New normalizer had 24 branch points versus existing limit20.",
+    "correction": "Pure closed-fill proof extracted without changed conditions. Normalizer11, helper13. Exact module AST after inlining matches R24; unchanged gate now passes. Original failure retained."
+  },
+  "dispatch_note": {
+    "cases": [
+      "full-offset9",
+      "full-offset10"
+    ],
+    "original_dispatcher": "r24-remaining-native-matrix",
+    "duplicate_status": "Replay already running; not a pass",
+    "exclusive_successful_dispatcher": "r24-last-offsets",
+    "successful_operation": "20260920T081603-c10b00de8b0b",
+    "explanation": "Per-case locks prevented a second writer while the independent worker completed the same fixed scenarios. Its validated originals are retained. The complete original23 evaluator must still verify them with every other case; the contended dispatch batch is not labeled PASS.",
+    "original_operation": "20260920T075643-4b8b3660a6b0",
+    "original_batch_returncode": 1,
+    "nonzero_rows": [
+      {
+        "label": "r24",
+        "case": "full-offset9",
+        "exit_code": 1,
+        "error": "Replay already running"
+      },
+      {
+        "label": "r24",
+        "case": "full-offset10",
+        "exit_code": 1,
+        "error": "Replay already running"
+      }
+    ],
+    "all_other_rows_returncode_zero": true
+  }
+}

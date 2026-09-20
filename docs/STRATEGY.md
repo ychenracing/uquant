@@ -281,6 +281,8 @@ Pair/Single 的 grant 仍保留 `PARTIALLY_FILLED`，后续异日真实 BUY 才�
 
 运行回撤用于既有的短周期恢复判断，确认修复时仍可重新定基。资本回撤保留账户真实历史高水位，用于完整历史与风险报告；当存在独立损伤时，累计损失仍决定更高等级的资本预算收缩。预算修复、当前部署是否受损及一般风险升级使用连续持仓期间的部署回撤：`deployed_peak` 在仍有实际持仓时只升不降，账户真正空仓时才以当前权益开始下一部署周期。它是风险度量，不是第二套资金或预留账本。由此，已结束部署的旧损失不再永久冻结新机会，仍持有的损伤也不会因一次恢复标签变化被清除。原有阈值、市场损伤、确认天数、持仓责任和成交约束保持有效。连续修复满足确认天数后，每个后续有效交易日最多释放一级预算；同一段连续确认不为每一级重新计时。修复中断或损伤升级立即清除确认进度。完整账户回撤仍包含全部历史损失。
 
+A synchronized strategic cohort break requires at least two live strategic cohort members. Ordinary holdings do not supply cohort breadth. A single strategic member remains subject to the existing strategic tail, capital-budget, and market-risk protections.
+
 ### 状态交互
 
 空仓修复解除准入冻结，不等于恢复全部风险容量。若新部署期间的真实峰值仍低于终身高水位的既有危机线，统一资本覆盖层保留既有危机总仓上限；账户仍可用该预算参与合法机会。新部署真实峰值修复到危机线以上时，该继承上限解除。持续持仓中形成的当期损伤仍由原风险阶梯处理；不新增账户身份、调参开关或独立预留账本，也不改写历史高水位。
@@ -380,5 +382,3 @@ Future Holdout 与冻结数据隔离，按真实 session 向前追加并遵守 n
 `confirmation_history_trusted=false`，普通两日确认失败关闭，只有满足完整窄口径的
 severe-direct 当日例外仍可授权。生产权限与历史经济证明见
 [Risk Sentinel](RISK_SENTINEL.md)和相邻冻结 artifacts。
-
-A synchronized strategic cohort break requires at least two live strategic cohort members. Ordinary holdings do not supply cohort breadth. A single strategic member remains subject to the existing strategic tail, capital-budget, and market-risk protections.

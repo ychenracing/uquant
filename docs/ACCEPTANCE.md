@@ -1,5 +1,7 @@
 # 当前验收链
 
+跨年份旧账户恢复任务使用预登记的 [CROSS_VINTAGE_CONTRACT.json](../artifacts/branch-integration/CROSS_VINTAGE_CONTRACT.json)，并沿用原 23 场景的固定门槛与相对基线。[交付报告](../artifacts/branch-integration/start-date-research/CROSS_VINTAGE_DELIVERY_REPORT.md) 记录原生账户、真实旧 checkpoint 升级、成本、确认、先前失败及其原始生产者。R26 也修正了普通持仓被误算为第二个战略 cohort 成员的问题；已观察的备用确认不冒称新的未见数据。原件回执和实际合并状态另行记录。此范围通过不代表完整 Absolute 矩阵通过，也不替代仓库保护。
+
 `benchmarks/absolute_generalization_acceptance_contract.json` 是唯一 Absolute 政策文件。
 其独立摘要保护窗口、34 只证券、分片成员、数值约束和输入身份。候选身份在加载时从实际
 checkout 验证取得，不写回政策，也不改变判定规则。

@@ -1,0 +1,1178 @@
+{
+  "status": "AFFECTED_PATHS_COVERED",
+  "scope": "Actual B checkpoint, paired risk-release observations, candidate order and next-session fill. This proves path reachability; separate fixed economic evaluator decides acceptance. No reserve substitutes a valid failure.",
+  "groups": {
+    "different-recovery": {
+      "covered": true,
+      "same_actual_prefix": true,
+      "migration_economic_hash_unchanged": true,
+      "first_daily_economic_difference": {
+        "B": {
+          "date": "2023-11-20",
+          "cash": 6724403.8626798205,
+          "position_shares": {},
+          "close_marks": {}
+        },
+        "C": {
+          "date": "2023-11-20",
+          "cash": 5709183.030874641,
+          "position_shares": {
+            "sh688008": 11300,
+            "sh688766": 5900
+          },
+          "close_marks": {
+            "sh688008": 56.7,
+            "sh688766": 56.58
+          }
+        }
+      },
+      "release_count": 228,
+      "release_examples": [
+        {
+          "B": {
+            "date": "2023-09-28",
+            "budget": 3,
+            "capital_drawdown": 0.1911623568883991,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 0.5
+          },
+          "C": {
+            "date": "2023-09-28",
+            "budget": 0,
+            "capital_drawdown": 0.1911623568883991,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        },
+        {
+          "B": {
+            "date": "2023-10-09",
+            "budget": 3,
+            "capital_drawdown": 0.1911623568883991,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 0.5
+          },
+          "C": {
+            "date": "2023-10-09",
+            "budget": 0,
+            "capital_drawdown": 0.1911623568883991,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        },
+        {
+          "B": {
+            "date": "2023-10-10",
+            "budget": 3,
+            "capital_drawdown": 0.1911623568883991,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 0.5
+          },
+          "C": {
+            "date": "2023-10-10",
+            "budget": 0,
+            "capital_drawdown": 0.1911623568883991,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        }
+      ],
+      "linked_release_signal_fill_count": 14,
+      "linked_examples": [
+        {
+          "release": {
+            "B": {
+              "date": "2023-11-17",
+              "budget": 3,
+              "capital_drawdown": 0.1911623568883991,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 0.5
+            },
+            "C": {
+              "date": "2023-11-17",
+              "budget": 0,
+              "capital_drawdown": 0.1911623568883991,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2023-11-17",
+            "opportunity": "STRONG_TREND",
+            "risk": {
+              "state": "NORMAL",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.2,
+            "targets": [
+              {
+                "symbol": "sh688008",
+                "weight": 0.1,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_4157a1cbd1288ce180e4b631560a2f3413879a3a28a66b38bda0d47e5c9e63d4",
+                "event_signal_date": "2023-11-17",
+                "event_target_weight_hex": "0x1.999999999999ap-4",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sh688766",
+                "weight": 0.1,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_038d14833228916f2fc35e485236a6b4d5645c462d44e3e8cb22535e6d3c26af",
+                "event_signal_date": "2023-11-17",
+                "event_target_weight_hex": "0x1.999999999999ap-4",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000013",
+                "signal_date": "2023-11-17",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688008",
+                "side": "BUY",
+                "target_weight": 0.1,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_4157a1cbd1288ce180e4b631560a2f3413879a3a28a66b38bda0d47e5c9e63d4",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000014",
+                "signal_date": "2023-11-17",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688766",
+                "side": "BUY",
+                "target_weight": 0.1,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_038d14833228916f2fc35e485236a6b4d5645c462d44e3e8cb22535e6d3c26af",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2023-11-17",
+            "fill_date": "2023-11-20",
+            "symbol": "sh688008",
+            "side": "BUY",
+            "shares": 11300,
+            "price": 59.23917999999999,
+            "gross_value": 669402.7339999999,
+            "commission": 167.35068349999997,
+            "stamp_duty": 0.0,
+            "transfer_fee": 6.69402734,
+            "slippage_cost": 668.7339999998948,
+            "reason": "confirmed core admitted from available account capital",
+            "lifecycle": "CORE",
+            "order_id": "O000000013",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "strategy_target",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_4157a1cbd1288ce180e4b631560a2f3413879a3a28a66b38bda0d47e5c9e63d4",
+            "origin_subsystem": "LEADER",
+            "mechanism": "LEADER_SELECTION",
+            "origin_lifecycle": "CORE",
+            "replaces_symbol": null,
+            "industry_at_entry": "compute",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        },
+        {
+          "release": {
+            "B": {
+              "date": "2023-11-17",
+              "budget": 3,
+              "capital_drawdown": 0.1911623568883991,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 0.5
+            },
+            "C": {
+              "date": "2023-11-17",
+              "budget": 0,
+              "capital_drawdown": 0.1911623568883991,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2023-11-17",
+            "opportunity": "STRONG_TREND",
+            "risk": {
+              "state": "NORMAL",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.2,
+            "targets": [
+              {
+                "symbol": "sh688008",
+                "weight": 0.1,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_4157a1cbd1288ce180e4b631560a2f3413879a3a28a66b38bda0d47e5c9e63d4",
+                "event_signal_date": "2023-11-17",
+                "event_target_weight_hex": "0x1.999999999999ap-4",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sh688766",
+                "weight": 0.1,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_038d14833228916f2fc35e485236a6b4d5645c462d44e3e8cb22535e6d3c26af",
+                "event_signal_date": "2023-11-17",
+                "event_target_weight_hex": "0x1.999999999999ap-4",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000013",
+                "signal_date": "2023-11-17",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688008",
+                "side": "BUY",
+                "target_weight": 0.1,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_4157a1cbd1288ce180e4b631560a2f3413879a3a28a66b38bda0d47e5c9e63d4",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000014",
+                "signal_date": "2023-11-17",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688766",
+                "side": "BUY",
+                "target_weight": 0.1,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_038d14833228916f2fc35e485236a6b4d5645c462d44e3e8cb22535e6d3c26af",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2023-11-17",
+            "fill_date": "2023-11-20",
+            "symbol": "sh688766",
+            "side": "BUY",
+            "shares": 5900,
+            "price": 58.56850999999999,
+            "gross_value": 345554.2089999999,
+            "commission": 86.38855224999998,
+            "stamp_duty": 0.0,
+            "transfer_fee": 3.4555420899999993,
+            "slippage_cost": 345.208999999948,
+            "reason": "confirmed core admitted from available account capital",
+            "lifecycle": "CORE",
+            "order_id": "O000000014",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "strategy_target",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_038d14833228916f2fc35e485236a6b4d5645c462d44e3e8cb22535e6d3c26af",
+            "origin_subsystem": "LEADER",
+            "mechanism": "LEADER_SELECTION",
+            "origin_lifecycle": "CORE",
+            "replaces_symbol": null,
+            "industry_at_entry": "compute",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        },
+        {
+          "release": {
+            "B": {
+              "date": "2023-12-15",
+              "budget": 3,
+              "capital_drawdown": 0.1911623568883991,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 0.5
+            },
+            "C": {
+              "date": "2023-12-15",
+              "budget": 0,
+              "capital_drawdown": 0.1990328562251038,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2024-01-10",
+            "opportunity": "WEAK",
+            "risk": {
+              "state": "CAUTION",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.6,
+            "targets": [
+              {
+                "symbol": "sh688041",
+                "weight": 0.6,
+                "lifecycle": "RECOVERY",
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_738bf1deab5588881b8141203dca42f8c9410ae550e7f6477a9a2c5389266f44",
+                "event_signal_date": "2024-01-10",
+                "event_target_weight_hex": "0x1.3333333333333p-1",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "TACTICAL_REBOUND",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000017",
+                "signal_date": "2024-01-10",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688041",
+                "side": "BUY",
+                "target_weight": 0.6,
+                "reduction_policy": "FIFO",
+                "reason_code": "recovery_cohort",
+                "exit_kind": "strategy",
+                "event_id": "evt_738bf1deab5588881b8141203dca42f8c9410ae550e7f6477a9a2c5389266f44",
+                "origin_subsystem": "RECOVERY",
+                "mechanism": "TACTICAL_REBOUND",
+                "origin_lifecycle": "RECOVERY",
+                "replaces_symbol": null,
+                "industry_at_entry": "compute",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2024-01-10",
+            "fill_date": "2024-01-11",
+            "symbol": "sh688041",
+            "side": "BUY",
+            "shares": 59900,
+            "price": 66.677611,
+            "gross_value": 3993988.8989,
+            "commission": 998.497224725,
+            "stamp_duty": 0.0,
+            "transfer_fee": 39.939888989,
+            "slippage_cost": 3989.9988999996795,
+            "reason": "controlled oversold rebound probe",
+            "lifecycle": "RECOVERY",
+            "order_id": "O000000017",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "recovery_cohort",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_738bf1deab5588881b8141203dca42f8c9410ae550e7f6477a9a2c5389266f44",
+            "origin_subsystem": "RECOVERY",
+            "mechanism": "TACTICAL_REBOUND",
+            "origin_lifecycle": "RECOVERY",
+            "replaces_symbol": null,
+            "industry_at_entry": "compute",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        }
+      ],
+      "outside_development_signal_dates": true,
+      "source_sha256": {
+        "confirmation/r26/different-recovery-old-B.json.gz": "7a74bef7d1a930e928efba932c3d0cf33b0cbb0387b280868ea0267486a65140",
+        "confirmation/r26/different-recovery-legacy-C.json.gz": "a419d58c60042d1e7dc58aa1e713c72336aea5ebb87435e3eaf862972b7e18e3"
+      }
+    },
+    "remove308": {
+      "covered": true,
+      "same_actual_prefix": true,
+      "migration_economic_hash_unchanged": true,
+      "first_daily_economic_difference": {
+        "B": {
+          "date": "2025-05-12",
+          "cash": 2073647.2057240703,
+          "position_shares": {},
+          "close_marks": {}
+        },
+        "C": {
+          "date": "2025-05-12",
+          "cash": 557646.5555100208,
+          "position_shares": {
+            "sh688019": 5100,
+            "sh688233": 19200,
+            "sz300666": 5400
+          },
+          "close_marks": {
+            "sh688019": 107.64,
+            "sh688233": 28.451,
+            "sz300666": 75.601
+          }
+        }
+      },
+      "release_count": 207,
+      "release_examples": [
+        {
+          "B": {
+            "date": "2025-01-23",
+            "budget": 1,
+            "capital_drawdown": 0.12377088876658182,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          },
+          "C": {
+            "date": "2025-01-23",
+            "budget": 0,
+            "capital_drawdown": 0.12377088876658182,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        },
+        {
+          "B": {
+            "date": "2025-01-24",
+            "budget": 1,
+            "capital_drawdown": 0.12377088876658182,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          },
+          "C": {
+            "date": "2025-01-24",
+            "budget": 0,
+            "capital_drawdown": 0.12377088876658182,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        },
+        {
+          "B": {
+            "date": "2025-01-27",
+            "budget": 1,
+            "capital_drawdown": 0.12377088876658182,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": null,
+            "freeze_new_risk": true,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          },
+          "C": {
+            "date": "2025-01-27",
+            "budget": 0,
+            "capital_drawdown": 0.12377088876658182,
+            "operating_drawdown": 0.0,
+            "deployed_drawdown": 0.0,
+            "freeze_new_risk": false,
+            "independent_damage": false,
+            "target_gross_cap": 1.0
+          }
+        }
+      ],
+      "linked_release_signal_fill_count": 24,
+      "linked_examples": [
+        {
+          "release": {
+            "B": {
+              "date": "2025-05-09",
+              "budget": 1,
+              "capital_drawdown": 0.12377088876658182,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            },
+            "C": {
+              "date": "2025-05-09",
+              "budget": 0,
+              "capital_drawdown": 0.12377088876658182,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2025-05-09",
+            "opportunity": "RECOVERY",
+            "risk": {
+              "state": "NORMAL",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.733333333333,
+            "targets": [
+              {
+                "symbol": "sh688019",
+                "weight": 0.266666666667,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_a4ca8c651f0005dbfe5d09b02f5afef2d7e665e4cb1a45b419bcef01788118e8",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.1111111111111p-2",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sh688233",
+                "weight": 0.266666666667,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_8a67dfaf8c9e85d3066c955a8e617e9ae86148c4d97bf460fbcb181634096787",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.1111111111111p-2",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sz300666",
+                "weight": 0.2,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_7f546afed2302fdd00e68e50d61e74d2069db7d3e1d7cd77bf1f1cc38532de14",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.999999999999ap-3",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000008",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688019",
+                "side": "BUY",
+                "target_weight": 0.266666666667,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_a4ca8c651f0005dbfe5d09b02f5afef2d7e665e4cb1a45b419bcef01788118e8",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000009",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688233",
+                "side": "BUY",
+                "target_weight": 0.266666666667,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_8a67dfaf8c9e85d3066c955a8e617e9ae86148c4d97bf460fbcb181634096787",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000010",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300666",
+                "side": "BUY",
+                "target_weight": 0.2,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_7f546afed2302fdd00e68e50d61e74d2069db7d3e1d7cd77bf1f1cc38532de14",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2025-05-09",
+            "fill_date": "2025-05-12",
+            "symbol": "sh688019",
+            "side": "BUY",
+            "shares": 5100,
+            "price": 108.35724899999998,
+            "gross_value": 552621.9698999999,
+            "commission": 138.155492475,
+            "stamp_duty": 0.0,
+            "transfer_fee": 5.526219698999999,
+            "slippage_cost": 552.0698999999311,
+            "reason": "confirmed core admitted from available account capital",
+            "lifecycle": "CORE",
+            "order_id": "O000000008",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "strategy_target",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_a4ca8c651f0005dbfe5d09b02f5afef2d7e665e4cb1a45b419bcef01788118e8",
+            "origin_subsystem": "LEADER",
+            "mechanism": "LEADER_SELECTION",
+            "origin_lifecycle": "CORE",
+            "replaces_symbol": null,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        },
+        {
+          "release": {
+            "B": {
+              "date": "2025-05-09",
+              "budget": 1,
+              "capital_drawdown": 0.12377088876658182,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            },
+            "C": {
+              "date": "2025-05-09",
+              "budget": 0,
+              "capital_drawdown": 0.12377088876658182,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2025-05-09",
+            "opportunity": "RECOVERY",
+            "risk": {
+              "state": "NORMAL",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.733333333333,
+            "targets": [
+              {
+                "symbol": "sh688019",
+                "weight": 0.266666666667,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_a4ca8c651f0005dbfe5d09b02f5afef2d7e665e4cb1a45b419bcef01788118e8",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.1111111111111p-2",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sh688233",
+                "weight": 0.266666666667,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_8a67dfaf8c9e85d3066c955a8e617e9ae86148c4d97bf460fbcb181634096787",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.1111111111111p-2",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sz300666",
+                "weight": 0.2,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_7f546afed2302fdd00e68e50d61e74d2069db7d3e1d7cd77bf1f1cc38532de14",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.999999999999ap-3",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000008",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688019",
+                "side": "BUY",
+                "target_weight": 0.266666666667,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_a4ca8c651f0005dbfe5d09b02f5afef2d7e665e4cb1a45b419bcef01788118e8",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000009",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688233",
+                "side": "BUY",
+                "target_weight": 0.266666666667,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_8a67dfaf8c9e85d3066c955a8e617e9ae86148c4d97bf460fbcb181634096787",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000010",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300666",
+                "side": "BUY",
+                "target_weight": 0.2,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_7f546afed2302fdd00e68e50d61e74d2069db7d3e1d7cd77bf1f1cc38532de14",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2025-05-09",
+            "fill_date": "2025-05-12",
+            "symbol": "sh688233",
+            "side": "BUY",
+            "shares": 19200,
+            "price": 28.699670999999995,
+            "gross_value": 551033.6831999999,
+            "commission": 137.75842079999995,
+            "stamp_duty": 0.0,
+            "transfer_fee": 5.510336831999999,
+            "slippage_cost": 550.4831999999169,
+            "reason": "confirmed core admitted from available account capital",
+            "lifecycle": "CORE",
+            "order_id": "O000000009",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "strategy_target",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_8a67dfaf8c9e85d3066c955a8e617e9ae86148c4d97bf460fbcb181634096787",
+            "origin_subsystem": "LEADER",
+            "mechanism": "LEADER_SELECTION",
+            "origin_lifecycle": "CORE",
+            "replaces_symbol": null,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        },
+        {
+          "release": {
+            "B": {
+              "date": "2025-05-09",
+              "budget": 1,
+              "capital_drawdown": 0.12377088876658182,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": null,
+              "freeze_new_risk": true,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            },
+            "C": {
+              "date": "2025-05-09",
+              "budget": 0,
+              "capital_drawdown": 0.12377088876658182,
+              "operating_drawdown": 0.0,
+              "deployed_drawdown": 0.0,
+              "freeze_new_risk": false,
+              "independent_damage": false,
+              "target_gross_cap": 1.0
+            }
+          },
+          "signal": {
+            "schema": "uquant.decision-control-plane.v2",
+            "date": "2025-05-09",
+            "opportunity": "RECOVERY",
+            "risk": {
+              "state": "NORMAL",
+              "target_gross_cap": 1.0,
+              "system_gross_cap": 1.0
+            },
+            "target_gross": 0.733333333333,
+            "targets": [
+              {
+                "symbol": "sh688019",
+                "weight": 0.266666666667,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_a4ca8c651f0005dbfe5d09b02f5afef2d7e665e4cb1a45b419bcef01788118e8",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.1111111111111p-2",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sh688233",
+                "weight": 0.266666666667,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_8a67dfaf8c9e85d3066c955a8e617e9ae86148c4d97bf460fbcb181634096787",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.1111111111111p-2",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "symbol": "sz300666",
+                "weight": 0.2,
+                "lifecycle": "CORE",
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_7f546afed2302fdd00e68e50d61e74d2069db7d3e1d7cd77bf1f1cc38532de14",
+                "event_signal_date": "2025-05-09",
+                "event_target_weight_hex": "0x1.999999999999ap-3",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "orders": [
+              {
+                "order_id": "O000000008",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688019",
+                "side": "BUY",
+                "target_weight": 0.266666666667,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_a4ca8c651f0005dbfe5d09b02f5afef2d7e665e4cb1a45b419bcef01788118e8",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000009",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sh688233",
+                "side": "BUY",
+                "target_weight": 0.266666666667,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_8a67dfaf8c9e85d3066c955a8e617e9ae86148c4d97bf460fbcb181634096787",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              },
+              {
+                "order_id": "O000000010",
+                "signal_date": "2025-05-09",
+                "snapshot_kind": "ORIGIN",
+                "symbol": "sz300666",
+                "side": "BUY",
+                "target_weight": 0.2,
+                "reduction_policy": "FIFO",
+                "reason_code": "strategy_target",
+                "exit_kind": "strategy",
+                "event_id": "evt_7f546afed2302fdd00e68e50d61e74d2069db7d3e1d7cd77bf1f1cc38532de14",
+                "origin_subsystem": "LEADER",
+                "mechanism": "LEADER_SELECTION",
+                "origin_lifecycle": "CORE",
+                "replaces_symbol": null,
+                "industry_at_entry": "materials",
+                "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+                "grant_id": "",
+                "epoch_id": ""
+              }
+            ],
+            "effective_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+          },
+          "actual_fill": {
+            "signal_date": "2025-05-09",
+            "fill_date": "2025-05-12",
+            "symbol": "sz300666",
+            "side": "BUY",
+            "shares": 5400,
+            "price": 76.28721099999999,
+            "gross_value": 411950.9393999999,
+            "commission": 102.98773484999998,
+            "stamp_duty": 0.0,
+            "transfer_fee": 4.119509394,
+            "slippage_cost": 411.539399999927,
+            "reason": "confirmed core admitted from available account capital",
+            "lifecycle": "CORE",
+            "order_id": "O000000010",
+            "fill_id": "",
+            "reduction_policy": "FIFO",
+            "reason_code": "strategy_target",
+            "exit_kind": "strategy",
+            "sold_tranches": [],
+            "event_id": "evt_7f546afed2302fdd00e68e50d61e74d2069db7d3e1d7cd77bf1f1cc38532de14",
+            "origin_subsystem": "LEADER",
+            "mechanism": "LEADER_SELECTION",
+            "origin_lifecycle": "CORE",
+            "replaces_symbol": null,
+            "industry_at_entry": "materials",
+            "industry_manifest_sha256": "03f42c5066fb8e1c7b2f8e1b7dd38d508d8053f548ebb5596317ce587d7cffd0",
+            "grant_id": "",
+            "epoch_id": ""
+          }
+        }
+      ],
+      "outside_development_signal_dates": true,
+      "source_sha256": {
+        "confirmation/r26/remove308-old-B.json.gz": "45ca61a13b3c53eafcbbf4b81e3446566222012aaf6adc6107b9f2cfb166f13b",
+        "confirmation/r26/remove308-legacy-C.json.gz": "968158f8a37b7ac36a435efd95cb4484128670fdb3e8b56f19889bf1aa08f20a"
+      }
+    }
+  }
+}

@@ -1,3 +1,15 @@
+# Final delivery prepared: R26 acceptance and original readback passed
+
+All fixed task gates, both targeted champion scenarios and 252 relevant tests passed. Report-13 remains40.4894880554x with27.139915% DD. Its original runner emits compact facts (preserved with cache and logs); no full raw replay or canonical shard aggregate is claimed for that targeted check. Its separately saved original was also byte-readback verified.
+
+The final delivery commit contains report, fixed gates, source mapping, full originals receipts and prior failures. Normal merge is authorized. Read PR75 first: its description is updated with actual merge SHA and verified main readback after integration. The older checkpoint notes below are historical; never re-run or re-merge solely from them. No required protections were changed and queued CI is not represented as passed.
+
+# Latest continuation: R26 fixed acceptance and original readback passed
+
+All fixed gates passed: core cross-vintage, original23, both initial confirmation groups, registered reserve, actual order/fill coverage. The 44,431,264-byte final archive (11 parts) was remotely reconstructed and byte-verified; SHA256 `9bbe76876a5088acddc57f3f898627b3b17b06ad59d226fb92a46df27687455f`. See CROSS_VINTAGE_ORIGINALS_REMOTE_RECEIPT.json and the delivery report. Production subtree `69f5e67cabc55b2d53918bd623afb31f6f8695d5` is fixed.
+
+Check the current PR and RESUME_20260920.json before acting. The adjacent report-13 ownership case is the last local check; normal merge remains pending at this checkpoint. Do not claim queued CI passed. Original user authorization permits the normal merge after acceptance, without bypassing protections.
+
 # Latest continuation: R26 sentinels passed; full acceptance pending
 
 PR75 source is `2b1279e70c21d697e3fa325211db86753e5af973`, byte-identical tree to local R26. R25 is rejected: holding-based cadence restored champion but failed legacy growth. R26 restores R24 cadence and fixes synchronized strategic cohort breadth to count actual live cohort members. Champion passes at28.1387451775x, DD27.1334%; five native sentinels exactly match R24 economics; legacy sentinel G10.7678702372. Remaining fixed native/legacy-cost matrix is running. Never merge from these partial results alone.

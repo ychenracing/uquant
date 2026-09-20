@@ -7,7 +7,7 @@ from uquant.portfolio.strategic.authority import (
     assess_strategic_capital_authority,
     normalize_orphan_strategic_capital_residue,
 )
-from uquant.types import AccountOrder, AccountState, OrderStatus, PendingOrder, Position
+from uquant.types import AccountOrder, AccountState, Fill, OrderStatus, PendingOrder, Position
 
 
 def test_flat_unbacked_strategy_containers_are_orphan_residue_not_live_authority() -> None:
@@ -258,3 +258,28 @@ def test_exited_strategic_peer_keeps_unbound_restoration_ambiguity_conservative(
     assert authority.orphan_residue_fields == ("protected_weights",)
     assert normalize_orphan_strategic_capital_residue(account) == ()
     assert account.protected_weights == {peer: 0.19}
+
+
+def test_closed_ordinary_snapshot_releases_only_after_complete_execution() -> None:
+    account = AccountState.empty(2_000_000.)
+    account.protected_weights = {"ordinary": .2, "unknown": .1}
+    account.capital_peak = 3_000_000.
+    for side, day in [("BUY", "2025-01-03"), ("SELL", "2025-01-06")]:
+        account.fills.append(Fill(
+            signal_date="2025-01-02", fill_date=day, symbol="ordinary", side=side,
+            shares=100, price=10., gross_value=1000., commission=5., stamp_duty=0.,
+            transfer_fee=0., slippage_cost=0., reason="actual ordinary execution",
+            lifecycle="CORE", order_id=side, event_id=side,
+            origin_subsystem="LEADER" if side == "BUY" else "RISK",
+        ))
+    pending = PendingOrder(signal_date="2025-01-06", symbol="ordinary", side="BUY",
+                           target_weight=.2, reason="live restoration", lifecycle="CORE")
+    account.pending_orders = [pending]
+    assert normalize_orphan_strategic_capital_residue(account) == ()
+    account.pending_orders = []
+    history = list(account.fills)
+    assert normalize_orphan_strategic_capital_residue(account) == ("protected_weights",)
+    assert account.protected_weights == {"unknown": .1}
+    assert account.fills == history and account.cash == 2_000_000.
+    assert account.capital_peak == 3_000_000.
+    assert normalize_orphan_strategic_capital_residue(account) == ()

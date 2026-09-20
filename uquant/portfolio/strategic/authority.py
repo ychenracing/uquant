@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ...holding_history import protected_weights_for_current_episode
 from ...models.strategic_epoch import StrategicEpochStatus
 from ...models.strategic_grant import TERMINAL_STRATEGIC_GRANT_STATUSES
 from ...models.trading import late_strategic_fill_allowed, strategic_economic_remaining_shares
@@ -260,7 +261,7 @@ def _classify_owner_authority(
 def normalize_orphan_strategic_capital_residue(
     account: AccountState,
 ) -> tuple[str, ...]:
-    """Release only residue whose recorded owner is provably terminal."""
+    """Release terminal owners and fully settled, closed ordinary snapshots."""
 
     assessment = assess_strategic_capital_authority(account)
     if not assessment.all_cash or assessment.has_live_authority:
@@ -269,6 +270,21 @@ def normalize_orphan_strategic_capital_residue(
         epoch.epoch_id for epoch in account.strategic_epochs if epoch.terminal
     }
     normalized: set[str] = set()
+    current_protection = protected_weights_for_current_episode(account)
+    for symbol in tuple(account.protected_weights):
+        if symbol in current_protection:
+            continue
+        fills = [fill for fill in account.fills if fill.symbol == symbol]
+        # An unbound weight alone is ambiguous. Actual complete ordinary fills
+        # prove that this physical deployment ended; no live execution or
+        # strategic owner exists above. Keep every economic record unchanged.
+        if (fills and fills[-1].side == "SELL"
+                and all(fill.order_id and fill.event_id and not fill.grant_id
+                        and not fill.epoch_id for fill in fills)
+                and any(fill.side == "BUY" for fill in fills)
+                and sum(fill.shares if fill.side == "BUY" else -fill.shares for fill in fills) == 0):
+            account.protected_weights.pop(symbol)
+            normalized.add("protected_weights")
     for ownership_field, weights_field in (
         ("protected_weight_epoch_ids", "protected_weights"),
         ("strategic_restore_epoch_ids", "strategic_restore_weights"),

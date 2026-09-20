@@ -40,7 +40,7 @@ def test_risk_facade_preserves_consumed_names_reflection_and_live_anchor_seam(
                 "operating_drawdown", "deployed_drawdown"
             )
             assert hashlib.sha256(function.__doc__.encode()).hexdigest() == (
-                "633f3a346544fd12a5af4accab2e2e234ceb956329ce6d1921cd77f4e6389843"
+                "294773e55572fe289edd183a6eac73dd633d325bf8bb249c2ca717d22b340e8a"
             )
         elif name == "_update_capital_budget_ladder":
             assert function.__doc__ == "Escalate immediately; after confirmation release one tier per session."

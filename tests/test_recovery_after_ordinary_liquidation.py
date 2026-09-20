@@ -19,15 +19,35 @@ SYMBOLS = (
 
 @pytest.fixture(scope="module")
 def settled_ordinary_account():
+    from uquant.portfolio.strategic import rearm
+
+    normalize = rearm.normalize_orphan_strategic_capital_residue
+    snapshots = []
+
+    def capture_closed_rights(account):
+        before = deepcopy(account) if account.protected_weights else None
+        normalized = normalize(account)
+        if (before is not None and "protected_weights" in normalized
+                and not before.positions and not before.pending_orders
+                and not protected_weights_for_current_episode(before)):
+            snapshots.append(before)
+        return normalized
+
     engine = ProductionEngine(Path(__file__).resolve().parents[1] / "data/frozen")
     engine._load(set(SYMBOLS) | set(INDEX_SYMBOLS) | set(REFERENCE_UNIVERSE))
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     panel = {symbol: engine._raw[symbol] for symbol in SYMBOLS}
     calendar = engine._raw["sh000300"].index
-    for date in calendar[(calendar >= "2025-01-02") & (calendar <= "2025-04-30")]:
-        engine.execution.execute_open(date=date, account=account, panel=panel)
-        decision = engine.decide(symbols=SYMBOLS, as_of=str(date.date()), account=account)
-        account.pending_orders = list(decision.pending_orders)
+    # Observe the real pre-normalization account without suppressing production
+    # cleanup. Settled rights no longer survive until the end of this replay.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(rearm, "normalize_orphan_strategic_capital_residue", capture_closed_rights)
+        for date in calendar[(calendar >= "2025-01-02") & (calendar <= "2025-04-30")]:
+            engine.execution.execute_open(date=date, account=account, panel=panel)
+            decision = engine.decide(symbols=SYMBOLS, as_of=str(date.date()), account=account)
+            account.pending_orders = list(decision.pending_orders)
+    assert snapshots, "Replay must exercise actual closed ordinary rights"
+    account = snapshots[-1]
     assert not account.positions and not account.pending_orders
     assert account.protected_weights
     assert not protected_weights_for_current_episode(account)

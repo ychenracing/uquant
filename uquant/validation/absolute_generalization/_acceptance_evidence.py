@@ -126,7 +126,7 @@ _CROSS_AI_CONTRACT_SHA256 = "9ec5992df69d4466cb2b26cea0e67bbe93f4c6317ba5b8a500c
 
 
 def current_candidate_contract() -> Mapping[str, Any]:
-    """The frozen user acceptance authority; never a candidate binding refresh."""
+    """Read the cross-AI acceptance contract and verify its frozen identity."""
     payload = (_ROOT / "benchmarks/cross_ai_core_strategy_contract.json").read_bytes()
     if hashlib.sha256(payload).hexdigest() != _CROSS_AI_CONTRACT_SHA256:
         raise ValueError("current candidate cross-AI contract identity differs")

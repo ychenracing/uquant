@@ -1,4 +1,4 @@
-"""Explicit post-observation acceptance revision; frozen evidence stays intact."""
+"""Economic comparison limits and their recorded provenance."""
 from typing import Any
 
 
@@ -17,17 +17,17 @@ def wealth_floor(original: float, *, authorized: bool = True, comparison: str = 
 
 
 def principal_wealth_floor(original: float, *, authorized: bool = True) -> float:
-    """The user's full/champion floor includes capital and has no extra discount."""
+    """Return the full/champion wealth floor, including capital."""
     return 15.0 if authorized else original
 
 
 def order_ceiling(original: float, *, authorized: bool = True) -> float:
-    """At most40orders per account replay, retaining every original judgment."""
+    """Return the order ceiling for an account replay."""
     return 40 if authorized else original
 
 
 def principal_drawdown_ceiling(original: float, *, case: str, window: str, authorized: bool = True) -> float:
-    """Apply the comparable small margin only to full continuous nominal DD."""
+    """Return the drawdown ceiling for the specified case and window."""
     if authorized and case == "full" and window == "continuous_ai_era":
         return original + 0.015
     return original

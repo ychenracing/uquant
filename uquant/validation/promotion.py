@@ -647,8 +647,8 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
         raise RuntimeError(f"promotion champion evidence is missing: {name}")
     tolerance = AI_ERA_POLICY["champion_tolerance"]
     failures: list[str] = []
-    # Keep the historical policy sealed; apply the declared revision to the
-    # final-wealth comparison, while preserving drawdown and acute-return gates.
+    # Compare final wealth using the floor for this window.
+    # Drawdown and acute return use the champion comparison limits below.
     contract = current_candidate_contract()
     if name.endswith("/continuous_ai_era"):
         adjusted_wealth_floor = principal_wealth_floor(
@@ -673,7 +673,7 @@ def _champion_violations(*, name: str, metrics: Mapping[str, Any], champion: Map
 
 
 def _authorized_order_limit() -> dict[str, Any]:
-    """Explicit user revision; the original compiled policy stays immutable."""
+    """Describe the current per-account order limit and its provenance."""
     return {
         "scenario": "all_account_replays", "maximum": 40,
         "authorization_id": "cross-ai-principal15-orders40-20260910-v4",
@@ -683,7 +683,7 @@ def _authorized_order_limit() -> dict[str, Any]:
 
 
 def current_promotion_acceptance_basis() -> dict[str, Any]:
-    """Bind the current policy override without rewriting the frozen baseline."""
+    """Describe the current acceptance limits and source contract."""
     contract = current_candidate_contract()
     path = Path(__file__).resolve().parents[2] / "benchmarks/cross_ai_core_strategy_contract.json"
     return {

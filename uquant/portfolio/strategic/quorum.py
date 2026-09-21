@@ -97,7 +97,7 @@ def strict_absolute_owner_quality(
     leaders: dict[str, LeaderScore],
     cfg: SystemConfig,
 ) -> bool:
-    """Apply the existing single-owner floors without route-specific relaxation."""
+    """Apply the same single-owner quality floors across qualification routes."""
 
     return _common_absolute_quality(
         symbol=symbol,

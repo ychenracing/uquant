@@ -121,10 +121,9 @@ full profile 是性能验收不可拆分的阻断经济性真相，窗口日期�
 
 门禁同时约束财富、最大回撤、账户订单、换手和压力区间收益；缺失或失败的必需窗口必须失败关闭。证券子集、替代实现和其他研究性压力检查可以辅助诊断，但不能替代、分摊或放行这个统一门禁。失败不能通过删除场景、改写统计口径或放宽已评审阈值解决。
 
-当前用户授权单独将 `e/continuous_ai_era` 的订单上限从15改为20。
-原冻结policy和原15单判定保留，结果的 `acceptance_basis.authorized_order_limit`
-记录此项在观察AP结果之后作出的授权；它不是事前冻结通过或新的独立样本外证据。
-其他股票池、窗口及收益、回撤、换手、成本与执行约束保持各自原门槛。
+每账户回放的绝对订单上限为 40，包含短窗口，结果记录于
+`acceptance_basis.authorized_order_limit`。收益、回撤、换手、成本与执行约束
+按各自验收合同判定。
 
 ### Strategic Ownership Acceptance
 
@@ -240,8 +239,8 @@ Pareto 改进才能通过，而任何超出冻结边界与逐 cell 容差的恶�
 `REPLAY_ERROR` 和 `INSUFFICIENT_SAMPLE` 是明确证据状态。与已认证 baseline 完全相同的
 replay error 可以保留；新增或变化的 replay error 必须失败。若候选恢复了 baseline 的
 replay error，tail non-regression 只在共同有效样本上比较，恢复 cell 还必须落在该组已认证
-有效样本的最差包络及既有逐 cell 容差内。若该组没有已认证有效样本，则不得推导或豁免
-恢复包络，候选组只能按原始 literal policy 通过。样本不足记录不能伪造指标，也不能通过
+有效样本的最差包络及既有逐 cell 容差内。若该组没有已认证有效样本，候选组须按原始
+literal policy 判定。样本不足记录不能伪造指标，也不能通过
 删行、补值或换 seed 取得通过。
 
 归因用稳定的 event、origin subsystem/mechanism、lifecycle、replacement 与
@@ -359,6 +358,6 @@ rebuild_observation_archive(case, case / "recovered-observations.jsonl.gz")
 其他非主账户财富比较按原独立基准应用既定的范围限定比例；不得把容差反复复合。
 指标、数据、交易成本和非数值义务仍须同时满足。完整比较由
 `uquant.validation.acceptance_tolerance` 和各独立验收合同定义。
-这些约束属于观察过历史结果后的授权，不能称为预注册或样本外证据。
+历史窗口的比较结果不代表独立样本外表现。
 
 当前入口、源码和运行环境绑定、产物、错误与聚合见[验收链](ACCEPTANCE.md)。

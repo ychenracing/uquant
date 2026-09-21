@@ -71,4 +71,4 @@ Actions 只上传实际生成并读回的产物；预检或分片执行失败时
 
 ## C2 简化替换
 
-[完整交付结论](../artifacts/unified-allocation/C2_ACCEPTED_DELIVERY.md)与[最终合同](../artifacts/unified-allocation/ACCEPTANCE_C2_ACCEPTED.json)记录八组正式配对验收。六标准场景终值保留几何平均103.67%，最低八场景97.34%，回撤增量均为零；用户接受2025与剔除sz300502的已观察执行超限。原合同及失败记录保留；该结论不代表完整Absolute或未来泛化通过。
+[八场景比较](../artifacts/unified-allocation/C2_ACCEPTED_DELIVERY.md)与[验收合同](../artifacts/unified-allocation/ACCEPTANCE_C2_ACCEPTED.json)记录正式配对结果。六个标准场景的成本后终值相对基线几何平均为 103.67%，八场景最低为 97.34%，最大回撤增量均为零。2025 场景订单数由 9 增至 16，剔除 `sz300502` 场景由 45 增至 61；这两个场景的换手和成本也增加。以上结果限于已运行的八场景，不代表完整 Absolute 或未来泛化表现。

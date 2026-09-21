@@ -12,7 +12,6 @@ from ...features import scalar
 from ...types import AccountState, LeaderScore, Risk, RiskAssessment, Target
 from .targets import (
     awaiting_recovery_cohort_targets,
-    locked_recovery_cohort_targets,
     recovery_cohort_targets,
 )
 
@@ -40,54 +39,6 @@ class RecoverySelection:
     recovery_elapsed: int
     lead: str
     secondaries: list[str]
-
-
-def _locked_cohort_targets(
-    self: RecoveryPortfolioPolicy,
-    *,
-    risk: RiskAssessment,
-    leaders: dict[str, LeaderScore],
-    account: AccountState,
-    proposed: dict[str, float],
-    bounded_recovery_repair: bool,
-) -> tuple[Target, ...] | None:
-    if account.candidate_tenure.get("recovery_cohort_locked", 0) != 1:
-        return None
-    pending_buys = {
-        order.symbol
-        for order in account.pending_orders
-        if order.side == "BUY" and order.symbol in account.anchor_weights
-    }
-    unfinished = {
-        symbol: min(self.cfg.max_symbol_weight, max(0.0, target_weight))
-        for symbol, target_weight in account.anchor_weights.items()
-        if symbol not in proposed or symbol in pending_buys
-    }
-    if risk.freeze_new_risk and not bounded_recovery_repair:
-        unfinished = {}
-    gross_budget = min(
-        self.cfg.max_gross,
-        cast(_RecoveryGrossPolicy, self)._confirmed_recovery_gross(risk=risk, account=account),
-    )
-    held_gross = sum(min(self.cfg.max_symbol_weight, max(0.0, weight)) for weight in proposed.values())
-    requested = sum(
-        max(0.0, target_weight - proposed.get(symbol, 0.0)) for symbol, target_weight in unfinished.items()
-    )
-    remaining = max(0.0, gross_budget - held_gross)
-    scale = min(1.0, remaining / requested) if requested > 0 else 0.0
-    proposed.update(
-        {
-            symbol: proposed.get(symbol, 0.0) + max(0.0, target_weight - proposed.get(symbol, 0.0)) * scale
-            for symbol, target_weight in unfinished.items()
-            if proposed.get(symbol, 0.0) + max(0.0, target_weight - proposed.get(symbol, 0.0)) * scale > 1e-12
-        }
-    )
-    return locked_recovery_cohort_targets(
-        self=self,
-        proposed=proposed,
-        leaders=leaders,
-        account=account,
-    )
 
 
 def scan_recovery_evidence(
@@ -182,8 +133,6 @@ def _filter_recovery_candidates(
             account.recovery_anchor_date,
             date,
         )
-        if recovery_elapsed > self.cfg.recovery_add_window_days:
-            candidates = []
     return candidates, recovery_elapsed, deep_count, admission_depth
 
 
@@ -498,19 +447,9 @@ def cohort_admission_targets(
     risk_neutral_recovery_transfer: bool,
     weak_secular_market: bool,
 ) -> tuple[Target, ...] | None:
-    """Evaluate locked, candidate, weighting, and commit stages in order."""
+    """Evaluate current candidates, weighting and ownership without an allocation lock."""
 
     proposed = dict(anchored_held)
-    locked = _locked_cohort_targets(
-        self,
-        risk=risk,
-        leaders=leaders,
-        account=account,
-        proposed=proposed,
-        bounded_recovery_repair=bounded_recovery_repair,
-    )
-    if locked is not None:
-        return locked
     candidates, crash_depth = scan_recovery_evidence(
         self,
         date=date,

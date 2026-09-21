@@ -57,9 +57,9 @@ def test_main_propagates_failed_task(monkeypatch, tmp_path):
 
 
 @pytest.mark.parametrize('frozen,settling,recovery,reason', [
-    (False, False, True, 'RECOVERY_ALLOCATION_ACTIVE'),
-    (False, True, True, 'FAILED_DEPLOYMENT_UNSETTLED'),
-    (True, False, True, 'NEW_RISK_FROZEN'),
+    (False, False, None, 'TACTICAL_RECOVERY_ACTIVE'),
+    (False, True, (), 'FAILED_DEPLOYMENT_UNSETTLED'),
+    (True, False, (), 'NEW_RISK_FROZEN'),
 ])
 def test_recovery_gate_keeps_orders_blocked(monkeypatch, frozen, settling, recovery, reason):
     from dataclasses import replace

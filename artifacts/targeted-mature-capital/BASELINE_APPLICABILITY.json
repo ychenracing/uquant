@@ -1,0 +1,42 @@
+[
+  {
+    "case": "full",
+    "full_equity_curve_equal_C2": true,
+    "normalization_candidates": [],
+    "historical_source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "current_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "config_equal": true,
+    "runtime_equal": true,
+    "identities_note": "Grant/epoch IDs retain actual source binding; not claimed byte-equal decisions across source versions."
+  },
+  {
+    "case": "2024",
+    "full_equity_curve_equal_C2": true,
+    "normalization_candidates": [],
+    "historical_source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "current_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "config_equal": true,
+    "runtime_equal": true,
+    "identities_note": "Grant/epoch IDs retain actual source binding; not claimed byte-equal decisions across source versions."
+  },
+  {
+    "case": "loo308",
+    "full_equity_curve_equal_C2": true,
+    "normalization_candidates": [],
+    "historical_source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "current_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "config_equal": true,
+    "runtime_equal": true,
+    "identities_note": "Grant/epoch IDs retain actual source binding; not claimed byte-equal decisions across source versions."
+  },
+  {
+    "case": "no_three",
+    "full_equity_curve_equal_C2": true,
+    "normalization_candidates": [],
+    "historical_source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "current_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "config_equal": true,
+    "runtime_equal": true,
+    "identities_note": "Grant/epoch IDs retain actual source binding; not claimed byte-equal decisions across source versions."
+  }
+]

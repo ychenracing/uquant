@@ -1,0 +1,518 @@
+[
+  {
+    "case": "full",
+    "portfolio_net_pnl_delta": -431950.8556202352,
+    "all_symbol_contributions": [
+      {
+        "symbol": "sh688233",
+        "baseline_net_pnl": 3897124.59883824,
+        "candidate_net_pnl": 3622964.9702677205,
+        "delta": -274159.6285705194
+      },
+      {
+        "symbol": "sh688268",
+        "baseline_net_pnl": 1744469.67682746,
+        "candidate_net_pnl": 1586678.4497777415,
+        "delta": -157791.2270497186
+      },
+      {
+        "symbol": "sh688498",
+        "baseline_net_pnl": 6370073.826072859,
+        "candidate_net_pnl": 6370073.826072859,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300223",
+        "baseline_net_pnl": -4537.232409599979,
+        "candidate_net_pnl": -4537.232409599979,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300308",
+        "baseline_net_pnl": 50140470.434001945,
+        "candidate_net_pnl": 50140470.434001945,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300502",
+        "baseline_net_pnl": 1177667.4618573482,
+        "candidate_net_pnl": 1177667.4618573482,
+        "delta": 0.0
+      }
+    ],
+    "candidate_pyramid_pnl": {
+      "all_in_costs": 4882.628570519681,
+      "cash_fees": 1604.0655705200002,
+      "gross_transaction_value": 3278832.277,
+      "open_pnl": 0.0,
+      "realized_pnl": -274159.6285705197,
+      "slippage": 3278.56299999968,
+      "total_pnl": -274159.6285705197
+    },
+    "baseline_pyramid_pnl": {
+      "all_in_costs": 0.0,
+      "cash_fees": 0.0,
+      "gross_transaction_value": 0.0,
+      "open_pnl": 0.0,
+      "realized_pnl": 0.0,
+      "slippage": 0.0,
+      "total_pnl": 0.0
+    }
+  },
+  {
+    "case": "2024",
+    "portfolio_net_pnl_delta": 0.0,
+    "all_symbol_contributions": [
+      {
+        "symbol": "sh600487",
+        "baseline_net_pnl": 33532.046519400086,
+        "candidate_net_pnl": 33532.046519400086,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688019",
+        "baseline_net_pnl": 8583.718008492026,
+        "candidate_net_pnl": 8583.718008492026,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688041",
+        "baseline_net_pnl": 3435.9518952000653,
+        "candidate_net_pnl": 3435.9518952000653,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688110",
+        "baseline_net_pnl": 119787.22602,
+        "candidate_net_pnl": 119787.22602,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688120",
+        "baseline_net_pnl": -83013.31115985577,
+        "candidate_net_pnl": -83013.31115985577,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688146",
+        "baseline_net_pnl": 8738353.517268077,
+        "candidate_net_pnl": 8738353.517268077,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688200",
+        "baseline_net_pnl": -6861.185078220005,
+        "candidate_net_pnl": -6861.185078220005,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688233",
+        "baseline_net_pnl": 103.38862248006626,
+        "candidate_net_pnl": 103.38862248006626,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688256",
+        "baseline_net_pnl": 175078.46028776403,
+        "candidate_net_pnl": 175078.46028776403,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688268",
+        "baseline_net_pnl": -35122.28598647997,
+        "candidate_net_pnl": -35122.28598647997,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688361",
+        "baseline_net_pnl": -12808.353693960002,
+        "candidate_net_pnl": -12808.353693960002,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688498",
+        "baseline_net_pnl": 1652470.2970526523,
+        "candidate_net_pnl": 1652470.2970526523,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz002281",
+        "baseline_net_pnl": -70979.08411043993,
+        "candidate_net_pnl": -70979.08411043993,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300223",
+        "baseline_net_pnl": -38690.93444832001,
+        "candidate_net_pnl": -38690.93444832001,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300308",
+        "baseline_net_pnl": 11204400.816438887,
+        "candidate_net_pnl": 11204400.816438887,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300394",
+        "baseline_net_pnl": -31389.47409787189,
+        "candidate_net_pnl": -31389.47409787189,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300502",
+        "baseline_net_pnl": 1677669.3949144143,
+        "candidate_net_pnl": 1677669.3949144143,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300604",
+        "baseline_net_pnl": -68017.90933080006,
+        "candidate_net_pnl": -68017.90933080006,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300666",
+        "baseline_net_pnl": -5554.733463180077,
+        "candidate_net_pnl": -5554.733463180077,
+        "delta": 0.0
+      }
+    ],
+    "candidate_pyramid_pnl": {
+      "all_in_costs": 0.0,
+      "cash_fees": 0.0,
+      "gross_transaction_value": 0.0,
+      "open_pnl": 0.0,
+      "realized_pnl": 0.0,
+      "slippage": 0.0,
+      "total_pnl": 0.0
+    },
+    "baseline_pyramid_pnl": {
+      "all_in_costs": 0.0,
+      "cash_fees": 0.0,
+      "gross_transaction_value": 0.0,
+      "open_pnl": 0.0,
+      "realized_pnl": 0.0,
+      "slippage": 0.0,
+      "total_pnl": 0.0
+    }
+  },
+  {
+    "case": "loo308",
+    "portfolio_net_pnl_delta": -86710.22473951429,
+    "all_symbol_contributions": [
+      {
+        "symbol": "sh600487",
+        "baseline_net_pnl": 1205371.519685388,
+        "candidate_net_pnl": 1215218.788913052,
+        "delta": 9847.269227663986
+      },
+      {
+        "symbol": "sh601869",
+        "baseline_net_pnl": 1401686.7757445523,
+        "candidate_net_pnl": 1404443.31659478,
+        "delta": 2756.5408502276987
+      },
+      {
+        "symbol": "sh688019",
+        "baseline_net_pnl": 26545.430775270917,
+        "candidate_net_pnl": 26938.09698643815,
+        "delta": 392.666211167234
+      },
+      {
+        "symbol": "sh688041",
+        "baseline_net_pnl": 238678.1975833201,
+        "candidate_net_pnl": 238678.1975833201,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688072",
+        "baseline_net_pnl": -999.1664080199553,
+        "candidate_net_pnl": -999.1664080199553,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688082",
+        "baseline_net_pnl": -21639.686227829938,
+        "candidate_net_pnl": -21669.160496939876,
+        "delta": -29.474269109938177
+      },
+      {
+        "symbol": "sh688110",
+        "baseline_net_pnl": 1938938.3212023005,
+        "candidate_net_pnl": 1964585.0006343005,
+        "delta": 25646.679432000034
+      },
+      {
+        "symbol": "sh688120",
+        "baseline_net_pnl": -66366.74640994181,
+        "candidate_net_pnl": -66366.74640994181,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688146",
+        "baseline_net_pnl": 549663.8589367201,
+        "candidate_net_pnl": 431316.79715915996,
+        "delta": -118347.0617775601
+      },
+      {
+        "symbol": "sh688200",
+        "baseline_net_pnl": -26585.93450799003,
+        "candidate_net_pnl": -26585.93450799003,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688233",
+        "baseline_net_pnl": -47222.91605674384,
+        "candidate_net_pnl": -48038.16916486385,
+        "delta": -815.2531081200141
+      },
+      {
+        "symbol": "sh688256",
+        "baseline_net_pnl": 1322512.1378785803,
+        "candidate_net_pnl": 1368601.2906441484,
+        "delta": 46089.15276556811
+      },
+      {
+        "symbol": "sh688268",
+        "baseline_net_pnl": -44557.36242835992,
+        "candidate_net_pnl": -44557.36242835992,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688300",
+        "baseline_net_pnl": -90836.85576635995,
+        "candidate_net_pnl": -86585.12979731988,
+        "delta": 4251.725969040068
+      },
+      {
+        "symbol": "sh688361",
+        "baseline_net_pnl": -24966.174354660092,
+        "candidate_net_pnl": -25308.176743080025,
+        "delta": -342.0023884199327
+      },
+      {
+        "symbol": "sh688498",
+        "baseline_net_pnl": 249498.2952409865,
+        "candidate_net_pnl": 249498.2952409865,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688766",
+        "baseline_net_pnl": 122597.82758718051,
+        "candidate_net_pnl": 46373.38702920005,
+        "delta": -76224.44055798046
+      },
+      {
+        "symbol": "sz002281",
+        "baseline_net_pnl": -302201.2890784789,
+        "candidate_net_pnl": -306171.5973762592,
+        "delta": -3970.3082977803424
+      },
+      {
+        "symbol": "sz300054",
+        "baseline_net_pnl": -6200.744744699914,
+        "candidate_net_pnl": -6200.744744699914,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300223",
+        "baseline_net_pnl": -85232.45123711985,
+        "candidate_net_pnl": -85232.45123711985,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300394",
+        "baseline_net_pnl": 37345.02047773264,
+        "candidate_net_pnl": 46739.600235504564,
+        "delta": 9394.57975777192
+      },
+      {
+        "symbol": "sz300502",
+        "baseline_net_pnl": 382852.30816404003,
+        "candidate_net_pnl": 397492.0096100581,
+        "delta": 14639.701446018065
+      },
+      {
+        "symbol": "sz300604",
+        "baseline_net_pnl": 4178.086078320106,
+        "candidate_net_pnl": 4178.086078320106,
+        "delta": 0.0
+      }
+    ],
+    "candidate_pyramid_pnl": {
+      "all_in_costs": 1410.3297424319728,
+      "cash_fees": 475.67154243199997,
+      "gross_transaction_value": 934661.2882000001,
+      "open_pnl": 0.0,
+      "realized_pnl": -4498.529742431943,
+      "slippage": 934.6581999999728,
+      "total_pnl": -4498.529742431943
+    },
+    "baseline_pyramid_pnl": {
+      "all_in_costs": 1044.4282152199223,
+      "cash_fees": 356.14321522,
+      "gross_transaction_value": 688263.7969999999,
+      "open_pnl": 0.0,
+      "realized_pnl": 20158.57178478007,
+      "slippage": 688.2849999999223,
+      "total_pnl": 20158.57178478007
+    }
+  },
+  {
+    "case": "no_three",
+    "portfolio_net_pnl_delta": 69555.97774283402,
+    "all_symbol_contributions": [
+      {
+        "symbol": "sh600487",
+        "baseline_net_pnl": 852539.8173177595,
+        "candidate_net_pnl": 847674.1905310795,
+        "delta": -4865.626786679961
+      },
+      {
+        "symbol": "sh601869",
+        "baseline_net_pnl": 782544.969715608,
+        "candidate_net_pnl": 1078170.5296129682,
+        "delta": 295625.55989736016
+      },
+      {
+        "symbol": "sh688012",
+        "baseline_net_pnl": -12823.856262359885,
+        "candidate_net_pnl": -12823.856262359885,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688019",
+        "baseline_net_pnl": 22849.881318792002,
+        "candidate_net_pnl": 22849.881318792002,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688041",
+        "baseline_net_pnl": 173430.1930224602,
+        "candidate_net_pnl": 174159.0976504502,
+        "delta": 728.9046279899776
+      },
+      {
+        "symbol": "sh688072",
+        "baseline_net_pnl": -999.1664080199553,
+        "candidate_net_pnl": -999.1664080199553,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688082",
+        "baseline_net_pnl": -21311.46422658005,
+        "candidate_net_pnl": -21341.93975594989,
+        "delta": -30.475529369839933
+      },
+      {
+        "symbol": "sh688110",
+        "baseline_net_pnl": 358535.8401411603,
+        "candidate_net_pnl": 360660.91573908064,
+        "delta": 2125.0755979203386
+      },
+      {
+        "symbol": "sh688120",
+        "baseline_net_pnl": -28629.676583441906,
+        "candidate_net_pnl": -27874.9351869119,
+        "delta": 754.7413965300075
+      },
+      {
+        "symbol": "sh688146",
+        "baseline_net_pnl": -182298.1148759985,
+        "candidate_net_pnl": -184976.8790519984,
+        "delta": -2678.7641759999096
+      },
+      {
+        "symbol": "sh688200",
+        "baseline_net_pnl": -25168.376977523934,
+        "candidate_net_pnl": -25168.376977523934,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sh688233",
+        "baseline_net_pnl": -169892.00736634372,
+        "candidate_net_pnl": -194291.57956708377,
+        "delta": -24399.572200740047
+      },
+      {
+        "symbol": "sh688256",
+        "baseline_net_pnl": 1276016.9738581982,
+        "candidate_net_pnl": 1314424.6011628383,
+        "delta": 38407.62730464013
+      },
+      {
+        "symbol": "sh688268",
+        "baseline_net_pnl": -42042.75689195993,
+        "candidate_net_pnl": -41916.95854433994,
+        "delta": 125.79834761998791
+      },
+      {
+        "symbol": "sh688300",
+        "baseline_net_pnl": 28513.006473600166,
+        "candidate_net_pnl": 28750.614860880072,
+        "delta": 237.6083872799063
+      },
+      {
+        "symbol": "sh688361",
+        "baseline_net_pnl": -21546.15047045995,
+        "candidate_net_pnl": -21888.15285888,
+        "delta": -342.0023884200491
+      },
+      {
+        "symbol": "sh688498",
+        "baseline_net_pnl": 2158557.3972551157,
+        "candidate_net_pnl": 1948790.2492020596,
+        "delta": -209767.1480530561
+      },
+      {
+        "symbol": "sz002281",
+        "baseline_net_pnl": -133367.66031995974,
+        "candidate_net_pnl": -160883.02642499958,
+        "delta": -27515.366105039837
+      },
+      {
+        "symbol": "sz300054",
+        "baseline_net_pnl": -6200.744744699914,
+        "candidate_net_pnl": -6200.744744699914,
+        "delta": 0.0
+      },
+      {
+        "symbol": "sz300223",
+        "baseline_net_pnl": -78323.35579991981,
+        "candidate_net_pnl": -77632.44625619985,
+        "delta": 690.9095437199576
+      },
+      {
+        "symbol": "sz300604",
+        "baseline_net_pnl": -55507.60437552014,
+        "candidate_net_pnl": -55564.064998200105,
+        "delta": -56.460622679966036
+      },
+      {
+        "symbol": "sz300666",
+        "baseline_net_pnl": -54729.115266869776,
+        "candidate_net_pnl": -54213.94676511007,
+        "delta": 515.1685017597047
+      }
+    ],
+    "candidate_pyramid_pnl": {
+      "all_in_costs": 2078.8795827599024,
+      "cash_fees": 697.99888276,
+      "gross_transaction_value": 1380904.3684999999,
+      "open_pnl": 0.0,
+      "realized_pnl": -25747.37958275988,
+      "slippage": 1380.880699999902,
+      "total_pnl": -25747.37958275988
+    },
+    "baseline_pyramid_pnl": {
+      "all_in_costs": 2194.661417463859,
+      "cash_fees": 773.598417464,
+      "gross_transaction_value": 1420865.7514,
+      "open_pnl": 0.0,
+      "realized_pnl": 195053.9385825361,
+      "slippage": 1421.0629999998587,
+      "total_pnl": 195053.9385825361
+    }
+  }
+]

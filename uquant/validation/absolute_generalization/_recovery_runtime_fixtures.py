@@ -195,11 +195,20 @@ def run_repair_fixture(
         raise ValueError("absolute recovery repair fixture selection differs")
     with tempfile.TemporaryDirectory(prefix=f"uquant-absolute-repair-{level}-") as temporary:
         data = Path(temporary)
-        dates = pd.bdate_range("2025-01-02", periods=sessions + 260)
+        dates = pd.bdate_range("2025-01-02", periods=2 * sessions + 260)
         for index, symbol in enumerate(_fixture_symbols(contract)):
             rate = 0.001 + (index % 5) * 0.00005
-            _write_prices(data, symbol=symbol, dates=dates, daily_returns=[rate] * len(dates))
-        replay_dates = dates[-(sessions + 2) :]
+            changes = [rate] * len(dates)
+            # Isolate the bounded flat-book owner from the faster consecutive
+            # risk-repair route, as in the failed-grant fixture above.
+            if symbol not in INDEX_SYMBOLS:
+                shock = 0.12 if symbol in {"sz300502", "sz300394"} else -0.12
+                for offset in range(261, len(dates), 4):
+                    changes[offset] = shock
+                    if offset + 1 < len(dates):
+                        changes[offset + 1] = (1.0 + rate) ** 2 / (1.0 + shock) - 1.0
+            _write_prices(data, symbol=symbol, dates=dates, daily_returns=changes)
+        replay_dates = dates[-(2 * sessions + 2) :]
         return _run_fixture(
             data=data,
             contract=contract,

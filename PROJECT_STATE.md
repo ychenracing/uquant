@@ -7,3 +7,5 @@ uquant 使用唯一日频生产决策链，为 A 股 AI 产业链现金多头账
 - 当前验收入口：[验收链](docs/ACCEPTANCE.md)。工程通过不代表经济达标，完整泛化能力应以适用身份的原始结果为准。
 - 可变提交、PR、检查和验收状态从 GitHub 及对应运行产物读取。原始结果保留生产者身份，不改贴当前源码身份。
 - Future Holdout 只接受真实、顺序追加的新交易日；尚未观察的数据不生成分数。
+
+- 本轮成熟持仓资本研究：[交付报告](artifacts/targeted-mature-capital/DELIVERY_REPORT.md)。前四配对筛选为NO_GO，保留生产基线；恢复证据投影与夹具修复单独验证，未宣称完整Absolute通过。

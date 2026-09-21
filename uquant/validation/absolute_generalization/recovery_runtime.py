@@ -479,12 +479,13 @@ def _crowning_decision_sessions(
                 authorization_sessions.add(authorized)
     if (
         not target_sessions
-        or len(order_sessions) != 1
+        or not order_sessions
         or len(authorization_sessions) != 1
     ):
         raise RuntimeError("absolute crowning decision chronology differs")
     target_session = min(target_sessions)
-    order_session = next(iter(order_sessions))
+    # Unfilled orders remain visible on later decisions; bind first observation.
+    order_session = min(order_sessions)
     authorization_session = next(iter(authorization_sessions))
     if order.signal_date != order_session:
         raise RuntimeError("absolute crowning order session differs")
@@ -561,6 +562,7 @@ def _crowning_payload(
 ) -> dict[str, object]:
     final_account = _account(replay.final_account_payload)
     final_epochs = {item.epoch_id: item for item in final_account.strategic_epochs}
+    final_orders = {item.order_id: item for item in final_account.order_ledger}
     qualifications: dict[tuple[str, str], str] = {}
     for observation in replay.observations:
         payload = observation.decision_runtime_payload
@@ -579,10 +581,16 @@ def _crowning_payload(
         if not isinstance(outlet, Mapping):
             continue
         epoch = cast(StrategicEpoch, outlet["epoch"])
+        # Later buys in the same epoch are not another first activation.
+        if epoch.epoch_id in chains:
+            continue
         closed = final_epochs.get(epoch.epoch_id)
         if closed is None or not closed.closed_session:
             continue
         order, fill = _activation_order_and_fill(outlet)
+        # Preserve the first physical fill but use the complete order ledger:
+        # later partial fills/cancellation can change the order's terminal state.
+        order = final_orders[order.order_id]
         grant = cast(StrategicGrantIntent, outlet["grant"])
         target = cast(Target, outlet["target"])
         target_session, order_session, authorization_session = (

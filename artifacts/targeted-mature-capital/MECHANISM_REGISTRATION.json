@@ -1,0 +1,485 @@
+{
+  "baseline_production": "2b34f3aecc47608bd5c6efac0404a118686e2de4",
+  "baseline_observer": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+  "hypothesis": "Existing holding maturity is already confirmed by apply_leader_tenure; replace repeated initial admission confirmation with existing candidate_market_block for incremental capital only. Keep all other eligibility, pending, repair, risk, MFE, stage and shared funding guards.",
+  "budget": "one mechanism, at most one evidence-supported revision",
+  "legacy_preregistered": "B-legacy-2024-offset0 real January 16 2025 checkpoint from CROSS_VINTAGE report, preserve prefix and full historical peaks",
+  "confirmation_pool": "No new holdout claimed; all frozen pools previously researched",
+  "screen": [
+    "2024",
+    "full",
+    "loo308",
+    "no_three"
+  ],
+  "diagnosis": [
+    {
+      "case": "loo308",
+      "all_events": 866,
+      "blocked_events": [
+        {
+          "date": "2024-10-31",
+          "symbol": "sh688041",
+          "mature": true,
+          "score": 0.8569895450051647,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 6800,
+          "cash": 1563134.9366218394,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.23293192816669137,
+          "proposed": 0.23293192816669137,
+          "committed": {
+            "sh688256": 0.146148318127325,
+            "sh688041": 0.23293192816669137,
+            "sh688200": 0.2026376451693046
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.05000000000000002,
+          "capital": {
+            "desired_increment": 0.05000000000000002,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.418282108536679,
+            "cash_room": 0.418282108536679,
+            "position_slots": 4,
+            "symbol_room": 0.3670680718333086,
+            "gross_room": 0.418282108536679,
+            "industry_room": 0.3709197537059836,
+            "correlation_cluster": [
+              "sh688041",
+              "sh688200",
+              "sh688256"
+            ],
+            "correlation_room": 0.16828210853667902,
+            "effective_increment_room": 0.16828210853667902,
+            "funded_increment": 0.05000000000000002
+          },
+          "mfe": 0.47650141921220324
+        },
+        {
+          "date": "2024-10-31",
+          "symbol": "sh688256",
+          "mature": true,
+          "score": 0.929854734438391,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 1800,
+          "cash": 1563134.9366218394,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.146148318127325,
+          "proposed": 0.146148318127325,
+          "committed": {
+            "sh688256": 0.146148318127325,
+            "sh688041": 0.23293192816669137,
+            "sh688200": 0.2026376451693046
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.05000000000000002,
+          "capital": {
+            "desired_increment": 0.05000000000000002,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.418282108536679,
+            "cash_room": 0.418282108536679,
+            "position_slots": 4,
+            "symbol_room": 0.453851681872675,
+            "gross_room": 0.418282108536679,
+            "industry_room": 0.3709197537059836,
+            "correlation_cluster": [
+              "sh688041",
+              "sh688200",
+              "sh688256"
+            ],
+            "correlation_room": 0.16828210853667902,
+            "effective_increment_room": 0.16828210853667902,
+            "funded_increment": 0.05000000000000002
+          },
+          "mfe": 0.7741933165693431
+        },
+        {
+          "date": "2024-11-01",
+          "symbol": "sh688041",
+          "mature": true,
+          "score": 0.880629372409506,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 6800,
+          "cash": 1563134.9366218394,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.23267031515172132,
+          "proposed": 0.23267031515172132,
+          "committed": {
+            "sh688256": 0.1370938474035235,
+            "sh688041": 0.23267031515172132,
+            "sh688200": 0.19706065231141684
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.04999999999999999,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.4331751851333384,
+            "cash_room": 0.4331751851333384,
+            "position_slots": 4,
+            "symbol_room": 0.36732968484827866,
+            "gross_room": 0.4331751851333383,
+            "industry_room": 0.3802358374447552,
+            "correlation_cluster": [
+              "sh688041",
+              "sh688200",
+              "sh688256"
+            ],
+            "correlation_room": 0.1831751851333383,
+            "effective_increment_room": 0.1831751851333383,
+            "funded_increment": 0.04999999999999999
+          },
+          "mfe": 0.47650141921220324
+        },
+        {
+          "date": "2024-11-01",
+          "symbol": "sh688256",
+          "mature": true,
+          "score": 0.8465173160139844,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 1800,
+          "cash": 1563134.9366218394,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.1370938474035235,
+          "proposed": 0.1370938474035235,
+          "committed": {
+            "sh688256": 0.1370938474035235,
+            "sh688041": 0.23267031515172132,
+            "sh688200": 0.19706065231141684
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.05000000000000002,
+          "capital": {
+            "desired_increment": 0.05000000000000002,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.4331751851333384,
+            "cash_room": 0.4331751851333384,
+            "position_slots": 4,
+            "symbol_room": 0.4629061525964765,
+            "gross_room": 0.4331751851333383,
+            "industry_room": 0.3802358374447552,
+            "correlation_cluster": [
+              "sh688041",
+              "sh688200",
+              "sh688256"
+            ],
+            "correlation_room": 0.1831751851333383,
+            "effective_increment_room": 0.1831751851333383,
+            "funded_increment": 0.05000000000000002
+          },
+          "mfe": 0.7741933165693431
+        }
+      ]
+    },
+    {
+      "case": "no_three",
+      "all_events": 837,
+      "blocked_events": [
+        {
+          "date": "2023-04-12",
+          "symbol": "sz002281",
+          "mature": true,
+          "score": 0.7925874996201532,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 35200,
+          "cash": 250126.69530224035,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.30717409008535085,
+          "proposed": 0.30717409008535085,
+          "committed": {
+            "sh688256": 0.6125190749721765,
+            "sz002281": 0.30717409008535085
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.04999999999999999,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.08030683494247262,
+            "cash_room": 0.08030683494247262,
+            "position_slots": 5,
+            "symbol_room": 0.29282590991464913,
+            "gross_room": 0.0803068349424727,
+            "industry_room": 0.44282590991464915,
+            "correlation_cluster": [
+              "sz002281"
+            ],
+            "correlation_room": 0.44282590991464915,
+            "effective_increment_room": 0.0803068349424727,
+            "funded_increment": 0.04999999999999999
+          },
+          "mfe": 0.2346784424054993
+        },
+        {
+          "date": "2024-10-31",
+          "symbol": "sh688041",
+          "mature": true,
+          "score": 0.8569895450051647,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 5900,
+          "cash": 1368175.3432401991,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.2336680368927864,
+          "proposed": 0.2336680368927864,
+          "committed": {
+            "sh688256": 0.14081203182774665,
+            "sh688200": 0.20222626758603754,
+            "sh688041": 0.2336680368927864
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.05000000000000002,
+          "capital": {
+            "desired_increment": 0.05000000000000002,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.42329366369342936,
+            "cash_room": 0.42329366369342936,
+            "position_slots": 4,
+            "symbol_room": 0.3663319631072136,
+            "gross_room": 0.42329366369342947,
+            "industry_room": 0.37551993127946703,
+            "correlation_cluster": [
+              "sh688041",
+              "sh688200",
+              "sh688256"
+            ],
+            "correlation_room": 0.17329366369342947,
+            "effective_increment_room": 0.17329366369342947,
+            "funded_increment": 0.05000000000000002
+          },
+          "mfe": 0.47650141921220346
+        },
+        {
+          "date": "2024-10-31",
+          "symbol": "sh688256",
+          "mature": true,
+          "score": 0.929854734438391,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 1500,
+          "cash": 1368175.3432401991,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.14081203182774665,
+          "proposed": 0.14081203182774665,
+          "committed": {
+            "sh688256": 0.14081203182774665,
+            "sh688200": 0.20222626758603754,
+            "sh688041": 0.2336680368927864
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.04999999999999999,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.42329366369342936,
+            "cash_room": 0.42329366369342936,
+            "position_slots": 4,
+            "symbol_room": 0.4591879681722533,
+            "gross_room": 0.42329366369342947,
+            "industry_room": 0.375519931279467,
+            "correlation_cluster": [
+              "sh688041",
+              "sh688200",
+              "sh688256"
+            ],
+            "correlation_room": 0.17329366369342947,
+            "effective_increment_room": 0.17329366369342947,
+            "funded_increment": 0.04999999999999999
+          },
+          "mfe": 0.7741933165693431
+        },
+        {
+          "date": "2024-11-01",
+          "symbol": "sh688041",
+          "mature": true,
+          "score": 0.880629372409506,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 5900,
+          "cash": 1368175.3432401991,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.23328439713601598,
+          "proposed": 0.23328439713601598,
+          "committed": {
+            "sh688256": 0.13201957618360427,
+            "sh688200": 0.1965584771588334,
+            "sh688041": 0.23328439713601598
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.05000000000000002,
+          "capital": {
+            "desired_increment": 0.05000000000000002,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.4381375495215463,
+            "cash_room": 0.4381375495215463,
+            "position_slots": 4,
+            "symbol_room": 0.36671560286398397,
+            "gross_room": 0.4381375495215464,
+            "industry_room": 0.3846960266803797,
+            "correlation_cluster": [
+              "sh688041",
+              "sh688200",
+              "sh688256"
+            ],
+            "correlation_room": 0.18813754952154638,
+            "effective_increment_room": 0.18813754952154638,
+            "funded_increment": 0.05000000000000002
+          },
+          "mfe": 0.47650141921220346
+        },
+        {
+          "date": "2024-11-01",
+          "symbol": "sh688256",
+          "mature": true,
+          "score": 0.8465173160139844,
+          "confidence": 1.0,
+          "owned": false,
+          "anchor": false,
+          "shares": 1500,
+          "cash": 1368175.3432401991,
+          "pending": [],
+          "repair": false,
+          "open": true,
+          "eligible": false,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "current": 0.13201957618360427,
+          "proposed": 0.13201957618360427,
+          "committed": {
+            "sh688256": 0.13201957618360427,
+            "sh688200": 0.1965584771588334,
+            "sh688041": 0.23328439713601598
+          },
+          "cooldown": true,
+          "increment": 0.05,
+          "funded": 0.04999999999999999,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.4381375495215463,
+            "cash_room": 0.4381375495215463,
+            "position_slots": 4,
+            "symbol_room": 0.4679804238163957,
+            "gross_room": 0.4381375495215464,
+            "industry_room": 0.3846960266803797,
+            "correlation_cluster": [
+              "sh688041",
+              "sh688200",
+              "sh688256"
+            ],
+            "correlation_room": 0.18813754952154638,
+            "effective_increment_room": 0.18813754952154638,
+            "funded_increment": 0.04999999999999999
+          },
+          "mfe": 0.7741933165693431
+        }
+      ]
+    }
+  ],
+  "concentration_warning": "Four of five no_three events overlap four loo308 events; not independent timing evidence."
+}

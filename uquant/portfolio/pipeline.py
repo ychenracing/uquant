@@ -11,7 +11,7 @@ import pandas as pd
 
 from ..config import config_fingerprint
 from ..features import scalar
-from ..holding_history import holding_spans_date
+from ..holding_history import holding_spans_date, recovery_owner_open
 from ..models.ordinary_entry import REASON as PULLBACK_REASON
 from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, pullback_order_entry
 from ..models.strategic_universe import StrategicUniverseRoles
@@ -34,7 +34,7 @@ from ..types import (
 )
 from .allocation_book import AllocationBook
 from .capital import committed_capital, funded_increment
-from .leaders.cycle import add_mature_leaders, mature_cycle_weights, observe_mature_cycle
+from .leaders.cycle import mature_cycle_weights
 from .leaders.lifecycle import ordinary_pullback_exit
 from .ordinary import (
     is_consumed_repair_order,
@@ -370,6 +370,8 @@ def _ordinary_exits(book: AllocationBook) -> None:
             continue
         if symbol in book.recovery_targets:
             continue
+        if symbol not in book.owned and not recovery_owner_open(account, symbol):
+            continue  # Ordinary trend holdings use the fixed review clock below.
         # The dominant lifecycle already owns its retained profit-locked stake.
         # Keep its disaster/risk reductions; do not overlay an ordinary exit.
         if symbol in book.owned and symbol == dominant and profit_locked:
@@ -427,6 +429,13 @@ def _pending_intents(book: AllocationBook, *, buy_open: bool, market: dict[str, 
         elif (order.symbol not in book.owned
               and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value):
             current = book.weights_now.get(order.symbol, 0.0)
+            if order.reason_code == "ordinary_trend_reference":
+                if (buy_open and _reference_usable(book, order.symbol)
+                        and book.proposed.get(order.symbol, 0.0) >= current):
+                    book.fund(order.symbol, order.target_weight, phase="PENDING_ORDINARY_TREND")
+                else:
+                    book.record(order.symbol)["pending_buy_rejected"] = True
+                continue
             if order.reason_code == PULLBACK_REASON:
                 _continue_pullback_order(book, order)
                 continue
@@ -873,6 +882,9 @@ def _book_targets(book: AllocationBook) -> tuple[Target, ...]:
             target = replace(target, origin_subsystem=OriginSubsystem.RECOVERY.value)
         elif target.mechanism == AttributionMechanism.LEADER_ROTATION.value:
             target = replace(target, origin_subsystem=OriginSubsystem.LEADER.value)
+        if book.record(target.symbol).get("ordinary_trend_reference"):
+            target = replace(target, reason_code="ordinary_trend_reference",
+                             alpha_score=book.record(target.symbol).get("ret120", 0.0))
         merged.append(_retained_order_identity(book, target))
     return tuple(merged)
 
@@ -926,6 +938,111 @@ def _research_caution_probe(book: AllocationBook, opportunity: Opportunity) -> s
     return permitted
 
 
+
+def _reference_usable(book: AllocationBook, symbol: str) -> bool:
+    """Basic data, industry and liquidity checks; no old alpha score/structure gate."""
+    frame, score = book.user_panel.get(symbol), book.leaders.get(symbol)
+    if frame is None or score is None or book.date not in frame.index:
+        return False
+    row = frame.loc[book.date]
+    return bool(
+        score.confidence >= book.policy.cfg.leader_min_confidence
+        and score.industry not in {"", "unknown"}
+        and score.components.get("unknown_industry", 1.0) < .5
+        and all(math.isfinite(scalar(row, key)) and scalar(row, key) > 0
+                for key in ("open", "high", "low", "close", "volume", "amount"))
+        and book.policy._liquidity_confirmed(frame, book.date)
+    )
+
+
+def _reference_trend(book: AllocationBook, *, admission_open: bool) -> None:
+    """One fixed 120-session, 3/6/20 ordinary trend owner in the common book."""
+    clock = book.risk.evidence.get("ordinary_trend_clock")
+    if not isinstance(clock, dict) or clock.get("as_of") != str(book.date.date()):
+        raise ValueError("ordinary trend market clock is absent or stale")
+    ordinal = clock.get("ordinal")
+    if type(ordinal) is not int or ordinal < 0:
+        raise ValueError("ordinary trend market clock is invalid")
+    ranked = []
+    for symbol, frame in book.user_panel.items():
+        if not _reference_usable(book, symbol):
+            continue
+        history = frame.loc[:book.date, "close"].tail(121)
+        if len(history) != 121 or not all(math.isfinite(float(v)) and v > 0 for v in history):
+            continue
+        ret120 = float(history.iloc[-1] / history.iloc[0] - 1)
+        ma120 = float(history.tail(120).mean())
+        book.record(symbol).update(ret120=ret120, ma120=ma120)
+        if float(history.iloc[-1]) > ma120 and ret120 > 0:
+            ranked.append(symbol)
+    ranked.sort(key=lambda symbol: (-book.record(symbol)["ret120"], symbol))
+    for rank, symbol in enumerate(ranked, 1):
+        book.record(symbol)["ordinary_trend_rank"] = rank
+    if ordinal % 20:
+        return
+    # Filled recovery owners and their original unfilled requests retain authority.
+    excluded = (book.owned | set(book.recovery_targets) | set(book.account.anchor_weights)
+                | {s for s in book.account.positions if recovery_owner_open(book.account, s)}
+                | {s for s, m in book.mechanisms.items()
+                   if m is AttributionMechanism.POST_SHOCK_RESTORATION})
+    held = {s for s, w in book.weights_now.items() if w > 0 and s not in excluded}
+    pending = {o.symbol for o in book.account.pending_orders
+               if o.side == "BUY" and o.symbol not in excluded}
+    ordinary_ranked = [s for s in ranked if s not in excluded]
+    retained = [s for s in ordinary_ranked[:6] if s in held][:3]
+    # A planned SELL does not free a slot, cash, or concentration room.
+    occupied = held | pending
+    selected = list(retained)
+    for symbol in ordinary_ranked:
+        if len(selected) >= 3:
+            break
+        if symbol in selected or (symbol in held and symbol not in retained):
+            continue
+        if symbol not in occupied and len(occupied) >= 3:
+            book.record(symbol)["entry_gate"] = "ORDINARY_SLOTS_AWAIT_SETTLEMENT"
+            continue
+        selected.append(symbol)
+        occupied.add(symbol)
+    for symbol in held - set(selected):
+        book.proposed[symbol] = 0.0
+        book.reasons[symbol] = "ordinary trend review exit"
+        book.mechanisms[symbol] = AttributionMechanism.LEADER_LIFECYCLE_EXIT
+        book.record(symbol).update(ordinary_trend_reference=True, allocation_reason="ORDINARY_TREND_EXIT")
+        book.account.protected_weights.pop(symbol, None)
+        reset_strategic_candidate_eligibility(account=book.account, symbol=symbol)
+    for order in book.account.pending_orders:
+        if order.symbol not in excluded and order.side == "BUY" and order.symbol not in selected:
+            book.proposed[order.symbol] = min(book.proposed.get(order.symbol, 0.0),
+                                               book.weights_now.get(order.symbol, 0.0))
+            book.record(order.symbol)["pending_buy_rejected"] = True
+    if not selected:
+        return
+    book.committed, book.cash_room = committed_capital(
+        account=book.account, prices=book.prices, proposed=book.proposed)
+    reserved_other = sum(w for s, w in book.committed.items() if s not in selected)
+    available = min(max(0.0, book.gross_cap - reserved_other),
+                    book.cash_room + sum(book.committed.get(s, 0.0) for s in selected))
+    if book.account.candidate_tenure.get("ordinary_repair_capital_active", 0):
+        available = min(available, book.policy.cfg.core_admission_weight)
+    desired = available / len(selected)
+    for symbol in selected:
+        row = book.record(symbol)
+        row.update(ordinary_trend_reference=True, ordinary_equal_target=desired)
+        current = book.weights_now.get(symbol, 0.0)
+        # Existing risk/owner reductions are authoritative; daily drift is retained off-clock.
+        if book.proposed.get(symbol, 0.0) < current - 1e-12:
+            row["entry_gate"] = "EXISTING_REDUCTION"
+            continue
+        if desired < current:
+            book.proposed[symbol] = desired
+        elif admission_open:
+            book.fund(symbol, desired, phase="ORDINARY_TREND_REFERENCE",
+                      minimum=book.policy.cfg.min_trade_weight)
+        else:
+            row["entry_gate"] = "RISK_OR_RECOVERY_PERMISSION_CLOSED"
+        book.reasons[symbol] = "ordinary trend reference review"
+
+
 def _allocate_strategy(
     self: PortfolioAllocator, *, date: pd.Timestamp, opportunity: Opportunity,
     risk: RiskAssessment, user_panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore],
@@ -972,15 +1089,12 @@ def _allocate_strategy(
         self, date=date, opportunity=opportunity, risk=risk, leaders=leaders,
         user_panel=user_panel,
     )
-    observe_mature_cycle(book, opportunity, market)
     rearm_ordinary_market(account=account, date=date, risk=risk, market=market,
                           confirmation_days=self.cfg.leader_tenure_days)
     observe_repair_maturity(self, account=account, date=date, market=market, user_panel=user_panel)
     observe_persistent_maturity(self, account=account, date=date, market=market,
         opportunity=opportunity, risk=risk, leaders=qualification_leaders or leaders,
         user_panel=qualification_panel or user_panel)
-    candidates = _core_candidates(self, date=date, user_panel=user_panel, leaders=leaders, account=account,
-                                  trace=book.trace, certificates=certificates, market=market)
     recovery_requests = () if liabilities else allocate_confirmed_recovery(book, opportunity=opportunity, frozen=frozen)
     caution_probes = (_research_caution_probe(book, opportunity)
                      if caution_book_was_settled and not liabilities else set())
@@ -994,16 +1108,11 @@ def _allocate_strategy(
     awaiting_settlement = _failed_deployment_awaits_settlement(account)
     if not frozen and not liabilities and not awaiting_settlement and not caution_probes and recovery_requests is not None:
         # Fresh recovery and ordinary requests share a single allocation pass.
-        _admit_new_cores(book, candidates=candidates, opportunity=opportunity, market=market,
+        _admit_new_cores(book, candidates=[], opportunity=opportunity, market=market,
                          recovery=recovery_requests)
-        add_mature_leaders(book, opportunity)
-    else:
-        for symbol in candidates:
-            book.record(symbol)["entry_gate"] = (
-                "NEW_RISK_FROZEN" if frozen else "UNRESOLVED_LIABILITY" if liabilities
-                else "FAILED_DEPLOYMENT_UNSETTLED" if awaiting_settlement
-                else "TACTICAL_RECOVERY_ACTIVE" if recovery_requests is None else "CAUTION_PROBE_ACTIVE"
-            )
+    _reference_trend(book, admission_open=bool(
+        not frozen and not liabilities and not awaiting_settlement and not caution_probes
+        and recovery_requests is not None))
     repair_symbol = ""
     if frozen and not liabilities and not awaiting_settlement and strategic_universe is not None:
         for symbol in sorted(leaders, key=lambda name: (-leaders[name].score, name)):

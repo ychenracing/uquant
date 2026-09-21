@@ -619,6 +619,14 @@ def _allocate_decision_orders(
         user_panel=qualification_panel,
         leaders=all_leaders,
     )
+    calendar = market.broad.index.intersection(market.tech.index).sort_values()
+    calendar = calendar[calendar <= inputs.date]
+    if not len(calendar) or calendar[-1] != inputs.date:
+        raise ValueError("ordinary trend clock requires the current common market session")
+    risk.evidence["ordinary_trend_clock"] = {
+        "as_of": str(inputs.date.date()), "origin": str(calendar[0].date()),
+        "ordinal": len(calendar) - 1,
+    }
     targets = self.allocator.allocate(
         date=inputs.date,
         opportunity=opportunity,

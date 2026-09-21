@@ -1,0 +1,66 @@
+[
+  {
+    "path": "../account-check-materialized/baseline/2024.json.gz",
+    "source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../account-check-materialized/baseline/full.json.gz",
+    "source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../account-check-materialized/baseline/loo308.json.gz",
+    "source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../account-check-materialized/baseline/no_three.json.gz",
+    "source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../account-check-materialized/c2/2024.json.gz",
+    "source": "4fd22f0a5d0b43903c2c781b5f86e197eb25c4d8",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../account-check-materialized/c2/full.json.gz",
+    "source": "4fd22f0a5d0b43903c2c781b5f86e197eb25c4d8",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../account-check-materialized/c2/loo308.json.gz",
+    "source": "4fd22f0a5d0b43903c2c781b5f86e197eb25c4d8",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../account-check-materialized/c2/no_three.json.gz",
+    "source": "4fd22f0a5d0b43903c2c781b5f86e197eb25c4d8",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  }
+]

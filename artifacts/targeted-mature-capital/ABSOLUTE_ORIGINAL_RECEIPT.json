@@ -1,0 +1,9 @@
+{
+  "file": "UQUANT_PR80_ABSOLUTE_SOURCE_ORIGINAL.zip",
+  "library_file_id": "libfile_bd26ee3e17808191b23810e5df83345a",
+  "bytes": 144774291,
+  "sha256": "12845dd712072431a8921ac996eaee41642668ebcfb59044c7dfbd5228e868d0",
+  "remote_readback_byte_equal": true,
+  "github_original_artifact": 10625704914,
+  "github_run": 35563954226
+}

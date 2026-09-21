@@ -1,0 +1,240 @@
+{
+  "rows": [
+    {
+      "case": "2024",
+      "baseline": {
+        "wealth": 12.63048877282912,
+        "drawdown": 0.22148648804525484,
+        "orders": 60,
+        "operation_days": 46,
+        "turnover": 11.136487851047447,
+        "cost_burden": 0.016825869026271183,
+        "fees": 30826.343041759,
+        "slippage": 49045.21130000018,
+        "mean_gross": 0.645959459720762,
+        "median_continuous_sessions": 32,
+        "holding_episodes": 27,
+        "open_episodes": 0
+      },
+      "candidate": {
+        "wealth": 12.63048877282912,
+        "drawdown": 0.22148648804525484,
+        "orders": 60,
+        "operation_days": 46,
+        "turnover": 11.136487851047447,
+        "cost_burden": 0.016825869026271183,
+        "fees": 30826.343041759,
+        "slippage": 49045.21130000018,
+        "mean_gross": 0.645959459720762,
+        "median_continuous_sessions": 32,
+        "holding_episodes": 27,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 1.0,
+      "gates": {
+        "wealth": true,
+        "risk_absolute": true,
+        "risk_increment": true,
+        "operation_days": true,
+        "turnover": true,
+        "cost": true
+      },
+      "failures": [],
+      "baseline_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+      "candidate_source": "4fd22f0a5d0b43903c2c781b5f86e197eb25c4d8",
+      "originals": [
+        {
+          "path": "artifacts/targeted-mature-capital/raw/2024.json.gz",
+          "bytes": 306719,
+          "sha256": "d224bbe97fc560d497169f08765af55ffa968b3c1310232ba99427bc912e48e3"
+        },
+        {
+          "path": "../uquant-candidate/artifacts/targeted-mature-capital/raw/2024.json.gz",
+          "bytes": 306749,
+          "sha256": "e631084aae6e3e9c943c2f1d2d0c8cac22ef1f23072dee1bdc87494f4a44f775"
+        }
+      ]
+    },
+    {
+      "case": "full",
+      "baseline": {
+        "wealth": 32.66263438259412,
+        "drawdown": 0.27133916084354315,
+        "orders": 21,
+        "operation_days": 27,
+        "turnover": 4.650843743656146,
+        "cost_burden": 0.007118727602477331,
+        "fees": 69655.218211746,
+        "slippage": 105566.41659999825,
+        "mean_gross": 0.5630454051462348,
+        "median_continuous_sessions": 62.0,
+        "holding_episodes": 6,
+        "open_episodes": 0
+      },
+      "candidate": {
+        "wealth": 32.446658954784006,
+        "drawdown": 0.27133916084354315,
+        "orders": 22,
+        "operation_days": 29,
+        "turnover": 4.747744575938967,
+        "cost_burden": 0.007264727055199266,
+        "fees": 70851.228831986,
+        "slippage": 108122.26159999798,
+        "mean_gross": 0.5653613332332966,
+        "median_continuous_sessions": 62.0,
+        "holding_episodes": 6,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 0.9933876911065934,
+      "gates": {
+        "wealth": true,
+        "risk_absolute": true,
+        "risk_increment": true,
+        "operation_days": true,
+        "turnover": true,
+        "cost": true
+      },
+      "failures": [],
+      "baseline_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+      "candidate_source": "4fd22f0a5d0b43903c2c781b5f86e197eb25c4d8",
+      "originals": [
+        {
+          "path": "artifacts/targeted-mature-capital/raw/full.json.gz",
+          "bytes": 282334,
+          "sha256": "ad8eb5c54b301960a313f1afc892f4234c353153aeaf293a9c9a353223b2dd66"
+        },
+        {
+          "path": "../uquant-candidate/artifacts/targeted-mature-capital/raw/full.json.gz",
+          "bytes": 284140,
+          "sha256": "28a69717eea615248d257a53489eb95a8c9807654247aae6a83a686f284317ab"
+        }
+      ]
+    },
+    {
+      "case": "loo308",
+      "baseline": {
+        "wealth": 4.381529226067094,
+        "drawdown": 0.27602569468332283,
+        "orders": 95,
+        "operation_days": 75,
+        "turnover": 17.35184741103621,
+        "cost_burden": 0.0262667120230609,
+        "fees": 42950.391765817,
+        "slippage": 80874.45609999525,
+        "mean_gross": 0.34650806817898244,
+        "median_continuous_sessions": 24.5,
+        "holding_episodes": 44,
+        "open_episodes": 0
+      },
+      "candidate": {
+        "wealth": 4.338174113697337,
+        "drawdown": 0.27602569468332283,
+        "orders": 96,
+        "operation_days": 78,
+        "turnover": 17.37198344622303,
+        "cost_burden": 0.026294367958740555,
+        "fees": 42993.379005329996,
+        "slippage": 81005.39359999534,
+        "mean_gross": 0.3495917432761716,
+        "median_continuous_sessions": 23.0,
+        "holding_episodes": 44,
+        "open_episodes": 0
+      },
+      "wealth_ratio": 0.9901050272329981,
+      "gates": {
+        "wealth": true,
+        "risk_absolute": true,
+        "risk_increment": true,
+        "operation_days": true,
+        "turnover": true,
+        "cost": true
+      },
+      "failures": [],
+      "baseline_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+      "candidate_source": "4fd22f0a5d0b43903c2c781b5f86e197eb25c4d8",
+      "originals": [
+        {
+          "path": "artifacts/targeted-mature-capital/raw/loo308.json.gz",
+          "bytes": 358240,
+          "sha256": "0426a72de743358d455f2fded3dec8179b1b3b3db6d0166c47fd45d8b6c77d55"
+        },
+        {
+          "path": "../uquant-candidate/artifacts/targeted-mature-capital/raw/loo308.json.gz",
+          "bytes": 358791,
+          "sha256": "86559b63db6ae0e14f6fd0260add306ca293129811ebbd64e8e3b5cfecd859ec"
+        }
+      ]
+    },
+    {
+      "case": "no_three",
+      "baseline": {
+        "wealth": 3.41007401426652,
+        "drawdown": 0.28462387948655166,
+        "orders": 83,
+        "operation_days": 71,
+        "turnover": 17.31152511044702,
+        "cost_burden": 0.026125827132624204,
+        "fees": 32434.951266966,
+        "slippage": 61961.42019999653,
+        "mean_gross": 0.37155439833641685,
+        "median_continuous_sessions": 28.0,
+        "holding_episodes": 38,
+        "open_episodes": 1
+      },
+      "candidate": {
+        "wealth": 3.4448520031379366,
+        "drawdown": 0.2930161057382351,
+        "orders": 84,
+        "operation_days": 72,
+        "turnover": 17.501633533239428,
+        "cost_burden": 0.026415366909153165,
+        "fees": 32817.159124132,
+        "slippage": 62676.63459999658,
+        "mean_gross": 0.3761840927026656,
+        "median_continuous_sessions": 28.0,
+        "holding_episodes": 38,
+        "open_episodes": 1
+      },
+      "wealth_ratio": 1.0101986023546463,
+      "gates": {
+        "wealth": true,
+        "risk_absolute": true,
+        "risk_increment": true,
+        "operation_days": true,
+        "turnover": true,
+        "cost": true
+      },
+      "failures": [],
+      "baseline_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+      "candidate_source": "4fd22f0a5d0b43903c2c781b5f86e197eb25c4d8",
+      "originals": [
+        {
+          "path": "artifacts/targeted-mature-capital/raw/no_three.json.gz",
+          "bytes": 345152,
+          "sha256": "8df96137ace81b076413c2ec5f7a54f7ea32694d5334d8ea5d96400d9e69e675"
+        },
+        {
+          "path": "../uquant-candidate/artifacts/targeted-mature-capital/raw/no_three.json.gz",
+          "bytes": 346133,
+          "sha256": "77b3076517410e3002bcea72b288c977695eb739615bbb9f24d5d9d8de8369b1"
+        }
+      ]
+    }
+  ],
+  "standard_count": 4,
+  "standard_geomean": 0.9983933987412084,
+  "weak_count": 2,
+  "weak_geomean": 1.0001013522114064,
+  "weak_positive": 1,
+  "six_standard_pass": false,
+  "note": "Economic promotion also requires both cost stresses and the fixed real old account. Partial comparisons never imply full acceptance.",
+  "screen_decision": "NO_GO",
+  "reason": "The intended two weak pools average only +0.0101%, with one losing. Full pool also loses. This screen provides no portfolio-level gain; the only gain increases drawdown by 0.8392 percentage points. Do not substitute four-case statistics for six-case formal acceptance.",
+  "revision": "None: no new mechanism evidence supports another change; no nearby parameter search.",
+  "unrun": [
+    "2025 candidate",
+    "loo502 candidate",
+    "double-cost candidates",
+    "fixed old-account candidate"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "base": "2b34f3aecc47608bd5c6efac0404a118686e2de4",
+  "surface": "economic_decision_v1",
+  "base_sha256": "27131f3e591fbe1ace0ea2f1abf02bbc98b5242f1b60589f474ac189c5971e40",
+  "delivery_sha256": "27131f3e591fbe1ace0ea2f1abf02bbc98b5242f1b60589f474ac189c5971e40",
+  "equal": true,
+  "scope": "Exact economic source bytes and membership unchanged; validator source differs and has separate verification."
+}

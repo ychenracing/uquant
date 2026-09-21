@@ -1,0 +1,54 @@
+{
+  "head": "2668d9cca18e66b983a74c9749e75f2a8da32bc6",
+  "tree": "f79d137980bfa9523e366c9dbd30c2c9335719b3",
+  "mode": "canonical",
+  "shard": "recovery-and-reachability",
+  "run_id": "pr80-recovery",
+  "run_attempt": 3,
+  "status": "COMPLETE",
+  "error": "",
+  "upstream_success": true,
+  "canonical_sha256": "d0b1aee8151d8cc2cbe72aaccd8fb109667639f53a3942a396d812e68fddfe4e",
+  "production_source_sha256": "27131f3e591fbe1ace0ea2f1abf02bbc98b5242f1b60589f474ac189c5971e40",
+  "runtime": {
+    "numpy_version": "2.5.1",
+    "pandas_version": "3.0.5",
+    "python_full_version": "3.12.13",
+    "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+    "uv_version": "0.11.33"
+  },
+  "manifest_bytes": 9400608,
+  "manifest_sha256": "a3fe8705d437785c77a91e76449c2e7b3faa25cf46f4693a07bec224c2fff32e",
+  "historical_activation_chains": 3,
+  "cross_industry_activation_chains": 2,
+  "repair_observations": [
+    {
+      "level": 1,
+      "target": 0,
+      "healthy_sessions": 20
+    },
+    {
+      "level": 2,
+      "target": 1,
+      "healthy_sessions": 40
+    },
+    {
+      "level": 3,
+      "target": 2,
+      "healthy_sessions": 60
+    },
+    {
+      "level": 4,
+      "target": 3,
+      "healthy_sessions": 60
+    }
+  ],
+  "focused_regression_tests": 11,
+  "full_absolute_aggregate": "NOT_RUN_NOT_CLAIMED",
+  "reuse_scope": "Delivery uses identical validation and economic source bytes; documentation and diagnostic artifacts differ. Original producer identity retained.",
+  "failed_attempts": [
+    "Shared editable environment root mismatch rejected before execution",
+    "Original repair fixture exited damage level via faster production risk repair",
+    "Diagnostic isolated fixture needed additional calendar days for unhealthy observations"
+  ]
+}

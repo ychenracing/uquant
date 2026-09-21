@@ -1,6 +1,276 @@
 {
   "cases": [
     {
+      "case": "full",
+      "observed_holding_events": 423,
+      "candidate_blocked_events": 8,
+      "blocked_sessions": [
+        "2026-01-22",
+        "2026-01-23",
+        "2026-01-26",
+        "2026-01-27",
+        "2026-01-28",
+        "2026-01-29",
+        "2026-01-30",
+        "2026-02-02"
+      ],
+      "baseline_wealth": 32.66263438259412,
+      "baseline_drawdown": 0.27133916084354315,
+      "normalization_candidates": [],
+      "blocked": [
+        {
+          "date": "2026-01-22",
+          "symbol": "sh688233",
+          "funded": 0.05000000000000002,
+          "score": 0.888765454940166,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "cash": 2626310.9796798807,
+          "capital": {
+            "desired_increment": 0.05000000000000002,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.07605797073066448,
+            "cash_room": 0.07605797073066448,
+            "position_slots": 5,
+            "symbol_room": 0.3709242542101646,
+            "gross_room": 0.07605797073066456,
+            "industry_room": 0.5209242542101646,
+            "correlation_cluster": [
+              "sh688233"
+            ],
+            "correlation_room": 0.5209242542101646,
+            "effective_increment_room": 0.07605797073066456,
+            "funded_increment": 0.05000000000000002
+          }
+        },
+        {
+          "date": "2026-01-23",
+          "symbol": "sh688233",
+          "funded": 0.04999999999999999,
+          "score": 0.8458485297332037,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "cash": 2626310.9796798807,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.0797588510741838,
+            "cash_room": 0.0797588510741838,
+            "position_slots": 5,
+            "symbol_room": 0.3661260997756811,
+            "gross_room": 0.0797588510741839,
+            "industry_room": 0.5161260997756811,
+            "correlation_cluster": [
+              "sh688233"
+            ],
+            "correlation_room": 0.5161260997756811,
+            "effective_increment_room": 0.0797588510741839,
+            "funded_increment": 0.04999999999999999
+          }
+        },
+        {
+          "date": "2026-01-26",
+          "symbol": "sh688233",
+          "funded": 0.05000000000000002,
+          "score": 0.8816296633044242,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "cash": 2626310.9796798807,
+          "capital": {
+            "desired_increment": 0.05000000000000002,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.07901008456295114,
+            "cash_room": 0.07901008456295114,
+            "position_slots": 5,
+            "symbol_room": 0.3645222140969052,
+            "gross_room": 0.07901008456295122,
+            "industry_room": 0.5145222140969052,
+            "correlation_cluster": [
+              "sh688233"
+            ],
+            "correlation_room": 0.5145222140969052,
+            "effective_increment_room": 0.07901008456295122,
+            "funded_increment": 0.05000000000000002
+          }
+        },
+        {
+          "date": "2026-01-27",
+          "symbol": "sh688233",
+          "funded": 0.04999999999999999,
+          "score": 0.8985037018584137,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "cash": 2626310.9796798807,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.07464753287160066,
+            "cash_room": 0.07464753287160066,
+            "position_slots": 5,
+            "symbol_room": 0.35068821352172413,
+            "gross_room": 0.07464753287160075,
+            "industry_room": 0.5006882135217241,
+            "correlation_cluster": [
+              "sh688233"
+            ],
+            "correlation_room": 0.5006882135217241,
+            "effective_increment_room": 0.07464753287160075,
+            "funded_increment": 0.04999999999999999
+          }
+        },
+        {
+          "date": "2026-01-28",
+          "symbol": "sh688233",
+          "funded": 0.04999999999999999,
+          "score": 0.8862356501713686,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "cash": 2626310.9796798807,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.07259871517134796,
+            "cash_room": 0.07259871517134796,
+            "position_slots": 5,
+            "symbol_room": 0.34334965723075384,
+            "gross_room": 0.07259871517134808,
+            "industry_room": 0.49334965723075386,
+            "correlation_cluster": [
+              "sh688233"
+            ],
+            "correlation_room": 0.49334965723075386,
+            "effective_increment_room": 0.07259871517134808,
+            "funded_increment": 0.04999999999999999
+          }
+        },
+        {
+          "date": "2026-01-29",
+          "symbol": "sh688233",
+          "funded": 0.05000000000000002,
+          "score": 0.8217732160473413,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "cash": 2626310.9796798807,
+          "capital": {
+            "desired_increment": 0.05000000000000002,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.07505586330577495,
+            "cash_room": 0.07505586330577495,
+            "position_slots": 5,
+            "symbol_room": 0.3528590881621543,
+            "gross_room": 0.07505586330577507,
+            "industry_room": 0.5028590881621543,
+            "correlation_cluster": [
+              "sh688233"
+            ],
+            "correlation_room": 0.5028590881621543,
+            "effective_increment_room": 0.07505586330577507,
+            "funded_increment": 0.05000000000000002
+          }
+        },
+        {
+          "date": "2026-01-30",
+          "symbol": "sh688233",
+          "funded": 0.04999999999999999,
+          "score": 0.7843115767237716,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "cash": 2626310.9796798807,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.07244684718316369,
+            "cash_room": 0.07244684718316369,
+            "position_slots": 5,
+            "symbol_room": 0.3642130047240173,
+            "gross_room": 0.07244684718316374,
+            "industry_room": 0.5142130047240173,
+            "correlation_cluster": [
+              "sh688233"
+            ],
+            "correlation_room": 0.5142130047240173,
+            "effective_increment_room": 0.07244684718316374,
+            "funded_increment": 0.04999999999999999
+          }
+        },
+        {
+          "date": "2026-02-02",
+          "symbol": "sh688233",
+          "funded": 0.04999999999999999,
+          "score": 0.7271208203385323,
+          "entry": {
+            "required_confirmation": 5,
+            "confirmations": {
+              "independent_core": 0
+            },
+            "block": "CONFIRMATION_INCOMPLETE"
+          },
+          "cash": 2626310.9796798807,
+          "capital": {
+            "desired_increment": 0.04999999999999999,
+            "reserved_for_intent": 0.0,
+            "unreserved_cash": 0.07894529945618896,
+            "cash_room": 0.07894529945618896,
+            "position_slots": 5,
+            "symbol_room": 0.365291294439188,
+            "gross_room": 0.078945299456189,
+            "industry_room": 0.5152912944391881,
+            "correlation_cluster": [
+              "sh688233"
+            ],
+            "correlation_room": 0.5152912944391881,
+            "effective_increment_room": 0.078945299456189,
+            "funded_increment": 0.04999999999999999
+          }
+        }
+      ]
+    },
+    {
+      "case": "2024",
+      "observed_holding_events": 929,
+      "candidate_blocked_events": 0,
+      "blocked_sessions": [],
+      "baseline_wealth": 12.63048877282912,
+      "baseline_drawdown": 0.22148648804525484,
+      "normalization_candidates": [],
+      "blocked": []
+    },
+    {
       "case": "loo308",
       "observed_holding_events": 866,
       "candidate_blocked_events": 4,
@@ -316,6 +586,6 @@
       ]
     }
   ],
-  "evidence_scope": "All native holding events at the existing add stage, including blocked and accepted requests. Remaining portfolio PNL is baseline observation, not incremental causal profit. Only full independent candidate replay can measure avoided losses and net benefit.",
+  "evidence_scope": "All native holding events at the existing add stage, including blocked and accepted requests. Remaining portfolio PNL is baseline observation, not incremental causal profit. Buy quantities are actual fills from independently evolving paths, not injected counterfactuals. Complete-window portfolio delta is not additive per-event profit. Only full independent candidate replay can measure avoided losses and net benefit.",
   "economic_candidate": "Current confirmed mature holdings use existing own-stock market checks; no other gate changes."
 }

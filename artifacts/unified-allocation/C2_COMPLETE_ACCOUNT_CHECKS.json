@@ -1,0 +1,130 @@
+[
+  {
+    "path": "../evidence/continuation/baseline/2024.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/baseline/2024_cost2.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/baseline/2025.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 328,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/baseline/full.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/baseline/full_cost2.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/baseline/loo308.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/baseline/loo502.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/baseline/no_three.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/2024.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/2024_cost2.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 627,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/2025.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 328,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/full.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/full_cost2.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/loo308.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/loo502.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/no_three.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 869,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  }
+]

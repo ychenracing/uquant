@@ -1,0 +1,65 @@
+{
+  "production_source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+  "delivery_code_commit": "416af80d2a7612f3fe231c6ea720ee169dfd371f",
+  "production_tree_equal": true,
+  "operations": [
+    {
+      "operation_id": "20260921T010416-a65df39c9672",
+      "name": "pr79-delivery-integration-checks",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "94d1ac47b9f32c7c69d1be2e302b436b6409e2e7",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260921T010233-62a92612e2ed",
+      "name": "pr79-delivery-focused-checks",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "94d1ac47b9f32c7c69d1be2e302b436b6409e2e7",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260921T010423-59b44290992d",
+      "name": "pr79-delivery-architecture",
+      "status": "EXITED",
+      "returncode": 1,
+      "git": {
+        "head": "94d1ac47b9f32c7c69d1be2e302b436b6409e2e7",
+        "tracked_dirty": true
+      }
+    },
+    {
+      "operation_id": "20260921T010622-f37db772fd29",
+      "name": "pr79-delivery-architecture-recheck",
+      "status": "EXITED",
+      "returncode": 0,
+      "git": {
+        "head": "94d1ac47b9f32c7c69d1be2e302b436b6409e2e7",
+        "tracked_dirty": true
+      }
+    }
+  ],
+  "unique_focused_tests_passed": 36,
+  "initial_architecture_failure": "Retired locked funding import incorrectly remained classified as a moved active edge. Moved it to existing retired-edge registry and asserted the removed shortcut stays absent; one failed test rechecked and passed.",
+  "static": "Changed production and tests Ruff passed; original C2 mypy remains applicable.",
+  "unrun": [
+    "full local test suite",
+    "full Absolute economic matrix",
+    "future holdout"
+  ],
+  "ci": "Queued checks are not counted as passed; branch protection and rulesets inspected, no required checks or reviews.",
+  "recorder_startup_event": {
+    "attempt": "pr79-c2-remaining",
+    "tool_result": {
+      "recorder_error_type": "FileNotFoundError",
+      "status": "INCOMPLETE"
+    },
+    "root_cause": "not established",
+    "reconciliation": "No matching operation events or replay output existed. Same stable operation name then started successfully; baseline operation continued unchanged."
+  }
+}

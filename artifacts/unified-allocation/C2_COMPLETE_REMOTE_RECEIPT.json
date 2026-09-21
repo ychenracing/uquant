@@ -1,0 +1,14 @@
+{
+  "file": "UQUANT_PR79_C2_EIGHT_SCENARIOS_20260921.zip",
+  "library_file_id": "libfile_7897256b164c81919905523b0b6e12b1",
+  "bytes": 4818445,
+  "sha256": "6dc70e7f9877eb28efab0d737242f7d3b05285daa40494e765d0270a13ec41ba",
+  "remote_readback_byte_equal": true,
+  "complete_paired_cases": 8,
+  "complete_replays": 16,
+  "contains": "All 16 canonical replay originals; actual C2 source bundle; integration patch; original and revised contracts; full comparison, identity/account checks and original scoped test/replay journals",
+  "baseline_prerequisite": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+  "candidate_producer": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+  "delivery_code_commit": "416af80d2a7612f3fe231c6ea720ee169dfd371f",
+  "unrun_formal_cases": []
+}

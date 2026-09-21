@@ -1,0 +1,167 @@
+{
+  "checks": [
+    {
+      "version": "baseline",
+      "case": "2024",
+      "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "raw_sha256": "469e5020a3c2240e39f5185e008f31d5bc38a2222669de5e66a5d7b5ddb5440b",
+      "bytes": 281864,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "2d8940d2684bceafd94bae699f3cb0262035b145"
+    },
+    {
+      "version": "baseline",
+      "case": "full",
+      "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "raw_sha256": "dd5d38a28c87b36d258c5c374d412803fdc996b4530f718107d493eb4c10365d",
+      "bytes": 282331,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "2d8940d2684bceafd94bae699f3cb0262035b145"
+    },
+    {
+      "version": "baseline",
+      "case": "loo308",
+      "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "raw_sha256": "3f442c88d0013ddde38bab9cc557caa3e9c613bef11f3b0cb404f95c8d2d9dbf",
+      "bytes": 357963,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "2d8940d2684bceafd94bae699f3cb0262035b145"
+    },
+    {
+      "version": "baseline",
+      "case": "no_three",
+      "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "raw_sha256": "0c911f825c52f69e5974362e95e3b1e9bfcc9a5bb0d398444a52b2029a7aa6e3",
+      "bytes": 345152,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "2d8940d2684bceafd94bae699f3cb0262035b145"
+    },
+    {
+      "version": "baseline",
+      "case": "2025",
+      "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "raw_sha256": "69b5bb89c3890a45dcf3bbd6fc3de83b43aeb440bb9e7bed10f1c071abaeef6a",
+      "bytes": 153442,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "2d8940d2684bceafd94bae699f3cb0262035b145"
+    },
+    {
+      "version": "baseline",
+      "case": "loo502",
+      "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "raw_sha256": "97fdd4eee67476dd1dfa42825893deaee7fe64e720faf867b52f6c25bda3edf9",
+      "bytes": 309006,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "2d8940d2684bceafd94bae699f3cb0262035b145"
+    },
+    {
+      "version": "baseline",
+      "case": "2024_cost2",
+      "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "raw_sha256": "c714b0cf3427bd764630e4bae91455951857262e32eb8bf87fde8cb6fd26973b",
+      "bytes": 282310,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 2,
+      "source_tree": "2d8940d2684bceafd94bae699f3cb0262035b145"
+    },
+    {
+      "version": "baseline",
+      "case": "full_cost2",
+      "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+      "raw_sha256": "0b794d897b94c3f195f333aaaab4ef534a36bd4d7b834175330a19f4d2f8faf9",
+      "bytes": 282472,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 2,
+      "source_tree": "2d8940d2684bceafd94bae699f3cb0262035b145"
+    },
+    {
+      "version": "c2",
+      "case": "2024",
+      "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "raw_sha256": "99e0ade1d5f022f5a463617942e52f457fdf870057dfb67d48ed658f702e4667",
+      "bytes": 306737,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "08dea7bad3ffa49e024e23891f9927efc5dbf7ff"
+    },
+    {
+      "version": "c2",
+      "case": "full",
+      "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "raw_sha256": "26995cdff57db9606eed10ee25c46628215a2279ea59cd2ab13ec2027a1183a6",
+      "bytes": 282342,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "08dea7bad3ffa49e024e23891f9927efc5dbf7ff"
+    },
+    {
+      "version": "c2",
+      "case": "loo308",
+      "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "raw_sha256": "50c9b2047167fdc73570be6a7b32ff28ea98d4eecc13aa8eea4fb2d906dd9813",
+      "bytes": 358257,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "08dea7bad3ffa49e024e23891f9927efc5dbf7ff"
+    },
+    {
+      "version": "c2",
+      "case": "no_three",
+      "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "raw_sha256": "0779bffb7b88c3680687d4780bfc07173fa3d60e023fbb5523233f7976c80d8b",
+      "bytes": 345123,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "08dea7bad3ffa49e024e23891f9927efc5dbf7ff"
+    },
+    {
+      "version": "c2",
+      "case": "2025",
+      "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "raw_sha256": "3f3314d60b7b0ca122abadbe01f093205b97cb58a370507897057220abe41c85",
+      "bytes": 174009,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "08dea7bad3ffa49e024e23891f9927efc5dbf7ff"
+    },
+    {
+      "version": "c2",
+      "case": "loo502",
+      "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "raw_sha256": "7a35fce58e0541bc70e667ab3e7288cdf2cd45c6ded393ba9f356098188cef71",
+      "bytes": 337839,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 1,
+      "source_tree": "08dea7bad3ffa49e024e23891f9927efc5dbf7ff"
+    },
+    {
+      "version": "c2",
+      "case": "2024_cost2",
+      "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "raw_sha256": "345b2b810c9c132f5d01a8f0c7cc71dea18cb2faf0da98a47393d9ca01cc0a3e",
+      "bytes": 306713,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 2,
+      "source_tree": "08dea7bad3ffa49e024e23891f9927efc5dbf7ff"
+    },
+    {
+      "version": "c2",
+      "case": "full_cost2",
+      "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "raw_sha256": "61818716d9eb316663966238d5469b1dcef9d31c55f931162e8075b860f11f32",
+      "bytes": 282479,
+      "all_inputs_config_runner_runtime_verified": true,
+      "cost_multiplier": 2,
+      "source_tree": "08dea7bad3ffa49e024e23891f9927efc5dbf7ff"
+    }
+  ],
+  "delivery_commit": "416af80d2a7612f3fe231c6ea720ee169dfd371f",
+  "delivery_production_equal_to_original_C2": true,
+  "note": "Old five pairs reused at original producer identities; this turn added loo502/full_cost2/2024_cost2 for both versions. Raw runner continues to bind original replay-spec contract; current decision applies separately recorded authorized amendments."
+}

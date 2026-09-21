@@ -1,0 +1,70 @@
+diff --git a/tests/test_mature_incremental_capital.py b/tests/test_mature_incremental_capital.py
+new file mode 100644
+index 0000000..44dfcf8
+--- /dev/null
++++ b/tests/test_mature_incremental_capital.py
+@@ -0,0 +1,28 @@
++"""Mature increments use current stock proof and retain ownership boundaries."""
++from dataclasses import replace
++
++import pytest
++from test_recovery_fresh_budget import _book
++
++from uquant.portfolio.leaders.cycle import _pyramid_candidate
++from uquant.types import Position
++
++
++@pytest.mark.parametrize("block", ["none", "immature", "confidence", "owned", "anchor", "exit"])
++def test_mature_increment_uses_own_current_proof(block):
++    book, names, _ = _book(.2, .8)
++    symbol = names[0]
++    book.account.positions[symbol] = Position(symbol, 100, 10.0, "2023-01-02", 12.0)
++    book.leaders[symbol] = replace(book.leaders[symbol], mature=True)
++    book.record(symbol)['entry'] = {'block': 'CONFIRMATION_INCOMPLETE'}
++    if block == 'immature':
++        book.leaders[symbol] = replace(book.leaders[symbol], mature=False)
++    elif block == 'confidence':
++        book.leaders[symbol] = replace(book.leaders[symbol], confidence=0.0)
++    elif block == 'owned':
++        book.owned.add(symbol)
++    elif block == 'anchor':
++        book.account.anchor_weights[symbol] = .2
++    elif block == 'exit':
++        book.proposed[symbol] = .1
++    assert _pyramid_candidate(book, symbol) is (block == 'none')
+diff --git a/uquant/portfolio/leaders/cycle.py b/uquant/portfolio/leaders/cycle.py
+index 0b39835..9ee9e07 100644
+--- a/uquant/portfolio/leaders/cycle.py
++++ b/uquant/portfolio/leaders/cycle.py
+@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
+ 
+ from ...features import scalar
+ from ...types import AttributionMechanism, Lifecycle, Opportunity, Risk
++from ..strategic.qualification_candidates import candidate_market_block
+ 
+ if TYPE_CHECKING:
+     from ..allocation_book import AllocationBook
+@@ -119,13 +120,20 @@ def _pyramid_open(book: AllocationBook, opportunity: Opportunity) -> bool:
+ 
+ 
+ def _pyramid_candidate(book: AllocationBook, symbol: str) -> bool:
+-    return not (symbol in book.owned or symbol in book.account.anchor_weights
++    if (symbol in book.owned or symbol in book.account.anchor_weights
+                 or book.account.positions[symbol].shares <= 0
+                 or symbol not in book.leaders or not book.leaders[symbol].mature
+                 or book.proposed.get(symbol, 0.0) < book.weights_now.get(symbol, 0.0)
+-                or book.record(symbol).get('entry', {}).get('block') != 'READY'
+                 or not book.policy._add_cooldown_complete(account=book.account, frame=book.user_panel[symbol],
+-                    date=book.date, cooldown_sessions=book.policy.cfg.add_tranche_cooldown_sessions))
++                    date=book.date, cooldown_sessions=book.policy.cfg.add_tranche_cooldown_sessions)):
++        return False
++    # Daily leader maturity already includes the existing tenure confirmation.
++    # Additional capital still needs today's own-stock market checks.
++    checks: dict[str, Any] = {}
++    block = candidate_market_block(book.policy, symbol=symbol, score=book.leaders[symbol],
++                                   date=book.date, user_panel=book.user_panel, checks=checks)
++    book.record(symbol)['pyramid_entry'] = {'block': block, 'checks': checks}
++    return block == 'READY'
+ 
+ 
+ def add_mature_leaders(book: AllocationBook, opportunity: Opportunity) -> None:

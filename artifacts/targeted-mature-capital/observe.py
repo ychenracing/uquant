@@ -1,4 +1,6 @@
 """Observe every native mature-capital request without changing decisions."""
+# ruff: noqa: E402
+# The checkout must precede imports when this file is invoked directly.
 import gzip
 import json
 import runpy
@@ -10,9 +12,9 @@ sys.path.insert(0, str(ROOT))
 from uquant.portfolio import pipeline
 from uquant.portfolio.capital import funded_increment
 from uquant.portfolio.leaders import cycle
-from uquant.types import Lifecycle, Opportunity
-from uquant.risk import confirmed_break, transitions, transition_resolution
+from uquant.risk import confirmed_break, transition_resolution, transitions
 from uquant.risk.protected_recovery import capture_protected_holdings
+from uquant.types import Lifecycle, Opportunity
 
 rows, captures = [], []
 original = pipeline.add_mature_leaders

@@ -1,0 +1,9 @@
+{
+  "file": "UQUANT_PR79_EVIDENCE.zip",
+  "library_file_id": "libfile_52802f29e2848191b13758fbf2180448",
+  "bytes": 10271555,
+  "sha256": "32607281134f1049c13a0e10a3c2ddff992db7c2223e2ebfc8e41293d9a384d8",
+  "remote_readback_byte_equal": true,
+  "contents": "12 complete comparable native replays, initial invalid replay, all observations, attribution, source bundles, contracts, failures, cancellations and validation logs",
+  "recovery": "Clone baseline 8ca53f6 for frozen data and bundle prerequisite; fetch DELIVERY_SOURCE.bundle for C1 and C2_SOURCE.bundle for actual C2 producer. Do not relabel local producers as equivalent connector commits."
+}

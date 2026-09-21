@@ -28,6 +28,7 @@ RETIRED_ALLOCATION_SOURCES = frozenset(
 )
 _RETIRED_PORTFOLIO_PRIVATE_EDGES = frozenset(
     {
+        "uquant.portfolio.recovery.admission:uquant.portfolio.recovery.targets:_locked_recovery_cohort_targets",
         "uquant.portfolio.pipeline:uquant.portfolio.recovery.admission:_recovery_admission_targets",
     }
 )
@@ -501,13 +502,6 @@ _PORTFOLIO_PRIVATE_MOVES = {
         "uquant/portfolio/recovery/tactical_admission.py",
         "targets",
     ),
-    "uquant.portfolio.recovery.admission:uquant.portfolio.recovery.targets:_locked_recovery_cohort_targets": (
-        "uquant/portfolio/recovery/targets.py",
-        "locked_recovery_cohort_targets",
-        "_locked_recovery_cohort_targets",
-        "uquant/portfolio/recovery/cohort_admission.py",
-        "targets",
-    ),
     "uquant.portfolio.recovery.admission:uquant.portfolio.recovery.targets:_overextended_pullback_targets": (
         "uquant/portfolio/recovery/targets.py",
         "overextended_pullback_targets",
@@ -721,6 +715,13 @@ def validate_combined_allocator_topology(
     """
     reviewed = architecture_portfolio_reviewed_sources(root=root, overrides=overrides)
     assert RETIRED_ALLOCATION_SOURCES.isdisjoint(reviewed)
+    # The shared request queue replaces the locked admission funding shortcut.
+    cohort = ast.parse(reviewed["uquant/portfolio/recovery/cohort_admission.py"])
+    assert not any(isinstance(node, ast.FunctionDef) and node.name == "_locked_cohort_targets"
+                   for node in cohort.body)
+    assert not any(isinstance(node, ast.ImportFrom) and any(
+        alias.name == "locked_recovery_cohort_targets" for alias in node.names)
+        for node in cohort.body)
     retired_modules = {Path(path).stem for path in RETIRED_ALLOCATION_SOURCES}
     for source in reviewed.values():
         for node in ast.walk(ast.parse(source)):

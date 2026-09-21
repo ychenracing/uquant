@@ -1,0 +1,16 @@
+{
+  "reason": "C1 removed risk retention state outside intended boundary; abort expensive invalid candidate follow-ons before correcting implementation",
+  "sessions": [
+    {
+      "session": 61201,
+      "exit": 130,
+      "operation": "20260920T225800-d7e8e23a2f75"
+    },
+    {
+      "session": 50517,
+      "exit": 130,
+      "operation": "20260920T230329-d7ec35063e83"
+    }
+  ],
+  "claim": "Controlled cancellation, not passing or infrastructure fault. Unfinished outputs are not economic results."
+}

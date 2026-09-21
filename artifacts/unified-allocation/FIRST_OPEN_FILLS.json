@@ -1,0 +1,80 @@
+{
+  "baseline": [
+    {
+      "signal_date": "2025-05-09",
+      "fill_date": "2025-05-12",
+      "symbol": "sh688146",
+      "side": "BUY",
+      "shares": 10900,
+      "gross_value": 305516.11089999997,
+      "commission": 76.379027725,
+      "stamp_duty": 0.0,
+      "transfer_fee": 3.055161109,
+      "slippage_cost": 305.2108999999582
+    },
+    {
+      "signal_date": "2025-05-09",
+      "fill_date": "2025-05-12",
+      "symbol": "sz300502",
+      "side": "BUY",
+      "shares": 5800,
+      "gross_value": 332202.07019999996,
+      "commission": 83.05051755,
+      "stamp_duty": 0.0,
+      "transfer_fee": 3.3220207019999997,
+      "slippage_cost": 331.87019999997887
+    }
+  ],
+  "c1-fixed": [
+    {
+      "signal_date": "2025-05-09",
+      "fill_date": "2025-05-12",
+      "symbol": "sh688019",
+      "side": "BUY",
+      "shares": 7400,
+      "gross_value": 801843.6425999999,
+      "commission": 200.46091065,
+      "stamp_duty": 0.0,
+      "transfer_fee": 8.018436426,
+      "slippage_cost": 801.0425999999001
+    }
+  ],
+  "c2": [
+    {
+      "signal_date": "2025-05-09",
+      "fill_date": "2025-05-12",
+      "symbol": "sh688019",
+      "side": "BUY",
+      "shares": 2200,
+      "gross_value": 238385.94779999997,
+      "commission": 59.59648694999999,
+      "stamp_duty": 0.0,
+      "transfer_fee": 2.3838594779999998,
+      "slippage_cost": 238.1477999999703
+    },
+    {
+      "signal_date": "2025-05-09",
+      "fill_date": "2025-05-12",
+      "symbol": "sh688146",
+      "side": "BUY",
+      "shares": 10900,
+      "gross_value": 305516.11089999997,
+      "commission": 76.379027725,
+      "stamp_duty": 0.0,
+      "transfer_fee": 3.055161109,
+      "slippage_cost": 305.2108999999582
+    },
+    {
+      "signal_date": "2025-05-09",
+      "fill_date": "2025-05-12",
+      "symbol": "sz300502",
+      "side": "BUY",
+      "shares": 5600,
+      "gross_value": 320746.82639999996,
+      "commission": 80.1867066,
+      "stamp_duty": 0.0,
+      "transfer_fee": 3.207468264,
+      "slippage_cost": 320.4263999999796
+    }
+  ]
+}

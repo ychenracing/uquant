@@ -1,0 +1,105 @@
+{
+  "contract_id": "unified-allocation-20260921-C2-authorized-ceil-accepted-observed-2025",
+  "baseline": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+  "data": "data/frozen",
+  "research_data": true,
+  "runtime": {
+    "python": "3.12.13",
+    "numpy": "2.5.1",
+    "pandas": "3.0.5",
+    "uv": "0.12.15"
+  },
+  "cases": {
+    "2024": {
+      "start": "2024-01-02",
+      "remove": []
+    },
+    "full": {
+      "start": "2023-01-03",
+      "remove": []
+    },
+    "loo308": {
+      "start": "2023-01-03",
+      "remove": [
+        "sz300308"
+      ]
+    },
+    "no_three": {
+      "start": "2023-01-03",
+      "remove": [
+        "sz300308",
+        "sz300502",
+        "sz300394"
+      ]
+    },
+    "2025": {
+      "start": "2025-04-01",
+      "remove": []
+    },
+    "loo502": {
+      "start": "2023-01-03",
+      "remove": [
+        "sz300502"
+      ]
+    },
+    "2024_cost2": {
+      "start": "2024-01-02",
+      "remove": [],
+      "cost_multiplier": 2
+    },
+    "full_cost2": {
+      "start": "2023-01-03",
+      "remove": [],
+      "cost_multiplier": 2
+    }
+  },
+  "end": "2026-08-05",
+  "screen": [
+    "2024",
+    "full",
+    "loo308",
+    "no_three"
+  ],
+  "routes": {
+    "A": {
+      "minimum_wealth_ratio": 0.95,
+      "geometric_wealth_ratio": 0.98,
+      "net_production_lines_removed": 60,
+      "removed_active_allocation_rules": 3
+    }
+  },
+  "common": {
+    "max_drawdown": 0.3,
+    "max_drawdown_increase": 0.01,
+    "orders_ratio": 1.15,
+    "orders_absolute_allowance": 2,
+    "operation_days_ratio": 1.15,
+    "operation_days_absolute_allowance": 3,
+    "turnover_ratio": 1.15,
+    "normalized_cost_ratio": 1.15,
+    "cost_stress_wealth_floor_A": 0.95,
+    "cost_stress_wealth_floor_B": 0.9,
+    "orders_rounding": "ceil"
+  },
+  "revision_limit": 0,
+  "stop_rule": "Freeze C2; complete remaining paired cases; stop on new substantive hard failure; no third candidate.",
+  "amendment": "After the completed 2025 paired replay, user explicitly accepted the four reported execution-burden exceedances and authorized continuation. Prior contracts and failure decisions remain historical; all other gates unchanged.",
+  "accepted_observed_deviations": {
+    "2025": {
+      "candidate_source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+      "orders": 16,
+      "operation_days": 11,
+      "turnover_ratio": 1.2538828697555675,
+      "normalized_cost_ratio": 1.2490863300254653,
+      "accepted_gates": [
+        "orders",
+        "operation_days",
+        "turnover",
+        "cost"
+      ],
+      "scope": "Exact previously reported C2 replay only; not a parameter change or permission to relax later results",
+      "baseline_replay_sha256": "69b5bb89c3890a45dcf3bbd6fc3de83b43aeb440bb9e7bed10f1c071abaeef6a",
+      "c2_replay_sha256": "3f3314d60b7b0ca122abadbe01f093205b97cb58a370507897057220abe41c85"
+    }
+  }
+}

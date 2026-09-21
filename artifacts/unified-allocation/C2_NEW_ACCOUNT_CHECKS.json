@@ -1,0 +1,18 @@
+[
+  {
+    "path": "../evidence/continuation/baseline/2025.json.gz",
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "sessions": 328,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  },
+  {
+    "path": "../evidence/continuation/c2/2025.json.gz",
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "sessions": 328,
+    "exact_account_roundtrip": true,
+    "nonnegative_daily_cash": true,
+    "strict_next_session_fills": true
+  }
+]

@@ -68,3 +68,7 @@ uv run python scripts/run_absolute_generalization_acceptance.py \
 
 Actions 只上传实际生成并读回的产物；预检或分片执行失败时保留原始失败，不继续下载和
 聚合不存在的有效分片。必要检查不会被忽略，历史红色运行也不会因新提交而被改写。
+
+## C2 简化替换
+
+[完整交付结论](../artifacts/unified-allocation/C2_ACCEPTED_DELIVERY.md)与[最终合同](../artifacts/unified-allocation/ACCEPTANCE_C2_ACCEPTED.json)记录八组正式配对验收。六标准场景终值保留几何平均103.67%，最低八场景97.34%，回撤增量均为零；用户接受2025与剔除sz300502的已观察执行超限。原合同及失败记录保留；该结论不代表完整Absolute或未来泛化通过。

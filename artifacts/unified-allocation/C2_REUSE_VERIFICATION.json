@@ -1,0 +1,122 @@
+[
+  {
+    "variant": "baseline",
+    "case": "2024",
+    "input_count": 292,
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.12.15 (x86_64-unknown-linux-gnu)"
+    },
+    "config_sha256": "e7595a58c47689810727d46315f8c03043741e1747f28333126cf7669379f6a6",
+    "replay_sha256": "469e5020a3c2240e39f5185e008f31d5bc38a2222669de5e66a5d7b5ddb5440b",
+    "inputs_verified": true
+  },
+  {
+    "variant": "baseline",
+    "case": "full",
+    "input_count": 292,
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.12.15 (x86_64-unknown-linux-gnu)"
+    },
+    "config_sha256": "e7595a58c47689810727d46315f8c03043741e1747f28333126cf7669379f6a6",
+    "replay_sha256": "dd5d38a28c87b36d258c5c374d412803fdc996b4530f718107d493eb4c10365d",
+    "inputs_verified": true
+  },
+  {
+    "variant": "baseline",
+    "case": "loo308",
+    "input_count": 292,
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.12.15 (x86_64-unknown-linux-gnu)"
+    },
+    "config_sha256": "e7595a58c47689810727d46315f8c03043741e1747f28333126cf7669379f6a6",
+    "replay_sha256": "3f442c88d0013ddde38bab9cc557caa3e9c613bef11f3b0cb404f95c8d2d9dbf",
+    "inputs_verified": true
+  },
+  {
+    "variant": "baseline",
+    "case": "no_three",
+    "input_count": 292,
+    "source": "8ca53f6993d41c06b6b73456d6f7568e0860684e",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.12.15 (x86_64-unknown-linux-gnu)"
+    },
+    "config_sha256": "e7595a58c47689810727d46315f8c03043741e1747f28333126cf7669379f6a6",
+    "replay_sha256": "0c911f825c52f69e5974362e95e3b1e9bfcc9a5bb0d398444a52b2029a7aa6e3",
+    "inputs_verified": true
+  },
+  {
+    "variant": "c2",
+    "case": "2024",
+    "input_count": 292,
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.12.15 (x86_64-unknown-linux-gnu)"
+    },
+    "config_sha256": "e7595a58c47689810727d46315f8c03043741e1747f28333126cf7669379f6a6",
+    "replay_sha256": "99e0ade1d5f022f5a463617942e52f457fdf870057dfb67d48ed658f702e4667",
+    "inputs_verified": true
+  },
+  {
+    "variant": "c2",
+    "case": "full",
+    "input_count": 292,
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.12.15 (x86_64-unknown-linux-gnu)"
+    },
+    "config_sha256": "e7595a58c47689810727d46315f8c03043741e1747f28333126cf7669379f6a6",
+    "replay_sha256": "26995cdff57db9606eed10ee25c46628215a2279ea59cd2ab13ec2027a1183a6",
+    "inputs_verified": true
+  },
+  {
+    "variant": "c2",
+    "case": "loo308",
+    "input_count": 292,
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.12.15 (x86_64-unknown-linux-gnu)"
+    },
+    "config_sha256": "e7595a58c47689810727d46315f8c03043741e1747f28333126cf7669379f6a6",
+    "replay_sha256": "50c9b2047167fdc73570be6a7b32ff28ea98d4eecc13aa8eea4fb2d906dd9813",
+    "inputs_verified": true
+  },
+  {
+    "variant": "c2",
+    "case": "no_three",
+    "input_count": 292,
+    "source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+    "runtime": {
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "python": "3.12.13",
+      "uv": "uv 0.12.15 (x86_64-unknown-linux-gnu)"
+    },
+    "config_sha256": "e7595a58c47689810727d46315f8c03043741e1747f28333126cf7669379f6a6",
+    "replay_sha256": "0779bffb7b88c3680687d4780bfc07173fa3d60e023fbb5523233f7976c80d8b",
+    "inputs_verified": true
+  }
+]

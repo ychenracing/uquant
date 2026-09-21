@@ -1,0 +1,55 @@
+{
+  "files": [
+    {
+      "path": "uquant/portfolio/pipeline.py",
+      "baseline": {
+        "lines": 1026,
+        "functions": 37,
+        "if_statements": 98
+      },
+      "candidate": {
+        "lines": 1062,
+        "functions": 38,
+        "if_statements": 102
+      }
+    },
+    {
+      "path": "uquant/portfolio/recovery/current_cohort.py",
+      "baseline": {
+        "lines": 386,
+        "functions": 18,
+        "if_statements": 43
+      },
+      "candidate": {
+        "lines": 350,
+        "functions": 17,
+        "if_statements": 38
+      }
+    },
+    {
+      "path": "uquant/portfolio/recovery/cohort_admission.py",
+      "baseline": {
+        "lines": 585,
+        "functions": 14,
+        "if_statements": 40
+      },
+      "candidate": {
+        "lines": 524,
+        "functions": 13,
+        "if_statements": 36
+      }
+    }
+  ],
+  "net_lines_removed": 61,
+  "persistent_fields_removed": 0,
+  "config_fields_removed": 0,
+  "new_persistent_fields": 0,
+  "removed_allocation_policies": [
+    "locked cohort admission short circuit",
+    "recovery add-window exclusion",
+    "separate same-industry proportional funding",
+    "recovery-active ordinary exclusion"
+  ],
+  "retained_risk_use": "recovery_cohort_locked remains for unchanged risk retention; not a removed persistent state",
+  "scope": "Three production files; one shared admission funding loop, no second engine or long-lived switch"
+}

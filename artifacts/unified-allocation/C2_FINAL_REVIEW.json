@@ -1,0 +1,52 @@
+{
+  "candidate_source": "c0ac78fac64bbfdb1824c4813414dadd27ce062b",
+  "equivalent_remote_source": "788fdaa17c6b1f5edc60ab550147d0167bceaadf",
+  "source_tests_config_equivalent": true,
+  "saved_patch_byte_equal_to_restored_full_diff": true,
+  "line_counts": {
+    "uquant/portfolio/pipeline.py": {
+      "8ca53f6": 1026,
+      "c0ac78f": 1062
+    },
+    "uquant/portfolio/recovery/current_cohort.py": {
+      "8ca53f6": 386,
+      "c0ac78f": 350
+    },
+    "uquant/portfolio/recovery/cohort_admission.py": {
+      "8ca53f6": 585,
+      "c0ac78f": 524
+    }
+  },
+  "net_production_lines_removed": 61,
+  "new_persistent_fields": 0,
+  "semantic_rules_removed": [
+    {
+      "rule": "locked cohort allocation short circuit",
+      "before": "_locked_cohort_targets returns existing cohort funding before new selection",
+      "after": "cohort_admission_targets evaluates current candidates; risk-retention flag remains"
+    },
+    {
+      "rule": "elapsed add-window admission veto",
+      "before": "_filter_recovery_candidates empties candidates after recovery_add_window_days",
+      "after": "elapsed date still feeds original target sizing and signal validity; admission veto removed"
+    },
+    {
+      "rule": "same-industry proportional funding",
+      "before": "_fund_members rescales peers proportionally before separate funding loop",
+      "after": "shared recovery-first score/code queue uses unchanged AllocationBook.fund caps"
+    },
+    {
+      "rule": "recovery-active ordinary admission exclusion",
+      "before": "active confirmed recovery suppresses ordinary admission block",
+      "after": "ordinary and recovery requests enter shared funding loop; tactical/caution exclusions remain"
+    }
+  ],
+  "review_scope": "Semantic comparison of changed call path, not if-count equivalence. Admission ordering intentionally differs from baseline; economic policy frozen at C2. No further optimization or production modifications.",
+  "delivery_branch_production_equals_baseline": true,
+  "historical_validation_reused": "VALIDATION.json and retained original logs; exact C2 production tree restored, no source modifications. Newly added replay accounts independently roundtrip/cash/timing checked.",
+  "unrun": [
+    "full local suite",
+    "remaining three paired economic scenarios",
+    "new future holdout"
+  ]
+}

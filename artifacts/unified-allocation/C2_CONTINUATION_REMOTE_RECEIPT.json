@@ -1,0 +1,14 @@
+{
+  "file": "UQUANT_PR79_C2_FINAL_EVIDENCE_20260921.zip",
+  "library_file_id": "libfile_193d894410348191befe6097d7c5d952",
+  "bytes": 374719,
+  "sha256": "0ccb3f0f367739d56f738f91fc973e92ec6b0fe11ac93a27e5a1152803521c62",
+  "remote_readback_byte_equal": true,
+  "contains": "Two new complete 2025 replays, original C2 patch, comparison, amended acceptance, identity and account checks, reviewed replay journals and readbacks",
+  "historical_originals": "FINAL_REMOTE_RECEIPT.json; original bundle re-downloaded and hash verified this turn",
+  "unrun": [
+    "loo502",
+    "full_cost2",
+    "2024_cost2"
+  ]
+}

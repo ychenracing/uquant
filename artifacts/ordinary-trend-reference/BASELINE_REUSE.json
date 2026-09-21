@@ -1,0 +1,14 @@
+{
+  "baseline": "58d4b9cf7c91b04bf98e970a2ce546f66ee5112d",
+  "original_producer": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+  "economic_surface_sha256": "27131f3e591fbe1ace0ea2f1abf02bbc98b5242f1b60589f474ac189c5971e40",
+  "identical_economic_surface": true,
+  "calendar_origin": "2014-01-02",
+  "clock_first_observed": {
+    "as_of": "2023-01-03",
+    "origin": "2014-01-02",
+    "ordinal": 2191
+  },
+  "observed_sentinel_sessions": 118,
+  "scope": "Four original baseline replays only; no universal old-account equivalence claim"
+}

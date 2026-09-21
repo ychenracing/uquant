@@ -1,0 +1,66 @@
+[
+  {
+    "case": "full",
+    "variant": "B",
+    "source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "exact_account_roundtrip": true,
+    "nonnegative_cash": true,
+    "next_session_fills": true
+  },
+  {
+    "case": "full",
+    "variant": "R",
+    "source": "12ccec59790be24b972996738b21569c1e403b78",
+    "exact_account_roundtrip": true,
+    "nonnegative_cash": true,
+    "next_session_fills": true
+  },
+  {
+    "case": "2024",
+    "variant": "B",
+    "source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "exact_account_roundtrip": true,
+    "nonnegative_cash": true,
+    "next_session_fills": true
+  },
+  {
+    "case": "2024",
+    "variant": "R",
+    "source": "12ccec59790be24b972996738b21569c1e403b78",
+    "exact_account_roundtrip": true,
+    "nonnegative_cash": true,
+    "next_session_fills": true
+  },
+  {
+    "case": "loo308",
+    "variant": "B",
+    "source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "exact_account_roundtrip": true,
+    "nonnegative_cash": true,
+    "next_session_fills": true
+  },
+  {
+    "case": "loo308",
+    "variant": "R",
+    "source": "12ccec59790be24b972996738b21569c1e403b78",
+    "exact_account_roundtrip": true,
+    "nonnegative_cash": true,
+    "next_session_fills": true
+  },
+  {
+    "case": "no_three",
+    "variant": "B",
+    "source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+    "exact_account_roundtrip": true,
+    "nonnegative_cash": true,
+    "next_session_fills": true
+  },
+  {
+    "case": "no_three",
+    "variant": "R",
+    "source": "12ccec59790be24b972996738b21569c1e403b78",
+    "exact_account_roundtrip": true,
+    "nonnegative_cash": true,
+    "next_session_fills": true
+  }
+]

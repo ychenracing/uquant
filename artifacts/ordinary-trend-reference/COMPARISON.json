@@ -1,0 +1,546 @@
+{
+  "rows": [
+    {
+      "case": "full",
+      "baseline": {
+        "wealth": 32.66263438259412,
+        "drawdown": 0.27133916084354315,
+        "orders": 21,
+        "operation_days": 27,
+        "turnover": 4.650843743656146,
+        "cost_burden": 0.007118727602477331,
+        "fees": 69655.218211746,
+        "slippage": 105566.41659999825,
+        "mean_gross": 0.5630454051462348,
+        "median_continuous_sessions": 62.0,
+        "holding_episodes": 6,
+        "open_episodes": 0,
+        "fills": 30
+      },
+      "reference": {
+        "wealth": 28.515045496887492,
+        "drawdown": 0.3466491642079521,
+        "orders": 24,
+        "operation_days": 19,
+        "turnover": 4.690421866386839,
+        "cost_burden": 0.007189008783309903,
+        "fees": 61613.558725026,
+        "slippage": 93860.3474999989,
+        "mean_gross": 0.5459656620242822,
+        "median_continuous_sessions": 120,
+        "holding_episodes": 7,
+        "open_episodes": 0,
+        "fills": 27
+      },
+      "wealth_ratio": 0.8730173188995167,
+      "screen_gates": {
+        "wealth_floor": false,
+        "drawdown_absolute": false,
+        "drawdown_increment": false
+      },
+      "final_burden_gates": {
+        "operation_days": true,
+        "turnover": true,
+        "cost": true
+      },
+      "annual_attribution": [
+        {
+          "year": "2023",
+          "baseline_pnl": 6225427.149555519,
+          "reference_pnl": 6149095.83608572,
+          "delta": -76331.31346979974,
+          "by_symbol": {
+            "sz300223": 4537.23240959998,
+            "sh688256": -147171.73917599986,
+            "sz300308": 66303.19329660013
+          }
+        },
+        {
+          "year": "2024",
+          "baseline_pnl": 1349414.1192533085,
+          "reference_pnl": 305362.3170937004,
+          "delta": -1044051.8021596081,
+          "by_symbol": {
+            "sz300308": -1044051.8021596081
+          }
+        },
+        {
+          "year": "2025",
+          "baseline_pnl": 22703356.310871053,
+          "reference_pnl": 20996039.724911273,
+          "delta": -1707316.5859597796,
+          "by_symbol": {
+            "sh688498": 2481786.7123359055,
+            "sz300308": -2665434.83514552,
+            "sz300502": 702473.28534802,
+            "sh688233": -3261242.589698185,
+            "sh688110": 1035100.8412000001
+          }
+        },
+        {
+          "year": "2026",
+          "baseline_pnl": 33047071.185508367,
+          "reference_pnl": 27579593.115684282,
+          "delta": -5467478.0698240865,
+          "by_symbol": {
+            "sh688146": 653272.1051582886,
+            "sh688498": 521040.47924158257,
+            "sz300308": -4474175.388299994,
+            "sz300502": -307135.795055968,
+            "sh688233": -635882.0091400555,
+            "sh688110": -147886.66807648004,
+            "sh688268": -1744469.6768274603,
+            "sh601869": 667758.8831760006
+          }
+        }
+      ],
+      "request_summary": {
+        "total": 124,
+        "with_fills": 8,
+        "baseline_target_absent": 118,
+        "permission_closed": 100,
+        "budget_rejected": 14
+      },
+      "baseline_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+      "reference_source": "12ccec59790be24b972996738b21569c1e403b78",
+      "original_hashes": {
+        "/workspace/scratch/fbd3cf69a1b5/uquant/artifacts/targeted-mature-capital/raw/full.json.gz": "ad8eb5c54b301960a313f1afc892f4234c353153aeaf293a9c9a353223b2dd66",
+        "/workspace/scratch/fbd3cf69a1b5/uquant-reference/artifacts/ordinary-trend-reference/raw/full.json.gz": "b56784ea5dc8e7abed63602051f4ae1b182f4d405623a58ad22b610782c3a06a"
+      },
+      "contract_hashes": {
+        "B": "5a03eed28210228397ecda2153f864130d5737ebe6a5ad336f685fb0752b35b5",
+        "R": "1b7282f1188b083212c1bc4a716bcbdedf3f8b33eb0ecc653ecd09c5ed7cd667"
+      }
+    },
+    {
+      "case": "2024",
+      "baseline": {
+        "wealth": 12.63048877282912,
+        "drawdown": 0.22148648804525484,
+        "orders": 60,
+        "operation_days": 46,
+        "turnover": 11.136487851047447,
+        "cost_burden": 0.016825869026271183,
+        "fees": 30826.343041759,
+        "slippage": 49045.21130000018,
+        "mean_gross": 0.645959459720762,
+        "median_continuous_sessions": 32,
+        "holding_episodes": 27,
+        "open_episodes": 0,
+        "fills": 66
+      },
+      "reference": {
+        "wealth": 2.432208872324519,
+        "drawdown": 0.15953640541553338,
+        "orders": 52,
+        "operation_days": 33,
+        "turnover": 13.17451532487568,
+        "cost_burden": 0.01991393007623388,
+        "fees": 22400.748950964,
+        "slippage": 43029.10639999776,
+        "mean_gross": 0.40047436523775537,
+        "median_continuous_sessions": 29.0,
+        "holding_episodes": 20,
+        "open_episodes": 1,
+        "fills": 53
+      },
+      "wealth_ratio": 0.19256648860309508,
+      "screen_gates": {
+        "wealth_floor": false,
+        "drawdown_absolute": true,
+        "drawdown_increment": true
+      },
+      "final_burden_gates": {
+        "operation_days": true,
+        "turnover": false,
+        "cost": false
+      },
+      "annual_attribution": [
+        {
+          "year": "2024",
+          "baseline_pnl": 88866.14336840778,
+          "reference_pnl": 629245.0586841485,
+          "delta": 540378.9153157407,
+          "by_symbol": {
+            "sz300666": 5554.733463180042,
+            "sh688256": 112643.42718466802,
+            "sz300308": -95963.65859411485,
+            "sz300502": 334102.360086792,
+            "sz300604": 68017.9093308,
+            "sh688120": 83013.31115985589,
+            "sz300394": 41383.162131696015,
+            "sh600487": -33532.046519400144,
+            "sh688361": 12808.353693959976,
+            "sh688200": 6861.1850782200045,
+            "sh688268": 35122.28598647994,
+            "sh688041": -108626.21964643215,
+            "sz002281": 39321.79003215993,
+            "sz300223": 38690.93444831998,
+            "sz002371": 981.3874795561119
+          }
+        },
+        {
+          "year": "2025",
+          "baseline_pnl": 6523417.462872435,
+          "reference_pnl": 2146875.692299217,
+          "delta": -4376541.770573218,
+          "by_symbol": {
+            "sh688256": 234716.54522533188,
+            "sh688498": 18315.750843348003,
+            "sz300308": -5800890.589881601,
+            "sz300502": 889552.79337901,
+            "sh688233": 33624.73302012013,
+            "sh688019": -25728.564795911883,
+            "sh688110": -119787.22602000002,
+            "sh688041": 245659.067718882,
+            "sz002281": 97721.31097628012,
+            "sh688146": 50274.408961321926
+          }
+        },
+        {
+          "year": "2026",
+          "baseline_pnl": 16648693.939417398,
+          "reference_pnl": 88296.99366567258,
+          "delta": -16560396.945751723,
+          "by_symbol": {
+            "sh688498": -1315675.2207028563,
+            "sz300308": -5626679.484506998,
+            "sz300502": -885872.455205872,
+            "sh688110": -127017.46695923977,
+            "sh600487": 353754.7978615196,
+            "sh601869": -38446.13234087982,
+            "sh688146": -8920460.983897397
+          }
+        }
+      ],
+      "request_summary": {
+        "total": 84,
+        "with_fills": 17,
+        "baseline_target_absent": 57,
+        "permission_closed": 59,
+        "budget_rejected": 7
+      },
+      "baseline_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+      "reference_source": "12ccec59790be24b972996738b21569c1e403b78",
+      "original_hashes": {
+        "/workspace/scratch/fbd3cf69a1b5/uquant/artifacts/targeted-mature-capital/raw/2024.json.gz": "d224bbe97fc560d497169f08765af55ffa968b3c1310232ba99427bc912e48e3",
+        "/workspace/scratch/fbd3cf69a1b5/uquant-reference/artifacts/ordinary-trend-reference/raw/2024.json.gz": "d18d5b35c882dbf4bdbe4dcbd4b7cf6d9e484fc70c8cfb19d398f13194521ecf"
+      },
+      "contract_hashes": {
+        "B": "5a03eed28210228397ecda2153f864130d5737ebe6a5ad336f685fb0752b35b5",
+        "R": "1b7282f1188b083212c1bc4a716bcbdedf3f8b33eb0ecc653ecd09c5ed7cd667"
+      }
+    },
+    {
+      "case": "loo308",
+      "baseline": {
+        "wealth": 4.381529226067094,
+        "drawdown": 0.27602569468332283,
+        "orders": 95,
+        "operation_days": 75,
+        "turnover": 17.35184741103621,
+        "cost_burden": 0.0262667120230609,
+        "fees": 42950.391765817,
+        "slippage": 80874.45609999525,
+        "mean_gross": 0.34650806817898244,
+        "median_continuous_sessions": 24.5,
+        "holding_episodes": 44,
+        "open_episodes": 0,
+        "fills": 112
+      },
+      "reference": {
+        "wealth": 1.4997976700840399,
+        "drawdown": 0.3721773774784559,
+        "orders": 67,
+        "operation_days": 47,
+        "turnover": 13.948650622777357,
+        "cost_burden": 0.021023749451709213,
+        "fees": 13731.723931923,
+        "slippage": 26746.635899998408,
+        "mean_gross": 0.3037849209135528,
+        "median_continuous_sessions": 40.0,
+        "holding_episodes": 26,
+        "open_episodes": 1,
+        "fills": 77
+      },
+      "wealth_ratio": 0.34230004929814734,
+      "screen_gates": {
+        "wealth_floor": false,
+        "drawdown_absolute": false,
+        "drawdown_increment": false
+      },
+      "final_burden_gates": {
+        "operation_days": true,
+        "turnover": true,
+        "cost": true
+      },
+      "annual_attribution": [
+        {
+          "year": "2023",
+          "baseline_pnl": 1246040.0418866007,
+          "reference_pnl": -357747.84958769934,
+          "delta": -1603787.8914743,
+          "by_symbol": {
+            "sh688256": -1063331.79047172,
+            "sh688766": -65083.32403649993,
+            "sh688300": -21437.22437427989,
+            "sz300604": -4178.086078320079,
+            "sz300502": -139332.61596869995,
+            "sz300394": -378638.07776981994,
+            "sh688233": -48319.038652460076,
+            "sz300054": 6200.744744699972,
+            "sh688110": -53926.58525935997,
+            "sh688200": 32426.80125696013,
+            "sh688072": 999.166408019943,
+            "sz002281": 27265.355987759987,
+            "sh688008": 114357.77529065993,
+            "sz300223": 18905.135039999874,
+            "sh688082": -29696.127591239943
+          }
+        },
+        {
+          "year": "2024",
+          "baseline_pnl": 688063.7189979183,
+          "reference_pnl": -200220.6707273168,
+          "delta": -888284.3897252352,
+          "by_symbol": {
+            "sh688012": -51494.18170155,
+            "sh688256": -396857.98036506603,
+            "sh688300": -65136.79743141701,
+            "sz300502": -67387.388033592,
+            "sh688120": 66366.74640994193,
+            "sz300394": -39905.32544222395,
+            "sh688233": 57949.96766284403,
+            "sh688110": -48412.976022400006,
+            "sh688361": -43042.60975256,
+            "sh688041": -401908.39769828215,
+            "sh688268": 12958.29099608001,
+            "sh688200": -28762.29998432986,
+            "sz002281": 81534.88815491981,
+            "sz300223": 35236.386729719976,
+            "sz002371": 577.2867526800567
+          }
+        },
+        {
+          "year": "2025",
+          "baseline_pnl": 2752631.335352348,
+          "reference_pnl": 290351.12622146215,
+          "delta": -2462280.209130886,
+          "by_symbol": {
+            "sh688012": -6836.902720500012,
+            "sh688256": 204632.12597849985,
+            "sh688498": -169508.63127487796,
+            "sz300502": -205228.79864192806,
+            "sz300394": -251678.3507447581,
+            "sh688233": 37591.98704635981,
+            "sh688110": -1938938.3212023003,
+            "sh688361": 44019.15214202007,
+            "sh688041": 184694.16184571202,
+            "sz002281": 57166.165314960024,
+            "sh601869": -396941.88243283227,
+            "sh688082": 5294.516334029937,
+            "sh688019": -26545.430775271067
+          }
+        },
+        {
+          "year": "2026",
+          "baseline_pnl": 2076323.3558973204,
+          "reference_pnl": 1267212.7342616327,
+          "delta": -809110.6216356875,
+          "by_symbol": {
+            "sh688766": 312037.7973668999,
+            "sh688300": 90836.85576635969,
+            "sh688498": 778960.4193700497,
+            "sh688146": -629037.4257487196,
+            "sz300502": -57950.15001055997,
+            "sz300394": 520728.8974315916,
+            "sh600487": -1205371.5196853883,
+            "sz002281": 113421.76641971941,
+            "sh601869": -732737.26254564
+          }
+        }
+      ],
+      "request_summary": {
+        "total": 112,
+        "with_fills": 33,
+        "baseline_target_absent": 73,
+        "permission_closed": 61,
+        "budget_rejected": 16
+      },
+      "baseline_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+      "reference_source": "12ccec59790be24b972996738b21569c1e403b78",
+      "original_hashes": {
+        "/workspace/scratch/fbd3cf69a1b5/uquant/artifacts/targeted-mature-capital/raw/loo308.json.gz": "0426a72de743358d455f2fded3dec8179b1b3b3db6d0166c47fd45d8b6c77d55",
+        "/workspace/scratch/fbd3cf69a1b5/uquant-reference/artifacts/ordinary-trend-reference/raw/loo308.json.gz": "2686dcaf00d9f3169e7fc1a6ea852702e7d6609e246584acb6df1b05670c7756"
+      },
+      "contract_hashes": {
+        "B": "5a03eed28210228397ecda2153f864130d5737ebe6a5ad336f685fb0752b35b5",
+        "R": "1b7282f1188b083212c1bc4a716bcbdedf3f8b33eb0ecc653ecd09c5ed7cd667"
+      }
+    },
+    {
+      "case": "no_three",
+      "baseline": {
+        "wealth": 3.41007401426652,
+        "drawdown": 0.28462387948655166,
+        "orders": 83,
+        "operation_days": 71,
+        "turnover": 17.31152511044702,
+        "cost_burden": 0.026125827132624204,
+        "fees": 32434.951266966,
+        "slippage": 61961.42019999653,
+        "mean_gross": 0.37155439833641685,
+        "median_continuous_sessions": 28.0,
+        "holding_episodes": 38,
+        "open_episodes": 1,
+        "fills": 95
+      },
+      "reference": {
+        "wealth": 2.3404068396289452,
+        "drawdown": 0.31365736203853434,
+        "orders": 63,
+        "operation_days": 48,
+        "turnover": 12.893800600997988,
+        "cost_burden": 0.01949791847469566,
+        "fees": 14641.01894211,
+        "slippage": 27389.301799998622,
+        "mean_gross": 0.37066110795223467,
+        "median_continuous_sessions": 60.0,
+        "holding_episodes": 22,
+        "open_episodes": 0,
+        "fills": 73
+      },
+      "wealth_ratio": 0.6863214199567303,
+      "screen_gates": {
+        "wealth_floor": false,
+        "drawdown_absolute": false,
+        "drawdown_increment": false
+      },
+      "final_burden_gates": {
+        "operation_days": true,
+        "turnover": true,
+        "cost": true
+      },
+      "annual_attribution": [
+        {
+          "year": "2023",
+          "baseline_pnl": 965117.2327334604,
+          "reference_pnl": -149979.4145324596,
+          "delta": -1115096.64726592,
+          "by_symbol": {
+            "sh688256": -1193971.6608474597,
+            "sh688766": -65083.32403649993,
+            "sz300604": 11094.406749359978,
+            "sh688233": -802.3464875799764,
+            "sz300054": 6200.744744699972,
+            "sh688200": -8425.210487759883,
+            "sh688072": 999.166408019943,
+            "sz002281": -26531.098704000196,
+            "sh688008": 114357.77529065993,
+            "sz300223": 18905.135039999874,
+            "sh688082": 28159.765064640007
+          }
+        },
+        {
+          "year": "2024",
+          "baseline_pnl": 430520.7414253867,
+          "reference_pnl": -125756.66887272392,
+          "delta": -556277.4102981106,
+          "by_symbol": {
+            "sh688012": -110762.17982136016,
+            "sz300666": 54729.115266869834,
+            "sh688256": 79151.18282814603,
+            "sh688766": -70704.68587083001,
+            "sh688120": 28629.676583441946,
+            "sh688233": -84171.55195552399,
+            "sh600487": -24527.636824680016,
+            "sh688361": -105650.04211992004,
+            "sh688041": -318433.07626396616,
+            "sh688268": 42042.75689195994,
+            "sh688200": -78775.25142484791,
+            "sz002281": 8012.448382399991,
+            "sz300223": 24181.83403019995
+          }
+        },
+        {
+          "year": "2025",
+          "baseline_pnl": 1203633.5283038127,
+          "reference_pnl": 303749.2580609701,
+          "delta": -899884.2702428425,
+          "by_symbol": {
+            "sh688012": -16408.566529200005,
+            "sh688256": 208874.79823399193,
+            "sh688300": -28513.006473600115,
+            "sh688498": -624278.49578358,
+            "sh688233": 27023.961705079855,
+            "sh688110": -384327.02408508,
+            "sh688361": 68312.55049398002,
+            "sh688041": 220712.57393110608,
+            "sz002281": 49057.489383760025,
+            "sh601869": -402454.96413328813,
+            "sh688082": 4966.294332779981,
+            "sh688019": -22849.88131879205
+          }
+        },
+        {
+          "year": "2026",
+          "baseline_pnl": 2220876.526070377,
+          "reference_pnl": 2652800.5046021044,
+          "delta": 431923.9785317275,
+          "by_symbol": {
+            "sh688146": 182298.11487599928,
+            "sh688766": 760417.0979189402,
+            "sh688498": -739808.2032832918,
+            "sz300604": 59346.926717760034,
+            "sh688233": 133237.11665087973,
+            "sh688110": 103220.88107903986,
+            "sh600487": -828012.1804930798,
+            "sh601869": 761224.22506548
+          }
+        }
+      ],
+      "request_summary": {
+        "total": 110,
+        "with_fills": 29,
+        "baseline_target_absent": 76,
+        "permission_closed": 68,
+        "budget_rejected": 13
+      },
+      "baseline_source": "edbf9f20e0d9190a6c570d924ebed24f4a413420",
+      "reference_source": "12ccec59790be24b972996738b21569c1e403b78",
+      "original_hashes": {
+        "/workspace/scratch/fbd3cf69a1b5/uquant/artifacts/targeted-mature-capital/raw/no_three.json.gz": "8df96137ace81b076413c2ec5f7a54f7ea32694d5334d8ea5d96400d9e69e675",
+        "/workspace/scratch/fbd3cf69a1b5/uquant-reference/artifacts/ordinary-trend-reference/raw/no_three.json.gz": "677778ee91a8e4f0884bccb939e18536746afc53c85971d4d37c9d6ed73d2aca"
+      },
+      "contract_hashes": {
+        "B": "5a03eed28210228397ecda2153f864130d5737ebe6a5ad336f685fb0752b35b5",
+        "R": "1b7282f1188b083212c1bc4a716bcbdedf3f8b33eb0ecc653ecd09c5ed7cd667"
+      }
+    }
+  ],
+  "geometric_wealth_ratio": 0.4457943104473422,
+  "weak_geometric_wealth_ratio": 0.48469356905736155,
+  "gates": {
+    "four_geomean": false,
+    "weak_geomean": false,
+    "neither_weak_degrades": false,
+    "individual": false,
+    "positive_year_count": true
+  },
+  "mechanical_screen": false,
+  "positive_years": [
+    "2024",
+    "2026"
+  ],
+  "positive_symbol_sessions": 2679,
+  "positive_symbol_sessions_repeated_across_pools": 1164,
+  "limitation": "Annual blocks and repeated pool/date/symbol observations are not independent samples. A mechanical pass still requires qualitative winner/date concentration review. Different-account baseline omissions do not establish a causal alpha-gate defect.",
+  "omitted": [
+    "2025",
+    "loo502",
+    "full_cost2",
+    "2024_cost2",
+    "fixed_real_legacy"
+  ],
+  "baseline_reuse": "Same main economic source, config, native runner and frozen data; original source and prior task-contract identity retained."
+}

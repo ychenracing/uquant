@@ -42,4 +42,8 @@ def cross_vintage_api_projection(contract):
     for module, name in (('uquant.risk.transition_resolution', 'resolve_risk_transition'),
                          ('uquant.risk.transitions', '_resolve_risk_transition')):
         insert_field(modules[module]['functions'][name]['parameters'], 'capital_dd', 'deployed_dd')
+    # Reviewed production interfaces from trend continuity and C2 allocation.
+    recovery = modules['uquant.portfolio.recovery.current_cohort']['functions']
+    assert recovery['allocate_confirmed_recovery']['return'] == 'bool'
+    recovery['allocate_confirmed_recovery']['return'] = 'tuple[Target, ...] | None'
     return expected

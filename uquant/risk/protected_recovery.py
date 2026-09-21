@@ -29,6 +29,11 @@ def capture_protected_holdings(
     for symbol, position in account.positions.items():
         if symbol in user_panel and date in user_panel[symbol].index and position.shares > 0:
             retained.setdefault(symbol, position.shares * scalar(user_panel[symbol].loc[date], "close") / equity)
+    # Retained rights and fresh holdings can use different valuation dates.
+    # Keep their relative claims inside the account's fully funded weight budget.
+    total = sum(retained.values())
+    if total > 1.0:
+        retained = {symbol: weight / total for symbol, weight in retained.items()}
     account.protected_weights = retained
     account.candidate_tenure["post_shock_restore_complete"] = 0
 

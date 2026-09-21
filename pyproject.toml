@@ -46,7 +46,11 @@ addopts = "-q --strict-config --strict-markers"
 [tool.ruff]
 line-length = 110
 target-version = "py312"
-extend-exclude = ["artifacts/research-20260914/joint-allocation"]
+# Frozen producer scripts retain their original bytes alongside historical evidence.
+extend-exclude = [
+    "artifacts/research-20260914/joint-allocation",
+    "artifacts/unified-allocation",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "PERF", "RUF"]

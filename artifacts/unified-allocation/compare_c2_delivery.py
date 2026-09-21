@@ -15,8 +15,9 @@ p = argparse.ArgumentParser()
 p.add_argument('--baseline', type=Path, required=True)
 p.add_argument('--candidate', type=Path, required=True)
 p.add_argument('--output', type=Path, required=True)
+p.add_argument('--contract', type=Path, default=Path(__file__).with_name('ACCEPTANCE_C2_DELIVERY.json'))
 a = p.parse_args()
-contract = json.loads(Path(__file__).with_name('ACCEPTANCE_C2_DELIVERY.json').read_text())
+contract = json.loads(a.contract.read_text())
 rows = []
 for cp in sorted(a.candidate.glob('*.json.gz')):
     bp = a.baseline / cp.name
@@ -49,7 +50,7 @@ for cp in sorted(a.candidate.glob('*.json.gz')):
 regular = [r for r in rows if 'cost2' not in r['case']]
 geometric = math.exp(statistics.mean(math.log(r['wealth_ratio']) for r in regular)) if regular else None
 complete = {r['case'] for r in rows} == set(contract['cases'])
-report = dict(unrun_cases=sorted(set(contract['cases'])-{r['case'] for r in rows}), active_route='A', contract='ACCEPTANCE_C2_DELIVERY.json', rows=rows, paired_cases=len(rows), complete=complete, geometric_wealth_ratio=geometric if len(regular) == 6 else None,
+report = dict(unrun_cases=sorted(set(contract['cases'])-{r['case'] for r in rows}), active_route='A', contract=a.contract.name, rows=rows, paired_cases=len(rows), complete=complete, geometric_wealth_ratio=geometric if len(regular) == 6 else None,
               partial_geometric_wealth_ratio=geometric, standard_cases=len(regular),
               worst_wealth_ratio=min((r['wealth_ratio'] for r in rows), default=None),
               economic_route_A=complete and all(not r['common_failures'] and r['route_A_wealth'] for r in rows) and geometric >= .98,

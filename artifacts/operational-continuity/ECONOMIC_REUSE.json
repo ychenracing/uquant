@@ -1,0 +1,9 @@
+{
+  "baseline_head": "58d4b9cf7c91b04bf98e970a2ce546f66ee5112d",
+  "economic_source_before": "27131f3e591fbe1ace0ea2f1abf02bbc98b5242f1b60589f474ac189c5971e40",
+  "economic_source_after": "27131f3e591fbe1ace0ea2f1abf02bbc98b5242f1b60589f474ac189c5971e40",
+  "lock": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+  "default_config_sha256": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6",
+  "historical_absolute_reported_config_sha256": "adf8c123de75f1df13e16e20793f46f631e35606d1bff20d84ebc3a43dff8e51",
+  "scope": "Economic source unchanged; historical Absolute config label is defective. Do not reseal or relabel historical artifacts."
+}

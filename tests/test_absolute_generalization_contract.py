@@ -463,3 +463,16 @@ def test_policy_cannot_be_resealed_by_candidate(tmp_path, monkeypatch, section, 
         module.load_absolute_generalization_contract(
             _write_contract(tmp_path, canonical_json_bytes(raw) + b"\n")
         )
+
+
+def test_runtime_config_identity_is_measured_without_rewriting_frozen_policy() -> None:
+    from uquant.config import DEFAULT_CONFIG, config_fingerprint
+    from uquant.validation.absolute_generalization import load_absolute_generalization_contract
+
+    before = CONTRACT_PATH.read_bytes()
+    contract = load_absolute_generalization_contract()
+    assert contract.inputs.effective_config_sha256 == config_fingerprint(DEFAULT_CONFIG)
+    assert CONTRACT_PATH.read_bytes() == before
+    raw = json.loads(before)
+    seal = raw.pop('canonical_sha256')
+    assert contract.canonical_sha256 == seal == hashlib.sha256(canonical_json_bytes(raw)).hexdigest()

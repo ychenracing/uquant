@@ -714,8 +714,9 @@ def test_run_verifies_the_new_backup_before_snapshot_append(
         module.main(_minimal_run_arguments(root))
 
 
-def test_observation_lock_serializes_different_run_ids_for_one_account(
-    tmp_path: Path,
+@pytest.mark.parametrize("other_account", [False, True])
+def test_observation_lock_serializes_shared_repository_observation(
+    tmp_path: Path, other_account: bool,
 ) -> None:
     module = _load_module()
     root = tmp_path / "repository"
@@ -744,7 +745,7 @@ def test_observation_lock_serializes_different_run_ids_for_one_account(
                 code,
                 str(_SCRIPT),
                 str(root),
-                str(account),
+                str(root / "other-account.json" if other_account else account),
                 str(ready),
                 str(marker),
             ]
@@ -813,3 +814,57 @@ def test_observation_lock_body_failure_is_not_masked_by_unlock_failure(
         "production observation lock cleanup also failed: "
         "OSError: simulated unlock failure"
     ]
+
+
+def test_wrong_daily_date_does_not_append_a_real_holdout_session(tmp_path: Path) -> None:
+    from uquant.validation.holdout import HOLDOUT_DATA_DIRECTORY, HOLDOUT_START, LAST_IN_SAMPLE_DATE
+
+    module = _load_module()
+    root = tmp_path / 'repository'
+    _create_minimal_run_inputs(root)
+    frozen = root / 'data/frozen'
+    frozen.mkdir()
+    header = 'date,open,high,low,close,volume,amount\n'
+    (frozen / 'sh000300.csv').write_text(header + f'{LAST_IN_SAMPLE_DATE},10,11,9,10,100,1000\n')
+    (root / 'incoming/sh000300.csv').write_text(header + f'{HOLDOUT_START},10,11,9,10,100,1000\n')
+    before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
+    with pytest.raises(ValueError, match='does not match the daily date'):
+        module.main(_minimal_run_arguments(root))
+    assert not (root / HOLDOUT_DATA_DIRECTORY).exists()
+    assert all(p.read_bytes() == payload for p, payload in before.items())
+
+
+@pytest.mark.parametrize('collision', ['holdout_account', 'broker', 'journal', 'backup',
+                                      'frozen_report', 'holdout_report', 'replay_checkpoint'])
+def test_observation_carriers_are_separate_before_any_append(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, collision: str,
+) -> None:
+    from uquant.validation.holdout import HOLDOUT_DATA_DIRECTORY
+
+    module = _load_module()
+    root = tmp_path / 'repository'
+    _create_minimal_run_inputs(root)
+    args = _minimal_run_arguments(root)
+    if collision in {'holdout_account', 'broker'}:
+        flag = '--holdout-account' if collision == 'holdout_account' else '--broker-snapshot'
+        args[args.index(flag) + 1] = 'account_state.json'
+    elif collision == 'journal':
+        args += ['--journal', 'account_state.json']
+    elif collision == 'backup':
+        backup = root / 'production_observation_backups'
+        backup.mkdir()
+        account = backup / 'account.json'
+        account.write_text('{}\n')
+        args[args.index('--account') + 1] = str(account)
+    else:
+        destination = {'frozen_report': 'data/frozen/report.md',
+                       'holdout_report': f'{HOLDOUT_DATA_DIRECTORY}/report.md',
+                       'replay_checkpoint': 'artifacts/future_holdout_checkpoint.json'}[collision]
+        args += ['--daily-report', destination]
+    before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
+    monkeypatch.setattr(module, 'append_holdout_snapshot',
+                        lambda **_: pytest.fail('unsafe paths reached irreversible append'))
+    with pytest.raises(ValueError):
+        module.main(args)
+    assert all(p.read_bytes() == payload for p, payload in before.items())
+    assert not (root / 'production_observation_backups/2026-08-21').exists()

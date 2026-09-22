@@ -272,6 +272,7 @@ def append_holdout_snapshot(
     repository_root: str | Path,
     snapshot_dir: str | Path,
     contract: FutureHoldoutContract | None = None,
+    expected_session: str | None = None,
     _read_checkpoint: Callable[..., tuple[dict[str, Any], object] | None],
     _verify_checkpoint: Callable[..., object],
 ) -> dict[str, object]:
@@ -281,6 +282,8 @@ def append_holdout_snapshot(
     reviewed = load_future_holdout_contract() if contract is None else contract
     frozen = _csv_inventory(root / "data/frozen", label="frozen market data")
     session, encoded = _encode_snapshot(Path(snapshot_dir), frozen=frozen)
+    if expected_session is not None and session != expected_session:
+        raise ValueError(f"holdout session does not match the daily date: {session} != {expected_session}")
     holdout_root = root / reviewed.data_directory
     existing_sessions, _ = holdout_data_identity(holdout_root)
     try:

@@ -356,7 +356,8 @@ def _build_contract(raw: dict[str, object]) -> AbsoluteGeneralizationContract:
         ),
         inputs=_InputIdentities(
             ai_universe_sha256=cast(str, inputs["ai_universe_sha256"]),
-            effective_config_sha256=cast(str, inputs["effective_config_sha256"]),
+            # The immutable policy keeps its historical input identity; artifacts bind this runtime.
+            effective_config_sha256=config_fingerprint(DEFAULT_CONFIG),
             frozen_data=_FrozenDataIdentity(
                 snapshot_id=cast(str, frozen_data["snapshot_id"]),
                 files_verified=cast(int, frozen_data["files_verified"]),

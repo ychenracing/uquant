@@ -1,5 +1,5 @@
 {
-  "commit": "4f0fc7a3ee0480b3cea76675fe7f652151e65d1c",
+  "commit": "9a8261203955cea9c0bdf85bb006658a597b644d",
   "verified": true,
   "files": [
     {
@@ -9,22 +9,148 @@
       "git_blob": "c96a18a436d37ce682d8acd6496f741980067277"
     },
     {
+      "path": "artifacts/code-audit-fix/APPLIED.json",
+      "bytes": 240,
+      "sha256": "d91b64fd4463c92231747c18a8b7555b3215d4c807f60c1b5244e36bef1581da",
+      "git_blob": "6f98f39ac3dfd76f6aab4c4e8f150322b3c160e7"
+    },
+    {
       "path": "artifacts/code-audit-fix/INSPECTION.json",
       "bytes": 36403,
-      "sha256": "dd3d27180bb326275395a335ead9a7fdf62ab61255c1d2c431d72d2df8c815cf",
-      "git_blob": "1dd3eb23531eb979c44a3853b0d77499b031d9f1"
+      "sha256": "6482cee2d90101f25e7033f5a05da1d0cee6fc476552da15c85ee31e759f2f63",
+      "git_blob": "912d1aac4b82cffa1045b95944821a7d57155d9c"
+    },
+    {
+      "path": "artifacts/code-audit-fix/PATCHES_APPLIED.json",
+      "bytes": 185,
+      "sha256": "27de3ee5d7fb06c78ba6706d001055279c485804f53b3ef6cfa1cc53b83beff6",
+      "git_blob": "5e1bd09ca447e625abd90d719fe8216763caee79"
+    },
+    {
+      "path": "artifacts/code-audit-fix/REMOTE_READBACK.json",
+      "bytes": 1051,
+      "sha256": "af2baea89e247f88f976573e47935839d574092de881367c35df21f342132039",
+      "git_blob": "811b1fb3331ef84e38e7db70d372ce29e92a4e5f"
     },
     {
       "path": "artifacts/code-audit-fix/RUN_STATUS.json",
       "bytes": 187,
-      "sha256": "79f9d50e17679f81324b50210c531ed6e39eef0570bff766b60d258a6b80ab0c",
-      "git_blob": "95886a9df51ff6b853e96657e4288e68667a76af"
+      "sha256": "1f7d36dd36e25c839c9ecd05ed2493ed6e8ee19e8d8d1f6e867891c85a588e5a",
+      "git_blob": "c8e55e53f84eee35aa708f65871cd9de19f36a92"
+    },
+    {
+      "path": "artifacts/code-audit-fix/VERIFICATION.json",
+      "bytes": 13934,
+      "sha256": "339e845323ed471d38a332ae9af536fb656e2863f7baca44d707c8108b9d4c25",
+      "git_blob": "203a32ec55eccba39b5f966ab88a3203cde31e49"
+    },
+    {
+      "path": "artifacts/code-audit-fix/apply_fixes.py",
+      "bytes": 3510,
+      "sha256": "54b638c743ab109965e151b7d9b4b4739984d500d91330ecb04179fa24dc69f9",
+      "git_blob": "18697c629aa051a2a34701fa0769df0021a4a8df"
     },
     {
       "path": "artifacts/code-audit-fix/inspect_candidate.py",
       "bytes": 1958,
       "sha256": "8366504317a15660f0fecca7af08afcfc9750700e6953f1167db3cfae5b9e35f",
       "git_blob": "4a1455e4c7cd0039aebd093a78fa2ae15660a24d"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35675265048/VERIFICATION.json",
+      "bytes": 13934,
+      "sha256": "339e845323ed471d38a332ae9af536fb656e2863f7baca44d707c8108b9d4c25",
+      "git_blob": "203a32ec55eccba39b5f966ab88a3203cde31e49"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35675265048/diff-check.txt.gz",
+      "bytes": 20,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "git_blob": "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35675265048/imports.txt.gz",
+      "bytes": 58,
+      "sha256": "ccb76413606c8f301d68c9f8982efabd190de2c6928c4d01387e979788566341",
+      "git_blob": "b5ab2115e9a68c8192fae5803f280e7f6cb8b775"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35675265048/lint.txt.gz",
+      "bytes": 39,
+      "sha256": "47f394a1497b1873bc6e6d6f9bb92aa51b990821f1ddd7770a933ffd29c456cd",
+      "git_blob": "b18235e30d4f8476fdebfe22c2e9ecd73bfc22f5"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35675265048/regressions.txt.gz",
+      "bytes": 1727,
+      "sha256": "8c55d47fad1f2c96f8713bb479b3e5a383d7437cee9b2a20f135868b5b8a91ff",
+      "git_blob": "73a41c342bf8a770db41d37acffd447bc5b70774"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35675265048/types.txt.gz",
+      "bytes": 233,
+      "sha256": "88b959818477d1525b28eb97f52d56126c22c47d9612e5e0f23a2781802e4660",
+      "git_blob": "9d68c5a29197adeb66ede50698202a6127e4eb74"
+    },
+    {
+      "path": "artifacts/code-audit-fix/patches/01_boundaries.py",
+      "bytes": 4951,
+      "sha256": "99fb554e408552334f31b4fff03fbb7183a3bcef71712b177307ffe0f71a8394",
+      "git_blob": "8212e82e311a9162fd0efc04b9f062fea0efdd17"
+    },
+    {
+      "path": "artifacts/code-audit-fix/patches/02_engine_facts.py",
+      "bytes": 1642,
+      "sha256": "faf9f275218f98e970de78b1990a05fe89c867c1e1b7c5de94a88cf80610fb55",
+      "git_blob": "163e9ee81051d25190854c704c42c1e05a78d3b6"
+    },
+    {
+      "path": "artifacts/code-audit-fix/verify_candidate.py",
+      "bytes": 2829,
+      "sha256": "5172f86d9ee2e98fbb60149db4366a7b5efecb72793f6f281b2b081c867be518",
+      "git_blob": "28a3301da774ebc5bdea6419c02f08a148a31f12"
+    },
+    {
+      "path": "tests/test_code_audit_boundaries.py",
+      "bytes": 7169,
+      "sha256": "96777d9ee4aca270ae34058d67272f45bf6cff532b18404f224e6d5c3214139d",
+      "git_blob": "f7621669e6cfb2c9dc0d4ed885acef8a951f10bd"
+    },
+    {
+      "path": "uquant/application/decision.py",
+      "bytes": 37512,
+      "sha256": "0fef9b17119a77abc7087ec79d42400503e401c6254b6f4cffaccd5f1e19bb93",
+      "git_blob": "56897ecd3f190862bf7ec6955133eb0aa91cbacc"
+    },
+    {
+      "path": "uquant/broker.py",
+      "bytes": 35619,
+      "sha256": "4ddabaf3b0f965b49d75448fb7ba5cc08f4f18e5d871cd9a60ecdbf21ad40339",
+      "git_blob": "2081a9f94569bf258d06a5eb09c024c067d7a61a"
+    },
+    {
+      "path": "uquant/broker_contract.py",
+      "bytes": 9406,
+      "sha256": "c21007f1c16edfca041a380235eaec7cfdec5d279f8f86a0d1d598f9215620c1",
+      "git_blob": "0db6a515407836f66e6e3f175b054f0d7131272b"
+    },
+    {
+      "path": "uquant/cli.py",
+      "bytes": 16561,
+      "sha256": "7d880fc58f058dbcf157170d6713ce64f0d7079546a571545c40a6d3f2ab33d6",
+      "git_blob": "11d759bab22ae9c8659957414fc8d026edff5f80"
+    },
+    {
+      "path": "uquant/engine.py",
+      "bytes": 5595,
+      "sha256": "621c3dcb98a3eea9b7cd255aac5c60f3c8af0e3f33c5a12d0536bbbc8b24a222",
+      "git_blob": "bc7fc2c545b3e0086d18fca8f10324f68e19f10b"
+    },
+    {
+      "path": "uquant/leader.py",
+      "bytes": 27727,
+      "sha256": "cb310a6ed671b0ff0633efda86ee7584f6e66fef51f9f034f5f3932c23cc9c90",
+      "git_blob": "efd2bd89c226bcaf7cb9cd0a9fbb020a62af6fb0"
     }
   ]
 }

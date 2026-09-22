@@ -1,7 +1,7 @@
 {
-  "GITHUB_SHA": "4085d5baeb6d724233b3db9fa38ac5fdafe4375c",
-  "GITHUB_RUN_ID": "35676785570",
+  "GITHUB_SHA": "898d2ab1f5b1a3eb8a30d43f758f0461c313c699",
+  "GITHUB_RUN_ID": "35677354320",
   "GITHUB_RUN_ATTEMPT": "1",
   "APPLY_OUTCOME": "success",
-  "VERIFY_OUTCOME": "failure"
+  "VERIFY_OUTCOME": "success"
 }

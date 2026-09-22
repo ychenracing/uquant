@@ -1,12 +1,7 @@
 {
   "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
   "changed": [
-    "artifacts/code-audit-fix/verify_candidate.py",
-    "docs/ARCHITECTURE.md",
-    "docs/CONFIGURATION.md",
-    "docs/OPERATIONS.md",
-    "tests/test_code_audit_state.py",
-    "uquant/application/__init__.py",
-    "uquant/opportunity.py"
+    "tests/architecture/test_portfolio_boundaries.py",
+    "uquant/application/__init__.py"
   ]
 }

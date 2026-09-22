@@ -1,0 +1,770 @@
+{
+  "input_head": "f41b42c05b9eb64ab54cbdccd15e3daa0b0dd421",
+  "jobs": [
+    {
+      "id": 106590263442,
+      "name": "Security and dependency audit",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:12:45Z",
+      "run_id": 35678573820,
+      "failures": []
+    },
+    {
+      "id": 106590263512,
+      "name": "Windows smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:12:24Z",
+      "run_id": 35678573820,
+      "failures": []
+    },
+    {
+      "id": 106590263575,
+      "name": "Tests (architecture-remaining)",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:28:03Z",
+      "run_id": 35678573820,
+      "failures": [
+        "2026-09-22T02:28:00.3657296Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[inspect-getmodule] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3657883Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[inspect-currentframe] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3658487Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[inspect-stack] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3659078Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[inspect-getmodule-alias] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3659660Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[pkgutil-resolve-name] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3660253Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[pydoc-locate] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3660851Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[runpy-module-namespace] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3661441Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[inspect-from-import] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3662004Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[inspect-getattr] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3662612Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[inspect-sys-modules] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3663179Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[gc-object-registry] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3663775Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_stdlib_module_recovery[traceback-frame-walk] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3664337Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_trace_callback_frame_namespace - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3664937Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[sys-modules-copy] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3665534Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[sys-modules-items] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3666126Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[sys-modules-values] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3666748Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[importlib-util-loader] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3667432Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[importlib-util-alias] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3668034Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[from-importlib-util] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3668693Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[from-importlib-util-members] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3669322Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[importlib-machinery-loader] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3669927Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[getattr-importlib-util] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3670593Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_registry_and_loader_derivations[getattr-importlib-machinery] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3671231Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_serialized_private_object_recovery[pickle-literal-private-global] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3671925Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_serialized_private_object_recovery[entry-point-literal-private-global] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3672592Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_serialized_private_object_recovery[unknown-loader-literal-private-global] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3673282Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_serialized_private_object_recovery[unknown-loader-concatenated-private-global] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3673933Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_serialized_private_object_recovery[unknown-loader-bound-private-global] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3674575Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_serialized_private_object_recovery[pickle-nonliteral-payload] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3675258Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_serialized_private_object_recovery[entry-point-nonliteral-target] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3675809Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_allows_stdlib_distribution_version_lookup - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3676574Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[import pickle as codec\\npayload = receive_payload()\\nvalue = codec.loads(payload)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3677418Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[from pickle import loads as restore\\npayload = receive_payload()\\nvalue = restore(payload)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3678142Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[import marshal\\npayload = receive_payload()\\nvalue = marshal.loads(payload)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3679017Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[import multiprocessing.reduction as recovery\\npayload = receive_payload()\\nvalue = recovery.ForkingPickler.loads(payload)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3679713Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[import numpy as np\\nvalue = np.load(receive_path(), allow_pickle=True)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3680417Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[import pandas as pd\\nvalue = pd.read_pickle(receive_path())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3681086Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[import yaml\\nvalue = yaml.unsafe_load(receive_payload())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3681960Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[import importlib.metadata as metadata\\ntarget = receive_target()\\nvalue = metadata.EntryPoint(name='p', value=target, group='p').load()\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3682828Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[from importlib import metadata\\ntarget = receive_target()\\nvalue = metadata.EntryPoint(name='p', value=target, group='p').load()\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3683664Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_object_recovery_provider_aliases[import pkg_resources\\ntarget = receive_target()\\nvalue = pkg_resources.EntryPoint.parse('p=' + target).load()\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3684466Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[import yaml\\nloader = yaml.UnsafeLoader(receive_payload())\\nvalue = loader.get_single_data()\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3685270Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from yaml.loader import FullLoader\\nloader = FullLoader(receive_payload())\\nvalue = loader.get_single_data()\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3686073Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from yaml.cyaml import CFullLoader\\nvalue = CFullLoader(receive_payload()).get_single_data()\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3686790Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[import yaml\\nvalue = tuple(yaml.full_load_all(receive_payload()))\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3687717Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[import numpy as np\\nvalue = np.lib.format.read_array(receive_stream(), allow_pickle=True)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3688506Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from numpy.lib.format import read_array\\nvalue = read_array(receive_stream(), allow_pickle=True)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3689329Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from numpy.lib._format_impl import read_array\\nvalue = read_array(receive_stream(), allow_pickle=True)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3690087Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from numpy.lib._npyio_impl import load\\nvalue = load(receive_stream(), allow_pickle=True)\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3690878Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from numpy.lib.npyio import NpzFile\\nvalue = NpzFile(receive_stream(), allow_pickle=True)['arr']\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3691581Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[import pandas as pd\\nvalue = pd.io.pickle.read_pickle(receive_path())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3692360Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from pandas.io.pickle import read_pickle\\nvalue = read_pickle(receive_path())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3693080Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from pandas.io.api import read_pickle\\nvalue = read_pickle(receive_path())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3693831Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from pandas.compat.pickle_compat import loads\\nvalue = loads(bytes.fromhex(receive_hex()))\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3694597Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[import pandas.compat.pickle_compat as compat\\nvalue = compat.loads(receive_payload())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3695506Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[import unittest.mock as mock\\ntarget = '.'.join(('uquant', 'account', 'validation_common', '_finite_number'))\\nvalue = mock.patch(target).get_original()[0]\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3696281Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from unittest.mock import patch as replace\\nvalue = replace(receive_target()).get_original()[0]\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3697061Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from unittest import mock\\nvalue = mock.patch(receive_target()).get_original()[0]\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3697805Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[import logging.config as config\\nvalue = config._resolve(receive_target())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3698595Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from logging.config import BaseConfigurator\\nvalue = BaseConfigurator({}).resolve(receive_target())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3699312Z FAILED tests/architecture/test_private_import_reflection.py::test_architecture_raw_scanner_rejects_nested_object_recovery_providers[from logging import config\\nvalue = config._resolve(receive_target())\\n] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3699827Z FAILED tests/architecture/test_public_api_contracts.py::test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_current_contract - AssertionError: assert {'uquant', 'u...t.store', ...} == {'uquant', 'u...t.store', ...}",
+        "2026-09-22T02:28:00.3723848Z FAILED tests/architecture/test_recovery_boundaries.py::test_portfolio_recovery_private_and_complexity_relocations_are_closed - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3724289Z FAILED tests/architecture/test_release_acceptance.py::test_current_release_source_matches_checkout_and_independent_policy - ValueError: absolute generalization source registry identity differs",
+        "2026-09-22T02:28:00.3724777Z FAILED tests/architecture/test_risk_boundaries.py::test_risk_source_surface_migration_is_exact_and_requirements_stay_bound - AssertionError: assert {'uquant/__in...tore.py', ...} == {'uquant/__in...tore.py', ...}",
+        "2026-09-22T02:28:00.3739381Z FAILED tests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/transitions.py-account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,-account=account, date=ctx.date, user_panel=ctx.reference_panel, equity=ctx.equity,] - assert 'account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,' in '\"\"\"Sector-transition risk ownership.\"\"\"\\n\\nfrom __future__ import annotations\\n\\nfrom dataclasses import dataclass\\n\\...tion\",\\n    \"acute_sector_evacuation_required\",\\n    \"assess_acute_and_cooldown\",\\n    \"assess_break_conditions\",\\n)\\n'",
+        "2026-09-22T02:28:00.3741176Z FAILED tests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/transitions.py-concentrated_break = shock_rearmed and not protected_weights_for_current_episode(account)-concentrated_break = shock_rearmed and not account.protected_weights] - assert 'concentrated_break = shock_rearmed and not protected_weights_for_current_episode(account)' in '\"\"\"Sector-transition risk ownership.\"\"\"\\n\\nfrom __future__ import annotations\\n\\nfrom dataclasses import dataclass\\n\\...tion\",\\n    \"acute_sector_evacuation_required\",\\n    \"assess_acute_and_cooldown\",\\n    \"assess_break_conditions\",\\n)\\n'",
+        "2026-09-22T02:28:00.3741732Z FAILED tests/architecture/test_risk_boundaries.py::test_risk_private_and_complexity_relocations_are_exact_and_fail_closed - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3742257Z FAILED tests/architecture/test_risk_boundaries.py::test_risk_package_has_no_reverse_owner_or_platform_imports - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3742823Z FAILED tests/architecture/test_source_surface_contracts.py::test_economic_surface_covers_runtime_imports_without_runner_authority - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3743388Z FAILED tests/architecture/test_strategic_boundaries.py::test_portfolio_strategic_private_and_complexity_relocations_are_closed - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3743686Z FAILED tests/architecture/test_validation_boundaries.py::test_validation_policy_relocation_is_closed_and_source_bound - AssertionError",
+        "2026-09-22T02:28:00.3743983Z FAILED tests/architecture/test_validation_boundaries.py::test_validation_policy_resigned_relocation_tamper_is_rejected - AssertionError",
+        "2026-09-22T02:28:00.3744540Z FAILED tests/architecture/test_validation_boundaries.py::test_validation_policy_relocated_debt_is_exact_bidirectional_and_non_growing - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3745411Z FAILED tests/architecture/test_validation_boundaries.py::test_validation_architecture_public_policy_transport_rejects_unknown_identity_or_callee[uquant/validation/generalization_policy/schema.py-schema_failures = _schema_failures-schema_failures = _replay_error] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3746294Z FAILED tests/architecture/test_validation_boundaries.py::test_validation_architecture_public_policy_transport_rejects_unknown_identity_or_callee[uquant/validation/generalization_policy/evaluation_stages.py-schema.schema_failures(-schema.replay_error(] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3746819Z FAILED tests/architecture/test_validation_boundaries.py::test_validation_policy_unknown_debt_is_not_hidden_by_relocation - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3747555Z FAILED tests/architecture/test_validation_boundaries.py::test_validation_holdout_unknown_holdout_debt_is_not_hidden_by_relocation - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3748124Z FAILED tests/architecture/test_validation_public_owners.py::test_architecture_validation_inventory_and_public_owner_routes_are_exact - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:28:00.3748512Z FAILED tests/architecture/test_validation_public_owners.py::test_architecture_validation_closes_all_raw_private_edges - AssertionError: assert [{'id': 'uqua...cation', ...}] == []"
+      ]
+    },
+    {
+      "id": 106590263579,
+      "name": "Python 3.12",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:12:44Z",
+      "run_id": 35678573820,
+      "failures": []
+    },
+    {
+      "id": 106590263595,
+      "name": "Tests (architecture-foundation)",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-09-22T02:11:54Z",
+      "completed_at": "2026-09-22T02:16:17Z",
+      "run_id": 35678573820,
+      "failures": [
+        "2026-09-22T02:16:13.8173458Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_layers - AssertionError: unexpected CLI owner transport typed seam owner _observation_lock",
+        "2026-09-22T02:16:13.8176168Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_analyzer_mutations_expose_unknown_debt_instead_of_filtering_it - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:16:13.8178634Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_cross_private_debt_is_zero_without_renamed_exemptions - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:16:13.8181293Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_mutable_global_debt_is_genuinely_immutable - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:16:13.8183587Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_production_type_ignore_debt_is_zero - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:16:13.8186164Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_duplicate_private_helper_debt_is_zero_without_generic_utils - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:16:13.8188005Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_portfolio_pipeline_has_one_combined_capital_owner - AssertionError: assert <function PortfolioAllocator._allocate_strategy at 0x7fb191b253a0> is <function _allocate_strategy at 0x7fb1912a8a40>",
+        "2026-09-22T02:16:13.8192135Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_contract_rejects_authority_and_split_book_mutations[uquant/portfolio/pipeline.py-date=date, risk=risk, user_panel=user_panel-date=date, risk=account, user_panel=user_panel] - assert 'date=date, risk=risk, user_panel=user_panel' in '\"\"\"One capital budget for retained holdings, restoration and core admissions.\"\"\"\\n\\nfrom __future__ import annotation...ilities),\\n        \"ordinary_market\": market,\\n    }\\n    return targets\\n\\n\\nallocate_strategy = _allocate_strategy\\n'",
+        "2026-09-22T02:16:13.8195832Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_contract_rejects_authority_and_split_book_mutations[uquant/portfolio/pipeline.py-proposed=book.proposed, leaders=book.leaders-proposed=book.weights_now, leaders=book.leaders] - assert 'proposed=book.proposed, leaders=book.leaders' in '\"\"\"One capital budget for retained holdings, restoration and core admissions.\"\"\"\\n\\nfrom __future__ import annotation...ilities),\\n        \"ordinary_market\": market,\\n    }\\n    return targets\\n\\n\\nallocate_strategy = _allocate_strategy\\n'",
+        "2026-09-22T02:16:13.8199633Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_contract_rejects_authority_and_split_book_mutations[uquant/portfolio/pipeline.py-owned, strategic_targets, proposed, committed, cash_room)-owned, strategic_targets, dict(proposed), committed, cash_room)] - assert 'owned, strategic_targets, proposed, committed, cash_room)' in '\"\"\"One capital budget for retained holdings, restoration and core admissions.\"\"\"\\n\\nfrom __future__ import annotation...ilities),\\n        \"ordinary_market\": market,\\n    }\\n    return targets\\n\\n\\nallocate_strategy = _allocate_strategy\\n'",
+        "2026-09-22T02:16:13.8202416Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_feasibility_rejects_unsettled_budget_mutations[date=date, gross_cap=gross_cap,-date=date, gross_cap=self.cfg.max_gross,] - assert 0 == 1",
+        "2026-09-22T02:16:13.8206590Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_feasibility_rejects_unsettled_budget_mutations[committed=book.committed, cash_room=book.cash_room-committed=book.proposed, cash_room=book.cash_room] - assert 0 == 1",
+        "2026-09-22T02:16:13.8211221Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_current_blockers_match_empty_acceptance_allowlist - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]"
+      ]
+    },
+    {
+      "id": 106590263612,
+      "name": "Tests (application-left)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": null,
+      "run_id": 35678573820
+    },
+    {
+      "id": 106590263642,
+      "name": "Tests (architecture-portfolio)",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:27:52Z",
+      "run_id": 35678573820,
+      "failures": [
+        "2026-09-22T02:27:48.9747958Z _ ERROR at setup of test_module_and_function_debt_is_exact_non_growing_and_monotonic _",
+        "2026-09-22T02:27:48.9772185Z _ ERROR at setup of test_global_type_ignore_and_duplicate_helper_debt_is_exact_and_monotonic _",
+        "2026-09-22T02:27:48.9789527Z _ ERROR at setup of test_live_debt_can_shrink_without_rewriting_the_frozen_baseline _",
+        "2026-09-22T02:27:48.9806452Z _ ERROR at setup of test_live_debt_cannot_exceed_its_initial_per_identity_severity _",
+        "2026-09-22T02:27:48.9823753Z _ ERROR at setup of test_production_imports_never_point_to_nonproduction_roots _",
+        "2026-09-22T02:27:48.9899019Z ____ ERROR at setup of test_every_internal_module_has_an_explicit_authority ____",
+        "2026-09-22T02:27:48.9915281Z _ ERROR at setup of test_cross_module_private_import_debt_is_exact_and_can_only_shrink _",
+        "2026-09-22T02:27:48.9931019Z _ ERROR at setup of test_internal_import_cycles_are_exact_and_can_only_disappear _",
+        "2026-09-22T02:27:48.9947064Z _ ERROR at setup of test_private_import_and_cycle_debt_can_disappear_without_baseline_edits _",
+        "2026-09-22T02:27:48.9962956Z _ ERROR at setup of test_config_and_models_keep_the_required_leaf_dependency_direction _",
+        "2026-09-22T02:27:49.7600731Z FAILED tests/architecture/test_config_boundaries.py::test_config_private_edges_are_exactly_bound_to_the_mechanical_split - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7602442Z FAILED tests/architecture/test_config_public_owners.py::test_architecture_config_public_routes_preserve_exact_owner_identity - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7604472Z FAILED tests/architecture/test_config_public_owners.py::test_architecture_current_config_importers_keep_exact_local_bindings - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7606044Z FAILED tests/architecture/test_config_public_owners.py::test_architecture_config_private_edges_are_closed_at_baseline_and_current - AssertionError: assert {'direct': [{...'dynamic': []} == {'direct': []...'dynamic': []}",
+        "2026-09-22T02:27:49.7614904Z FAILED tests/architecture/test_execution_application_boundaries.py::test_execution_source_surface_migration_is_exact_for_all_five_v1_surfaces - AssertionError: assert {'uquant/__in...tore.py', ...} == {'uquant/__in...tore.py', ...}",
+        "2026-09-22T02:27:49.7659820Z FAILED tests/architecture/test_execution_application_boundaries.py::test_execution_facade_and_decision_fanout_are_bounded - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7661545Z FAILED tests/architecture/test_execution_application_boundaries.py::test_execution_private_edges_are_exactly_bound_to_the_mechanical_split - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7663506Z FAILED tests/architecture/test_execution_application_boundaries.py::test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_exemption - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7665249Z FAILED tests/architecture/test_execution_application_boundaries.py::test_execution_moved_definitions_are_mechanically_bound_to_immutable_source - AssertionError: assert 'FunctionDef(...pe_params=[])' == 'FunctionDef(...pe_params=[])'",
+        "2026-09-22T02:27:49.7673717Z FAILED tests/architecture/test_execution_application_boundaries.py::test_execution_engine_method_reflection_and_descriptors_match_immutable_source - AssertionError: assert 'uquant.appli...imeline_cache' == 'uquant.engine'",
+        "2026-09-22T02:27:49.7676159Z FAILED tests/architecture/test_execution_application_boundaries.py::test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[account=account, orders=orders, risk=risk, date=-account=account, orders=previous_orders, risk=risk, date=] - assert 0 == 1",
+        "2026-09-22T02:27:49.7680818Z FAILED tests/architecture/test_execution_risk_public_owners.py::test_architecture_execution_risk_public_routes_preserve_exact_owner_identity[6] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7682747Z FAILED tests/architecture/test_execution_risk_public_owners.py::test_architecture_execution_risk_public_routes_preserve_exact_owner_identity[7] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7684525Z FAILED tests/architecture/test_execution_risk_public_owners.py::test_architecture_execution_risk_importers_keep_exact_local_legacy_bindings[6] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7686299Z FAILED tests/architecture/test_execution_risk_public_owners.py::test_architecture_execution_risk_importers_keep_exact_local_legacy_bindings[7] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7688026Z FAILED tests/architecture/test_execution_risk_public_owners.py::test_architecture_execution_risk_current_private_edges_are_closed[6] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7689734Z FAILED tests/architecture/test_execution_risk_public_owners.py::test_architecture_execution_risk_current_private_edges_are_closed[7] - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:49.7691341Z FAILED tests/architecture/test_execution_risk_public_owners.py::test_architecture_execution_risk_raw_count_progression_is_exact - AssertionError: assert {'direct': [{...'dynamic': []} == {'direct': []...'dynamic': []}",
+        "2026-09-22T02:27:49.7699557Z FAILED tests/architecture/test_portfolio_boundaries.py::test_portfolio_allocator_preserves_risk_owners_and_validates_combined_strategy - AssertionError",
+        "2026-09-22T02:27:49.7700778Z FAILED tests/architecture/test_portfolio_boundaries.py::test_portfolio_allocator_source_surface_migration_is_exact - AssertionError: assert {'uquant/__in...tore.py', ...} == {'uquant/__in...tore.py', ...}",
+        "2026-09-22T02:27:50.6020324Z FAILED tests/architecture/test_portfolio_boundaries.py::test_portfolio_allocator_private_and_complexity_relocations_are_exact_and_closed - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6025869Z FAILED tests/architecture/test_portfolio_boundaries.py::test_portfolio_leaders_private_and_complexity_relocations_are_exact - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6030013Z FAILED tests/architecture/test_portfolio_boundaries.py::test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events[event.get(\"event\") == ENTRY] - assert 0 == 1",
+        "2026-09-22T02:27:50.6039981Z FAILED tests/architecture/test_portfolio_boundaries.py::test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events[True] - assert 0 == 1",
+        "2026-09-22T02:27:50.6047849Z ERROR tests/architecture/test_complexity_budgets.py::test_module_and_function_debt_is_exact_non_growing_and_monotonic - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6051028Z ERROR tests/architecture/test_complexity_budgets.py::test_global_type_ignore_and_duplicate_helper_debt_is_exact_and_monotonic - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6054536Z ERROR tests/architecture/test_complexity_budgets.py::test_live_debt_can_shrink_without_rewriting_the_frozen_baseline - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6057687Z ERROR tests/architecture/test_complexity_budgets.py::test_live_debt_cannot_exceed_its_initial_per_identity_severity - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6060865Z ERROR tests/architecture/test_import_contracts.py::test_production_imports_never_point_to_nonproduction_roots - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6064198Z ERROR tests/architecture/test_import_contracts.py::test_every_internal_module_has_an_explicit_authority - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6067359Z ERROR tests/architecture/test_import_contracts.py::test_cross_module_private_import_debt_is_exact_and_can_only_shrink - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6070537Z ERROR tests/architecture/test_import_contracts.py::test_internal_import_cycles_are_exact_and_can_only_disappear - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6074352Z ERROR tests/architecture/test_import_contracts.py::test_private_import_and_cycle_debt_can_disappear_without_baseline_edits - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:27:50.6077605Z ERROR tests/architecture/test_import_contracts.py::test_config_and_models_keep_the_required_leaf_dependency_direction - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]"
+      ]
+    },
+    {
+      "id": 106590263692,
+      "name": "Tests (application-right)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:26:09Z",
+      "run_id": 35678573820,
+      "failures": []
+    },
+    {
+      "id": 106590263643,
+      "name": "Absolute input preflight",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:12:20Z",
+      "run_id": 35678573917,
+      "failures": []
+    },
+    {
+      "id": 106590361560,
+      "name": "Generalization Acceptance",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-09-22T02:12:22Z",
+      "completed_at": "2026-09-22T02:12:25Z",
+      "run_id": 35678573917,
+      "failures": []
+    },
+    {
+      "id": 106590361944,
+      "name": "Absolute shard (${{ matrix.shard }})",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-09-22T02:12:20Z",
+      "completed_at": "2026-09-22T02:12:20Z",
+      "run_id": 35678573917
+    },
+    {
+      "id": 106590263527,
+      "name": "Strategic Grant Acceptance",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:31:49Z",
+      "run_id": 35678573838,
+      "failures": []
+    },
+    {
+      "id": 106590263397,
+      "name": "Ownership model tests",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:12:22Z",
+      "run_id": 35678573831,
+      "failures": []
+    },
+    {
+      "id": 106590263592,
+      "name": "Ownership shard (champion)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:12:00Z",
+      "completed_at": "2026-09-22T02:26:15Z",
+      "run_id": 35678573831,
+      "failures": []
+    },
+    {
+      "id": 106590263639,
+      "name": "Ownership shard (ghost-a)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:27:43Z",
+      "run_id": 35678573831,
+      "failures": []
+    },
+    {
+      "id": 106590263645,
+      "name": "Ownership shard (ghost-b)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:54Z",
+      "completed_at": "2026-09-22T02:26:49Z",
+      "run_id": 35678573831,
+      "failures": []
+    },
+    {
+      "id": 106590263650,
+      "name": "Ownership shard (continuity)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:18:50Z",
+      "run_id": 35678573831,
+      "failures": []
+    },
+    {
+      "id": 106590263668,
+      "name": "Ownership shard (critical)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:11:52Z",
+      "completed_at": "2026-09-22T02:22:37Z",
+      "run_id": 35678573831,
+      "failures": []
+    },
+    {
+      "id": 106593278743,
+      "name": "Strategic Ownership Acceptance",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:37:07Z",
+      "completed_at": "2026-09-22T02:37:10Z",
+      "run_id": 35678573831,
+      "failures": []
+    },
+    {
+      "id": 106591666110,
+      "name": "Security and dependency audit",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:23:31Z",
+      "completed_at": "2026-09-22T02:24:20Z",
+      "run_id": 35679019524,
+      "failures": []
+    },
+    {
+      "id": 106591666348,
+      "name": "Tests (architecture-foundation)",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-09-22T02:24:54Z",
+      "completed_at": "2026-09-22T02:29:13Z",
+      "run_id": 35679019524,
+      "failures": [
+        "2026-09-22T02:29:11.6239472Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_layers - AssertionError: unexpected CLI owner transport typed seam owner _observation_lock",
+        "2026-09-22T02:29:11.6242719Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_analyzer_mutations_expose_unknown_debt_instead_of_filtering_it - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:29:11.6245171Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_cross_private_debt_is_zero_without_renamed_exemptions - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:29:11.6247310Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_mutable_global_debt_is_genuinely_immutable - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:29:11.6249370Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_production_type_ignore_debt_is_zero - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:29:11.6251996Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_duplicate_private_helper_debt_is_zero_without_generic_utils - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]",
+        "2026-09-22T02:29:11.6254287Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_portfolio_pipeline_has_one_combined_capital_owner - AssertionError: assert <function PortfolioAllocator._allocate_strategy at 0x7f3a0499d3a0> is <function _allocate_strategy at 0x7f3a040d0a40>",
+        "2026-09-22T02:29:11.6258133Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_contract_rejects_authority_and_split_book_mutations[uquant/portfolio/pipeline.py-date=date, risk=risk, user_panel=user_panel-date=date, risk=account, user_panel=user_panel] - assert 'date=date, risk=risk, user_panel=user_panel' in '\"\"\"One capital budget for retained holdings, restoration and core admissions.\"\"\"\\n\\nfrom __future__ import annotation...ilities),\\n        \"ordinary_market\": market,\\n    }\\n    return targets\\n\\n\\nallocate_strategy = _allocate_strategy\\n'",
+        "2026-09-22T02:29:11.6261939Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_contract_rejects_authority_and_split_book_mutations[uquant/portfolio/pipeline.py-proposed=book.proposed, leaders=book.leaders-proposed=book.weights_now, leaders=book.leaders] - assert 'proposed=book.proposed, leaders=book.leaders' in '\"\"\"One capital budget for retained holdings, restoration and core admissions.\"\"\"\\n\\nfrom __future__ import annotation...ilities),\\n        \"ordinary_market\": market,\\n    }\\n    return targets\\n\\n\\nallocate_strategy = _allocate_strategy\\n'",
+        "2026-09-22T02:29:11.6265720Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_contract_rejects_authority_and_split_book_mutations[uquant/portfolio/pipeline.py-owned, strategic_targets, proposed, committed, cash_room)-owned, strategic_targets, dict(proposed), committed, cash_room)] - assert 'owned, strategic_targets, proposed, committed, cash_room)' in '\"\"\"One capital budget for retained holdings, restoration and core admissions.\"\"\"\\n\\nfrom __future__ import annotation...ilities),\\n        \"ordinary_market\": market,\\n    }\\n    return targets\\n\\n\\nallocate_strategy = _allocate_strategy\\n'",
+        "2026-09-22T02:29:11.6268382Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_feasibility_rejects_unsettled_budget_mutations[date=date, gross_cap=gross_cap,-date=date, gross_cap=self.cfg.max_gross,] - assert 0 == 1",
+        "2026-09-22T02:29:11.6272652Z FAILED tests/architecture/test_architecture_governance.py::test_combined_allocator_feasibility_rejects_unsettled_budget_mutations[committed=book.committed, cash_room=book.cash_room-committed=book.proposed, cash_room=book.cash_room] - assert 0 == 1",
+        "2026-09-22T02:29:11.6277141Z FAILED tests/architecture/test_architecture_governance.py::test_architecture_current_blockers_match_empty_acceptance_allowlist - AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]"
+      ]
+    },
+    {
+      "id": 106591666355,
+      "name": "Python 3.12",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:28:59Z",
+      "completed_at": "2026-09-22T02:29:48Z",
+      "run_id": 35679019524,
+      "failures": []
+    },
+    {
+      "id": 106591666393,
+      "name": "Tests (application-right)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:28:48Z",
+      "completed_at": null,
+      "run_id": 35679019524
+    },
+    {
+      "id": 106591666402,
+      "name": "Windows smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:29:49Z",
+      "completed_at": "2026-09-22T02:30:30Z",
+      "run_id": 35679019524,
+      "failures": []
+    },
+    {
+      "id": 106591666407,
+      "name": "Tests (application-left)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:30:33Z",
+      "completed_at": null,
+      "run_id": 35679019524
+    },
+    {
+      "id": 106591666479,
+      "name": "Tests (architecture-remaining)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:32:00Z",
+      "completed_at": null,
+      "run_id": 35679019524
+    },
+    {
+      "id": 106591666531,
+      "name": "Tests (architecture-portfolio)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:31:23Z",
+      "completed_at": null,
+      "run_id": 35679019524
+    },
+    {
+      "id": 106591666142,
+      "name": "Absolute input preflight",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-22T02:23:03Z",
+      "completed_at": "2026-09-22T02:23:27Z",
+      "run_id": 35679019431,
+      "failures": []
+    },
+    {
+      "id": 106592484786,
+      "name": "Absolute shard (loo-d)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:35:46Z",
+      "completed_at": null,
+      "run_id": 35679019431
+    },
+    {
+      "id": 106592484806,
+      "name": "Absolute shard (loo-c)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:28:06Z",
+      "completed_at": null,
+      "run_id": 35679019431
+    },
+    {
+      "id": 106592484810,
+      "name": "Absolute shard (loo-a)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:39:35Z",
+      "completed_at": null,
+      "run_id": 35679019431
+    },
+    {
+      "id": 106592484813,
+      "name": "Absolute shard (loo-e)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:24:32Z",
+      "completed_at": null,
+      "run_id": 35679019431
+    },
+    {
+      "id": 106592484814,
+      "name": "Absolute shard (champion)",
+      "status": "queued",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:23:30Z",
+      "completed_at": null,
+      "run_id": 35679019431
+    },
+    {
+      "id": 106592484816,
+      "name": "Absolute shard (loo-f)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:31:50Z",
+      "completed_at": null,
+      "run_id": 35679019431
+    },
+    {
+      "id": 106592484827,
+      "name": "Absolute shard (loo-b)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:29:15Z",
+      "completed_at": null,
+      "run_id": 35679019431
+    },
+    {
+      "id": 106592484883,
+      "name": "Absolute shard (recovery-and-reachability)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-09-22T02:32:00Z",
+      "completed_at": null,
+      "run_id": 35679019431
+    }
+  ],
+  "logs": [
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/imports.txt.gz",
+      "bytes": 39,
+      "sha256": "6f4e3c8cb6a43f32a8b47add0b65207f17bd814c84308623b3720ad789c0d769",
+      "compressed_sha256": "a08b7a5eba3827fc8434cf36e68ffee89e77d59f2940429811f573020371c1e4"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/lint.txt.gz",
+      "bytes": 477,
+      "sha256": "b04336423f6183f1d1e9ccbe55a3b4ac367bedf7855ca5010469fe38a45890e8",
+      "compressed_sha256": "0c1561114396599e937ae80abc7c46d8dcf872ce76ce98e6c30c64a23d8aa509"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/focused.txt.gz",
+      "bytes": 1736,
+      "sha256": "3fcb216d5c35acc292fd706076dba36cda6b40e231e2b8d771b1313431f66b37",
+      "compressed_sha256": "7fc6cf9a35007f770115065652fd0dfe269be42f7802544b19f53959b570ea31"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573820-106590263442.txt.gz",
+      "bytes": 78728,
+      "sha256": "877696d820a2bdfa7ffc2aff6988d6a9004965789eb825c12edf91ab69939256",
+      "compressed_sha256": "d549cc4542097f742d08e2f1f677dac41b9078d2a44f91e24dbc3170d85f15e9"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573820-106590263512.txt.gz",
+      "bytes": 17507,
+      "sha256": "e386cf35572cfa0522028c0a85e25fd1ac15614291473d3a8ab549b147ae06c4",
+      "compressed_sha256": "0d1dfa44a67498506fcc39939bb02867a46eb6dea7663077586aea6cca10c808"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573820-106590263575.txt.gz",
+      "bytes": 4612459,
+      "sha256": "1bae39f775ba446d2cfc70441bf80b5c2b9c2376f2324ff0d358554043eb640a",
+      "compressed_sha256": "510220b7d77265321ed81e52b56722cf5c61590974f9e83fdbd1d5345471f680"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573820-106590263579.txt.gz",
+      "bytes": 155296,
+      "sha256": "de52437b159b02ce3da77192fb2950b55286d5ea873eea8a61f8253ecc40bf02",
+      "compressed_sha256": "df51aa86e948d5736f593b8f01ca8fabd200704d59f15f5c1d62df3a46d560ff"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573820-106590263595.txt.gz",
+      "bytes": 104500,
+      "sha256": "0c58d8f790cf03a7eb87e6f830d9f7a9ff5a4b0b7135aae30ca37a54779243fa",
+      "compressed_sha256": "ae682865e11a25c12b2a7e2a88ed431eb98b076a91505f18ccd511236b5a9878"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573820-106590263642.txt.gz",
+      "bytes": 248063,
+      "sha256": "fbdeab879f22cd9f234f129d7bc02fdb9076a265bb01d14f768783197280f994",
+      "compressed_sha256": "d5df6686088c746998d59f5a073ccd2731457b283f414dfc140dcc0d5d12a438"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573820-106590263692.txt.gz",
+      "bytes": 55146,
+      "sha256": "aa9bff4adf71ca6d81ce346a5081b974d84c70280561d508fec9c0d48516d766",
+      "compressed_sha256": "b2f7ffe7f738b373c616a7109846ff860faacce714afc985008a930efbf9e500"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573917-106590263643.txt.gz",
+      "bytes": 48533,
+      "sha256": "d3414da353b59522eac8378501064d3a2fa067f9e85ed0bd7a486c9754ba5ece",
+      "compressed_sha256": "e42227ebef5adf44ffd86f587f6206cb6dbda8d01c7056796007b340a1abae9a"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573917-106590361560.txt.gz",
+      "bytes": 3120,
+      "sha256": "67a900672935a9fb2bbd7cabc10143e07560cbeb1cd0ac7ecb807810c97b916a",
+      "compressed_sha256": "d4b37d2d393e7e6acc7439d1d62de8f9ea1ada6156683624fb22992cb34dace8"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573838-106590263527.txt.gz",
+      "bytes": 28909,
+      "sha256": "75d399db3e45b5ccb4c7e61c7b95ea48fadfff8cb436d5ff28331d9558943164",
+      "compressed_sha256": "c2efb24e7a25515b83f95f2034cb1b40b74276aea7e08b0febc2682960ed7596"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573831-106590263397.txt.gz",
+      "bytes": 23255,
+      "sha256": "cffdc348aa4ecef250ae1105f3232c25e7cdd3c5f9c8fc55f6cc163e08e7e66a",
+      "compressed_sha256": "9e0a4e42697ec39637f8d92c85aa199235180e7aa0ec6a48f8f8d4dcb8ec89a9"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573831-106590263592.txt.gz",
+      "bytes": 36282,
+      "sha256": "33825e64c955ce0bbd589288cca978247855eb23afc7275d56892124ea3e3c23",
+      "compressed_sha256": "24b47e63e2acb46d00a03f6e7c2299501c706315ad7153a894f8940472a09b37"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573831-106590263639.txt.gz",
+      "bytes": 36261,
+      "sha256": "f5c4361788fa736b046496e9fb7d99a88ca6ed4d2738171297b4c2959bba16e1",
+      "compressed_sha256": "91e820968437b94efcc2d63f476a6b10f0bb8f419e4eecfb30b8863a30d0f30d"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573831-106590263645.txt.gz",
+      "bytes": 36265,
+      "sha256": "bc2048856310aa65f3d68e77aa7d833fb3ad3d4341da1758a6621c8ffab39697",
+      "compressed_sha256": "02f48fff1a32583815864676311a4c7fce3ec7ae9b71c056b03ffea878767f3b"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573831-106590263650.txt.gz",
+      "bytes": 36378,
+      "sha256": "451127b30f21e3dbe1af525672e18d19df3cc5747378abf70af13912f8760970",
+      "compressed_sha256": "ec49554364aad02ac605df65e8aa877c53c7eddeea3b1dd4489d788439eca505"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573831-106590263668.txt.gz",
+      "bytes": 36278,
+      "sha256": "9188bfb1a4afc3aa0b6424f57f5dcee9a20c5edd03f1fc24fb84e11ff57c8517",
+      "compressed_sha256": "2ad1e843fdb43799339e200c0bc77a5447799cc4186541468a7e741babb95c38"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35678573831-106593278743.txt.gz",
+      "bytes": 2426,
+      "sha256": "edd23200b7a100a1080d02568627b3df044034929cd8f3c5f2abc3af5a62b785",
+      "compressed_sha256": "7e240c1464f9efd3a1a15cdb13865cc82cd078d884b73f559c868d143365689d"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35679019524-106591666110.txt.gz",
+      "bytes": 78769,
+      "sha256": "33526695249cbf68361d5dd9c6b6d2ac19e9838c9dac22a859abb8101dc9ac35",
+      "compressed_sha256": "d94fc68c09fbed2950796346e814c7407a13115bb89da5bcbeb17e64ab2af50b"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35679019524-106591666348.txt.gz",
+      "bytes": 104500,
+      "sha256": "4250f7bf4867cfeea806278acf647f78ef3672b692badfeab7a3c734e9dd9393",
+      "compressed_sha256": "3b19cf80baaa98c2bf0dc91994ac73d1a2d6f537f3b1d232c00ea4684c566653"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35679019524-106591666355.txt.gz",
+      "bytes": 155303,
+      "sha256": "59baca2115f83ee06979224a13778bb646d8a1048bf6884f96bd54b38c99b4cd",
+      "compressed_sha256": "3d195b39e3bd5327b01f07e8f2ff6ab37a9501f785dd49eaa9c7f1cb6d33d43d"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35679019524-106591666402.txt.gz",
+      "bytes": 17515,
+      "sha256": "09a3fc1a6761db2ced054b41b22c3b20bc3c415a3b2d417e0a4aec2b4cfd9557",
+      "compressed_sha256": "ad5c436e09befa808024de0af675236da40e91c5fb9712d3d24381ddaf78bb4d"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35679952573/35679019431-106591666142.txt.gz",
+      "bytes": 44830,
+      "sha256": "3f0c248d097e405ad801b0f93f7fd0c9233cf681cdf4592a207c62e947321ad7",
+      "compressed_sha256": "6af185e5359344e69574a4e19fbd19eecedbeffa0998be0d05329891774b634b"
+    }
+  ],
+  "checks": [
+    {
+      "name": "imports",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--select",
+        "I",
+        "--fix",
+        "tests/architecture/_analysis_authorities.py",
+        "tests/architecture/_owner_transport.py",
+        "uquant/application/__init__.py",
+        "uquant/application/decision.py",
+        "tests/architecture/_cli_transport.py",
+        "tests/architecture/_execution_application_transport.py",
+        "tests/architecture/_portfolio_transport.py",
+        "tests/architecture/test_execution_application_boundaries.py",
+        "tests/architecture/_source_mutations.py"
+      ],
+      "exit_code": 0,
+      "tail": "Found 2 errors (2 fixed, 0 remaining).\n"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "tests/architecture/_analysis_authorities.py",
+        "tests/architecture/_owner_transport.py",
+        "uquant/application/__init__.py",
+        "uquant/application/decision.py",
+        "tests/architecture/_cli_transport.py",
+        "tests/architecture/_execution_application_transport.py",
+        "tests/architecture/_portfolio_transport.py",
+        "tests/architecture/test_execution_application_boundaries.py",
+        "tests/architecture/_source_mutations.py"
+      ],
+      "exit_code": 1,
+      "tail": "PERF401 Use `list.extend` to create a transformed list\n  --> tests/architecture/_source_mutations.py:17:21\n   |\n15 |             for token in iterator:\n16 |                 if token.type not in ignored:\n17 |                     result.append(token)\n   |                     ^^^^^^^^^^^^^^^^^^^^\n18 |         except tokenize.TokenError:\n19 |             # A stimulus is often a deliberately incomplete call fragment.\n   |\nhelp: Replace for loop with list.extend\n\nFound 1 error.\n"
+    },
+    {
+      "name": "focused",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "-q",
+        "--tb=short",
+        "tests/architecture/test_execution_application_boundaries.py",
+        "tests/test_absolute_generalization_contract.py",
+        "--junitxml=artifacts/code-audit-fix/full-validation/35679952573/focused.xml"
+      ],
+      "exit_code": 1,
+      "tail": "...F.F.....................................                              [100%]\n=================================== FAILURES ===================================\n____________ test_execution_facade_and_decision_fanout_are_bounded _____________\ntests/architecture/test_execution_application_boundaries.py:599: in test_execution_facade_and_decision_fanout_are_bounded\n    assert engine_lines < 120\nE   assert 213 < 120\n_ test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_exemption _\ntests/architecture/test_execution_application_boundaries.py:681: in test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_exemption\n    assert not observed & normalized_ids\nE   AssertionError: assert not ({'uquant.application.decision:_allocate_decision_orders'} & {'uquant.application.decision:_allocate_decision_orders', 'uquant.portfolio:PortfolioAllocator._allocate_strategy', 'u...lidation.production_observation:_preflight_run', 'uquant.validation.production_observation:run_production_observation'})\n=========================== short test summary info ============================\nFAILED tests/architecture/test_execution_application_boundaries.py::test_execution_facade_and_decision_fanout_are_bounded - assert 213 < 120\nFAILED tests/architecture/test_execution_application_boundaries.py::test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_exemption - AssertionError: assert not ({'uquant.application.decision:_allocate_decision_orders'} & {'uquant.application.decision:_allocate_decision_orders', 'uquant.portfolio:PortfolioAllocator._allocate_strategy', 'u...lidation.production_observation:_preflight_run', 'uquant.validation.production_observation:run_production_observation'})\n"
+    }
+  ],
+  "blocked_batch": "batch-3 was not admitted by tool safety; not applied or counted as fixed",
+  "tested_source": "9fc41685b87231f50b8d72e8a182a402b57bba24",
+  "source_files": {
+    "tests/architecture/_analysis_authorities.py": {
+      "bytes": 32491,
+      "sha256": "2496b7f8238e8b367fa6e4b3b82a19f4e077b83b1b804624f6926b7b0486dffd",
+      "git_blob": "54db262b3760205f00b68a9230bd00ae749b2102"
+    },
+    "tests/architecture/_owner_transport.py": {
+      "bytes": 67941,
+      "sha256": "ee80aa16012d5d6111ce0eac5adb95e2f57f711dddc7710fb21893cc33b214e9",
+      "git_blob": "fbee2c1b1a784a135ceca7faf521b1c1759668bf"
+    },
+    "uquant/application/__init__.py": {
+      "bytes": 3881,
+      "sha256": "519ce2c241f28283b30374f9e34eb8dd6f8246a46f627645ee22b398caa3a77a",
+      "git_blob": "54e8bb37cc7ad231b98af7da14aa1a12061c0caa"
+    },
+    "uquant/application/decision.py": {
+      "bytes": 37381,
+      "sha256": "75e2a7c0e58057a6982f7db6403b3acb3dd2d15b6197b4741e8ba3a2b9ccad27",
+      "git_blob": "f3db1cc33a0ab676eb47bb5943211d6ad4d94c9b"
+    },
+    "tests/architecture/_cli_transport.py": {
+      "bytes": 18732,
+      "sha256": "e29db84a8425778623675828825f6340ee797cc016ace5a2f032f11c4285be2c",
+      "git_blob": "e4676a636c8a73a82ee2eb055d7c41dbf52801fb"
+    },
+    "tests/architecture/_execution_application_transport.py": {
+      "bytes": 13311,
+      "sha256": "4d3c9bf9ace1ff936405f77be98fe149113942c757bf65be976a2df4152b0318",
+      "git_blob": "7c893513696fb64615e9d994530b72520256dc1f"
+    },
+    "tests/architecture/_portfolio_transport.py": {
+      "bytes": 19692,
+      "sha256": "c04e9644333ea182ccbde47d6a3cd1922aaf9792cbb02966a2b6a5dcf69ae96e",
+      "git_blob": "2315311bd6cfa289ca2a57ba76d154e718b9f008"
+    },
+    "tests/architecture/test_execution_application_boundaries.py": {
+      "bytes": 48025,
+      "sha256": "8ed98f63ebad86ddf006cc39f77cd24a9fbadb76ac6383018cad8139a2d2913b",
+      "git_blob": "c3ab3e33ef09305f370090c8135c80e32464c7a9"
+    },
+    "tests/architecture/_source_mutations.py": {
+      "bytes": 1559,
+      "sha256": "9bd83e567c9741193a0de86fd6499622714d7e1df0d5e7767d2f1d9bb476d90d",
+      "git_blob": "71e4a2c950b3638c4099c231610b8b4492d90199"
+    }
+  },
+  "passed": false
+}

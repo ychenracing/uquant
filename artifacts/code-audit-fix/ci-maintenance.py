@@ -1,4 +1,4 @@
-"""One-shot PR83 registry repair and original completed-job evidence collection."""
+"""Bounded PR83 checks and file-backed collection of existing CI evidence."""
 from __future__ import annotations
 import gzip
 import hashlib
@@ -9,88 +9,56 @@ from pathlib import Path
 
 BRANCH = 'codex/code-audit-fixes-20260922'
 REPO = 'ychenracing/uquant'
-RUNS = (35678573820, 35678573917, 35678573838, 35678573831)
-OUT = Path('artifacts/code-audit-fix/full-validation/initial')
+OUT = Path('artifacts/code-audit-fix/full-validation') / os.environ['GITHUB_RUN_ID']
 OUT.mkdir(parents=True, exist_ok=True)
 
-
-def git(*args: str) -> str:
+def git(*args):
     return subprocess.check_output(['git', *args], text=True).strip()
 
-
-def api(endpoint: str) -> object:
+def api(endpoint):
     return json.loads(subprocess.check_output(['gh', 'api', f'repos/{REPO}/{endpoint}']))
 
+def store(name, data):
+    p=OUT/(name+'.gz'); p.write_bytes(gzip.compress(data,mtime=0))
+    return {'path':str(p),'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'compressed_sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
 
-head = git('rev-parse', 'HEAD')
-assert os.environ['GITHUB_REF_NAME'] == BRANCH
-assert not git('status', '--porcelain', '--untracked-files=no')
-summary = {'input_head': head, 'runs': [], 'logs': []}
-for run_id in RUNS:
-    run = api(f'actions/runs/{run_id}')
-    jobs = []
-    page = 1
-    while True:
-        batch = api(f'actions/runs/{run_id}/jobs?per_page=100&page={page}')['jobs']
-        jobs.extend(batch)
-        if len(batch) < 100:
-            break
-        page += 1
-    record = {'run_id': run_id, 'head_sha': run['head_sha'], 'status': run['status'],
-              'conclusion': run['conclusion'], 'jobs': []}
-    for job in jobs:
-        row = {key: job.get(key) for key in ('id', 'name', 'status', 'conclusion', 'started_at', 'completed_at')}
-        record['jobs'].append(row)
-        if job['status'] != 'completed' or job['conclusion'] == 'skipped':
-            continue
-        raw = OUT / f"{run_id}-{job['id']}.txt"
-        with raw.open('wb') as output:
-            result = subprocess.run(['gh', 'api', f"repos/{REPO}/actions/jobs/{job['id']}/logs"], stdout=output, stderr=subprocess.PIPE)
-        if result.returncode:
-            row['log_error'] = result.stderr.decode(errors='replace')[:400]
-            raw.unlink(missing_ok=True)
-            continue
-        data = raw.read_bytes()
-        compressed = raw.with_suffix('.txt.gz')
-        compressed.write_bytes(gzip.compress(data, mtime=0))
-        raw.unlink()
-        item = {'path': str(compressed), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(),
-                'compressed_sha256': hashlib.sha256(compressed.read_bytes()).hexdigest()}
-        summary['logs'].append(item)
-        text = data.decode(errors='replace')
-        row['failure_lines'] = [line[28:] for line in text.splitlines() if 'FAILED ' in line or 'ERROR ' in line or ' error:' in line][-100:]
-    summary['runs'].append(record)
-path = Path('uquant/validation/absolute_generalization/contract.py')
-content = path.read_bytes()
-assert hashlib.sha256(content).hexdigest() == '45016d4bcbc2b6aca3123aeb09f7701296ffd7374ac4b7acc064ff01599f8a67'
-old = b'f0e5d14f2f12af6f0711e0a4fa506fd29ce2a606fa74eddb89962643048105e5'
-new = b'ef45ba91d143b77222607158d28fa8bf2b1ef7610f2bbb9c1121c32c707e07ec'
-assert content.count(old) == 1
-updated = content.replace(old, new)
-assert hashlib.sha256(updated).hexdigest() == '4fba8711abe383aaf72b7a6b46221f9d9a316ffe64132a77a5faaad66dbcea60'
-path.write_bytes(updated)
-summary['repair'] = {'path': str(path), 'old_registry': old.decode(), 'new_registry': new.decode(),
-                     'sha256': hashlib.sha256(updated).hexdigest(), 'scope': 'registry membership anchor only; economic policy/config/data unchanged'}
-(OUT / 'SUMMARY.json').write_text(json.dumps(summary, indent=2) + '\n')
-git('diff', '--check')
-git('fetch', 'origin', BRANCH)
-assert git('rev-parse', 'FETCH_HEAD') == head, 'concurrent branch update; preserve local files only'
-git('config', 'user.name', 'github-actions[bot]')
-git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com')
-git('add', str(path), str(OUT))
-git('commit', '-m', 'fix: align Absolute source registry anchor and retain initial full-validation evidence')
-commit = git('rev-parse', 'HEAD')
-git('push', 'origin', f'HEAD:refs/heads/{BRANCH}')
-git('fetch', 'origin', BRANCH)
-assert git('rev-parse', 'FETCH_HEAD') == commit
-verified = []
-for name in sorted(set(git('diff', '--name-only', head, commit).splitlines()) | {'artifacts/code-audit-fix/ci-maintenance.py', '.github/workflows/audit-ci-maintenance.yml'}):
-    local = Path(name).read_bytes()
-    remote = subprocess.check_output(['git', 'show', f'FETCH_HEAD:{name}'])
-    assert local == remote
-    blob = hashlib.sha1(b'blob ' + str(len(local)).encode() + b'\0' + local).hexdigest()
-    assert git('rev-parse', f'FETCH_HEAD:{name}') == blob
-    verified.append({'path': name, 'bytes': len(local), 'sha256': hashlib.sha256(local).hexdigest(), 'git_blob': blob})
-receipt = {'commit': commit, 'branch': BRANCH, 'verified_files': verified}
-Path('/tmp/pr83-readback.json').write_text(json.dumps(receipt, indent=2) + '\n')
-print(json.dumps({'commit': commit, 'logs_preserved': len(summary['logs']), 'readback_verified': True}))
+head=git('rev-parse','HEAD')
+assert os.environ['GITHUB_REF_NAME']==BRANCH
+summary={'head':head,'jobs':[],'logs':[],'checks':[]}
+for rid in (35678573820,35678573917,35678573838,35678573831):
+    for job in api(f'actions/runs/{rid}/jobs?per_page=100')['jobs']:
+        row={k:job.get(k) for k in ('id','name','status','conclusion','started_at','completed_at')}; row['run_id']=rid
+        summary['jobs'].append(row)
+        if job['status']!='completed' or job['conclusion']=='skipped': continue
+        log=OUT/f"{rid}-{job['id']}.raw"
+        with log.open('wb') as f:
+            ret=subprocess.run(['gh','api','--allow-escape-sequences',f"repos/{REPO}/actions/jobs/{job['id']}/logs"],stdout=f,stderr=subprocess.PIPE)
+        if ret.returncode:
+            row['log_error']=ret.stderr.decode(errors='replace')[:400]
+        else:
+            data=log.read_bytes(); summary['logs'].append(store(f"{rid}-{job['id']}.txt",data))
+            row['failures']=[s for s in data.decode(errors='replace').splitlines() if 'FAILED ' in s or 'ERROR ' in s][-100:]
+        log.unlink(missing_ok=True)
+command=['uv','run','--no-sync','pytest','-q','--tb=short','tests/architecture/test_execution_application_boundaries.py','tests/architecture/test_portfolio_public_owners.py','tests/test_absolute_generalization_contract.py',f'--junitxml={OUT}/focused.xml']
+log=OUT/'focused.raw'
+with log.open('wb') as f:
+    try: result=subprocess.run(command,stdout=f,stderr=subprocess.STDOUT,timeout=420); code=result.returncode
+    except subprocess.TimeoutExpired: code=124
+raw=log.read_bytes(); log.unlink(); summary['logs'].append(store('focused.txt',raw))
+summary['checks'].append({'command':command,'exit_code':code,'tail':raw.decode(errors='replace')[-18000:]})
+summary['passed']=code==0
+(OUT/'SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n')
+git('fetch','origin',BRANCH)
+assert git('rev-parse','FETCH_HEAD')==head,'concurrent branch update; evidence remains in artifact'
+git('config','user.name','github-actions[bot]'); git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
+git('add',str(OUT)); git('commit','-m','test: preserve full-CI originals and exact owner/Absolute diagnostic results')
+commit=git('rev-parse','HEAD'); git('push','origin',f'HEAD:refs/heads/{BRANCH}'); git('fetch','origin',BRANCH)
+assert git('rev-parse','FETCH_HEAD')==commit
+files=[]
+for name in sorted(set(git('diff','--name-only',head,commit).splitlines())|{'artifacts/code-audit-fix/ci-maintenance.py','.github/workflows/audit-ci-maintenance.yml'}):
+    b=Path(name).read_bytes(); remote=subprocess.check_output(['git','show',f'FETCH_HEAD:{name}']); assert b==remote
+    blob=hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest(); assert git('rev-parse',f'FETCH_HEAD:{name}')==blob
+    files.append({'path':name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'git_blob':blob})
+Path('/tmp/pr83-readback.json').write_text(json.dumps({'commit':commit,'files':files},indent=2)+'\n')
+print(json.dumps({'commit':commit,'passed':summary['passed'],'logs':len(summary['logs'])}))
+raise SystemExit(0 if summary['passed'] else 1)

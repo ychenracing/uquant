@@ -1,9 +1,11 @@
-"""Finish scoped integration checks; save source and originals without waiting on long CI."""
+"""Resume only incomplete governance cases and preserve exact CI status/originals."""
 from __future__ import annotations
+
 import gzip
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import zipfile
@@ -11,110 +13,90 @@ from pathlib import Path
 
 ROOT = Path.cwd()
 BRANCH = 'codex/code-audit-fixes-20260922'
+REPO = 'ychenracing/uquant'
+PRIOR = '023877453c2176a2f9399c93ef595b86e7c0d6cf'
 OUT = ROOT / 'artifacts/code-audit-fix/full-validation' / os.environ['GITHUB_RUN_ID']
 OUT.mkdir(parents=True, exist_ok=True)
 
 def git(*args):
     return subprocess.check_output(['git', *args], text=True).strip()
 
-def save_log(name, data):
-    path = OUT / (name + '.txt.gz')
-    path.write_bytes(gzip.compress(data, mtime=0))
-    return {'path': str(path.relative_to(ROOT)), 'raw_bytes': len(data),
-            'raw_sha256': hashlib.sha256(data).hexdigest(), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+def api(endpoint):
+    return json.loads(subprocess.check_output(['gh', 'api', f'repos/{REPO}/{endpoint}'], timeout=25))
+
+def identity(data):
+    return {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(),
+            'git_blob': hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()}
 
 head = git('rev-parse', 'HEAD')
-assert os.environ['GITHUB_REF_NAME'] == BRANCH
-assert head == os.environ['GITHUB_SHA'], 'superseded: no replay of repairs on another revision'
+assert head == os.environ['GITHUB_SHA'] and os.environ['GITHUB_REF_NAME'] == BRANCH
 assert not git('status', '--porcelain', '--untracked-files=no')
-summary = {'input_head': head, 'checks': [], 'logs': []}
+assert not git('diff', '--name-only', PRIOR, head, '--', 'uquant', 'tests', 'benchmarks', 'data', 'uv.lock', 'pyproject.toml')
+prior_log = ROOT / 'artifacts/code-audit-fix/full-validation/35683876795/remaining-governance.txt.gz'
+raw_prior = gzip.decompress(prior_log.read_bytes())
+passed = re.findall(r'^(tests/.+?) PASSED ', raw_prior.decode(), flags=re.MULTILINE)
+assert len(passed) == 38 and len(set(passed)) == 38
+assert ' FAILED ' not in raw_prior.decode()
+summary = {'input_head': head, 'tested_source': head, 'reused_from': PRIOR,
+           'reused_governance_cases': passed, 'previous_complete_boundary_cases': 33,
+           'checks': [], 'logs': [], 'formal_runs': [], 'full_acceptance_passed': None}
 
-def checkpoint():
-    (OUT / 'SUMMARY.json').write_text(json.dumps(summary, indent=2) + '\n')
-
-def check(name, command, timeout=120):
-    raw = OUT / (name + '.raw')
-    with raw.open('wb') as f:
-        try:
-            status = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT, timeout=timeout).returncode
-        except subprocess.TimeoutExpired:
-            status = 124
-    data = raw.read_bytes();raw.unlink()
-    summary['logs'].append(save_log(name, data))
-    summary['checks'].append({'name': name, 'command': command, 'exit_code': status,
-                              'tail': data.decode(errors='replace')[-6000:]})
-    checkpoint()
-    return status
-
-def export_files(commit):
-    rows = []
-    changed = git('diff', '--name-only', head, commit).splitlines()
-    names = sorted(set(changed) | {'artifacts/code-audit-fix/ci-maintenance.py',
-        'artifacts/code-audit-fix/full-validation/followup-repairs.py',
-        'artifacts/code-audit-fix/full-validation/api-evolution.py'})
-    with zipfile.ZipFile('/tmp/pr83-changed-source.zip', 'w', compression=zipfile.ZIP_DEFLATED) as z:
-        for name in names:
-            path = ROOT / name
-            if not path.is_file():
-                continue
-            data = path.read_bytes()
-            blob = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
-            assert blob == git('rev-parse', f'{commit}:{name}')
-            rows.append({'path': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(), 'git_blob': blob})
-            z.write(path, name)
-        receipt = {'commit': commit, 'files': rows}
-        z.writestr('READBACK.json', json.dumps(receipt, indent=2))
-    Path('/tmp/pr83-readback.json').write_text(json.dumps(receipt, indent=2))
-
-try:
-    assert check('apply-fixtures', [sys.executable, 'artifacts/code-audit-fix/full-validation/followup-repairs.py'], 20) == 0
-    assert check('api-evolution', ['uv', 'run', '--no-sync', 'python', 'artifacts/code-audit-fix/full-validation/api-evolution.py'], 45) == 0
-    changed = [p for p in git('diff', '--name-only').splitlines() if p.endswith('.py')]
-    changed += ['tests/architecture/_code_audit_api_projection.py']
-    check('imports', ['uv', 'run', '--no-sync', 'ruff', 'check', '--select', 'I', '--fix', *changed], 30)
-    git('config', 'user.name', 'github-actions[bot]')
-    git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com')
-    git('add', *changed, 'tests/fixtures/code_audit_api_delta.json')
-    git('commit', '-m', 'test: align reviewed API and state fixtures while retaining mutation guards')
-    source = git('rev-parse', 'HEAD');summary['tested_source'] = source
-    # Workflows were published through the authorized connector, not this token.
-    assert not any(p.startswith('.github/') for p in git('diff', '--name-only', head, source).splitlines())
-    git('fetch', 'origin', BRANCH)
-    assert git('rev-parse', 'FETCH_HEAD') == head
-    git('push', 'origin', f'HEAD:refs/heads/{BRANCH}')
-    git('fetch', 'origin', BRANCH)
-    assert git('rev-parse', 'FETCH_HEAD') == source
-    check('lint', ['uv', 'run', '--no-sync', 'ruff', 'check', *changed], 30)
-    check('api-and-boundaries', ['uv', 'run', '--no-sync', 'pytest', '-vv', '--tb=short',
-        'tests/architecture/test_public_api_contracts.py',
-        'tests/architecture/test_current_allocation_book.py',
-        'tests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape',
-        'tests/architecture/test_risk_boundaries.py::test_risk_source_surface_migration_is_exact_and_requirements_stay_bound',
-        'tests/architecture/test_validation_boundaries.py::test_validation_policy_relocation_is_closed_and_source_bound',
-        'tests/architecture/test_validation_boundaries.py::test_validation_policy_resigned_relocation_tamper_is_rejected',
-        'tests/architecture/test_portfolio_public_owners.py',
-        'tests/architecture/test_portfolio_boundaries.py::test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events',
-        'tests/test_code_audit_structure.py::test_explicit_delegate_check_rejects_non_equivalent_forwarding',
-        'tests/test_lifecycle_and_risk.py::test_failed_restoration_retires_strategic_restore_before_early_return'], 190)
-    check('remaining-governance', ['uv', 'run', '--no-sync', 'pytest', '-x', '-vv', '--tb=short',
-        'tests/architecture/test_execution_application_boundaries.py',
-        'tests/architecture/test_architecture_governance.py'], 160)
-    summary['passed'] = all(c['exit_code'] == 0 for c in summary['checks'])
-    checkpoint()
-    git('add', str(OUT));git('commit', '-m', 'test: retain exact API, mutation and governance outcomes')
-    result = git('rev-parse', 'HEAD')
-    export_files(result)
-    git('fetch', 'origin', BRANCH)
-    assert git('rev-parse', 'FETCH_HEAD') == source
-    git('push', 'origin', f'HEAD:refs/heads/{BRANCH}')
-    git('fetch', 'origin', BRANCH)
-    assert git('rev-parse', 'FETCH_HEAD') == result
-    for row in json.loads(Path('/tmp/pr83-readback.json').read_text())['files']:
-        assert (ROOT / row['path']).read_bytes() == subprocess.check_output(['git', 'show', f'FETCH_HEAD:{row["path"]}'])
-    print(json.dumps({'head': result, 'passed': summary['passed']}))
-except Exception as exc:
-    summary['runner_error'] = repr(exc);checkpoint()
-    raise
-finally:
-    checkpoint()
-raise SystemExit(0 if summary['passed'] else 1)
+command = ['uv', 'run', '--no-sync', 'pytest', '-vv', '--tb=short', '--maxfail=8',
+           'tests/architecture/test_execution_application_boundaries.py',
+           'tests/architecture/test_architecture_governance.py',
+           *['--deselect=' + node for node in passed], f'--junitxml={OUT}/remaining.xml']
+log = OUT / 'remaining.txt'
+with log.open('wb') as f:
+    try:
+        status = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT, timeout=430).returncode
+    except subprocess.TimeoutExpired:
+        status = 124
+raw = log.read_bytes(); log.unlink()
+packed = OUT / 'remaining.txt.gz'; packed.write_bytes(gzip.compress(raw, mtime=0))
+summary['checks'].append({'name': 'remaining-governance', 'command': command, 'exit_code': status,
+                          'tail': raw.decode(errors='replace')[-7000:]})
+summary['logs'].append({'path': str(packed.relative_to(ROOT)), 'raw_bytes': len(raw),
+                        'raw_sha256': hashlib.sha256(raw).hexdigest(), **identity(packed.read_bytes())})
+# Read, never relabel, the actual formal executions. They continue independently.
+for run_id in (35679019431, 35679019524):
+    try:
+        run = api(f'actions/runs/{run_id}')
+        record = {key: run.get(key) for key in ('id', 'head_sha', 'status', 'conclusion', 'run_attempt', 'created_at')}
+        record['jobs'] = [{key: row.get(key) for key in ('id', 'name', 'status', 'conclusion', 'started_at', 'completed_at')}
+                          for row in api(f'actions/runs/{run_id}/jobs?per_page=100')['jobs']]
+        record['artifacts'] = [{key: row.get(key) for key in ('id', 'name', 'size_in_bytes', 'digest', 'expired', 'expires_at')}
+                               for row in api(f'actions/runs/{run_id}/artifacts?per_page=100')['artifacts']]
+        summary['formal_runs'].append(record)
+    except Exception as exc:
+        summary['formal_runs'].append({'id': run_id, 'read_error': repr(exc)})
+summary['local_checks_passed'] = status == 0
+(OUT / 'SUMMARY.json').write_text(json.dumps(summary, indent=2) + '\n')
+git('config', 'user.name', 'github-actions[bot]')
+git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com')
+git('add', str(OUT))
+git('commit', '-m', 'test: retain resumed governance outcomes and exact long-running CI status')
+commit = git('rev-parse', 'HEAD')
+git('fetch', 'origin', BRANCH)
+assert git('rev-parse', 'FETCH_HEAD') == head
+git('push', 'origin', f'HEAD:refs/heads/{BRANCH}')
+git('fetch', 'origin', BRANCH)
+assert git('rev-parse', 'FETCH_HEAD') == commit
+names = set(git('diff', '--name-only', head, commit).splitlines())
+names.add('artifacts/code-audit-fix/ci-maintenance.py')
+receipt = {'commit': commit, 'files': []}
+with zipfile.ZipFile('/tmp/pr83-changed-source.zip', 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+    for name in sorted(names):
+        path = ROOT / name; data = path.read_bytes()
+        assert data == subprocess.check_output(['git', 'show', f'FETCH_HEAD:{name}'])
+        row = {'path': name, **identity(data)}
+        assert row['git_blob'] == git('rev-parse', f'FETCH_HEAD:{name}')
+        receipt['files'].append(row); archive.write(path, name)
+    # Historical submitted script is preserved for the pending original write readback.
+    old_path = 'artifacts/code-audit-fix/ci-maintenance.py'
+    historical = subprocess.check_output(['git', 'show', f'288ba743c88186f859de96399a6292cb5cc70ecc:{old_path}'])
+    archive.writestr('historical/pr83-resume.py', historical)
+    receipt['historical'] = {'commit': '288ba743c88186f859de96399a6292cb5cc70ecc', 'archive_path': 'historical/pr83-resume.py', **identity(historical)}
+    archive.writestr('READBACK.json', json.dumps(receipt, indent=2))
+Path('/tmp/pr83-readback.json').write_text(json.dumps(receipt, indent=2))
+print(json.dumps({'commit': commit, 'checks_passed': status == 0, 'exit_code': status}))
+raise SystemExit(0 if status == 0 else 1)

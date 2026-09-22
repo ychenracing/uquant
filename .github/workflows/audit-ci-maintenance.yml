@@ -1,0 +1,40 @@
+name: PR83 bounded CI maintenance
+on:
+  push:
+    branches: [codex/code-audit-fixes-20260922]
+    paths:
+      - artifacts/code-audit-fix/ci-maintenance.py
+      - .github/workflows/audit-ci-maintenance.yml
+permissions:
+  contents: write
+  actions: read
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+      - name: Reconcile recorder
+        run: python -m tools.cloud_guard inspect
+      - name: Repair exact anchor and preserve completed evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python -m tools.cloud_guard run --name pr83-registry-evidence --timeout 480 --
+          python artifacts/code-audit-fix/ci-maintenance.py
+      - name: Preserve readback and originals
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr83-maintenance-${{ github.run_id }}
+          path: |
+            /tmp/pr83-readback.json
+            artifacts/code-audit-fix/full-validation/initial
+            artifacts/code-audit-fix/ci-maintenance.py
+            .github/workflows/audit-ci-maintenance.yml
+            uquant/validation/absolute_generalization/contract.py
+          include-hidden-files: true
+          if-no-files-found: error

@@ -1,9 +1,11 @@
 """Current moved-book checks must still reject authority and settlement corruption."""
+import ast
 from pathlib import Path
 
 import pytest
 
 from ._owner_transport import validate_combined_allocator_topology
+from ._source_mutations import fragment_spans
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,14 +22,18 @@ ROOT = Path(__file__).resolve().parents[2]
      'from .allocation_book import AllocationBook',
      'from .capital import AllocationBook'),
     ('uquant/portfolio/pipeline.py',
-     'owned, strategic_targets, proposed, committed, cash_room)',
-     'owned, strategic_targets, proposed, committed, 1.0)'),
+     'owned, strategic_targets, proposed, committed, cash_room,)',
+     'owned, strategic_targets, proposed, committed, 1.0,)'),
 ])
 def test_moved_book_rejects_authority_mutations(path, before, after):
     source = (ROOT / path).read_text()
-    assert source.count(before) == 1
+    spans = fragment_spans(source, before)
+    assert len(spans) == 1
+    start, end = spans[0]
+    mutated = source[:start] + after + source[end:]
+    ast.parse(mutated)
     with pytest.raises(AssertionError):
-        validate_combined_allocator_topology(root=ROOT, overrides={path: source.replace(before, after)})
+        validate_combined_allocator_topology(root=ROOT, overrides={path: mutated})
 
 
 def test_current_book_topology_passes():

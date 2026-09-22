@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from ._source_mutations import fragment_spans
+
 from uquant.validation.evidence_source import evidence_root
 
 from uquant.config import DEFAULT_CONFIG
@@ -1046,16 +1048,20 @@ def test_risk_ownership_slices_are_real_and_assessment_order_is_fixed() -> None:
     ("uquant/risk/transition_resolution.py", "use_anchors=False", "use_anchors=True"),
     ("uquant/risk/transitions.py", "account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,",
      "account=account, date=ctx.date, user_panel=ctx.reference_panel, equity=ctx.equity,"),
-    ("uquant/risk/transitions.py", "concentrated_break = shock_rearmed and not protected_weights_for_current_episode(account)",
-     "concentrated_break = shock_rearmed and not account.protected_weights"),
+    ("uquant/risk/transitions.py", "concentrated_break = (shock_rearmed and not protected_weights_for_current_episode(account)",
+     "concentrated_break = (shock_rearmed and not account.protected_weights"),
 ))
 def test_current_holding_protection_gate_rejects_semantic_escape(
     path: str, before: str, after: str,
 ) -> None:
     source = _stage_source(path, None)
-    assert before in source
+    spans = fragment_spans(source, before)
+    assert spans, "negative control must exercise its actual source"
+    start, end = spans[0]
+    mutated = source[:start] + after + source[end:]
+    ast.parse(mutated)
     with pytest.raises(AssertionError):
-        _assert_risk_ownership_surface({path: source.replace(before, after, 1)})
+        _assert_risk_ownership_surface({path: mutated})
 
 
 @pytest.mark.parametrize("kind", ("compare", "threshold"))

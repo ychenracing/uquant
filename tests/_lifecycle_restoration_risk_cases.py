@@ -474,7 +474,7 @@ def test_failed_restoration_retires_strategic_restore_before_early_return(
         Risk.CRISIS,
         DEFAULT_CONFIG.market_crisis_gross,
         4,
-        {},
+        {"recovery_owner_reset_required": True},
         (reason,),
         "CAPITAL_GUARD_COOLDOWN",
         freeze_new_risk=True,

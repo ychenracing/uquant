@@ -64,8 +64,8 @@ class ProductionEngine:
             workspace.replace_data_store(cast(DataStore, value))
             self._leader_score_cache.clear()
             self._reversal_observation_cache.clear()
-            self._risk_timeline_cache_key = None
-            self._risk_timeline_cache = None
+            object.__setattr__(self, "_risk_timeline_cache_key", None)
+            object.__setattr__(self, "_risk_timeline_cache", None)
 
     def __init__(self, data_dir: str | Path, cfg: SystemConfig = DEFAULT_CONFIG) -> None:
         if type(cfg) is not SystemConfig:

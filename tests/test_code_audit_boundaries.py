@@ -70,6 +70,8 @@ def test_broker_snapshot_reader_rejects_ambiguous_or_nonobject_json(tmp_path, te
 def _bound_account(path: Path, *, max_positions: int = 6) -> None:
     cfg = DEFAULT_CONFIG.override(max_positions=max_positions)
     account = AccountState.empty(cfg.initial_cash)
+    account.data_hash = "fixture-data"
+    account.code_hash = "fixture-code"
     account.account_migrations.append({"migration_type": "configuration_binding",
                                        "effective_config_sha256": config_fingerprint(cfg)})
     save_account(account, path)

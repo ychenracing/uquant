@@ -183,7 +183,7 @@ class _ObservedDecisionFacts:
 
 
 @dataclass(frozen=True, slots=True)
-class _DecisionResult:
+class ObservedDecisionResult:
     decision: Decision
     observation: _ObservedDecisionFacts
 
@@ -757,7 +757,7 @@ def _finalize_decision_result(
     market: _DecisionMarket,
     allocation: _DecisionAllocation,
     account: AccountState,
-) -> _DecisionResult:
+) -> ObservedDecisionResult:
     decision = Decision(
         date=str(inputs.date.date()),
         opportunity=allocation.opportunity,
@@ -837,7 +837,7 @@ def _finalize_decision_result(
             _freeze_observed_fact(allocation.qualification_snapshots),
         ),
     )
-    return _DecisionResult(decision=finalized, observation=observation)
+    return ObservedDecisionResult(decision=finalized, observation=observation)
 
 
 def _decide_result(
@@ -852,7 +852,7 @@ def _decide_result(
     as_of: str,
     account: AccountState,
     strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
-) -> _DecisionResult:
+) -> ObservedDecisionResult:
     """Produce one decision and its private lossless production observation.
 
     The account is advanced in place after all data, code, state, and

@@ -60,6 +60,7 @@ def _expand_allocator(
     current: ast.FunctionDef,
     definitions: Mapping[str, ast.FunctionDef],
     frozen: ast.FunctionDef,
+    frozen_observations: ast.FunctionDef,
 ) -> None:
     current = copy.deepcopy(current)
     targets = copy.deepcopy(definitions["_allocate_strategy_targets"])
@@ -176,6 +177,23 @@ if account.strategic_qualification.candidate_symbol:
     account.strategic_qualification.deployment_block_reason = "freeze_new_risk"
 """
     ).body
+    # The reviewed observation commit moved intact to the freeze owner.
+    # Expand only this exact call and reject any additional state writes there.
+    observed_call = ast.parse("commit_frozen_observations(account, strategy_account)").body[0]
+    _same(sentinel_projection.body[1], observed_call)
+    expected_helper = ast.parse(
+        "def commit_frozen_observations(account: AccountState, "
+        "strategy_account: AccountState) -> None: pass"
+    ).body[0]
+    _same(frozen_observations.args, expected_helper.args)
+    _same(frozen_observations.returns, expected_helper.returns)
+    observed_body = frozen_observations.body
+    if ast.get_docstring(frozen_observations) is not None:
+        observed_body = observed_body[1:]
+    assert len(observed_body) == len(observation_projection) - 1
+    for observed, expected in zip(observed_body, observation_projection[1:], strict=True):
+        _same(observed, expected)
+    sentinel_projection.body[1:2] = copy.deepcopy(observed_body)
     assert len(sentinel_projection.body) == len(observation_projection) + 4
     for observed, expected in zip(sentinel_projection.body, observation_projection, strict=False):
         _same(observed, expected)
@@ -417,7 +435,8 @@ def expand_portfolio_allocator_method(
     if _dump(current) == _dump(frozen):
         return copy.deepcopy(frozen)
     if name == "allocate":
-        _expand_allocator(current, definitions, frozen)
+        observations = _definitions(_source(root, "uquant/portfolio/freeze.py", overrides))
+        _expand_allocator(current, definitions, frozen, observations["commit_frozen_observations"])
     elif name in {"_risk_lifecycle_rank", "_subset_retention_vector"}:
         _expand_typed_tuple_owner(name, current, definitions, frozen)
     elif name == "_sparse_risk_reduce":

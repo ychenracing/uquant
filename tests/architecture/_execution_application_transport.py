@@ -260,6 +260,16 @@ def validate_engine_descriptor_transport(
     expected_signature = inspect.signature(expected)
     observed_annotations = dict(observed.__annotations__)
     expected_annotations = dict(expected.__annotations__)
+    # Normal class methods and direct aliases need no runtime annotation surgery.
+    observed_annotations.pop("self", None)
+    expected_annotations.pop("self", None)
+    def without_self_annotation(signature: inspect.Signature) -> inspect.Signature:
+        return signature.replace(parameters=[
+            parameter.replace(annotation=inspect.Parameter.empty) if key == "self" else parameter
+            for key, parameter in signature.parameters.items()
+        ])
+    observed_signature = without_self_annotation(observed_signature)
+    expected_signature = without_self_annotation(expected_signature)
     current_docstring = ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS.get(name)
     if current_docstring is not None:
         assert inspect.cleandoc(observed.__doc__ or "") == current_docstring

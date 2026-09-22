@@ -33,7 +33,7 @@ from ..types import (
 )
 from .backtest import backtest as run_backtest
 from .backtest import equity as mark_equity
-from .decision import _DecisionResult as ObservedDecisionResult
+from .decision import ObservedDecisionResult as ObservedDecisionResult
 from .decision import decide as run_decision
 from .decision import decision_config_for_universe as decision_config_for_universe
 from .decision import deterministic_decision as deterministic_decision

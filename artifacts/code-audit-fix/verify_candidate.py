@@ -38,7 +38,7 @@ tests = ['tests/test_code_audit_boundaries.py','tests/test_broker_sync.py',
 for path in ('tests/test_code_audit_structure.py','tests/test_code_audit_state.py'):
     if Path(path).exists(): tests.append(path)
 check('format', ['uv','run','--no-sync','ruff','format',*source,*[p for p in tests if 'code_audit' in p]])
-check('imports', ['uv','run','--no-sync','ruff','check','--select','I,F401','--fix',*source,*[p for p in tests if 'code_audit' in p]])
+check('imports', ['uv','run','--no-sync','ruff','check','--select','I,F401,UP034,RUF021','--fix',*source,*[p for p in tests if 'code_audit' in p]])
 check('lint', ['uv','run','--no-sync','ruff','check',*source,*[p for p in tests if 'code_audit' in p]])
 check('types', ['uv','run','--no-sync','mypy',*source])
 check('regressions',['uv','run','--no-sync','pytest','-q',*tests],timeout=900)
@@ -49,6 +49,7 @@ check('state-invariants', ['uv','run','--no-sync','pytest','-q',
 check('public-seams',['uv','run','--no-sync','pytest','-q',
     'tests/architecture/test_portfolio_boundaries.py::test_portfolio_historical_class_and_instance_monkeypatch_seams_remain_live',
     'tests/architecture/test_execution_application_boundaries.py::test_execution_engine_imports_when_python_strips_docstrings_and_assertions'],timeout=120)
+check('paired-replay',['uv','run','--no-sync','python','artifacts/code-audit-fix/replay_pair.py'],timeout=1050)
 check('diff-check',['git','diff','--check'])
 identity = {}
 for path in sorted({*source,*tests}):

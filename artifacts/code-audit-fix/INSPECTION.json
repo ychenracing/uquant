@@ -1,5 +1,5 @@
 {
-  "base": "51830b43f90888acb20942357cc450fdeda21f08",
+  "base": "4085d5baeb6d724233b3db9fa38ac5fdafe4375c",
   "instructions": {
     "AGENTS.md": "# uquant working agreement\n\n## Scope and working method\n\nFollow the current task's explicit scope and acceptance criteria within platform permissions. Preserve business, security, data, economic and release contracts. Read applicable nested `AGENTS.md` before editing that directory. Historical plans are context, not new authority; analysis-only and approval-before-edit requests remain read-only until authorized.\n\nFor continuation work, read `PROJECT_STATE.md`, resolve mutable branch/PR/SHA/check/artifact facts from GitHub, and inspect existing local changes. Resume matching work. Consult `.github/CHATGPT_PROJECT_BRIEF.md` only for relevant architecture, commands or boundaries; read the active diff and affected files, expanding for uncertainty or impact. Reuse unchanged context rather than preloading history, skills or logs.\n\nSkills provide methods, not additional authorization, approval or stopping gates. Respect platform requirements, but do not impose repeated design confirmations, mandatory full workflows or ceremonial announcements on bounded authorized work. Prefer existing implementation/dependencies and the smallest sufficient change. Plan material decisions, batch related edits, and keep one writer per shared file, branch, runtime or evidence identity.\n\n## Testing and economic evidence\n\n- Use risk-based, minimum sufficient verification based on changed behavior and real call paths. Do not enforce Superpowers TDD or fresh-verification-per-message workflows. Tests may precede or follow implementation; never delete working code solely because it was written before a test. For defects, prefer a minimal reproduction and necessary regression coverage; reuse existing tests rather than adding redundant or brittle implementation-detail assertions.\n- Run the failing case and directly affected checks first. Expand for concrete cross-module risk, uncertain impact or an explicit applicable acceptance requirement. Neither each small edit nor each final delivery automatically requires every tool, the full suite or a complete economic matrix.\n- Reuse evidence while covered behavior, tests, dependencies, configuration, data and relevant environment remain equivalent. For economic evidence, assess the relevant production tree, data manifest, universe, runtime lock and runner. Only affected evidence is invalidated. Messages, handoffs, commits, pushes or new SHAs alone do not require rerunning unchanged checks. Record the actual tested source and reuse scope; never present an old CI result as a new HEAD result. Actual required checks and explicit exact-revision acceptance still apply.\n- Behavior-neutral documentation/provenance changes need only relevant format, link, command or documentation-contract checks. Instruction edits also require ambiguity, duplication, conflict, authorization and completion-boundary review. Do not recompute unrelated economic results. Executable inputs, generated configuration and parsed documentation are not automatically behavior-neutral.\n- For strategy, funds, orders, risk, security or persistent-data changes, verify affected invariants and necessary integration/replay paths. Before an expensive matrix, validate runner, schema, attribution, failure retention and readback with a small representative sentinel set. Run full/expensive validation on a stable candidate only when impact or the applicable delivery contract requires it; a partial matrix is not full acceptance.\n- Review the task diff once and repeat focused review after material changes. Reuse existing tests and logs, not a new verification framework. Report verified, reused, unrun and failed items with their scope. Never weaken frozen thresholds, inputs, scenarios, attribution or guards to pass; preserve failed and historical evidence and actual repository protections.\n\n## Execution, Git and recovery\n\nContinue safe authorized work without repeated requests to continue. Read to resolve factual ambiguity; ask only for a necessary decision that cannot be resolved safely. Authorization does not imply spending, live trading, credential/permission changes, irreversible actions, unrelated writes or scheduled-task changes.\n\nResume the matching branch/PR; new work uses a feature branch unless a direct default-branch update is explicitly authorized. Preserve required reviews/checks and any PR-only policy. Save coherent milestones, push authorized changes and verify the remote SHA. Keep mutable recovery state in the existing PR; do not create empty bootstrap commits or routine process files/Issues. Without explicit authorization, do not reset, clean, rebase, force-push, rewrite history, delete branches/worktrees, discard unknown work or overwrite unrelated changes. Never commit secrets.\n\nA failed check or candidate calls for diagnosis and an evidence-supported correction or bounded alternative, not task termination or repetitive trials. Stay within scope and budget, retain failures and continue independent work past local blockers. Finish when applicable acceptance and actual required checks are satisfied; do not add marginal optimization afterward. A checkpoint, PR or partial pass alone is not completion. If no safe authorized action remains, preserve recoverable progress and report completed, failed, blocked and unverified items without promising background completion.\n\n## Documentation boundary\n\n`README.md`, current `docs/` guides and accepted ADRs describe the current system. Frozen `artifacts/**` evidence remains historical and must not be rewritten as current results.\n\n## Git/GitHub transfer and preservation\n\n- Inspect object identities, sizes and outgoing paths before transfers; select necessary files and reuse unchanged references, not entire working directories. Prefer authorized native Git or file-aware programmatic transfer; when unavailable, use the authorized connector without extracting credentials or asking the user to perform the transfer. Do not repeat a confirmed-failed transport.\n- Keep large bodies out of model/tool output and arguments: no complete Base64, huge JSON, archives, full logs or chunk-then-giant-request uploads. Prefer file-to-file transfer, selective/range reads and bounded excerpts. String-only connectors are for small recoverable batches.\n- Required large originals still need preservation. Use supported resumable or deterministic multipart transport where necessary, recording order, offsets, raw/encoded lengths and hashes. Verify byte-for-byte reconstruction and expected Git/LFS object identities where applicable. Separate blobs are not append operations; a summary/hash is not a backup.\n- Keep large transfers bounded and serial. Reuse a concise ledger of local/remote locations, identities and verification status; inspect state after interruption before retrying. Verify final local bytes and remote tree/commit/ref or storage manifest, not merely a created blob. Report unpreserved originals and temporary-runtime loss risk while continuing independent work. Never replace required evidence with summaries or rewrite historical evidence.\n\n## Cloud execution continuity\n\nFor cloud engineering tasks, use [the cloud runner](tools/cloud_guard/README.md) by default for long local commands and external writes. On first execution or recovery, run `python -m tools.cloud_guard inspect`; reconcile any same-name unfinished operation before retrying. Run long commands through `python -m tools.cloud_guard run --name <stable-operation> --timeout <appropriate-seconds> -- <command>`. This automatically records the command and preserves a verified local checkpoint; it does not automatically upload it. Use `begin`/`finish` around connector writes, then record actual remote readback. Ordinary short reads need no wrapper.\n\nReuse the existing PR/handoff for task state and add only the journal location, last verified operation and unconfirmed writes. Preserve required originals through an authorized channel before environment loss; never publish private command logs without reviewing their content. The Absolute and Ownership shard workflows record commands automatically. AGENTS instructions are not a platform hook: before-first-tool model failures and an already-lost container remain unobservable here. Do not claim to prevent or cure Thinking failed, infer OOM from SIGKILL alone, or replay unknown writes automatically. Keep this machinery outside strategy behavior and economic acceptance.\n"
   },
@@ -40,271 +40,61 @@
     "tests/test_validation_cli.py"
   ],
   "matches": {
-    "_engine_function": [
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 79,
-        "context": "76: )\n77: \n78: \n79: def _engine_function[FunctionT: Callable[..., object]](\n80:     function: FunctionT,\n81:     qualname: str,\n82: ) -> FunctionT:\n83:     function.__module__ = \"uquant.engine\""
-      },
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 105,
-        "context": "102:         write_risk_timeline_disk_cache(path, cache_schema(), key=key, timeline=timeline)\n103: \n104:     return (\n105:         _engine_function(load, \"_load_risk_timeline_disk_cache\"),\n106:         _engine_function(write, \"_write_risk_timeline_disk_cache\"),\n107:     )\n108: \n109: "
-      },
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 106,
-        "context": "103: \n104:     return (\n105:         _engine_function(load, \"_load_risk_timeline_disk_cache\"),\n106:         _engine_function(write, \"_write_risk_timeline_disk_cache\"),\n107:     )\n108: \n109: \n110: def bind_target_attribution("
-      },
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 131,
-        "context": "128:         )\n129: \n130:     bound.__doc__ = attach_target_attribution.__doc__\n131:     return _engine_function(bound, \"_attach_target_attribution\")\n132: \n133: \n134: def bind_causal_risk_timeline(\n135:     timeline_builder: Callable[[], Any],"
-      },
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 165,
-        "context": "162:         )\n163: \n164:     bound.__doc__ = causal_risk_timeline.__doc__\n165:     return _engine_function(bound, \"ProductionEngine._causal_risk_timeline\")\n166: \n167: \n168: def bind_engine_decision(\n169:     assess_risk_fn: Callable[[], Any],"
-      },
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 197,
-        "context": "194:         )\n195: \n196:     bound.__doc__ = run_decision.__doc__\n197:     return _engine_function(bound, \"ProductionEngine.decide\")\n198: \n199: \n200: def bind_engine_observed_decision(\n201:     assess_risk_fn: Callable[[], Any],"
-      },
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 231,
-        "context": "228:         )\n229: \n230:     bound.__doc__ = run_observed_decision.__doc__\n231:     return _engine_function(bound, \"ProductionEngine._observe_decision\")\n232: \n233: \n234: def bind_engine_backtest(\n235:     performance_metrics_fn: Callable[[], Any],"
-      },
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 255,
-        "context": "252:         )\n253: \n254:     bound.__doc__ = run_backtest.__doc__\n255:     return _engine_function(bound, \"ProductionEngine.backtest\")\n256: \n257: \n258: # Directly assigned compatibility methods retain their immutable engine identities.\n259: for _function, _qualname in ("
-      },
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 269,
-        "context": "266:     (drawdown_stats, \"_drawdown_stats\"),\n267:     (calculate_performance_metrics, \"performance_metrics\"),\n268: ):\n269:     _engine_function(_function, _qualname)\n270: del _function, _qualname"
-      }
-    ],
-    "bind_causal_risk_timeline": [
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 134,
-        "context": "131:     return _engine_function(bound, \"_attach_target_attribution\")\n132: \n133: \n134: def bind_causal_risk_timeline(\n135:     timeline_builder: Callable[[], Any],\n136:     native_timeline_builder: Callable[[], Any],\n137:     code_fingerprint_fn: Callable[[], Any],\n138:     shared_timeline_cache: Callable[[], Any],"
-      },
-      {
-        "path": "uquant/engine.py",
-        "line": 108,
-        "context": "105:     def _reference_returns(self) -> pd.DataFrame | None:\n106:         return self.workspace._reference_returns\n107: \n108:     _causal_risk_timeline = _application.bind_causal_risk_timeline(\n109:         lambda: build_risk_evidence_timeline, lambda: _RISK_TIMELINE_BUILDER,\n110:         lambda: code_fingerprint, lambda: _SHARED_RISK_TIMELINE_CACHE,\n111:         lambda: _load_risk_timeline_disk_cache, lambda: _write_risk_timeline_disk_cache,\n112:     )"
-      }
-    ],
-    "bind_engine_decision": [
-      {
-        "path": "uquant/application/__init__.py",
-        "line": 168,
-        "context": "165:     return _engine_function(bound, \"ProductionEngine._causal_risk_timeline\")\n166: \n167: \n168: def bind_engine_decision(\n169:     assess_risk_fn: Callable[[], Any],\n170:     evaluate_sentinel_fn: Callable[[], Any],\n171:     reconcile_account_orders_fn: Callable[[], Any],\n172:     code_fingerprint_fn: Callable[[], Any],"
-      },
-      {
-        "path": "uquant/engine.py",
-        "line": 115,
-        "context": "112:     )\n113:     equity = _application.mark_equity\n114:     _mark_account_positions = _application.mark_account_positions\n115:     decide = _application.bind_engine_decision(\n116:         lambda: assess_risk, lambda: evaluate_sentinel, lambda: reconcile_account_orders,\n117:         lambda: code_fingerprint, lambda: _attach_target_attribution,\n118:     )\n119:     _observe_decision = _application.bind_engine_observed_decision("
-      }
-    ],
-    "_assembly_method": [
-      {
-        "path": "uquant/portfolio/__init__.py",
-        "line": 12,
-        "context": "9: from ..portfolio_core import current_weights, effective_n\n10: \n11: \n12: def _assembly_method[Function: Callable[..., Any]](function: Function, name: str) -> Function:\n13:     runtime_function = cast(FunctionType, function)\n14:     raw_docstring = runtime_function.__doc__\n15:     if isinstance(raw_docstring, str) and \"\\n\" in raw_docstring:\n16:         first, *remaining = raw_docstring.split(\"\\n\")"
-      },
-      {
-        "path": "uquant/portfolio/__init__.py",
-        "line": 35,
-        "context": "32:     *,\n33:     static: bool = False,\n34: ) -> None:\n35:     compatible = _assembly_method(function, name)\n36:     descriptor: object = staticmethod(compatible) if static else compatible\n37:     setattr(owner, name, descriptor)\n38: \n39: "
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 48,
-        "context": "45: from .targets import cap_opportunity_gross as _cap_opportunity_gross\n46: \n47: \n48: def _leader_assembly_method[Function: Callable[..., Any]](\n49:     function: Function, name: str\n50: ) -> Function:\n51:     runtime_function = cast(FunctionType, function)\n52:     raw_docstring = runtime_function.__doc__"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 66,
-        "context": "63:     return function\n64: \n65: \n66: def _bind_leader_assembly_method[Function: Callable[..., Any]](\n67:     name: str,\n68:     function: Function,\n69:     *,\n70:     static: bool = False,"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 72,
-        "context": "69:     *,\n70:     static: bool = False,\n71: ) -> None:\n72:     compatible = _leader_assembly_method(function, name)\n73:     descriptor: object = staticmethod(compatible) if static else compatible\n74:     setattr(LeaderPortfolioPolicy, name, descriptor)\n75: \n76: "
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 77,
-        "context": "74:     setattr(LeaderPortfolioPolicy, name, descriptor)\n75: \n76: \n77: _bind_leader_assembly_method(\"_cap_opportunity_gross\", _cap_opportunity_gross)\n78: _bind_leader_assembly_method(\"_conviction_shares\", _conviction_shares)\n79: _bind_leader_assembly_method(\n80:     \"_conviction_evidence_qualified\", _conviction_evidence_qualified\n81: )"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 78,
-        "context": "75: \n76: \n77: _bind_leader_assembly_method(\"_cap_opportunity_gross\", _cap_opportunity_gross)\n78: _bind_leader_assembly_method(\"_conviction_shares\", _conviction_shares)\n79: _bind_leader_assembly_method(\n80:     \"_conviction_evidence_qualified\", _conviction_evidence_qualified\n81: )\n82: _bind_leader_assembly_method(\"_session_clock\", _session_clock, static=True)"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 79,
-        "context": "76: \n77: _bind_leader_assembly_method(\"_cap_opportunity_gross\", _cap_opportunity_gross)\n78: _bind_leader_assembly_method(\"_conviction_shares\", _conviction_shares)\n79: _bind_leader_assembly_method(\n80:     \"_conviction_evidence_qualified\", _conviction_evidence_qualified\n81: )\n82: _bind_leader_assembly_method(\"_session_clock\", _session_clock, static=True)\n83: _bind_leader_assembly_method("
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 82,
-        "context": "79: _bind_leader_assembly_method(\n80:     \"_conviction_evidence_qualified\", _conviction_evidence_qualified\n81: )\n82: _bind_leader_assembly_method(\"_session_clock\", _session_clock, static=True)\n83: _bind_leader_assembly_method(\n84:     \"_session_distance\", _leader_session_distance, static=True\n85: )\n86: _bind_leader_assembly_method(\"_correlations\", _correlations)"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 83,
-        "context": "80:     \"_conviction_evidence_qualified\", _conviction_evidence_qualified\n81: )\n82: _bind_leader_assembly_method(\"_session_clock\", _session_clock, static=True)\n83: _bind_leader_assembly_method(\n84:     \"_session_distance\", _leader_session_distance, static=True\n85: )\n86: _bind_leader_assembly_method(\"_correlations\", _correlations)\n87: _bind_leader_assembly_method(\"_admission_utility\", _admission_utility)"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 86,
-        "context": "83: _bind_leader_assembly_method(\n84:     \"_session_distance\", _leader_session_distance, static=True\n85: )\n86: _bind_leader_assembly_method(\"_correlations\", _correlations)\n87: _bind_leader_assembly_method(\"_admission_utility\", _admission_utility)\n88: _bind_leader_assembly_method(\"_dynamic_k\", _dynamic_k)\n89: _bind_leader_assembly_method(\"_rotation_allowed\", _rotation_allowed)\n90: _bind_leader_assembly_method(\"_retention_score\", _retention_score, static=True)"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 87,
-        "context": "84:     \"_session_distance\", _leader_session_distance, static=True\n85: )\n86: _bind_leader_assembly_method(\"_correlations\", _correlations)\n87: _bind_leader_assembly_method(\"_admission_utility\", _admission_utility)\n88: _bind_leader_assembly_method(\"_dynamic_k\", _dynamic_k)\n89: _bind_leader_assembly_method(\"_rotation_allowed\", _rotation_allowed)\n90: _bind_leader_assembly_method(\"_retention_score\", _retention_score, static=True)\n91: _bind_leader_assembly_method("
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 88,
-        "context": "85: )\n86: _bind_leader_assembly_method(\"_correlations\", _correlations)\n87: _bind_leader_assembly_method(\"_admission_utility\", _admission_utility)\n88: _bind_leader_assembly_method(\"_dynamic_k\", _dynamic_k)\n89: _bind_leader_assembly_method(\"_rotation_allowed\", _rotation_allowed)\n90: _bind_leader_assembly_method(\"_retention_score\", _retention_score, static=True)\n91: _bind_leader_assembly_method(\n92:     \"_leader_lifecycle_exit_confirmed\", _leader_lifecycle_exit_confirmed"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 89,
-        "context": "86: _bind_leader_assembly_method(\"_correlations\", _correlations)\n87: _bind_leader_assembly_method(\"_admission_utility\", _admission_utility)\n88: _bind_leader_assembly_method(\"_dynamic_k\", _dynamic_k)\n89: _bind_leader_assembly_method(\"_rotation_allowed\", _rotation_allowed)\n90: _bind_leader_assembly_method(\"_retention_score\", _retention_score, static=True)\n91: _bind_leader_assembly_method(\n92:     \"_leader_lifecycle_exit_confirmed\", _leader_lifecycle_exit_confirmed\n93: )"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 90,
-        "context": "87: _bind_leader_assembly_method(\"_admission_utility\", _admission_utility)\n88: _bind_leader_assembly_method(\"_dynamic_k\", _dynamic_k)\n89: _bind_leader_assembly_method(\"_rotation_allowed\", _rotation_allowed)\n90: _bind_leader_assembly_method(\"_retention_score\", _retention_score, static=True)\n91: _bind_leader_assembly_method(\n92:     \"_leader_lifecycle_exit_confirmed\", _leader_lifecycle_exit_confirmed\n93: )\n94: _bind_leader_assembly_method(\"_industry_handoff\", _industry_handoff)"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 91,
-        "context": "88: _bind_leader_assembly_method(\"_dynamic_k\", _dynamic_k)\n89: _bind_leader_assembly_method(\"_rotation_allowed\", _rotation_allowed)\n90: _bind_leader_assembly_method(\"_retention_score\", _retention_score, static=True)\n91: _bind_leader_assembly_method(\n92:     \"_leader_lifecycle_exit_confirmed\", _leader_lifecycle_exit_confirmed\n93: )\n94: _bind_leader_assembly_method(\"_industry_handoff\", _industry_handoff)"
-      },
-      {
-        "path": "uquant/portfolio/leaders/__init__.py",
-        "line": 94,
-        "context": "91: _bind_leader_assembly_method(\n92:     \"_leader_lifecycle_exit_confirmed\", _leader_lifecycle_exit_confirmed\n93: )\n94: _bind_leader_assembly_method(\"_industry_handoff\", _industry_handoff)"
-      },
-      {
-        "path": "uquant/portfolio/strategic/__init__.py",
-        "line": 26,
-        "context": "23: )\n24: \n25: \n26: def _strategic_assembly_method[Function: Callable[..., Any]](\n27:     function: Function, name: str\n28: ) -> Function:\n29:     runtime_function = cast(FunctionType, function)\n30:     raw_docstring = runtime_function.__doc__"
-      },
-      {
-        "path": "uquant/portfolio/strategic/__init__.py",
-        "line": 50,
-        "context": "47:     *,\n48:     static: bool = False,\n49: ) -> None:\n50:     compatible = _strategic_assembly_method(function, name)\n51:     descriptor: object = staticmethod(compatible) if static else compatible\n52:     setattr(StrategicPortfolioPolicy, name, descriptor)\n53: \n54: "
-      }
-    ],
-    "_load_allocator": [
-      {
-        "path": "uquant/portfolio/__init__.py",
-        "line": 40,
-        "context": "37:     setattr(owner, name, descriptor)\n38: \n39: \n40: def _load_allocator() -> type[Any]:\n41:     # This remains the one eager assembly step. Keeping the imports inside it\n42:     # lets the leader facade load its nested owner package while\n43:     # the parent portfolio package is still initializing.\n44:     from .allocator import ("
-      },
-      {
-        "path": "uquant/portfolio/__init__.py",
-        "line": 150,
-        "context": "147: if TYPE_CHECKING:\n148:     from .allocator import PortfolioAllocator\n149: else:\n150:     PortfolioAllocator = _load_allocator()\n151: \n152: __all__ = (\"PortfolioAllocator\", \"current_weights\", \"effective_n\")"
-      }
-    ],
     "core_transfer:": [
       {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 126,
-        "context": "123: def _transfer_sell_filled(account: AccountState, key: str, date: pd.Timestamp) -> bool:\n124:     \"\"\"A recorded observation becomes a transfer only through its real sell.\"\"\"\n125:     symbol = key.split(\":\", 1)[1].split(\"->\", 1)[0]\n126:     signal = account.candidate_tenure.get(key.replace(\"core_transfer:\", \"core_transfer_session:\", 1))\n127:     return any(\n128:         fill.side == \"SELL\" and fill.shares > 0 and fill.symbol == symbol\n129:         and fill.mechanism == AttributionMechanism.LEADER_ROTATION.value\n130:         and pd.Timestamp(fill.signal_date).toordinal() == signal"
+        "path": "uquant/models/ordinary_state.py",
+        "line": 19,
+        "context": "16: \n17:     @property\n18:     def key(self) -> str:\n19:         return f\"core_transfer:{self.incumbent}->{self.challenger}\"\n20: \n21:     @property\n22:     def session_key(self) -> str:\n23:         return f\"core_transfer_session:{self.incumbent}->{self.challenger}\""
       },
       {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 139,
-        "context": "136: def _observe_transfer(self: PortfolioAllocator, *, weakest: str, challenger: str,\n137:                       frame: pd.DataFrame, date: pd.Timestamp, account: AccountState,\n138:                       broken: bool, edge: float) -> str:\n139:     key = f\"core_transfer:{weakest}->{challenger}\"\n140:     clock = f\"core_transfer_session:{weakest}->{challenger}\"\n141:     observed = date.toordinal()\n142:     previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0\n143:     last_observed = account.candidate_tenure.get(clock, 0)"
-      },
-      {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 255,
-        "context": "252:         scale = min(1.0, remaining / max(sum(bands), 1e-12))\n253:         account.strategic_exit_bands[weakest] = [weight * scale for weight in bands]\n254:     account.rotation_dates.append(str(date.date()))\n255:     account.candidate_tenure[key.replace(\"core_transfer:\", \"core_transfer_session:\", 1)] = date.toordinal()\n256:     for observed in account.replacement_tenure:\n257:         if observed.startswith(\"core_transfer:\") and observed != key:\n258:             account.replacement_tenure[observed] = 0\n259:     return weakest"
-      },
-      {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 257,
-        "context": "254:     account.rotation_dates.append(str(date.date()))\n255:     account.candidate_tenure[key.replace(\"core_transfer:\", \"core_transfer_session:\", 1)] = date.toordinal()\n256:     for observed in account.replacement_tenure:\n257:         if observed.startswith(\"core_transfer:\") and observed != key:\n258:             account.replacement_tenure[observed] = 0\n259:     return weakest\n260: \n261: "
-      },
-      {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 540,
-        "context": "537: \n538: def _record_completed_transfer(book: AllocationBook, symbol: str) -> None:\n539:     transfers = [key for key, tenure in book.account.replacement_tenure.items()\n540:                  if key.startswith(\"core_transfer:\") and key.endswith(\"->\" + symbol)\n541:                  and tenure >= book.policy.cfg.replacement_confirm_days\n542:                  and _transfer_sell_filled(book.account, key, book.date)]\n543:     if transfers:\n544:         transfer = sorted(transfers)[0]"
+        "path": "uquant/models/ordinary_state.py",
+        "line": 68,
+        "context": "65: \n66: def transfers(account: AccountState) -> tuple[CoreTransfer, ...]:\n67:     return tuple(\n68:         CoreTransfer.from_key(key) for key in account.replacement_tenure if key.startswith(\"core_transfer:\")\n69:     )\n70: \n71: \n72: def _repair_origin_key(order_id: str, event_id: str) -> str:"
       }
     ],
     "core_transfer_session:": [
       {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 126,
-        "context": "123: def _transfer_sell_filled(account: AccountState, key: str, date: pd.Timestamp) -> bool:\n124:     \"\"\"A recorded observation becomes a transfer only through its real sell.\"\"\"\n125:     symbol = key.split(\":\", 1)[1].split(\"->\", 1)[0]\n126:     signal = account.candidate_tenure.get(key.replace(\"core_transfer:\", \"core_transfer_session:\", 1))\n127:     return any(\n128:         fill.side == \"SELL\" and fill.shares > 0 and fill.symbol == symbol\n129:         and fill.mechanism == AttributionMechanism.LEADER_ROTATION.value\n130:         and pd.Timestamp(fill.signal_date).toordinal() == signal"
-      },
-      {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 140,
-        "context": "137:                       frame: pd.DataFrame, date: pd.Timestamp, account: AccountState,\n138:                       broken: bool, edge: float) -> str:\n139:     key = f\"core_transfer:{weakest}->{challenger}\"\n140:     clock = f\"core_transfer_session:{weakest}->{challenger}\"\n141:     observed = date.toordinal()\n142:     previous = frame.loc[:date].index[-2].toordinal() if len(frame.loc[:date]) > 1 else 0\n143:     last_observed = account.candidate_tenure.get(clock, 0)\n144:     if last_observed > observed:"
-      },
-      {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 255,
-        "context": "252:         scale = min(1.0, remaining / max(sum(bands), 1e-12))\n253:         account.strategic_exit_bands[weakest] = [weight * scale for weight in bands]\n254:     account.rotation_dates.append(str(date.date()))\n255:     account.candidate_tenure[key.replace(\"core_transfer:\", \"core_transfer_session:\", 1)] = date.toordinal()\n256:     for observed in account.replacement_tenure:\n257:         if observed.startswith(\"core_transfer:\") and observed != key:\n258:             account.replacement_tenure[observed] = 0\n259:     return weakest"
+        "path": "uquant/models/ordinary_state.py",
+        "line": 23,
+        "context": "20: \n21:     @property\n22:     def session_key(self) -> str:\n23:         return f\"core_transfer_session:{self.incumbent}->{self.challenger}\"\n24: \n25:     @classmethod\n26:     def from_key(cls, key: str) -> CoreTransfer:\n27:         prefix, separator, pair = key.partition(\":\")"
       }
     ],
     "ordinary_repair_origin:": [
       {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 611,
-        "context": "608:     origins = {order.event_id: order for order in account.order_ledger\n609:                if order.side == \"BUY\" and not order.grant_id and not order.epoch_id\n610:                and account.candidate_tenure.get(\n611:                    f\"ordinary_repair_origin:{order.order_id}:{order.event_id}\") == 1}\n612:     total = 0.0\n613:     for symbol, committed in book.committed.items():\n614:         if symbol in book.owned:\n615:             continue"
+        "path": "uquant/models/ordinary_state.py",
+        "line": 73,
+        "context": "70: \n71: \n72: def _repair_origin_key(order_id: str, event_id: str) -> str:\n73:     return f\"ordinary_repair_origin:{order_id}:{event_id}\"\n74: \n75: \n76: def repair_origin_recorded(account: AccountState, order_id: str, event_id: str) -> bool:\n77:     return account.candidate_tenure.get(_repair_origin_key(order_id, event_id)) == 1"
       },
       {
-        "path": "uquant/portfolio/pipeline.py",
-        "line": 640,
-        "context": "637:     if ordinary <= 0.0:\n638:         book.account.candidate_tenure.pop(\"ordinary_repair_capital_active\", None)\n639:         for key in list(book.account.candidate_tenure):\n640:             if key.startswith(\"ordinary_repair_origin:\"):\n641:                 book.account.candidate_tenure.pop(key)\n642:     if max(values) > 0.0:\n643:         if not book.account.candidate_tenure.get(\"ordinary_repair_capital_active\", 0):\n644:             return min(book.policy.cfg.trend_entry_gross, book.gross_cap)"
-      },
-      {
-        "path": "uquant/portfolio/strategic/rearm.py",
-        "line": 934,
-        "context": "931:     state.authorized = False\n932:     repair.status = FlatBookCapitalRepairStatus.CONSUMED.value\n933:     account.candidate_tenure[\"ordinary_repair_capital_active\"] = 1\n934:     account.candidate_tenure[f\"ordinary_repair_origin:{order.order_id}:{order.event_id}\"] = 1\n935: \n936: \n937: def _ordinary_rearm_order_identity(account: AccountState, order: PendingOrder) -> bool:\n938:     state = account.strategic_cash_rearm"
+        "path": "uquant/models/ordinary_state.py",
+        "line": 88,
+        "context": "85: def clear_repair_origins(account: AccountState) -> None:\n86:     account.candidate_tenure.pop(\"ordinary_repair_capital_active\", None)\n87:     for key in tuple(account.candidate_tenure):\n88:         if key.startswith(\"ordinary_repair_origin:\"):\n89:             account.candidate_tenure.pop(key)"
       }
     ],
     "market-backed portfolio break in incomplete restoration": [
       {
         "path": "uquant/risk/confirmed_break.py",
-        "line": 124,
-        "context": "121: def _confirmed_break_reason(ctx: ConfirmedBreakContext) -> str:\n122:     return {\n123:         \"DYNAMIC_COHORT_BREAK\": \"confirmed dynamic cohort structural break\",\n124:         \"INCOMPLETE_RESTORATION_BREAK\": \"market-backed portfolio break in incomplete restoration\",\n125:         \"MARKET_BACKED_RESTORATION_RELAPSE\": \"market-backed drawdown relapse in restored holdings\",\n126:         \"CAPITAL_RESTORATION_RELAPSE\": \"capital drawdown relapse in restored holdings\",\n127:         \"RESERVE_BACKED_TAIL_GUARD\": \"reserve-backed incomplete-universe tail guard\",\n128:         \"UNBACKED_CAPITAL_EXIT\": \"unbacked incomplete-universe capital exit\","
+        "line": 127,
+        "context": "124: def _confirmed_break_reason(ctx: ConfirmedBreakContext) -> str:\n125:     return {\n126:         \"DYNAMIC_COHORT_BREAK\": \"confirmed dynamic cohort structural break\",\n127:         \"INCOMPLETE_RESTORATION_BREAK\": \"market-backed portfolio break in incomplete restoration\",\n128:         \"MARKET_BACKED_RESTORATION_RELAPSE\": \"market-backed drawdown relapse in restored holdings\",\n129:         \"CAPITAL_RESTORATION_RELAPSE\": \"capital drawdown relapse in restored holdings\",\n130:         \"RESERVE_BACKED_TAIL_GUARD\": \"reserve-backed incomplete-universe tail guard\",\n131:         \"UNBACKED_CAPITAL_EXIT\": \"unbacked incomplete-universe capital exit\","
       },
       {
         "path": "uquant/risk/recovery_state.py",
-        "line": 205,
-        "context": "202:         # here only; current decisions never use display prose as authority.\n203:         if any(reason in {\n204:             \"market-backed drawdown relapse in restored holdings\",\n205:             \"market-backed portfolio break in incomplete restoration\",\n206:         } for reason in event.get(\"reasons\", ()) if isinstance(reason, str)):\n207:             return True\n208:     return False\n209: "
+        "line": 208,
+        "context": "205:             reason\n206:             in {\n207:                 \"market-backed drawdown relapse in restored holdings\",\n208:                 \"market-backed portfolio break in incomplete restoration\",\n209:             }\n210:             for reason in event.get(\"reasons\", ())\n211:             if isinstance(reason, str)\n212:         ):"
       }
     ],
     "capital drawdown relapse in restored holdings": [
       {
         "path": "uquant/risk/confirmed_break.py",
-        "line": 126,
-        "context": "123:         \"DYNAMIC_COHORT_BREAK\": \"confirmed dynamic cohort structural break\",\n124:         \"INCOMPLETE_RESTORATION_BREAK\": \"market-backed portfolio break in incomplete restoration\",\n125:         \"MARKET_BACKED_RESTORATION_RELAPSE\": \"market-backed drawdown relapse in restored holdings\",\n126:         \"CAPITAL_RESTORATION_RELAPSE\": \"capital drawdown relapse in restored holdings\",\n127:         \"RESERVE_BACKED_TAIL_GUARD\": \"reserve-backed incomplete-universe tail guard\",\n128:         \"UNBACKED_CAPITAL_EXIT\": \"unbacked incomplete-universe capital exit\",\n129:         \"STRATEGIC_CAPITAL_GUARD\": \"confirmed strategic cohort capital guard\",\n130:         \"CONCENTRATED_LEADER_BREAK\": \"confirmed concentrated leader break\","
+        "line": 129,
+        "context": "126:         \"DYNAMIC_COHORT_BREAK\": \"confirmed dynamic cohort structural break\",\n127:         \"INCOMPLETE_RESTORATION_BREAK\": \"market-backed portfolio break in incomplete restoration\",\n128:         \"MARKET_BACKED_RESTORATION_RELAPSE\": \"market-backed drawdown relapse in restored holdings\",\n129:         \"CAPITAL_RESTORATION_RELAPSE\": \"capital drawdown relapse in restored holdings\",\n130:         \"RESERVE_BACKED_TAIL_GUARD\": \"reserve-backed incomplete-universe tail guard\",\n131:         \"UNBACKED_CAPITAL_EXIT\": \"unbacked incomplete-universe capital exit\",\n132:         \"STRATEGIC_CAPITAL_GUARD\": \"confirmed strategic cohort capital guard\",\n133:         \"CONCENTRATED_LEADER_BREAK\": \"confirmed concentrated leader break\","
       }
     ],
     "capital guard cooldown after failed restoration": [
       {
         "path": "uquant/risk/transitions.py",
-        "line": 519,
-        "context": "516:         target_gross_cap=0.0,\n517:         votes=ctx.votes,\n518:         evidence=evidence,\n519:         reasons=(\"capital guard cooldown after failed restoration\",),\n520:         shock_state=\"CAPITAL_GUARD_COOLDOWN\",\n521:         freeze_new_risk=True,\n522:         reduction_level=3,\n523:         severity=\"SEVERE\","
+        "line": 525,
+        "context": "522:         target_gross_cap=0.0,\n523:         votes=ctx.votes,\n524:         evidence=evidence,\n525:         reasons=(\"capital guard cooldown after failed restoration\",),\n526:         shock_state=\"CAPITAL_GUARD_COOLDOWN\",\n527:         freeze_new_risk=True,\n528:         reduction_level=3,\n529:         severity=\"SEVERE\","
       }
     ]
   }

@@ -38,6 +38,13 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | `validation/` | 冻结数据、AI-era 性能、泛化和证据完整性门禁 |
 | `research/` | 调用方驱动的离线分析，不参与生产导入 |
 
+组合类的方法在类定义中显式声明，包初始化不再动态装配方法。`engine.py` 使用普通函数和
+方法委托 application，保留仍有效的旧导入路径与类序列化身份，不在运行时修改 docstring
+缩进或函数注解。普通转仓和修复来源通过 `models/ordinary_state.py` 集中访问既有账户键；
+它是账户的类型化视图，不拥有第二份持久状态。风险状态清理读取结构化原因，历史事件缺少
+原因码时仅在读取边界兼容旧格式。领涨报告的 `factor_profile` 描述实际用于评分的机会状态，
+不把随后新分类的状态冒称评分输入。
+
 `engine.py` 是 application 编排的公共委托入口；`portfolio_leaders.py`、
 `portfolio_strategic.py` 和 `portfolio_recovery.py` 分别委托给 `portfolio/` 下的当前所有者。
 其他顶层模块若在上表中被明确列为所有者，仍承担真实职责。新增实现必须进入对应所有者，

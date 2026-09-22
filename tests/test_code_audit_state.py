@@ -66,8 +66,8 @@ def test_current_risk_reset_uses_structured_authority_not_prose():
         calls = []
         policy = SimpleNamespace(
             _release_stale_recovery_anchor=lambda **kwargs: None,
-            _release_recovery_anchor=lambda account: calls.append("release"),
-            _retire_strategic_member=lambda account, symbol: calls.append(symbol),
+            _release_recovery_anchor=lambda account, calls=calls: calls.append("release"),
+            _retire_strategic_member=lambda account, symbol, calls=calls: calls.append(symbol),
         )
         state = AccountState.empty(1000)
         state.protected_weights["sz300308"] = 0.3

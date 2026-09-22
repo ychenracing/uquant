@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -46,8 +47,8 @@ def _collect_opportunity_market_evidence(
     reference_panel: dict[str, pd.DataFrame],
     tech: pd.DataFrame,
 ) -> _OpportunityMarket:
-    broad_row = broad.loc[date]
-    tech_row = tech.loc[date]
+    broad_row = cast(pd.Series, broad.loc[date])
+    tech_row = cast(pd.Series, tech.loc[date])
     breadth20: list[bool] = []
     breadth60: list[bool] = []
     for frame in reference_panel.values():
@@ -152,7 +153,7 @@ def _evaluate_opportunity_evidence(
     account.risk_streaks["opportunity_evidence_run"] = run
     ranked = sorted((item.score for item in leaders.values()), reverse=True)
     regime = _transition_opportunity_regime(account=account, evidence=evidence, fast_flip=fast_flip, run=run)
-    mature_count = sum((item.mature for item in leaders.values()))
+    mature_count = sum(item.mature for item in leaders.values())
     score_gap = ranked[0] - ranked[2] if len(ranked) >= 3 else ranked[0] if ranked else 0.0
     tech_history = tech.loc[:date, "close"]
     recent_crash = False
@@ -206,8 +207,8 @@ def classify_opportunity(
         tech=tech,
     )
     fast_flip = (
-        market.broad_ret1 >= 0.03
-        and scalar(market.broad_row, "close") > scalar(market.broad_row, f"ma{cfg.trend_fast}")
+        (market.broad_ret1 >= 0.03
+        and scalar(market.broad_row, "close") > scalar(market.broad_row, f"ma{cfg.trend_fast}"))
         or (
             market.tech_ret1 >= 0.03
             and scalar(market.tech_row, "close") > scalar(market.tech_row, f"ma{cfg.trend_fast}")

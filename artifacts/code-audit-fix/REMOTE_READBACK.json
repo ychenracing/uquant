@@ -1,5 +1,5 @@
 {
-  "commit": "150a46cc6d7159d90866afd95a40656560534bce",
+  "commit": "dabd50db8833640b055318fede7fa54e929cc9e0",
   "verified": true,
   "files": [
     {
@@ -16,45 +16,45 @@
     },
     {
       "path": "artifacts/code-audit-fix/APPLIED.json",
-      "bytes": 799,
-      "sha256": "34f9aa77074272f6682a1bb44c7b215fd55bdc3da44e5f5ded4a8147c49b5de7",
-      "git_blob": "dc625e74927ed40b2067cd281eb00b90429eaa41"
+      "bytes": 316,
+      "sha256": "894f69cd629db847a4be3ad14765a9f8e272403da14649eccc91e200e197d2b4",
+      "git_blob": "072af813ef4baa2dba64b1b1f0516a505ac8bd01"
     },
     {
       "path": "artifacts/code-audit-fix/INSPECTION.json",
-      "bytes": 35317,
-      "sha256": "01a976381dd797c62504dbb83230ec213dcb588fc063fc8ecf294f1a2043adb8",
-      "git_blob": "dc93f528033b0bcdd910903aa521502936185673"
+      "bytes": 15141,
+      "sha256": "15021eb0aab319e2b82174118f87b9c7d68892ab2bb73c9e9e1399a8151ceec9",
+      "git_blob": "690a10714f9c7afd4a5573380a3005050510fc4b"
     },
     {
       "path": "artifacts/code-audit-fix/PATCHES_APPLIED.json",
-      "bytes": 853,
-      "sha256": "70583f1556f626e90d9530e79fe5c7c2f1da3897244e65fade9037f75484e41a",
-      "git_blob": "443ec0d0dce22fd4dff63c32b80370de69e70d01"
+      "bytes": 948,
+      "sha256": "fe7baa39f38efb4546f0bd7c5d96c16a4f8d3bbed66d81145457f45ee7921114",
+      "git_blob": "1e32c988788fde222d3d3533d4131a9844361464"
     },
     {
       "path": "artifacts/code-audit-fix/REMOTE_READBACK.json",
-      "bytes": 10699,
-      "sha256": "b4a390b586f2824bd65dacb42974c056f63e0ac1418ba91fcb65b5f35b9b57e9",
-      "git_blob": "cd71f0fc70ac834481122e9318c094f5ca33e4d2"
+      "bytes": 18642,
+      "sha256": "51c83e6aa5a7ab4dfaade7cbba0c2a4e782e7f64c371fc6c5047c48aec63e5fc",
+      "git_blob": "8f29099f0d03acfae7ac1e0cbc9ffbd1cb348dcb"
     },
     {
       "path": "artifacts/code-audit-fix/RUN_STATUS.json",
       "bytes": 187,
-      "sha256": "f71e4a5a9d3e0c68725a33112f305c266c6e10d3c7cb64a45ab454126bcd2d3b",
-      "git_blob": "9ace0e2f21fef20e8f6a9bee751b4750bc03403d"
+      "sha256": "390a9f205fdf235f5ac55ec6588f8800210c199fe5eefdb7e6e2ebc3d83e3797",
+      "git_blob": "8e1546c4ab765facaab5a04bc3b1c4cf5717599b"
     },
     {
       "path": "artifacts/code-audit-fix/VERIFICATION.json",
-      "bytes": 30362,
-      "sha256": "e7476896e43ef9578863740ffdc252d1b9b3f49df89a99956169d492c69a851a",
-      "git_blob": "9d9fec7ad86d2a364f4524601ae86401b4076a96"
+      "bytes": 18648,
+      "sha256": "06829811c56ad8bfff3b52da0b3ec0df80d0cdbe07a652b1360fdf42d1381472",
+      "git_blob": "1ddc541e7842b25e0c5107bf63e28dc00e4f9c4a"
     },
     {
       "path": "artifacts/code-audit-fix/VERIFICATION_SUMMARY.json",
-      "bytes": 16969,
-      "sha256": "3b63db594648520451793451ae41b9ae1935e8398c88718252e5081cbe8ab9d3",
-      "git_blob": "b023c1da094e0afceb00d5f4aead0705131516d5"
+      "bytes": 4902,
+      "sha256": "30b750a57ba67f8b7ca00d77231d3d38f8a5637182d3043eb23e2d5c39a714b4",
+      "git_blob": "113cc4c3abcfb2b23d96b96b167aae462d4f068f"
     },
     {
       "path": "artifacts/code-audit-fix/apply_fixes.py",
@@ -231,6 +231,84 @@
       "git_blob": "57e3b5c42d7cf637a1b4af14cb90989ad9e4511b"
     },
     {
+      "path": "artifacts/code-audit-fix/logs/35676785570/VERIFICATION.json",
+      "bytes": 18648,
+      "sha256": "06829811c56ad8bfff3b52da0b3ec0df80d0cdbe07a652b1360fdf42d1381472",
+      "git_blob": "1ddc541e7842b25e0c5107bf63e28dc00e4f9c4a"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/diff-check.txt.gz",
+      "bytes": 20,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "git_blob": "d4b9926df0b7defceb6caf0b474c4a190c5ca8f0"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/format.txt.gz",
+      "bytes": 61,
+      "sha256": "4899a45cd3761e62291a11a256eecaf72500de086c8720dec2be2121bfca7927",
+      "git_blob": "cc053488558efc0379d1bc4592715baa685ea518"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/imports.txt.gz",
+      "bytes": 59,
+      "sha256": "a08b7a5eba3827fc8434cf36e68ffee89e77d59f2940429811f573020371c1e4",
+      "git_blob": "d7a935e1823e77a07a31402285a6453d3a6edadc"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/lint.txt.gz",
+      "bytes": 823,
+      "sha256": "12fb9479cb2518057a7041d6fe03b4a9252b3070aa992c4007bb4f25597904c4",
+      "git_blob": "647d0dab034d0b0fdecd13b8f633f426f5694295"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/paired-replay.txt.gz",
+      "bytes": 747,
+      "sha256": "14ffe19226bdf987f4ca1b743a89f3a40a424ac5d7b5f30f1c1417997bf21f15",
+      "git_blob": "a5ddebe891147b0533eb0c661d896e0a825b2b1a"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/public-seams.txt.gz",
+      "bytes": 32,
+      "sha256": "01ca91fccc9f98dbe3acb5c935eca6221e5862891cda0b37cf653e6e6d7b6eb3",
+      "git_blob": "519b0e8fb8f4a296db58bb45eca2706d3f3511cd"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/regressions.txt.gz",
+      "bytes": 42,
+      "sha256": "5948a4ae19677ed547538ddc2f1316eba55c3f1f4811cce4179c1fca27c775b5",
+      "git_blob": "1be14ccb1b776c84197ba0ec125ce8c4899ff2b0"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/state-invariants.txt.gz",
+      "bytes": 42,
+      "sha256": "00734d90a4e3bd075b97d53b689d204e67ce1267d7118eef460b95a743d78b43",
+      "git_blob": "7cc3cd809ea6845eceb6a74a71ad6cdc64170815"
+    },
+    {
+      "path": "artifacts/code-audit-fix/logs/35676785570/types.txt.gz",
+      "bytes": 64,
+      "sha256": "d6a44a389b51c67aefee3eb340adc009d52a4ae09f4c2395eda1b8ebd68dd635",
+      "git_blob": "56393abdcbcacea0f00442621d0404982e41b10b"
+    },
+    {
+      "path": "artifacts/code-audit-fix/paired-replay/RESULT.json",
+      "bytes": 1465,
+      "sha256": "e3a3d06f8a1d3daa1d1f46791c81e8ba2b42e2abd19c40d4ac4e75f4de114289",
+      "git_blob": "89d89302795e6b2572d0fba2d2d240f964df0a9c"
+    },
+    {
+      "path": "artifacts/code-audit-fix/paired-replay/baseline.json.gz",
+      "bytes": 556961,
+      "sha256": "f0e14ca6d25bae0e22560f644305f5a0fd2a4d50835dc81c5371f8b92477e48f",
+      "git_blob": "7a95bfa59e861ea4aaba59b3f4320b3c68e0bef7"
+    },
+    {
+      "path": "artifacts/code-audit-fix/paired-replay/candidate.json.gz",
+      "bytes": 556998,
+      "sha256": "4a3e28bffc2477cbda1603cf036ae61373937e7ed6725b89ca99a88eeabe25cf",
+      "git_blob": "599a7621e65e37c13de6db1c9a7e9e9a541f1341"
+    },
+    {
       "path": "artifacts/code-audit-fix/patches/01_boundaries.py",
       "bytes": 4951,
       "sha256": "99fb554e408552334f31b4fff03fbb7183a3bcef71712b177307ffe0f71a8394",
@@ -285,6 +363,18 @@
       "git_blob": "5a32ab5ed879f768df4868e2c143a071934191c2"
     },
     {
+      "path": "artifacts/code-audit-fix/patches/10_static_and_docs.py",
+      "bytes": 3161,
+      "sha256": "0d4e241a3775f380724f8f6190609b774ebf38364e5910ccc7641423c4141547",
+      "git_blob": "c77127b605e32da35e6d9980c85f4bf454060327"
+    },
+    {
+      "path": "artifacts/code-audit-fix/replay_pair.py",
+      "bytes": 6289,
+      "sha256": "b5e678c537429e99dc9b5fe19a7e4627c8a7ce7f458cc9af130ed270a7f3d90f",
+      "git_blob": "ead97da09f96f95ee80275c336cfcdf4b9dad6dd"
+    },
+    {
       "path": "artifacts/code-audit-fix/sources/ordinary_state.py",
       "bytes": 3166,
       "sha256": "ed51c8fb35d930f8e21999a6306de528defed525644d379dc7b48ab24f9952c8",
@@ -292,15 +382,33 @@
     },
     {
       "path": "artifacts/code-audit-fix/verify_candidate.py",
-      "bytes": 3889,
-      "sha256": "f02f217491e4ca6bb975219defe78e17887e9f7cf6150e0c41f2126f2e02193f",
-      "git_blob": "31d675ed75fe11f6502b66dbfed038c69b0ae88f"
+      "bytes": 4014,
+      "sha256": "3ba02392b4c4461b7624d85d6ccd1e28c08acb5484f79dec4f3f7b7a4eb70d1a",
+      "git_blob": "ed45909e5edff0cb352f2cbe46cafb89fca94810"
     },
     {
       "path": "benchmarks/source_surface_registry.json",
       "bytes": 39662,
       "sha256": "90501d6adf10ccc41b025a62830cdcd66b6fad4ba5f62a1a8bc4ea1ccd9c2b00",
       "git_blob": "c7f8761664dc078d52753440ef50aeef96ecb2a0"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "bytes": 24554,
+      "sha256": "27fd8c8b4e35d7c8edec5186388737917b359327b6650e37193733443699b435",
+      "git_blob": "84d25fed60ce151f06a7abd43419b6f0784361f4"
+    },
+    {
+      "path": "docs/CONFIGURATION.md",
+      "bytes": 15074,
+      "sha256": "2d6f07257d0b28fa3ee4260a4c7bcbdc7168f84c80b14ad2bc5c3ef2fd8bb8f0",
+      "git_blob": "8a51d84bd7e5bbe4ca06c20bba5b55cfd4fe6174"
+    },
+    {
+      "path": "docs/OPERATIONS.md",
+      "bytes": 42391,
+      "sha256": "6671524f1c2c99389f340680d4055cb584c3772f4ec7028cb60ac4374f76e8f3",
+      "git_blob": "91e01a49e463372e8f50601490fb365d1753f755"
     },
     {
       "path": "pyproject.toml",
@@ -322,9 +430,9 @@
     },
     {
       "path": "tests/test_code_audit_state.py",
-      "bytes": 6361,
-      "sha256": "eae9e5dc2f9be4de763d7c28a05fe09f58ad303eb54bd141df4cddc0b4926df9",
-      "git_blob": "44d756b5f873b492830941ebdd23fa2b57961e8d"
+      "bytes": 6387,
+      "sha256": "162c8e4c6674d1caac50f4cda48b419c0516e031298fb91ea25d77a4e4f78c61",
+      "git_blob": "93b6a342ebf27b348507158940563d0e5c224568"
     },
     {
       "path": "tests/test_code_audit_structure.py",
@@ -334,9 +442,9 @@
     },
     {
       "path": "uquant/application/__init__.py",
-      "bytes": 2871,
-      "sha256": "73a1f9e0bfae49ed2054cb987f913624bbc84ea214f209673b63753c062db0a4",
-      "git_blob": "5a28f621892892e4094e05bd36ce7b10ad14c087"
+      "bytes": 3874,
+      "sha256": "9dacb1a11ea02faf4576b0500149783f24074912c9a5cee9f91e5bb611257341",
+      "git_blob": "980190ac31c20028d1a93dc0224354c999f69009"
     },
     {
       "path": "uquant/application/decision.py",
@@ -382,9 +490,9 @@
     },
     {
       "path": "uquant/opportunity.py",
-      "bytes": 8855,
-      "sha256": "89d5a05e429c0eb811986f09fd26454ea9da5742b747da6f4dbf0c9e2d4c4e59",
-      "git_blob": "eea11b2ffd7bc58ea7b92648c0391a3b7076abd5"
+      "bytes": 8913,
+      "sha256": "a99bc61a1a5901a1f05e86e9a613542571448451e32ffeff35cb45d970f64abf",
+      "git_blob": "634174157bd6381526361a630d054a42906fa259"
     },
     {
       "path": "uquant/portfolio/__init__.py",

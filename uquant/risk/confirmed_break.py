@@ -104,24 +104,31 @@ def _confirmed_break_severity(ctx: ConfirmedBreakContext) -> str:
     )
 
 
+def _confirmed_break_code(ctx: ConfirmedBreakContext) -> str:
+    if ctx.held_cohort_break_confirmed:
+        return "DYNAMIC_COHORT_BREAK"
+    if ctx.terminal_market_backed_restoration_relapse:
+        return "INCOMPLETE_RESTORATION_BREAK"
+    if ctx.market_backed_restoration_relapse:
+        return "MARKET_BACKED_RESTORATION_RELAPSE"
+    if ctx.capital_drawdown_relapse:
+        return "CAPITAL_RESTORATION_RELAPSE"
+    if ctx.incomplete_universe_tail_break:
+        return "RESERVE_BACKED_TAIL_GUARD" if ctx.credible_reserve else "UNBACKED_CAPITAL_EXIT"
+    return "STRATEGIC_CAPITAL_GUARD" if ctx.strategic_active else "CONCENTRATED_LEADER_BREAK"
+
+
 def _confirmed_break_reason(ctx: ConfirmedBreakContext) -> str:
-    return (
-        "confirmed dynamic cohort structural break"
-        if ctx.held_cohort_break_confirmed
-        else "market-backed portfolio break in incomplete restoration"
-        if ctx.terminal_market_backed_restoration_relapse
-        else "market-backed drawdown relapse in restored holdings"
-        if ctx.market_backed_restoration_relapse
-        else "capital drawdown relapse in restored holdings"
-        if ctx.capital_drawdown_relapse
-        else "reserve-backed incomplete-universe tail guard"
-        if ctx.incomplete_universe_tail_break and ctx.credible_reserve
-        else "unbacked incomplete-universe capital exit"
-        if ctx.incomplete_universe_tail_break
-        else "confirmed strategic cohort capital guard"
-        if ctx.strategic_active
-        else "confirmed concentrated leader break"
-    )
+    return {
+        "DYNAMIC_COHORT_BREAK": "confirmed dynamic cohort structural break",
+        "INCOMPLETE_RESTORATION_BREAK": "market-backed portfolio break in incomplete restoration",
+        "MARKET_BACKED_RESTORATION_RELAPSE": "market-backed drawdown relapse in restored holdings",
+        "CAPITAL_RESTORATION_RELAPSE": "capital drawdown relapse in restored holdings",
+        "RESERVE_BACKED_TAIL_GUARD": "reserve-backed incomplete-universe tail guard",
+        "UNBACKED_CAPITAL_EXIT": "unbacked incomplete-universe capital exit",
+        "STRATEGIC_CAPITAL_GUARD": "confirmed strategic cohort capital guard",
+        "CONCENTRATED_LEADER_BREAK": "confirmed concentrated leader break",
+    }[_confirmed_break_code(ctx)]
 
 
 def _confirmed_break_route(ctx: ConfirmedBreakContext) -> str:
@@ -159,6 +166,10 @@ def _confirmed_break_evidence(ctx: ConfirmedBreakContext) -> dict[str, object]:
         "capital_drawdown": ctx.capital_dd,
         "strategic_cohort_active": ctx.strategic_active,
         "strategic_current_gross": ctx.strategic_current_gross,
+        "break_reason_code": _confirmed_break_code(ctx),
+        "recovery_owner_reset_required": _confirmed_break_code(ctx) in {
+            "INCOMPLETE_RESTORATION_BREAK", "CAPITAL_RESTORATION_RELAPSE",
+        },
     }
 
 
@@ -266,6 +277,7 @@ def assess_confirmed_concentrated_break(
             "to": state.value,
             "votes": votes,
             "reasons": [reason],
+            "break_reason_code": _confirmed_break_code(ctx),
             "severity": account.shock_severity,
             "route": _confirmed_break_route(ctx),
             "target_gross_cap": crisis_gross,

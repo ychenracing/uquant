@@ -298,13 +298,7 @@ def _continue_pullback_order(book: AllocationBook, order: PendingOrder) -> None:
 def _prepare_account(self: PortfolioAllocator, *, risk: RiskAssessment,
                      account: AccountState, weights_now: dict[str, float]) -> None:
     self._release_stale_recovery_anchor(risk=risk, account=account, weights_now=weights_now)
-    if risk.state is Risk.CRISIS and any(
-        marker in risk.reasons for marker in (
-            "capital drawdown relapse in restored holdings",
-            "market-backed portfolio break in incomplete restoration",
-            "capital guard cooldown after failed restoration",
-        )
-    ):
+    if risk.state is Risk.CRISIS and risk.evidence.get("recovery_owner_reset_required") is True:
         self._release_recovery_anchor(account)
         account.protected_weights.clear()
         for symbol in tuple(account.strategic_cohort_targets):

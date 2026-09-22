@@ -1,7 +1,9 @@
 {
   "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
   "changed": [
-    "tests/test_code_audit_boundaries.py",
-    "uquant/engine.py"
+    "uquant/portfolio/pipeline.py",
+    "uquant/risk/confirmed_break.py",
+    "uquant/risk/recovery_state.py",
+    "uquant/risk/transitions.py"
   ]
 }

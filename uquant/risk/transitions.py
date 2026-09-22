@@ -510,6 +510,7 @@ def _capital_cooldown_assessment(ctx: _AcuteContext) -> RiskAssessment:
         "sector_guard_negative_exposure",
     ):
         evidence.pop(key)
+    evidence["recovery_owner_reset_required"] = True
     return RiskAssessment(
         state=Risk.CRISIS,
         target_gross_cap=0.0,

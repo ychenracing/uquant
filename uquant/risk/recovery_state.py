@@ -187,23 +187,25 @@ def _sessions_since_recovery(ctx: _RecoveryStateContext) -> float:
 
 
 def _last_shock_was_market_backed(ctx: _RecoveryStateContext) -> bool:
-    return bool(
-        ctx.account.last_shock_date
-        and any(
-            event.get("date") == ctx.account.last_shock_date
-            and event.get("to") == Risk.CRISIS.value
-            and any(
-                reason
-                in {
-                    "market-backed drawdown relapse in restored holdings",
-                    "market-backed portfolio break in incomplete restoration",
-                }
-                for reason in event.get("reasons", ())
-                if isinstance(reason, str)
-            )
-            for event in ctx.account.risk_events
-        )
-    )
+    if not ctx.account.last_shock_date:
+        return False
+    for event in ctx.account.risk_events:
+        if event.get("date") != ctx.account.last_shock_date or event.get("to") != Risk.CRISIS.value:
+            continue
+        if "break_reason_code" in event:
+            if event["break_reason_code"] in {
+                "MARKET_BACKED_RESTORATION_RELAPSE", "INCOMPLETE_RESTORATION_BREAK",
+            }:
+                return True
+            continue
+        # Old persisted events have no structured cause. Decode that wire format
+        # here only; current decisions never use display prose as authority.
+        if any(reason in {
+            "market-backed drawdown relapse in restored holdings",
+            "market-backed portfolio break in incomplete restoration",
+        } for reason in event.get("reasons", ()) if isinstance(reason, str)):
+            return True
+    return False
 
 
 def _capital_impaired_relapse(ctx: _RecoveryStateContext, *, sessions_since_recovery: float) -> bool:

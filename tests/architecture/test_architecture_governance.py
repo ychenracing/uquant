@@ -24,6 +24,7 @@ from ._execution_application_transport import (
     reviewed_execution_debt_definition,
     validate_execution_decision_owner_transport,
 )
+from ._explicit_delegation import assert_explicit_delegation
 from ._governance_inventory import (
     ARCHITECTURE_REFERENCE_COMMIT,
     ARCHITECTURE_REFERENCE_TREE,
@@ -50,6 +51,7 @@ from ._reviewed_owner_transport import (
     expand_reviewed_architecture_owner,
     reviewed_architecture_owner_source,
 )
+from ._source_mutations import fragment_spans
 from ._test_relocations import (
     TEST_RELOCATION_PATHS,
     verify_test_relocations,
@@ -604,7 +606,7 @@ def test_architecture_portfolio_pipeline_has_one_combined_capital_owner() -> Non
     from uquant.portfolio import PortfolioAllocator
     from uquant.portfolio.pipeline import allocate_strategy
 
-    assert PortfolioAllocator._allocate_strategy is allocate_strategy
+    assert_explicit_delegation(PortfolioAllocator._allocate_strategy, allocate_strategy)
 
 
 @pytest.mark.parametrize(
@@ -617,7 +619,7 @@ def test_architecture_portfolio_pipeline_has_one_combined_capital_owner() -> Non
         ("uquant/portfolio/pipeline.py", "from .capital import committed_capital, funded_increment", "from ..capital import committed_capital, funded_increment"),
         ("uquant/portfolio/capital.py", "{**committed, symbol: current}", "{symbol: current}"),
         ("uquant/portfolio/pipeline.py", "assess_strategic_capital_authority(account)", "assess_strategic_capital_authority(None)"),
-        ("uquant/portfolio/pipeline.py", "owned, strategic_targets, proposed, committed, cash_room)", "owned, strategic_targets, dict(proposed), committed, cash_room)"),
+        ("uquant/portfolio/pipeline.py", "owned, strategic_targets, proposed, committed, cash_room,)", "owned, strategic_targets, dict(proposed), committed, cash_room,)"),
         ("uquant/portfolio/allocation_book.py", "gross_cap=self.gross_cap,", "gross_cap=self.policy.cfg.max_gross,"),
         ("uquant/portfolio/allocation_book.py", "return min(self.policy.cfg.max_gross, self.risk.target_gross_cap)", "return self.policy.cfg.max_gross"),
         ("uquant/portfolio/allocation_book.py", "return accepted", "self.account.cash = 0.0\n        return accepted"),
@@ -633,12 +635,11 @@ def test_combined_allocator_contract_rejects_authority_and_split_book_mutations(
     mutation: str,
 ) -> None:
     source = architecture_portfolio_reviewed_sources(root=ROOT)[relative]
-    assert original in source
-    for occurrence in range(source.count(original)):
-        offset = 0
-        for _ in range(occurrence + 1):
-            offset = source.index(original, offset) + len(original)
-        changed = source[:offset - len(original)] + mutation + source[offset:]
+    spans = fragment_spans(source, original)
+    assert spans, "mutation stimulus was not exercised"
+    for start, end in spans:
+        changed = source[:start] + mutation + source[end:]
+        ast.parse(changed)
         with pytest.raises(AssertionError):
             validate_combined_allocator_topology(root=ROOT, overrides={relative: changed})
 
@@ -667,11 +668,13 @@ def test_combined_allocator_feasibility_rejects_unsettled_budget_mutations(
         else "uquant/portfolio/pipeline.py"
     )
     source = (ROOT / relative).read_text(encoding="utf-8")
-    assert source.count(original) == 1
+    spans = fragment_spans(source, original)
+    assert len(spans) == 1
+    start, end = spans[0]
+    changed = source[:start] + mutation + source[end:]
+    ast.parse(changed)
     with pytest.raises(AssertionError):
-        validate_combined_allocator_topology(
-            root=ROOT, overrides={relative: source.replace(original, mutation, 1)},
-        )
+        validate_combined_allocator_topology(root=ROOT, overrides={relative: changed})
 
 
 def test_architecture_risk_market_transport_rejects_delegation_argument_mutation() -> None:

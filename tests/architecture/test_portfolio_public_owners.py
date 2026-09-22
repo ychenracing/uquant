@@ -3,7 +3,8 @@ from __future__ import annotations
 import importlib
 from collections.abc import Mapping
 
-from ._analysis import ROOT, architecture_snapshot
+from ._analysis import _PORTFOLIO_RELOCATED_FUNCTION_NAMES, ROOT, architecture_snapshot
+from ._explicit_delegation import assert_explicit_delegation
 from ._private_imports import (
     current_governed_sources,
     scan_governed_private_edges,
@@ -196,9 +197,15 @@ def test_architecture_portfolio_importers_keep_exact_local_legacy_bindings() -> 
             continue
         importer_name = str(row["importer"])
         importer = importlib.import_module(importer_name)
-        binding_owner = importer.PortfolioAllocator if importer_name == "uquant.portfolio" else importer
+        class_name = {
+            "uquant.portfolio": "PortfolioAllocator",
+            "uquant.portfolio.leaders": "LeaderPortfolioPolicy",
+            "uquant.portfolio.strategic": "StrategicPortfolioPolicy",
+        }.get(importer_name)
+        binding_owner = getattr(importer, class_name) if class_name else importer
         owner = importlib.import_module(public_owner)
-        assert getattr(binding_owner, private_name) is getattr(owner, public_name)
+        local_name = _PORTFOLIO_RELOCATED_FUNCTION_NAMES.get(private_name, private_name) if class_name else private_name
+        assert_explicit_delegation(getattr(binding_owner, local_name), getattr(owner, public_name))
 
 
 def test_architecture_portfolio_current_private_edges_are_closed() -> None:

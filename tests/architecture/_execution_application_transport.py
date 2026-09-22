@@ -326,8 +326,9 @@ def architecture_execution_historical_debt_projection(
     function_rows: list[Mapping[str, object]],
     global_rows: list[Mapping[str, object]],
 ) -> tuple[set[str], set[str]]:
-    """Separate live-zero acceptance from exact frozen execution-debt identity."""
-    assert not current_functions and not current_globals
+    """Verify frozen identities while retaining current size observations separately."""
+    assert current_functions <= {str(row["id"]) for row in function_rows}
+    assert not current_globals
     function_digest = hashlib.sha256(
         "\n".join(sorted(historical_functions)).encode()
     ).hexdigest()

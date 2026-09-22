@@ -7,9 +7,11 @@ import copy
 import inspect
 import pickle
 import subprocess
+import textwrap
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from uquant.config import DEFAULT_CONFIG
 from uquant.data import DataStore
@@ -122,3 +124,24 @@ def test_typed_opportunity_flow_matches_base_outputs_and_mutations(data_dir):
                 )
                 assert baseline(account=before, **inputs) is classify_opportunity(account=after, **inputs)
                 assert before.to_dict() == after.to_dict()
+
+
+@pytest.mark.parametrize("mutation", ("swap", "missing", "extra_state", "wrong_owner"))
+def test_explicit_delegate_check_rejects_non_equivalent_forwarding(mutation):
+    from tests.architecture._explicit_delegation import assert_explicit_delegation_source
+    from uquant.portfolio.pipeline import allocate_strategy
+
+    function = PortfolioAllocator._allocate_strategy
+    definition = ast.parse(textwrap.dedent(inspect.getsource(function))).body[0]
+    call = definition.body[-1].value
+    if mutation == "swap":
+        keyword = next(item for item in call.keywords if item.arg == "risk")
+        keyword.value = ast.Name(id="account", ctx=ast.Load())
+    elif mutation == "missing":
+        call.keywords.pop()
+    elif mutation == "extra_state":
+        definition.body.insert(0, ast.parse("account = None").body[0])
+    else:
+        call.func = ast.Name(id="allocate", ctx=ast.Load())
+    with pytest.raises((AssertionError, TypeError)):
+        assert_explicit_delegation_source(definition, function, allocate_strategy)

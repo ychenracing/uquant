@@ -161,6 +161,7 @@ jobs:
   coverage:
     name: Combined branch coverage
     needs: [test_matrix]
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -180,6 +181,9 @@ jobs:
           merge-multiple: true
       - name: Require combined branch coverage
         run: |
+          set -euo pipefail
+          test -f "$RUNNER_TEMP/coverage-parts/.coverage.application-left"
+          test -f "$RUNNER_TEMP/coverage-parts/.coverage.application-right"
           uv run coverage combine "$RUNNER_TEMP/coverage-parts"
           uv run coverage report --show-missing --fail-under=85
           uv run coverage xml

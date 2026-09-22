@@ -12,9 +12,7 @@ def fragment_spans(source: str, fragment: str) -> list[tuple[int, int]]:
         result = []
         iterator = tokenize.generate_tokens(io.StringIO(text).readline)
         try:
-            for token in iterator:
-                if token.type not in ignored:
-                    result.append(token)
+            result.extend(token for token in iterator if token.type not in ignored)
         except tokenize.TokenError:
             # A stimulus is often a deliberately incomplete call fragment.
             # The complete source is independently parsed by the caller.

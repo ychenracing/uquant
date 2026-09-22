@@ -1110,11 +1110,11 @@ def test_portfolio_leaders_private_and_complexity_relocations_are_exact() -> Non
 
 @pytest.mark.parametrize("replacement", ['event.get("event") == ENTRY', "True"])
 def test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events(replacement):
-    source = (ROOT / "uquant/portfolio/allocator.py").read_text(encoding="utf-8")
+    source = (ROOT / "uquant/portfolio/freeze.py").read_text(encoding="utf-8")
     original = 'event.get("event") == GRADUATION'
     assert source.count(original) == 1
     with pytest.raises(AssertionError):
         expand_portfolio_allocator_method(
             root=ROOT, relative="uquant/portfolio/allocator.py", name="allocate", candidate=None,
-            overrides={"uquant/portfolio/allocator.py": source.replace(original, replacement)},
+            overrides={"uquant/portfolio/freeze.py": source.replace(original, replacement)},
         )

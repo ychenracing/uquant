@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ...portfolio_leaders import LeaderPortfolioPolicy
 from ...types import AccountState, LeaderScore, Opportunity, RiskAssessment, Target
+from ..leaders import LeaderPortfolioPolicy
 from .cohort_admission import cohort_admission_targets
 from .tactical_admission import tactical_admission_targets
 
@@ -23,7 +23,6 @@ class RecoveryPortfolioPolicy(LeaderPortfolioPolicy):
             risk: RiskAssessment,
             account: AccountState,
         ) -> float: ...
-
 
 
 RecoveryPortfolioPolicy.__module__ = "uquant.portfolio_recovery"

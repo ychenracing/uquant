@@ -1,384 +1,46 @@
 {
   "run": "35676332922",
-  "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
-  "source_head": "51830b43f90888acb20942357cc450fdeda21f08",
-  "python": "3.12.13 (main, Jun 16 2026, 22:05:08) [GCC 13.3.0]",
-  "tested_files": {
-    "tests/test_broker_sync.py": {
-      "bytes": 17625,
-      "sha256": "5634cefb617016cd4647e3c4ec6e4c12e24700f75e8843abf9ad9f128c9f5dbf",
-      "git_blob": "f05a259464cbac32719c8b88f9887995d25ef9fc"
-    },
-    "tests/test_cli_and_report.py": {
-      "bytes": 20837,
-      "sha256": "dfd478f8b43a12beba17eb0aff4affbbf6afa1db9984f1b08e10b835d32ccf50",
-      "git_blob": "2fdf00c42169957e9a16dc3d58531cf1697f4a0a"
-    },
-    "tests/test_code_audit_boundaries.py": {
-      "bytes": 7498,
-      "sha256": "bd60cc0935ee11a3257432afbf7a6aabf4aa9692b490a801dba2a2f0f0d23e37",
-      "git_blob": "ea603a45a0826453d901b5ce389a2e220fe22ba0"
-    },
-    "tests/test_code_audit_state.py": {
-      "bytes": 6361,
-      "sha256": "eae9e5dc2f9be4de763d7c28a05fe09f58ad303eb54bd141df4cddc0b4926df9",
-      "git_blob": "44d756b5f873b492830941ebdd23fa2b57961e8d"
-    },
-    "tests/test_code_audit_structure.py": {
-      "bytes": 4797,
-      "sha256": "8b9ab1101c245340e1788982fa2df8302a2d1422dbfcf545d28514abbfdba761",
-      "git_blob": "42ecedd3a552a80db79956b11d28b172e9b1bc36"
-    },
-    "tests/test_market_workspace.py": {
-      "bytes": 12693,
-      "sha256": "bcf3af674bc63ad343d013a633475e3d5d3140952875eaeb5eafba9c934cb139",
-      "git_blob": "d29daea1a812018ca673f20c780e521a630fabda"
-    },
-    "uquant/application/__init__.py": {
-      "bytes": 2871,
-      "sha256": "73a1f9e0bfae49ed2054cb987f913624bbc84ea214f209673b63753c062db0a4",
-      "git_blob": "5a28f621892892e4094e05bd36ce7b10ad14c087"
-    },
-    "uquant/application/decision.py": {
-      "bytes": 37353,
-      "sha256": "c5f80e289a39e7622e7edd9aa03ecf2eaebd5d77b2ffbdff3d56a470c38d0d51",
-      "git_blob": "51df3d755e2628dd5f015ff3262f0051138424e2"
-    },
-    "uquant/broker.py": {
-      "bytes": 35691,
-      "sha256": "37b83c1260ffa597c162b9671e76287114a5aa6ee38732f1b98d2405094954fa",
-      "git_blob": "e5ab13b4a8f5e0e15bc9c1eec0f8851a0792d500"
-    },
-    "uquant/broker_contract.py": {
-      "bytes": 9482,
-      "sha256": "1991eb3461283d0523cdd7d00fec76218fe67d28f2eff64221504ffd2bb13e86",
-      "git_blob": "722b42e18ad6e3f60ef5c4f3f7a35895fffd8b28"
-    },
-    "uquant/cli.py": {
-      "bytes": 16650,
-      "sha256": "c580355277d79c7bd4a6a7fde3262893f1aed36ed826ae2cbf23f93ad6661dfc",
-      "git_blob": "3aa57c4044b8464e12b4af2d6b4f455969137012"
-    },
-    "uquant/engine.py": {
-      "bytes": 7788,
-      "sha256": "12d234e170fb88e0372e635adb7143466b2e3c1d8f3463b0c40820fd2d486b82",
-      "git_blob": "bbd1b170f8850fb1ff4461e53c379702fc40f0a5"
-    },
-    "uquant/leader.py": {
-      "bytes": 27727,
-      "sha256": "cb310a6ed671b0ff0633efda86ee7584f6e66fef51f9f034f5f3932c23cc9c90",
-      "git_blob": "efd2bd89c226bcaf7cb9cd0a9fbb020a62af6fb0"
-    },
-    "uquant/models/ordinary_state.py": {
-      "bytes": 3226,
-      "sha256": "0f058df9beca9dcfda0fa6de43d1db033f645dd75d52f71530137c47b97c198d",
-      "git_blob": "4f484d4cec71838b493b88b43b4a136a220e4969"
-    },
-    "uquant/opportunity.py": {
-      "bytes": 8855,
-      "sha256": "89d5a05e429c0eb811986f09fd26454ea9da5742b747da6f4dbf0c9e2d4c4e59",
-      "git_blob": "eea11b2ffd7bc58ea7b92648c0391a3b7076abd5"
-    },
-    "uquant/portfolio/__init__.py": {
-      "bytes": 228,
-      "sha256": "99a9074e727ac37a711f339ad7020f6b4739c5092cb5775f1bc2a0f164dc3f27",
-      "git_blob": "6edc00be3cbb20375a53eff30b061fe6072c9a39"
-    },
-    "uquant/portfolio/allocator.py": {
-      "bytes": 15694,
-      "sha256": "0924e1493dab8a70e6da30681f67d460e4c316d952ddb4b9d8545dc2b4e2a3ae",
-      "git_blob": "2515405bf73cf7302fef011c08ef16245156b54d"
-    },
-    "uquant/portfolio/freeze.py": {
-      "bytes": 11643,
-      "sha256": "ee7212c2bac963cca32db876c15bd2c63d2907ae8c1cddae8ce60a8204630c9a",
-      "git_blob": "3665fa04cda564ee9d04a4c5cbd70295144eaf7c"
-    },
-    "uquant/portfolio/leaders/__init__.py": {
-      "bytes": 109,
-      "sha256": "c5d6b5b2d613bda24c2903373c7324d897921566cbcc6cd5ea8115fc783b5aea",
-      "git_blob": "7398976c81cba8c21b50d3f8b76cef09f0a4336c"
-    },
-    "uquant/portfolio/leaders/admission.py": {
-      "bytes": 14576,
-      "sha256": "7ce52e58724805ed2f63ccf82955024084ef0ddf9c2b03f77a40c8fa18fb5458",
-      "git_blob": "f9c0c3927e654c1efb61452ced4cc32951553746"
-    },
-    "uquant/portfolio/pipeline.py": {
-      "bytes": 59552,
-      "sha256": "a373e848af8cf03aa4c230e8dd10502ab446a16abbccfec9ffa05f495163711d",
-      "git_blob": "e6a9d4b81bad2349b67dabd42188d7b28a62f568"
-    },
-    "uquant/portfolio/recovery/admission.py": {
-      "bytes": 2878,
-      "sha256": "bd24644fc1d32c5a2a086a4e6da2e6d3577448b41e6349027e13723456270f09",
-      "git_blob": "3e85f92ebcea6a22f45fdb65ea81b7cafb6e2b4c"
-    },
-    "uquant/portfolio/strategic/__init__.py": {
-      "bytes": 118,
-      "sha256": "fea0756c8a2ac4ceda1afe22ea28b3e2e37f1eebc768614edb98dd73327ef4e6",
-      "git_blob": "08037a470ba22aa44083dc27784cb6bc017a8e26"
-    },
-    "uquant/portfolio/strategic/discovery.py": {
-      "bytes": 47681,
-      "sha256": "cfcf610b397c922398d34982644d3d8496576d13cc1742440717f5073bc9cee1",
-      "git_blob": "190cd512a21545d53b22ee76f598cd1b6c86f076"
-    },
-    "uquant/portfolio/strategic/rearm.py": {
-      "bytes": 38631,
-      "sha256": "83e0464de85f7eaea7fe9e77c133734c3f9a14d914924503152d6d7377ea5238",
-      "git_blob": "c86a8b6ac63d8aa9376b4e4a811e1b08c4419e5a"
-    },
-    "uquant/risk/confirmed_break.py": {
-      "bytes": 11194,
-      "sha256": "651f762d31b884fbf8aa2cfa5a2cce789c23fe6ca8ac37827614accb0450c4ad",
-      "git_blob": "df76ef81ed9b844bd7cf70cf6b85cc04b74e3896"
-    },
-    "uquant/risk/recovery_state.py": {
-      "bytes": 13840,
-      "sha256": "a332aa7444e9d77e9c47f46a42709b9c504a4244db5d0899588d209c065468ea",
-      "git_blob": "f4dbbf0114bf1fe5c164652cae0614d32bcc9c6c"
-    },
-    "uquant/risk/transitions.py": {
-      "bytes": 21910,
-      "sha256": "e19f6003aa42d6e1bbb0ab35d5218053c396339f69353619924d94390177e094",
-      "git_blob": "33c4bd5fc495512aeb745df337961cb60561e999"
-    }
-  },
+  "passed": false,
   "checks": [
     {
       "name": "format",
-      "command": [
-        "uv",
-        "run",
-        "--no-sync",
-        "ruff",
-        "format",
-        "uquant/application/__init__.py",
-        "uquant/application/decision.py",
-        "uquant/broker.py",
-        "uquant/broker_contract.py",
-        "uquant/cli.py",
-        "uquant/engine.py",
-        "uquant/leader.py",
-        "uquant/models/ordinary_state.py",
-        "uquant/opportunity.py",
-        "uquant/portfolio/__init__.py",
-        "uquant/portfolio/allocator.py",
-        "uquant/portfolio/freeze.py",
-        "uquant/portfolio/leaders/__init__.py",
-        "uquant/portfolio/leaders/admission.py",
-        "uquant/portfolio/pipeline.py",
-        "uquant/portfolio/recovery/admission.py",
-        "uquant/portfolio/strategic/__init__.py",
-        "uquant/portfolio/strategic/discovery.py",
-        "uquant/portfolio/strategic/rearm.py",
-        "uquant/risk/confirmed_break.py",
-        "uquant/risk/recovery_state.py",
-        "uquant/risk/transitions.py",
-        "tests/test_code_audit_boundaries.py",
-        "tests/test_code_audit_structure.py",
-        "tests/test_code_audit_state.py"
-      ],
       "exit_code": 0,
-      "log": "artifacts/code-audit-fix/logs/35676332922/format.txt.gz",
-      "output_bytes": 44,
-      "output_sha256": "e822f72a9bee5e43a9c4a7c5e654642a50b09e1fcec90935efabbc6b916edb1d",
       "tail": "24 files reformatted, 1 file left unchanged\n"
     },
     {
       "name": "imports",
-      "command": [
-        "uv",
-        "run",
-        "--no-sync",
-        "ruff",
-        "check",
-        "--select",
-        "I,F401",
-        "--fix",
-        "uquant/application/__init__.py",
-        "uquant/application/decision.py",
-        "uquant/broker.py",
-        "uquant/broker_contract.py",
-        "uquant/cli.py",
-        "uquant/engine.py",
-        "uquant/leader.py",
-        "uquant/models/ordinary_state.py",
-        "uquant/opportunity.py",
-        "uquant/portfolio/__init__.py",
-        "uquant/portfolio/allocator.py",
-        "uquant/portfolio/freeze.py",
-        "uquant/portfolio/leaders/__init__.py",
-        "uquant/portfolio/leaders/admission.py",
-        "uquant/portfolio/pipeline.py",
-        "uquant/portfolio/recovery/admission.py",
-        "uquant/portfolio/strategic/__init__.py",
-        "uquant/portfolio/strategic/discovery.py",
-        "uquant/portfolio/strategic/rearm.py",
-        "uquant/risk/confirmed_break.py",
-        "uquant/risk/recovery_state.py",
-        "uquant/risk/transitions.py",
-        "tests/test_code_audit_boundaries.py",
-        "tests/test_code_audit_structure.py",
-        "tests/test_code_audit_state.py"
-      ],
       "exit_code": 1,
-      "log": "artifacts/code-audit-fix/logs/35676332922/imports.txt.gz",
-      "output_bytes": 5160,
-      "output_sha256": "cbea1e3d17d516c90593cffe1f5b117202ac977b09748627501411559afec82f",
       "tail": "F401 `.backtest.backtest` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:34:35\n   |\n32 |     Target as Target,\n33 | )\n34 | from .backtest import backtest as run_backtest\n   |                                   ^^^^^^^^^^^^\n35 | from .backtest import equity as mark_equity\n36 | from .decision import _DecisionResult as ObservedDecisionResult\n   |\nhelp: Use an explicit re-export: `backtest as backtest`\n\nF401 `.backtest.equity` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:35:33\n   |\n33 | )\n34 | from .backtest import backtest as run_backtest\n35 | from .backtest import equity as mark_equity\n   |                                 ^^^^^^^^^^^\n36 | from .decision import _DecisionResult as ObservedDecisionResult\n37 | from .decision import decide as run_decision\n   |\nhelp: Use an explicit re-export: `equity as equity`\n\nF401 `.decision._DecisionResult` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:36:42\n   |\n34 | from .backtest import backtest as run_backtest\n35 | from .backtest import equity as mark_equity\n36 | from .decision import _DecisionResult as ObservedDecisionResult\n   |                                          ^^^^^^^^^^^^^^^^^^^^^^\n37 | from .decision import decide as run_decision\n38 | from .decision import decision_config_for_universe as decision_config_for_universe\n   |\nhelp: Use an explicit re-export: `_DecisionResult as _DecisionResult`\n\nF401 `.decision.decide` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:37:33\n   |\n35 | from .backtest import equity as mark_equity\n36 | from .decision import _DecisionResult as ObservedDecisionResult\n37 | from .decision import decide as run_decision\n   |                                 ^^^^^^^^^^^^\n38 | from .decision import decision_config_for_universe as decision_config_for_universe\n39 | from .decision import deterministic_decision as deterministic_decision\n   |\nhelp: Use an explicit re-export: `decide as decide`\n\nF401 `.decision.observed_decision` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:41:44\n   |\n39 | from .decision import deterministic_decision as deterministic_decision\n40 | from .decision import mark_account_positions as mark_account_positions\n41 | from .decision import observed_decision as run_observed_decision\n   |                                            ^^^^^^^^^^^^^^^^^^^^^\n42 | from .metrics import equity_drawdown_stats as drawdown_stats\n43 | from .metrics import performance_metrics as calculate_performance_metrics\n   |\nhelp: Use an explicit re-export: `observed_decision as observed_decision`\n\nF401 `.metrics.equity_drawdown_stats` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:42:47\n   |\n40 | from .decision import mark_account_positions as mark_account_positions\n41 | from .decision import observed_decision as run_observed_decision\n42 | from .metrics import equity_drawdown_stats as drawdown_stats\n   |                                               ^^^^^^^^^^^^^^\n43 | from .metrics import performance_metrics as calculate_performance_metrics\n44 | from .risk_timeline_cache import canonical_risk_timeline_json as canonical_risk_json\n   |\nhelp: Use an explicit re-export: `equity_drawdown_stats as equity_drawdown_stats`\n\nF401 `.metrics.performance_metrics` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:43:45\n   |\n41 | from .decision import observed_decision as run_observed_decision\n42 | from .metrics import equity_drawdown_stats as drawdown_stats\n43 | from .metrics import performance_metrics as calculate_performance_metrics\n   |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n44 | from .risk_timeline_cache import canonical_risk_timeline_json as canonical_risk_json\n45 | from .risk_timeline_cache import causal_risk_timeline as causal_risk_timeline\n   |\nhelp: Use an explicit re-export: `performance_metrics as performance_metrics`\n\nF401 `.risk_timeline_cache.canonical_risk_timeline_json` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:44:66\n   |\n42 | from .metrics import equity_drawdown_stats as drawdown_stats\n43 | from .metrics import performance_metrics as calculate_performance_metrics\n44 | from .risk_timeline_cache import canonical_risk_timeline_json as canonical_risk_json\n   |                                                                  ^^^^^^^^^^^^^^^^^^^\n45 | from .risk_timeline_cache import causal_risk_timeline as causal_risk_timeline\n46 | from .risk_timeline_cache import load_risk_timeline_disk_cache as load_risk_timeline_disk_cache\n   |\nhelp: Use an explicit re-export: `canonical_risk_timeline_json as canonical_risk_timeline_json`\n\nFound 16 errors (8 fixed, 8 remaining).\n"
     },
     {
       "name": "lint",
-      "command": [
-        "uv",
-        "run",
-        "--no-sync",
-        "ruff",
-        "check",
-        "uquant/application/__init__.py",
-        "uquant/application/decision.py",
-        "uquant/broker.py",
-        "uquant/broker_contract.py",
-        "uquant/cli.py",
-        "uquant/engine.py",
-        "uquant/leader.py",
-        "uquant/models/ordinary_state.py",
-        "uquant/opportunity.py",
-        "uquant/portfolio/__init__.py",
-        "uquant/portfolio/allocator.py",
-        "uquant/portfolio/freeze.py",
-        "uquant/portfolio/leaders/__init__.py",
-        "uquant/portfolio/leaders/admission.py",
-        "uquant/portfolio/pipeline.py",
-        "uquant/portfolio/recovery/admission.py",
-        "uquant/portfolio/strategic/__init__.py",
-        "uquant/portfolio/strategic/discovery.py",
-        "uquant/portfolio/strategic/rearm.py",
-        "uquant/risk/confirmed_break.py",
-        "uquant/risk/recovery_state.py",
-        "uquant/risk/transitions.py",
-        "tests/test_code_audit_boundaries.py",
-        "tests/test_code_audit_structure.py",
-        "tests/test_code_audit_state.py"
-      ],
       "exit_code": 1,
-      "log": "artifacts/code-audit-fix/logs/35676332922/lint.txt.gz",
-      "output_bytes": 8029,
-      "output_sha256": "3215f026b1b2906799174a7cb4d8fe74eec52689edeb69abce4612871e063e17",
       "tail": " not bind loop variable `calls`\n  --> tests/test_code_audit_state.py:69:54\n   |\n67 |         policy = SimpleNamespace(\n68 |             _release_stale_recovery_anchor=lambda **kwargs: None,\n69 |             _release_recovery_anchor=lambda account: calls.append(\"release\"),\n   |                                                      ^^^^^\n70 |             _retire_strategic_member=lambda account, symbol: calls.append(symbol),\n71 |         )\n   |\n\nB023 Function definition does not bind loop variable `calls`\n  --> tests/test_code_audit_state.py:70:62\n   |\n68 |             _release_stale_recovery_anchor=lambda **kwargs: None,\n69 |             _release_recovery_anchor=lambda account: calls.append(\"release\"),\n70 |             _retire_strategic_member=lambda account, symbol: calls.append(symbol),\n   |                                                              ^^^^^\n71 |         )\n72 |         state = AccountState.empty(1000)\n   |\n\nF401 `.backtest.backtest` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:34:35\n   |\n32 |     Target as Target,\n33 | )\n34 | from .backtest import backtest as run_backtest\n   |                                   ^^^^^^^^^^^^\n35 | from .backtest import equity as mark_equity\n36 | from .decision import _DecisionResult as ObservedDecisionResult\n   |\nhelp: Use an explicit re-export: `backtest as backtest`\n\nF401 `.backtest.equity` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:35:33\n   |\n33 | )\n34 | from .backtest import backtest as run_backtest\n35 | from .backtest import equity as mark_equity\n   |                                 ^^^^^^^^^^^\n36 | from .decision import _DecisionResult as ObservedDecisionResult\n37 | from .decision import decide as run_decision\n   |\nhelp: Use an explicit re-export: `equity as equity`\n\nF401 `.decision._DecisionResult` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:36:42\n   |\n34 | from .backtest import backtest as run_backtest\n35 | from .backtest import equity as mark_equity\n36 | from .decision import _DecisionResult as ObservedDecisionResult\n   |                                          ^^^^^^^^^^^^^^^^^^^^^^\n37 | from .decision import decide as run_decision\n38 | from .decision import decision_config_for_universe as decision_config_for_universe\n   |\nhelp: Use an explicit re-export: `_DecisionResult as _DecisionResult`\n\nF401 `.decision.decide` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:37:33\n   |\n35 | from .backtest import equity as mark_equity\n36 | from .decision import _DecisionResult as ObservedDecisionResult\n37 | from .decision import decide as run_decision\n   |                                 ^^^^^^^^^^^^\n38 | from .decision import decision_config_for_universe as decision_config_for_universe\n39 | from .decision import deterministic_decision as deterministic_decision\n   |\nhelp: Use an explicit re-export: `decide as decide`\n\nF401 `.decision.observed_decision` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:41:44\n   |\n39 | from .decision import deterministic_decision as deterministic_decision\n40 | from .decision import mark_account_positions as mark_account_positions\n41 | from .decision import observed_decision as run_observed_decision\n   |                                            ^^^^^^^^^^^^^^^^^^^^^\n42 | from .metrics import equity_drawdown_stats as drawdown_stats\n43 | from .metrics import performance_metrics as calculate_performance_metrics\n   |\nhelp: Use an explicit re-export: `observed_decision as observed_decision`\n\nF401 `.metrics.equity_drawdown_stats` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:42:47\n   |\n40 | from .decision import mark_account_positions as mark_account_positions\n41 | from .decision import observed_decision as run_observed_decision\n42 | from .metrics import equity_drawdown_stats as drawdown_stats\n   |                                               ^^^^^^^^^^^^^^\n43 | from .metrics import performance_metrics as calculate_performance_metrics\n44 | from .risk_timeline_cache import canonical_risk_timeline_json as canonical_risk_json\n   |\nhelp: Use an explicit re-export: `equity_drawdown_stats as equity_drawdown_stats`\n\nF401 `.metrics.performance_metrics` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:43:45\n   |\n41 | from .decision import observed_decision as run_observed_decision\n42 | from .metrics import equity_drawdown_stats as drawdown_stats\n43 | from .metrics import performance_metrics as calculate_performance_metrics\n   |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n44 | from .risk_timeline_cache import canonical_risk_timeline_json as canonical_risk_json\n45 | from .risk_timeline_cache import causal_risk_timeline as causal_risk_timeline\n   |\nhelp: Use an explicit re-export: `performance_metrics as performance_metrics`\n\nF401 `.risk_timeline_cache.canonical_risk_timeline_json` imported but unused; consider removing, adding to `__all__`, or using a redundant alias\n  --> uquant/application/__init__.py:44:66\n   |\n42 | from .metrics import equity_drawdown_stats as drawdown_stats\n43 | from .metrics import performance_metrics as calculate_performance_metrics\n44 | from .risk_timeline_cache import canonical_risk_timeline_json as canonical_risk_json\n   |                                                                  ^^^^^^^^^^^^^^^^^^^\n45 | from .risk_timeline_cache import causal_risk_timeline as causal_risk_timeline\n46 | from .risk_timeline_cache import load_risk_timeline_disk_cache as load_risk_timeline_disk_cache\n   |\nhelp: Use an explicit re-export: `canonical_risk_timeline_json as canonical_risk_timeline_json`\n\nUP034 [*] Avoid extraneous parentheses\n   --> uquant/opportunity.py:155:24\n    |\n153 |     ranked = sorted((item.score for item in leaders.values()), reverse=True)\n154 |     regime = _transition_opportunity_regime(account=account, evidence=evidence, fast_flip=fast_flip, run=run)\n155 |     mature_count = sum((item.mature for item in leaders.values()))\n    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n156 |     score_gap = ranked[0] - ranked[2] if len(ranked) >= 3 else ranked[0] if ranked else 0.0\n157 |     tech_history = tech.loc[:date, \"close\"]\n    |\nhelp: Remove extraneous parentheses\n    |\n154 |     regime = _transition_opportunity_regime(account=account, evidence=evidence, fast_flip=fast_flip, run=run)\n    -     mature_count = sum((item.mature for item in leaders.values()))\n155 +     mature_count = sum(item.mature for item in leaders.values())\n156 |     score_gap = ranked[0] - ranked[2] if len(ranked) >= 3 else ranked[0] if ranked else 0.0\n    |\n\nRUF021 [*] Parenthesize `a and b` expressions when chaining `and` and `or` together, to make the precedence clear\n   --> uquant/opportunity.py:209:9\n    |\n207 |       )\n208 |       fast_flip = (\n209 | /         market.broad_ret1 >= 0.03\n210 | |         and scalar(market.broad_row, \"close\") > scalar(market.broad_row, f\"ma{cfg.trend_fast}\")\n    | |_______________________________________________________________________________________________^\n211 |           or (\n212 |               market.tech_ret1 >= 0.03\n    |\nhelp: Parenthesize the `and` subexpression\n    |\n208 |     fast_flip = (\n    -         market.broad_ret1 >= 0.03\n    -         and scalar(market.broad_row, \"close\") > scalar(market.broad_row, f\"ma{cfg.trend_fast}\")\n209 +         (market.broad_ret1 >= 0.03\n210 +         and scalar(market.broad_row, \"close\") > scalar(market.broad_row, f\"ma{cfg.trend_fast}\"))\n211 |         or (\n    |\n\nFound 12 errors.\n[*] 2 fixable with the `--fix` option.\n"
     },
     {
       "name": "types",
-      "command": [
-        "uv",
-        "run",
-        "--no-sync",
-        "mypy",
-        "uquant/application/__init__.py",
-        "uquant/application/decision.py",
-        "uquant/broker.py",
-        "uquant/broker_contract.py",
-        "uquant/cli.py",
-        "uquant/engine.py",
-        "uquant/leader.py",
-        "uquant/models/ordinary_state.py",
-        "uquant/opportunity.py",
-        "uquant/portfolio/__init__.py",
-        "uquant/portfolio/allocator.py",
-        "uquant/portfolio/freeze.py",
-        "uquant/portfolio/leaders/__init__.py",
-        "uquant/portfolio/leaders/admission.py",
-        "uquant/portfolio/pipeline.py",
-        "uquant/portfolio/recovery/admission.py",
-        "uquant/portfolio/strategic/__init__.py",
-        "uquant/portfolio/strategic/discovery.py",
-        "uquant/portfolio/strategic/rearm.py",
-        "uquant/risk/confirmed_break.py",
-        "uquant/risk/recovery_state.py",
-        "uquant/risk/transitions.py"
-      ],
       "exit_code": 1,
-      "log": "artifacts/code-audit-fix/logs/35676332922/types.txt.gz",
-      "output_bytes": 2301,
-      "output_sha256": "25a54856b08eb8acf28150585010904f07658192b8c3d3292f8556d30c2d3a51",
       "tail": "uquant/opportunity.py:100: error: Argument \"broad_row\" to \"_OpportunityMarket\"\nhas incompatible type \"Series[Any] | DataFrame\"; expected \"Series[Any]\" \n[arg-type]\n            broad_row=broad_row,\n                      ^~~~~~~~~\nuquant/opportunity.py:103: error: Argument \"tech_row\" to \"_OpportunityMarket\"\nhas incompatible type \"Series[Any] | DataFrame\"; expected \"Series[Any]\" \n[arg-type]\n            tech_row=tech_row,\n                     ^~~~~~~~\nuquant/engine.py:43: error: Module \"uquant.application\" does not explicitly\nexport attribute \"canonical_risk_json\"  [attr-defined]\n    _canonical_json = _application.canonical_risk_json\n                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nuquant/engine.py:46: error: Module \"uquant.application\" does not explicitly\nexport attribute \"calculate_performance_metrics\"  [attr-defined]\n    performance_metrics = _application.calculate_performance_metrics\n                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nuquant/engine.py:47: error: Module \"uquant.application\" does not explicitly\nexport attribute \"drawdown_stats\"  [attr-defined]\n    _drawdown_stats = _application.drawdown_stats\n                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~\nuquant/engine.py:170: error: Module \"uquant.application\" does not explicitly\nexport attribute \"run_decision\"  [attr-defined]\n            return _application.run_decision(\n                   ^~~~~~~~~~~~~~~~~~~~~~~~~\nuquant/engine.py:190: error: Name \"_application.ObservedDecisionResult\" is not\ndefined  [name-defined]\n        ) -> _application.ObservedDecisionResult:\n             ^\nuquant/engine.py:191: error: Module \"uquant.application\" does not explicitly\nexport attribute \"run_observed_decision\"  [attr-defined]\n            return _application.run_observed_decision(\n                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nuquant/engine.py:207: error: Module \"uquant.application\" does not explicitly\nexport attribute \"run_backtest\"  [attr-defined]\n            return _application.run_backtest(\n                   ^~~~~~~~~~~~~~~~~~~~~~~~~\nuquant/engine.py:211: error: Module \"uquant.application\" does not explicitly\nexport attribute \"mark_equity\"  [attr-defined]\n        equity = _application.mark_equity\n                 ^~~~~~~~~~~~~~~~~~~~~~~~\nFound 10 errors in 2 files (checked 22 source files)\n"
     },
     {
       "name": "regressions",
-      "command": [
-        "uv",
-        "run",
-        "--no-sync",
-        "pytest",
-        "-q",
-        "tests/test_code_audit_boundaries.py",
-        "tests/test_broker_sync.py",
-        "tests/test_cli_and_report.py",
-        "tests/test_market_workspace.py",
-        "tests/test_code_audit_structure.py",
-        "tests/test_code_audit_state.py"
-      ],
       "exit_code": 0,
-      "log": "artifacts/code-audit-fix/logs/35676332922/regressions.txt.gz",
-      "output_bytes": 160,
-      "output_sha256": "3465dfdabcd2a6655674fd82ca948c9c444aa28eae2b9f9be50a59480d529f2f",
       "tail": "........................................................................ [ 73%]\n..........................                                               [100%]\n"
     },
     {
       "name": "state-invariants",
-      "command": [
-        "uv",
-        "run",
-        "--no-sync",
-        "pytest",
-        "-q",
-        "tests/test_sentinel_freeze_new_risk.py",
-        "tests/test_risk_transitions.py",
-        "tests/test_ordinary_cash_rearm.py",
-        "tests/test_repair_capital_custody.py",
-        "tests/test_core_residual_capital.py",
-        "tests/test_core_bounded_risk_restoration.py"
-      ],
       "exit_code": 0,
-      "log": "artifacts/code-audit-fix/logs/35676332922/state-invariants.txt.gz",
-      "output_bytes": 160,
-      "output_sha256": "b2cace8d442dfd18f85561da7ba0822d6c7c22d40c04361fb9e32fe98ee722ed",
       "tail": "........................................................................ [ 74%]\n.........................                                                [100%]\n"
     },
     {
       "name": "public-seams",
-      "command": [
-        "uv",
-        "run",
-        "--no-sync",
-        "pytest",
-        "-q",
-        "tests/architecture/test_portfolio_boundaries.py::test_portfolio_historical_class_and_instance_monkeypatch_seams_remain_live",
-        "tests/architecture/test_execution_application_boundaries.py::test_execution_engine_imports_when_python_strips_docstrings_and_assertions"
-      ],
       "exit_code": 0,
-      "log": "artifacts/code-audit-fix/logs/35676332922/public-seams.txt.gz",
-      "output_bytes": 80,
-      "output_sha256": "99db33d5c94c6f7da021687c7391181685cc33299c5435b1c861e2db3be3ec87",
       "tail": "..                                                                       [100%]\n"
     },
     {
       "name": "diff-check",
-      "command": [
-        "git",
-        "diff",
-        "--check"
-      ],
       "exit_code": 0,
-      "log": "artifacts/code-audit-fix/logs/35676332922/diff-check.txt.gz",
-      "output_bytes": 0,
-      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "tail": ""
     }
-  ],
-  "passed": false,
-  "full_economic_acceptance": "NOT_RUN",
-  "main_merge": "NOT_AUTHORIZED"
+  ]
 }

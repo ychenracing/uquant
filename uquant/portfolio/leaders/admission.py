@@ -3,107 +3,159 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
 from ...portfolio_core import effective_n
-from ...portfolio_strategic import StrategicPortfolioPolicy
 from ...types import (
     AccountState,
     LeaderScore,
     Opportunity,
     RiskAssessment,
 )
+from ..strategic import StrategicPortfolioPolicy
 
 
 class LeaderPortfolioPolicy(StrategicPortfolioPolicy):
     """Own dynamic K, admissions, additions, satellites, and leader rotation."""
 
-    if TYPE_CHECKING:
+    def _cap_opportunity_gross(
+        self,
+        *,
+        proposed: dict[str, float],
+        gross_cap: float,
+        weights_now: dict[str, float],
+        leaders: dict[str, LeaderScore],
+        reasons: dict[str, str],
+        opportunity: Opportunity,
+    ) -> dict[str, float]:
+        from .targets import cap_opportunity_gross
 
-        def _cap_opportunity_gross(
+        return cap_opportunity_gross(
             self,
-            *,
-            proposed: dict[str, float],
-            gross_cap: float,
-            weights_now: dict[str, float],
-            leaders: dict[str, LeaderScore],
-            reasons: dict[str, str],
-            opportunity: Opportunity,
-        ) -> dict[str, float]: ...
+            proposed=proposed,
+            gross_cap=gross_cap,
+            weights_now=weights_now,
+            leaders=leaders,
+            reasons=reasons,
+            opportunity=opportunity,
+        )
 
-        def _conviction_shares(
-            self, symbols: list[str], leaders: dict[str, LeaderScore], *, evidence_qualified: bool
-        ) -> NDArray[np.float64]: ...
+    def _conviction_shares(
+        self, symbols: list[str], leaders: dict[str, LeaderScore], *, evidence_qualified: bool
+    ) -> NDArray[np.float64]:
+        return _conviction_shares(self, symbols, leaders, evidence_qualified=evidence_qualified)
 
-        def _conviction_evidence_qualified(
+    def _conviction_evidence_qualified(
+        self,
+        *,
+        symbols: list[str],
+        leaders: dict[str, LeaderScore],
+        user_panel: dict[str, pd.DataFrame],
+        date: pd.Timestamp,
+        high_confidence: bool,
+    ) -> bool:
+        return _conviction_evidence_qualified(
             self,
-            *,
-            symbols: list[str],
-            leaders: dict[str, LeaderScore],
-            user_panel: dict[str, pd.DataFrame],
-            date: pd.Timestamp,
-            high_confidence: bool,
-        ) -> bool: ...
+            symbols=symbols,
+            leaders=leaders,
+            user_panel=user_panel,
+            date=date,
+            high_confidence=high_confidence,
+        )
 
-        @staticmethod
-        def _session_clock(user_panel: dict[str, pd.DataFrame], date: pd.Timestamp) -> pd.DatetimeIndex: ...
+    @staticmethod
+    def _session_clock(user_panel: dict[str, pd.DataFrame], date: pd.Timestamp) -> pd.DatetimeIndex:
+        from .lifecycle import leader_session_clock
 
-        @staticmethod
-        def _session_distance(
-            clock: pd.DatetimeIndex, start: str | pd.Timestamp, end: pd.Timestamp
-        ) -> int: ...
+        return leader_session_clock(user_panel, date)
 
-        def _correlations(
-            self, user_panel: dict[str, pd.DataFrame], symbols: list[str], date: pd.Timestamp
-        ) -> pd.DataFrame: ...
+    @staticmethod
+    def _session_distance(clock: pd.DatetimeIndex, start: str | pd.Timestamp, end: pd.Timestamp) -> int:
+        from .lifecycle import leader_session_distance
 
-        def _admission_utility(
+        return leader_session_distance(clock, start, end)
+
+    def _correlations(
+        self, user_panel: dict[str, pd.DataFrame], symbols: list[str], date: pd.Timestamp
+    ) -> pd.DataFrame:
+        return _correlations(self, user_panel, symbols, date)
+
+    def _admission_utility(
+        self,
+        *,
+        candidate: LeaderScore,
+        active: list[str],
+        leaders: dict[str, LeaderScore],
+        user_panel: dict[str, pd.DataFrame],
+        date: pd.Timestamp,
+        account: AccountState,
+    ) -> float:
+        return _admission_utility(
             self,
-            *,
-            candidate: LeaderScore,
-            active: list[str],
-            leaders: dict[str, LeaderScore],
-            user_panel: dict[str, pd.DataFrame],
-            date: pd.Timestamp,
-            account: AccountState,
-        ) -> float: ...
+            candidate=candidate,
+            active=active,
+            leaders=leaders,
+            user_panel=user_panel,
+            date=date,
+            account=account,
+        )
 
-        def _dynamic_k(
+    def _dynamic_k(
+        self,
+        *,
+        date: pd.Timestamp,
+        opportunity: Opportunity,
+        risk: RiskAssessment,
+        candidates: list[LeaderScore],
+        user_panel: dict[str, pd.DataFrame],
+        account: AccountState,
+    ) -> int:
+        return _dynamic_k(
             self,
-            *,
-            date: pd.Timestamp,
-            opportunity: Opportunity,
-            risk: RiskAssessment,
-            candidates: list[LeaderScore],
-            user_panel: dict[str, pd.DataFrame],
-            account: AccountState,
-        ) -> int: ...
+            date=date,
+            opportunity=opportunity,
+            risk=risk,
+            candidates=candidates,
+            user_panel=user_panel,
+            account=account,
+        )
 
-        def _rotation_allowed(
-            self, account: AccountState, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame]
-        ) -> bool: ...
+    def _rotation_allowed(
+        self, account: AccountState, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame]
+    ) -> bool:
+        from .lifecycle import leader_rotation_allowed
 
+        return leader_rotation_allowed(self, account, date, user_panel)
 
-        @staticmethod
-        def _retention_score(
-            symbol: str, leaders: dict[str, LeaderScore], account: AccountState
-        ) -> float: ...
+    @staticmethod
+    def _retention_score(symbol: str, leaders: dict[str, LeaderScore], account: AccountState) -> float:
+        from .lifecycle import leader_retention_score
 
-        def _leader_lifecycle_exit_confirmed(
-            self,
-            *,
-            symbol: str,
-            date: pd.Timestamp,
-            user_panel: dict[str, pd.DataFrame],
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-        ) -> bool: ...
+        return leader_retention_score(symbol, leaders, account)
 
-        def _industry_handoff(self, *, challenger: LeaderScore, incumbent: LeaderScore) -> bool: ...
+    def _leader_lifecycle_exit_confirmed(
+        self,
+        *,
+        symbol: str,
+        date: pd.Timestamp,
+        user_panel: dict[str, pd.DataFrame],
+        leaders: dict[str, LeaderScore],
+        account: AccountState,
+    ) -> bool:
+        from .lifecycle import leader_lifecycle_exit_confirmed
+
+        return leader_lifecycle_exit_confirmed(
+            self, symbol=symbol, date=date, user_panel=user_panel, leaders=leaders, account=account
+        )
+
+    def _industry_handoff(self, *, challenger: LeaderScore, incumbent: LeaderScore) -> bool:
+        from .lifecycle import industry_handoff
+
+        return industry_handoff(self, challenger=challenger, incumbent=incumbent)
 
 
 LeaderPortfolioPolicy.__module__ = "uquant.portfolio_leaders"

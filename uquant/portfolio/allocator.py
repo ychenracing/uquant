@@ -4,17 +4,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import replace
-from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ..models.ordinary_entry import GRADUATION
 from ..models.strategic_universe import StrategicUniverseRoles
 from ..portfolio_core import (
     current_weights,
     strategic_dominant_symbol,
 )
-from ..portfolio_recovery import RecoveryPortfolioPolicy
 from ..risk_sentinel.integration import sentinel_freeze_authorized
 from ..types import (
     AccountState,
@@ -25,6 +22,8 @@ from ..types import (
     RiskAssessment,
     Target,
 )
+from .freeze import commit_frozen_observations
+from .recovery import RecoveryPortfolioPolicy
 from .strategic.discovery import resolve_strategic_qualification_inputs as _resolve_qualification_inputs
 from .strategic.rearm import observe_flat_book_capital_repair_state as _observe_account_repair
 
@@ -65,12 +64,20 @@ def _allocate_strategy_targets(
     strategy_risk = risk
     if sentinel_only_freeze:
         _, _, repair_universe = _resolve_qualification_inputs(
-            date=date, user_panel=user_panel, leaders=leaders,
-            qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+            date=date,
+            user_panel=user_panel,
+            leaders=leaders,
+            qualification_panel=qualification_panel,
+            qualification_leaders=qualification_leaders,
             strategic_universe=strategic_universe,
         )
-        _observe_account_repair(account=account, risk=risk, universe=repair_universe,
-                                observed_session=str(date.date()), cfg=self.cfg)
+        _observe_account_repair(
+            account=account,
+            risk=risk,
+            universe=repair_universe,
+            observed_session=str(date.date()),
+            cfg=self.cfg,
+        )
         strategy_evidence = {
             **risk.evidence,
             "sentinel_freeze_new_risk": False,
@@ -137,9 +144,13 @@ def _commit_frozen_ordinary_denials(account: AccountState, planned: AccountState
     # Preserve only monotonic revocation for existing ordinary BUYs;
     # never copy hypothetical restoration grants from the planning book.
     for order in account.pending_orders:
-        if (order.side == "BUY" and not order.grant_id and not order.epoch_id
-                and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value
-                and order.symbol not in planned.protected_weights):
+        if (
+            order.side == "BUY"
+            and not order.grant_id
+            and not order.epoch_id
+            and order.mechanism != AttributionMechanism.POST_SHOCK_RESTORATION.value
+            and order.symbol not in planned.protected_weights
+        ):
             account.protected_weights.pop(order.symbol, None)
 
 
@@ -173,27 +184,7 @@ def allocate(
     )
     if sentinel_only_freeze:
         _commit_frozen_ordinary_denials(account, strategy_account)
-        account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
-        for key, value in strategy_account.replacement_tenure.items():
-            if key.startswith(("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:", "pullback_exit:")):
-                account.replacement_tenure[key] = value
-        for key, value in strategy_account.candidate_tenure.items():
-            if key.startswith(("lifecycle_exit_session:", "pullback_exit:")):
-                account.candidate_tenure[key] = value
-        for event in strategy_account.lifecycle_events[len(account.lifecycle_events):]:
-            if event.get("event") == GRADUATION:
-                account.lifecycle_events.append(deepcopy(event))
-        for key in (
-            "strategic_cohort_qualification",
-            "strategic_long_cycle_open",
-            "strategic_eligibility_session",
-            "strategic_repair_observed_session",
-        ):
-            if key in strategy_account.candidate_tenure:
-                account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
-        if account.strategic_qualification.candidate_symbol:
-            account.strategic_qualification.deployment_blocked = True
-            account.strategic_qualification.deployment_block_reason = "freeze_new_risk"
+        commit_frozen_observations(account, strategy_account)
         weights_now, _ = current_weights(account, prices)
         targets = self._frozen_existing_targets(
             strategy_targets=targets,
@@ -269,120 +260,174 @@ class PortfolioAllocator(RecoveryPortfolioPolicy):
     contain evidence and lifecycle behavior only; none can submit an order.
     """
 
-    if TYPE_CHECKING:
+    def _confirmed_recovery_gross(self, *, risk: RiskAssessment, account: AccountState) -> float:
+        return _confirmed_recovery_gross(self, risk=risk, account=account)
 
-        def _confirmed_recovery_gross(
+    @staticmethod
+    def _risk_attribution_mechanism(reason_code: str) -> AttributionMechanism:
+        from .risk_reduction import risk_attribution_mechanism
+
+        return risk_attribution_mechanism(reason_code)
+
+    def _risk_retention_score(self, target: Target, account: AccountState) -> float:
+        from .risk_reduction import risk_retention_score
+
+        return risk_retention_score(self, target, account)
+
+    @staticmethod
+    def _risk_retention_vector(
+        target: Target, account: AccountState, retained_weight: float, current_weight: float
+    ) -> tuple[float, float, float, float, float, float]:
+        from .risk_reduction import risk_retention_vector
+
+        return risk_retention_vector(target, account, retained_weight, current_weight)
+
+    @staticmethod
+    def _risk_lifecycle_rank(
+        retained: tuple[float, float, float, float, float, float],
+    ) -> tuple[float, float, float, float, float, float]:
+        from .risk_reduction import risk_lifecycle_rank
+
+        return risk_lifecycle_rank(retained)
+
+    def _subset_retention_vector(
+        self,
+        targets: tuple[Target, ...],
+        account: AccountState,
+        retained_weights: dict[str, float],
+        weights_now: dict[str, float],
+    ) -> tuple[float, float, float, float, float, float]:
+        from .risk_reduction import subset_retention_vector
+
+        return subset_retention_vector(self, targets, account, retained_weights, weights_now)
+
+    def _sparse_risk_reduce(
+        self,
+        *,
+        targets: tuple[Target, ...],
+        weights_now: dict[str, float],
+        account: AccountState,
+        gross_cap: float,
+        risk_reason: str = "portfolio risk gross cap",
+        risk_reason_code: str = "risk_gross_cap",
+        risk_exit_kind: str = "risk",
+        prices: dict[str, float] | None = None,
+    ) -> tuple[Target, ...]:
+        from .risk_reduction import sparse_risk_reduce
+
+        return sparse_risk_reduce(
             self,
-            *,
-            risk: RiskAssessment,
-            account: AccountState,
-        ) -> float: ...
+            targets=targets,
+            weights_now=weights_now,
+            account=account,
+            gross_cap=gross_cap,
+            risk_reason=risk_reason,
+            risk_reason_code=risk_reason_code,
+            risk_exit_kind=risk_exit_kind,
+            prices=prices,
+        )
 
-        @staticmethod
-        def _risk_attribution_mechanism(
-            reason_code: str,
-        ) -> AttributionMechanism: ...
+    @staticmethod
+    def _risk_reduction_metadata(risk: RiskAssessment) -> tuple[str, str, str]:
+        from .risk_reduction import risk_reduction_metadata
 
-        def _risk_retention_score(
+        return risk_reduction_metadata(risk)
+
+    def _turnover_aware_sector_cap(
+        self,
+        *,
+        targets: tuple[Target, ...],
+        weights_now: dict[str, float],
+        account: AccountState,
+        gross_cap: float,
+    ) -> tuple[Target, ...]:
+        from .risk_reduction import turnover_aware_sector_cap
+
+        return turnover_aware_sector_cap(
+            self, targets=targets, weights_now=weights_now, account=account, gross_cap=gross_cap
+        )
+
+    def allocate(
+        self,
+        *,
+        date: pd.Timestamp,
+        opportunity: Opportunity,
+        risk: RiskAssessment,
+        user_panel: dict[str, pd.DataFrame],
+        leaders: dict[str, LeaderScore],
+        account: AccountState,
+        prices: dict[str, float],
+        qualification_panel: dict[str, pd.DataFrame] | None = None,
+        qualification_leaders: dict[str, LeaderScore] | None = None,
+        strategic_universe: StrategicUniverseRoles | None = None,
+    ) -> tuple[Target, ...]:
+        return allocate(
             self,
-            target: Target,
-            account: AccountState,
-        ) -> float: ...
+            date=date,
+            opportunity=opportunity,
+            risk=risk,
+            user_panel=user_panel,
+            leaders=leaders,
+            account=account,
+            prices=prices,
+            qualification_panel=qualification_panel,
+            qualification_leaders=qualification_leaders,
+            strategic_universe=strategic_universe,
+        )
 
-        @staticmethod
-        def _risk_retention_vector(
-            target: Target,
-            account: AccountState,
-            retained_weight: float,
-            current_weight: float,
-        ) -> tuple[float, float, float, float, float, float]: ...
+    @staticmethod
+    def _commit_frozen_exit_state(
+        *, account: AccountState, planned_account: AccountState, allowed_exit_symbols: set[str]
+    ) -> None:
+        from .freeze import commit_frozen_exit_state
 
-        @staticmethod
-        def _risk_lifecycle_rank(
-            retained: tuple[float, float, float, float, float, float],
-        ) -> tuple[float, float, float, float, float, float]: ...
+        return commit_frozen_exit_state(
+            account=account, planned_account=planned_account, allowed_exit_symbols=allowed_exit_symbols
+        )
 
-        def _subset_retention_vector(
+    @staticmethod
+    def _frozen_existing_targets(
+        *,
+        strategy_targets: tuple[Target, ...] | None,
+        leaders: dict[str, LeaderScore],
+        account: AccountState,
+        weights_now: dict[str, float],
+    ) -> tuple[Target, ...]:
+        from .freeze import frozen_existing_targets
+
+        return frozen_existing_targets(
+            strategy_targets=strategy_targets, leaders=leaders, account=account, weights_now=weights_now
+        )
+
+    def _allocate_strategy(
+        self,
+        *,
+        date: pd.Timestamp,
+        opportunity: Opportunity,
+        risk: RiskAssessment,
+        user_panel: dict[str, pd.DataFrame],
+        leaders: dict[str, LeaderScore],
+        account: AccountState,
+        prices: dict[str, float],
+        qualification_panel: dict[str, pd.DataFrame] | None = None,
+        qualification_leaders: dict[str, LeaderScore] | None = None,
+        strategic_universe: StrategicUniverseRoles | None = None,
+    ) -> tuple[Target, ...]:
+        from .pipeline import allocate_strategy
+
+        return allocate_strategy(
             self,
-            targets: tuple[Target, ...],
-            account: AccountState,
-            retained_weights: dict[str, float],
-            weights_now: dict[str, float],
-        ) -> tuple[float, float, float, float, float, float]: ...
-
-        def _sparse_risk_reduce(
-            self,
-            *,
-            targets: tuple[Target, ...],
-            weights_now: dict[str, float],
-            account: AccountState,
-            gross_cap: float,
-            risk_reason: str = "portfolio risk gross cap",
-            risk_reason_code: str = "risk_gross_cap",
-            risk_exit_kind: str = "risk",
-            prices: dict[str, float] | None = None,
-        ) -> tuple[Target, ...]: ...
-
-        @staticmethod
-        def _risk_reduction_metadata(
-            risk: RiskAssessment,
-        ) -> tuple[str, str, str]: ...
-
-        def _turnover_aware_sector_cap(
-            self,
-            *,
-            targets: tuple[Target, ...],
-            weights_now: dict[str, float],
-            account: AccountState,
-            gross_cap: float,
-        ) -> tuple[Target, ...]: ...
-
-        def allocate(
-            self,
-            *,
-            date: pd.Timestamp,
-            opportunity: Opportunity,
-            risk: RiskAssessment,
-            user_panel: dict[str, pd.DataFrame],
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-            prices: dict[str, float],
-            qualification_panel: dict[str, pd.DataFrame] | None = None,
-            qualification_leaders: dict[str, LeaderScore] | None = None,
-            strategic_universe: StrategicUniverseRoles | None = None,
-        ) -> tuple[Target, ...]: ...
-
-        @staticmethod
-        def _commit_frozen_exit_state(
-            *,
-            account: AccountState,
-            planned_account: AccountState,
-            allowed_exit_symbols: set[str],
-        ) -> None: ...
-
-        @staticmethod
-        def _frozen_existing_targets(
-            *,
-            strategy_targets: tuple[Target, ...] | None,
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-            weights_now: dict[str, float],
-        ) -> tuple[Target, ...]: ...
-
-        def _allocate_strategy(
-            self,
-            *,
-            date: pd.Timestamp,
-            opportunity: Opportunity,
-            risk: RiskAssessment,
-            user_panel: dict[str, pd.DataFrame],
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-            prices: dict[str, float],
-            qualification_panel: dict[str, pd.DataFrame] | None = None,
-            qualification_leaders: dict[str, LeaderScore] | None = None,
-            strategic_universe: StrategicUniverseRoles | None = None,
-        ) -> tuple[Target, ...]: ...
+            date=date,
+            opportunity=opportunity,
+            risk=risk,
+            user_panel=user_panel,
+            leaders=leaders,
+            account=account,
+            prices=prices,
+            qualification_panel=qualification_panel,
+            qualification_leaders=qualification_leaders,
+            strategic_universe=strategic_universe,
+        )
 
 
 PortfolioAllocator.__module__ = "uquant.portfolio"

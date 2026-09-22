@@ -1,9 +1,23 @@
 {
   "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
   "changed": [
+    "artifacts/code-audit-fix/verify_candidate.py",
+    "benchmarks/source_surface_registry.json",
+    "pyproject.toml",
+    "tests/architecture/test_architecture_governance.py",
+    "uquant/application/__init__.py",
+    "uquant/engine.py",
+    "uquant/models/ordinary_state.py",
+    "uquant/opportunity.py",
+    "uquant/portfolio/__init__.py",
+    "uquant/portfolio/allocator.py",
+    "uquant/portfolio/freeze.py",
+    "uquant/portfolio/leaders/__init__.py",
+    "uquant/portfolio/leaders/admission.py",
     "uquant/portfolio/pipeline.py",
-    "uquant/risk/confirmed_break.py",
-    "uquant/risk/recovery_state.py",
-    "uquant/risk/transitions.py"
+    "uquant/portfolio/recovery/admission.py",
+    "uquant/portfolio/strategic/__init__.py",
+    "uquant/portfolio/strategic/discovery.py",
+    "uquant/portfolio/strategic/rearm.py"
   ]
 }

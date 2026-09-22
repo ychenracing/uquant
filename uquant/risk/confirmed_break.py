@@ -58,7 +58,10 @@ def _prepare_confirmed_break(ctx: ConfirmedBreakContext) -> None:
     account = ctx.account
     reset_recovery_owner_rearm(account)
     capture_protected_holdings(
-        account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,
+        account=account,
+        date=ctx.date,
+        user_panel=ctx.user_panel,
+        equity=ctx.equity,
     )
     account.shock_start_date = str(ctx.date.date())
     account.last_shock_date = str(ctx.date.date())
@@ -167,8 +170,10 @@ def _confirmed_break_evidence(ctx: ConfirmedBreakContext) -> dict[str, object]:
         "strategic_cohort_active": ctx.strategic_active,
         "strategic_current_gross": ctx.strategic_current_gross,
         "break_reason_code": _confirmed_break_code(ctx),
-        "recovery_owner_reset_required": _confirmed_break_code(ctx) in {
-            "INCOMPLETE_RESTORATION_BREAK", "CAPITAL_RESTORATION_RELAPSE",
+        "recovery_owner_reset_required": _confirmed_break_code(ctx)
+        in {
+            "INCOMPLETE_RESTORATION_BREAK",
+            "CAPITAL_RESTORATION_RELAPSE",
         },
     }
 

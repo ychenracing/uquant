@@ -11,12 +11,18 @@ import pandas as pd
 import uquant.application as _application
 from uquant.application import (
     DEFAULT_CONFIG,
+    AccountState,
+    AIUniverse,
     DataStore,
+    Decision,
     ExecutionPlanner,
     LeaderScore,
+    PendingOrder,
     PortfolioAllocator,
     RiskEvidenceTimeline,
+    StrategicUniverseDeclaration,
     SystemConfig,
+    Target,
 )
 from uquant.application import MarketWorkspace as _MarketWorkspace
 from uquant.application import ReplayCache as _ReplayCache
@@ -39,11 +45,37 @@ _risk_timeline_disk_path = _application.risk_timeline_disk_path
 _decision_config_for_universe = _application.decision_config_for_universe
 performance_metrics = _application.calculate_performance_metrics
 _drawdown_stats = _application.drawdown_stats
-_load_risk_timeline_disk_cache, _write_risk_timeline_disk_cache = (
-    _application.bind_risk_timeline_disk_cache(lambda: _RISK_TIMELINE_CACHE_SCHEMA))
-_attach_target_attribution = _application.bind_target_attribution(
-    lambda: _LEGACY_INDUSTRY, lambda: _LEGACY_MANIFEST_SHA256,
-)
+
+
+def _load_risk_timeline_disk_cache(
+    path: Path, *, key: tuple[str, str, str, str]
+) -> RiskEvidenceTimeline | None:
+    return _application.load_risk_timeline_disk_cache(path, _RISK_TIMELINE_CACHE_SCHEMA, key=key)
+
+
+def _write_risk_timeline_disk_cache(
+    path: Path, *, key: tuple[str, str, str, str], timeline: RiskEvidenceTimeline
+) -> None:
+    _application.write_risk_timeline_disk_cache(path, _RISK_TIMELINE_CACHE_SCHEMA, key=key, timeline=timeline)
+
+
+def _attach_target_attribution(
+    *,
+    signal_date: str,
+    targets: tuple[Target, ...],
+    retained_orders: Iterable[PendingOrder] = (),
+    cfg: SystemConfig = DEFAULT_CONFIG,
+) -> tuple[Target, ...]:
+    return _application.attach_target_attribution(
+        _LEGACY_INDUSTRY,
+        _LEGACY_MANIFEST_SHA256,
+        signal_date=signal_date,
+        targets=targets,
+        retained_orders=retained_orders,
+        cfg=cfg,
+    )
+
+
 attach_target_attribution = _attach_target_attribution
 
 
@@ -105,19 +137,77 @@ class ProductionEngine:
     def _reference_returns(self) -> pd.DataFrame | None:
         return self.workspace._reference_returns
 
-    _causal_risk_timeline = _application.bind_causal_risk_timeline(
-        lambda: build_risk_evidence_timeline, lambda: _RISK_TIMELINE_BUILDER,
-        lambda: code_fingerprint, lambda: _SHARED_RISK_TIMELINE_CACHE,
-        lambda: _load_risk_timeline_disk_cache, lambda: _write_risk_timeline_disk_cache,
-    )
+    def _causal_risk_timeline(
+        self,
+        *,
+        as_of: str,
+        cfg: SystemConfig,
+        universe: AIUniverse,
+        role_absent_symbols: tuple[str, ...] = (),
+    ) -> RiskEvidenceTimeline:
+        return _application.causal_risk_timeline(
+            self,
+            build_risk_evidence_timeline,
+            _RISK_TIMELINE_BUILDER,
+            code_fingerprint,
+            _SHARED_RISK_TIMELINE_CACHE,
+            _load_risk_timeline_disk_cache,
+            _write_risk_timeline_disk_cache,
+            as_of=as_of,
+            cfg=cfg,
+            universe=universe,
+            role_absent_symbols=role_absent_symbols,
+        )
+
+    def decide(
+        self,
+        *,
+        symbols: Iterable[str],
+        as_of: str,
+        account: AccountState,
+        strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
+    ) -> Decision:
+        return _application.run_decision(
+            self,
+            assess_risk,
+            evaluate_sentinel,
+            reconcile_account_orders,
+            code_fingerprint,
+            _attach_target_attribution,
+            symbols=symbols,
+            as_of=as_of,
+            account=account,
+            strategic_universe_declaration=strategic_universe_declaration,
+        )
+
+    def _observe_decision(
+        self,
+        *,
+        symbols: Iterable[str],
+        as_of: str,
+        account: AccountState,
+        strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
+    ) -> _application.ObservedDecisionResult:
+        return _application.run_observed_decision(
+            self,
+            assess_risk,
+            evaluate_sentinel,
+            reconcile_account_orders,
+            code_fingerprint,
+            _attach_target_attribution,
+            symbols=symbols,
+            as_of=as_of,
+            account=account,
+            strategic_universe_declaration=strategic_universe_declaration,
+        )
+
+    def backtest(
+        self, *, symbols: Iterable[str], start: str, end: str, initial_cash: float | None = None
+    ) -> dict[str, Any]:
+        return _application.run_backtest(
+            self, performance_metrics, symbols=symbols, start=start, end=end, initial_cash=initial_cash
+        )
+
     equity = _application.mark_equity
     _mark_account_positions = _application.mark_account_positions
-    decide = _application.bind_engine_decision(
-        lambda: assess_risk, lambda: evaluate_sentinel, lambda: reconcile_account_orders,
-        lambda: code_fingerprint, lambda: _attach_target_attribution,
-    )
-    _observe_decision = _application.bind_engine_observed_decision(
-        lambda: assess_risk, lambda: evaluate_sentinel, lambda: reconcile_account_orders,
-        lambda: code_fingerprint, lambda: _attach_target_attribution)
     deterministic_decision = _application.deterministic_decision
-    backtest = _application.bind_engine_backtest(lambda: performance_metrics)

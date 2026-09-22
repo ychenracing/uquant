@@ -1,5 +1,5 @@
 {
-  "canonical_sha256": "f0e5d14f2f12af6f0711e0a4fa506fd29ce2a606fa74eddb89962643048105e5",
+  "canonical_sha256": "ef45ba91d143b77222607158d28fa8bf2b1ef7610f2bbb9c1121c32c707e07ec",
   "registry_version": 2,
   "surfaces": [
     {
@@ -84,6 +84,7 @@
         "uquant/models/decision.py",
         "uquant/models/enums.py",
         "uquant/models/ordinary_entry.py",
+        "uquant/models/ordinary_state.py",
         "uquant/models/strategic_epoch.py",
         "uquant/models/strategic_grant.py",
         "uquant/models/strategic_rearm.py",
@@ -411,6 +412,7 @@
         "uquant/market/__init__.py",
         "uquant/market/replay.py",
         "uquant/market/workspace.py",
+        "uquant/models/ordinary_state.py",
         "uquant/models/strategic_epoch.py",
         "uquant/models/strategic_grant.py",
         "uquant/models/strategic_rearm.py",
@@ -679,6 +681,7 @@
         "uquant/models/decision.py",
         "uquant/models/enums.py",
         "uquant/models/ordinary_entry.py",
+        "uquant/models/ordinary_state.py",
         "uquant/models/strategic_epoch.py",
         "uquant/models/strategic_grant.py",
         "uquant/models/strategic_rearm.py",

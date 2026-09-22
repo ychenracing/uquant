@@ -137,16 +137,18 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
 def _run_account_init(args: argparse.Namespace) -> int:
     cfg = load_public_config(args.config, initial_cash=args.cash)
     cash = cfg.initial_cash
-    validate_atomic_output_boundary(args.output, protected_paths=([args.config] if args.config else []),
-                                    protected_roots=(args.data_dir,))
+    validate_atomic_output_boundary(
+        args.output, protected_paths=([args.config] if args.config else []), protected_roots=(args.data_dir,)
+    )
     engine = ProductionEngine(args.data_dir, cfg)
     symbols = set(args.symbols) | set(REFERENCE_UNIVERSE) | {"sh000300", "sh000682"}
     latest = engine.data.manifest(symbols)
     snapshot_date = args.date or latest.end
     manifest = engine.data.manifest(symbols, as_of=snapshot_date)
     state = AccountState.empty(cash)
-    state.account_migrations.append({"migration_type": "configuration_binding",
-                                     "effective_config_sha256": config_fingerprint(cfg)})
+    state.account_migrations.append(
+        {"migration_type": "configuration_binding", "effective_config_sha256": config_fingerprint(cfg)}
+    )
     state.data_hash = manifest.digest
     state.data_hash_as_of = snapshot_date
     state.data_hash_symbols = list(manifest.symbols)
@@ -157,14 +159,19 @@ def _run_account_init(args: argparse.Namespace) -> int:
 
 
 def _daily_output_boundary(args: argparse.Namespace) -> tuple[list[str], dict[str, tuple[Path, ...]]]:
-    exact_inputs = [args.account, *([args.broker_snapshot] if args.broker_snapshot else []),
-                    *([args.config] if args.config else [])]
+    exact_inputs = [
+        args.account,
+        *([args.broker_snapshot] if args.broker_snapshot else []),
+        *([args.config] if args.config else []),
+    ]
     outputs = [path for path in (args.output, args.html_output) if path is not None]
     protected = {}
     for index, path in enumerate(outputs):
         protected[path] = validate_atomic_output_boundary(
-            path, protected_paths=[*exact_inputs, *outputs[:index], *outputs[index+1:]],
-            protected_roots=(args.data_dir,))
+            path,
+            protected_paths=[*exact_inputs, *outputs[:index], *outputs[index + 1 :]],
+            protected_roots=(args.data_dir,),
+        )
         target = Path(path)
         if target.exists() and not target.is_file():
             raise ValueError(f"report destination is not a regular file: {target}")
@@ -177,11 +184,16 @@ def _daily_output_boundary(args: argparse.Namespace) -> tuple[list[str], dict[st
 
 def _validate_account_config(account: AccountState, cfg: SystemConfig) -> None:
     """Require the same effective configuration for sync and daily decisions."""
-    bindings = [event["effective_config_sha256"] for event in account.account_migrations
-                if event.get("migration_type") == "configuration_binding"]
+    bindings = [
+        event["effective_config_sha256"]
+        for event in account.account_migrations
+        if event.get("migration_type") == "configuration_binding"
+    ]
     expected = bindings[-1] if bindings else config_fingerprint(DEFAULT_CONFIG)
     if expected != config_fingerprint(cfg):
-        raise ValueError("account configuration identity differs; no automatic configuration migration is available")
+        raise ValueError(
+            "account configuration identity differs; no automatic configuration migration is available"
+        )
     if any(epoch.config_identity != "config:" + expected for epoch in account.strategic_epochs):
         raise ValueError("account strategic configuration identity differs")
 
@@ -217,22 +229,28 @@ def _run_daily(args: argparse.Namespace) -> int:
     try:
         save_account(account, args.account)
     except Exception as exc:
-        print(f"账户保存未能确认完成：{args.account}：{exc}。账户文件可能已替换，请先只读核对。"
-              f"已渲染报告保留：{staged}。不得直接重跑 daily；核对账户与报告审计中的账户状态后恢复文件。",
-              file=sys.stderr)
+        print(
+            f"账户保存未能确认完成：{args.account}：{exc}。账户文件可能已替换，请先只读核对。"
+            f"已渲染报告保留：{staged}。不得直接重跑 daily；核对账户与报告审计中的账户状态后恢复文件。",
+            file=sys.stderr,
+        )
         return 1
     published = []
     for path, temporary in staged:
         try:
             validate_atomic_output_boundary(path, protected_paths=protected[path])
-            atomic_write_text(path, Path(temporary).read_text(encoding="utf-8"),
-                              protected_paths=protected[path])
+            atomic_write_text(
+                path, Path(temporary).read_text(encoding="utf-8"), protected_paths=protected[path]
+            )
             Path(temporary).unlink()
             published.append(path)
         except (OSError, ValueError) as exc:
-            print(f"账户已保存：{args.account}；报告已发布：{published}；发布失败：{path}：{exc}。"
-                  f"未发布的已渲染文件：{[(p, t) for p, t in staged if p not in published]}。"
-                  "恢复时将对应 ready 文件移至报告目标路径；不要重新运行 daily 补报告。", file=sys.stderr)
+            print(
+                f"账户已保存：{args.account}；报告已发布：{published}；发布失败：{path}：{exc}。"
+                f"未发布的已渲染文件：{[(p, t) for p, t in staged if p not in published]}。"
+                "恢复时将对应 ready 文件移至报告目标路径；不要重新运行 daily 补报告。",
+                file=sys.stderr,
+            )
             return 1
     print(report, end="")
     return 0

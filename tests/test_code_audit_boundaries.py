@@ -1,4 +1,5 @@
 """Regression coverage for audited broker and decision input boundaries."""
+
 from __future__ import annotations
 
 import copy
@@ -56,10 +57,16 @@ def test_broker_persists_canonical_snapshot_date(incoming):
     assert account.broker_as_of == "2026-01-06"
 
 
-@pytest.mark.parametrize("text", [
-    '{"cash":1000,"cash":2000000}', '[1,2]', 'null',
-    '{"cash":NaN}', '{"positions":[{"shares":1,"shares":2}]}',
-])
+@pytest.mark.parametrize(
+    "text",
+    [
+        '{"cash":1000,"cash":2000000}',
+        "[1,2]",
+        "null",
+        '{"cash":NaN}',
+        '{"positions":[{"shares":1,"shares":2}]}',
+    ],
+)
 def test_broker_snapshot_reader_rejects_ambiguous_or_nonobject_json(tmp_path, text):
     path = tmp_path / "snapshot.json"
     path.write_text(text)
@@ -72,8 +79,9 @@ def _bound_account(path: Path, *, max_positions: int = 6) -> None:
     account = AccountState.empty(cfg.initial_cash)
     account.data_hash = "fixture-data"
     account.code_hash = "fixture-code"
-    account.account_migrations.append({"migration_type": "configuration_binding",
-                                       "effective_config_sha256": config_fingerprint(cfg)})
+    account.account_migrations.append(
+        {"migration_type": "configuration_binding", "effective_config_sha256": config_fingerprint(cfg)}
+    )
     save_account(account, path)
 
 
@@ -89,8 +97,16 @@ def test_cli_broker_inputs_use_strict_decoding(tmp_path, monkeypatch, command):
     original = account.read_bytes()
     args = [command, "--account", str(account)]
     if command == "daily":
-        args += ["--broker-snapshot", str(snapshot), "--data-dir", str(tmp_path / "data"),
-                 "--symbols", "sz300308", "--date", "2026-01-06"]
+        args += [
+            "--broker-snapshot",
+            str(snapshot),
+            "--data-dir",
+            str(tmp_path / "data"),
+            "--symbols",
+            "sz300308",
+            "--date",
+            "2026-01-06",
+        ]
     else:
         args += ["--snapshot", str(snapshot)]
     with pytest.raises(ValueError, match="duplicate JSON key"):
@@ -104,9 +120,11 @@ def test_sync_receives_the_bound_custom_configuration(tmp_path, monkeypatch, com
 
     monkeypatch.setattr("uquant.cli.ProductionEngine", _FakeEngine)
     captured = []
+
     def sync(account, payload, *, cfg):
         captured.append(cfg)
         return sync_broker_snapshot(account, payload, cfg=cfg)
+
     monkeypatch.setattr("uquant.cli.sync_broker_snapshot", sync)
     account = tmp_path / "account.json"
     config = tmp_path / "config.json"
@@ -116,8 +134,16 @@ def test_sync_receives_the_bound_custom_configuration(tmp_path, monkeypatch, com
     snapshot.write_text(json.dumps(_snapshot(cash=DEFAULT_CONFIG.initial_cash)))
     args = [command, "--account", str(account), "--config", str(config)]
     if command == "daily":
-        args += ["--broker-snapshot", str(snapshot), "--data-dir", str(tmp_path / "data"),
-                 "--symbols", "sz300308", "--date", "2026-01-06"]
+        args += [
+            "--broker-snapshot",
+            str(snapshot),
+            "--data-dir",
+            str(tmp_path / "data"),
+            "--symbols",
+            "sz300308",
+            "--date",
+            "2026-01-06",
+        ]
     else:
         args += ["--snapshot", str(snapshot)]
     assert main(args) == 0
@@ -156,21 +182,29 @@ def test_data_authority_replacement_clears_all_engine_derived_caches(tmp_path):
     assert engine._raw is raw and engine._features is features
 
 
-@pytest.mark.parametrize("prior,new,profile", [
-    (Opportunity.TREND, Opportunity.RECOVERY, "TREND"),
-    (Opportunity.RECOVERY, Opportunity.TREND, "RECOVERY"),
-])
-def test_profile_label_tracks_scoring_state_not_new_classification(data_dir, monkeypatch, prior, new, profile):
+@pytest.mark.parametrize(
+    "prior,new,profile",
+    [
+        (Opportunity.TREND, Opportunity.RECOVERY, "TREND"),
+        (Opportunity.RECOVERY, Opportunity.TREND, "RECOVERY"),
+    ],
+)
+def test_profile_label_tracks_scoring_state_not_new_classification(
+    data_dir, monkeypatch, prior, new, profile
+):
     import uquant.application.decision as decision_module
 
     def classify(**kwargs):
         kwargs["account"].opportunity = new.value
         return new
+
     monkeypatch.setattr(decision_module, "classify_opportunity", classify)
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.opportunity = prior.value
     decision = ProductionEngine(data_dir).decide(
-        symbols=("sz300308", "sz300502", "sz300394"), as_of="2026-06-30", account=account,
+        symbols=("sz300308", "sz300502", "sz300394"),
+        as_of="2026-06-30",
+        account=account,
     )
     assert decision.opportunity is new
     assert decision.risk_summary["factor_profile"] == profile

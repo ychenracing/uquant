@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from ..models.ordinary_entry import GRADUATION
 from ..types import (
     AccountState,
     AttributionMechanism,
@@ -259,3 +260,30 @@ def _frozen_existing_targets(
 
 commit_frozen_exit_state = _commit_frozen_exit_state
 frozen_existing_targets = _frozen_existing_targets
+
+
+def commit_frozen_observations(account: AccountState, strategy_account: AccountState) -> None:
+    """Commit only qualification, monotonic exits and graduation while frozen."""
+    account.strategic_qualification = deepcopy(strategy_account.strategic_qualification)
+    for key, value in strategy_account.replacement_tenure.items():
+        if key.startswith(
+            ("strategic_qualification:", "strategic_eligibility:", "lifecycle_exit:", "pullback_exit:")
+        ):
+            account.replacement_tenure[key] = value
+    for key, value in strategy_account.candidate_tenure.items():
+        if key.startswith(("lifecycle_exit_session:", "pullback_exit:")):
+            account.candidate_tenure[key] = value
+    for event in strategy_account.lifecycle_events[len(account.lifecycle_events) :]:
+        if event.get("event") == GRADUATION:
+            account.lifecycle_events.append(deepcopy(event))
+    for key in (
+        "strategic_cohort_qualification",
+        "strategic_long_cycle_open",
+        "strategic_eligibility_session",
+        "strategic_repair_observed_session",
+    ):
+        if key in strategy_account.candidate_tenure:
+            account.candidate_tenure[key] = strategy_account.candidate_tenure[key]
+    if account.strategic_qualification.candidate_symbol:
+        account.strategic_qualification.deployment_blocked = True
+        account.strategic_qualification.deployment_block_reason = "freeze_new_risk"

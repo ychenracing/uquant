@@ -194,16 +194,22 @@ def _last_shock_was_market_backed(ctx: _RecoveryStateContext) -> bool:
             continue
         if "break_reason_code" in event:
             if event["break_reason_code"] in {
-                "MARKET_BACKED_RESTORATION_RELAPSE", "INCOMPLETE_RESTORATION_BREAK",
+                "MARKET_BACKED_RESTORATION_RELAPSE",
+                "INCOMPLETE_RESTORATION_BREAK",
             }:
                 return True
             continue
         # Old persisted events have no structured cause. Decode that wire format
         # here only; current decisions never use display prose as authority.
-        if any(reason in {
-            "market-backed drawdown relapse in restored holdings",
-            "market-backed portfolio break in incomplete restoration",
-        } for reason in event.get("reasons", ()) if isinstance(reason, str)):
+        if any(
+            reason
+            in {
+                "market-backed drawdown relapse in restored holdings",
+                "market-backed portfolio break in incomplete restoration",
+            }
+            for reason in event.get("reasons", ())
+            if isinstance(reason, str)
+        ):
             return True
     return False
 
@@ -212,8 +218,10 @@ def _capital_impaired_relapse(ctx: _RecoveryStateContext, *, sessions_since_reco
     account = ctx.account
     return bool(
         account.positions
-        and any(weight > 0 and holding_spans_date(account, symbol, account.last_shock_date)
-                for symbol, weight in account.protected_weights.items())
+        and any(
+            weight > 0 and holding_spans_date(account, symbol, account.last_shock_date)
+            for symbol, weight in account.protected_weights.items()
+        )
         and ctx.equity < account.initial_cash - 1e-12
         and ctx.capital_dd >= ctx.cfg.capital_dd_crisis
         and ctx.operating_dd >= ctx.cfg.capital_guard_relapse_dd
@@ -229,8 +237,10 @@ def _market_backed_relapse(ctx: _RecoveryStateContext, *, sessions_since_recover
     account = ctx.account
     return bool(
         account.positions
-        and any(weight > 0 and holding_spans_date(account, symbol, account.last_shock_date)
-                for symbol, weight in account.protected_weights.items())
+        and any(
+            weight > 0 and holding_spans_date(account, symbol, account.last_shock_date)
+            for symbol, weight in account.protected_weights.items()
+        )
         and account.risk == Risk.CAUTION.value
         and (
             ctx.shock_rearmed

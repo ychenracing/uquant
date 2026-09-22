@@ -210,7 +210,9 @@ def _validate_late_strategic_fill_capacity(
     if not _late_strategic_fill_allowed(order):
         return
     remaining_shares = strategic_economic_remaining_shares(
-        order=order, orders=tuple(state.ledger.values()), fills=state.account.fills,
+        order=order,
+        orders=tuple(state.ledger.values()),
+        fills=state.account.fills,
     )
     if remaining_shares == 0:
         raise ValueError("strategic economic order is already satisfied")
@@ -351,11 +353,16 @@ def _validated_fill_order_progress(
     remaining: int,
     final: bool,
 ) -> tuple[int, int]:
-    if existing_fill is None and order.status in {
-        OrderStatus.FILLED.value,
-        OrderStatus.CANCELLED.value,
-        OrderStatus.REPLACED.value,
-    } and not _late_strategic_fill_allowed(order):
+    if (
+        existing_fill is None
+        and order.status
+        in {
+            OrderStatus.FILLED.value,
+            OrderStatus.CANCELLED.value,
+            OrderStatus.REPLACED.value,
+        }
+        and not _late_strategic_fill_allowed(order)
+    ):
         raise ValueError("broker cannot append a fill to a terminal account order")
     cumulative_filled = order.filled_shares + shares
     reported_request = cumulative_filled + remaining

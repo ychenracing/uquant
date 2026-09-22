@@ -1,4 +1,5 @@
 """Preserve risk precedence, native settlement and account wire-state semantics."""
+
 from __future__ import annotations
 
 import ast
@@ -11,7 +12,11 @@ from types import SimpleNamespace
 import pytest
 
 from uquant.models.ordinary_state import (
-    CoreTransfer, clear_repair_origins, record_repair_origin, repair_origin_recorded, transfers,
+    CoreTransfer,
+    clear_repair_origins,
+    record_repair_origin,
+    repair_origin_recorded,
+    transfers,
 )
 from uquant.portfolio.freeze import commit_frozen_observations
 from uquant.portfolio.pipeline import _prepare_account
@@ -21,24 +26,39 @@ from uquant.types import AccountState, Risk, RiskAssessment
 
 
 def test_structured_break_trigger_keeps_every_original_priority():
-    source = subprocess.check_output([
-        "git", "show", "7bc5cd5e20038c94ab5cf556ce107104692236ac:uquant/risk/confirmed_break.py"
-    ], cwd=Path(__file__).resolve().parents[1], text=True)
-    function = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef)
-                    and n.name == "_confirmed_break_reason")
+    source = subprocess.check_output(
+        ["git", "show", "7bc5cd5e20038c94ab5cf556ce107104692236ac:uquant/risk/confirmed_break.py"],
+        cwd=Path(__file__).resolve().parents[1],
+        text=True,
+    )
+    function = next(
+        n
+        for n in ast.parse(source).body
+        if isinstance(n, ast.FunctionDef) and n.name == "_confirmed_break_reason"
+    )
     function.args.args[0].annotation = None
     scope = {}
     exec(compile(ast.Module(body=[function], type_ignores=[]), "base-reason", "exec"), scope)
-    names = ("held_cohort_break_confirmed", "terminal_market_backed_restoration_relapse",
-             "market_backed_restoration_relapse", "capital_drawdown_relapse",
-             "incomplete_universe_tail_break", "credible_reserve", "strategic_active")
-    resets = {"capital drawdown relapse in restored holdings",
-              "market-backed portfolio break in incomplete restoration"}
+    names = (
+        "held_cohort_break_confirmed",
+        "terminal_market_backed_restoration_relapse",
+        "market_backed_restoration_relapse",
+        "capital_drawdown_relapse",
+        "incomplete_universe_tail_break",
+        "credible_reserve",
+        "strategic_active",
+    )
+    resets = {
+        "capital drawdown relapse in restored holdings",
+        "market-backed portfolio break in incomplete restoration",
+    }
     for flags in itertools.product((False, True), repeat=len(names)):
         ctx = SimpleNamespace(**dict(zip(names, flags, strict=True)))
         original = scope["_confirmed_break_reason"](ctx)
         assert _confirmed_break_reason(ctx) == original
-        assert (_confirmed_break_code(ctx) in {"INCOMPLETE_RESTORATION_BREAK", "CAPITAL_RESTORATION_RELAPSE"}) == (original in resets)
+        assert (
+            _confirmed_break_code(ctx) in {"INCOMPLETE_RESTORATION_BREAK", "CAPITAL_RESTORATION_RELAPSE"}
+        ) == (original in resets)
 
 
 def test_current_risk_reset_uses_structured_authority_not_prose():
@@ -50,10 +70,15 @@ def test_current_risk_reset_uses_structured_authority_not_prose():
             _retire_strategic_member=lambda account, symbol: calls.append(symbol),
         )
         state = AccountState.empty(1000)
-        state.protected_weights["sz300308"] = .3
-        risk = RiskAssessment(Risk.CRISIS, 0.0, 3,
-                              {"recovery_owner_reset_required": authorized},
-                              ("arbitrary translated display text",), "SHOCK")
+        state.protected_weights["sz300308"] = 0.3
+        risk = RiskAssessment(
+            Risk.CRISIS,
+            0.0,
+            3,
+            {"recovery_owner_reset_required": authorized},
+            ("arbitrary translated display text",),
+            "SHOCK",
+        )
         _prepare_account(policy, risk=risk, account=state, weights_now={})
         assert bool(calls) == authorized
         assert bool(state.protected_weights) != authorized
@@ -62,8 +87,11 @@ def test_current_risk_reset_uses_structured_authority_not_prose():
 def test_recovery_history_prefers_codes_with_only_legacy_fallback():
     state = AccountState.empty(1000)
     state.last_shock_date = "2026-01-06"
-    event = {"date": state.last_shock_date, "to": "CRISIS",
-             "reasons": ["market-backed drawdown relapse in restored holdings"]}
+    event = {
+        "date": state.last_shock_date,
+        "to": "CRISIS",
+        "reasons": ["market-backed drawdown relapse in restored holdings"],
+    }
     state.risk_events.append(event)
     ctx = SimpleNamespace(account=state)
     assert _last_shock_was_market_backed(ctx)
@@ -113,9 +141,10 @@ def test_frozen_observation_commit_does_not_copy_capital_or_grants():
     current = AccountState.empty(1000)
     planned = copy.deepcopy(current)
     planned.cash = 500
-    planned.protected_weights["sz300308"] = .5
-    planned.candidate_tenure.update({"ordinary_repair_capital_active": 1,
-                                     "strategic_repair_observed_session": 100})
+    planned.protected_weights["sz300308"] = 0.5
+    planned.candidate_tenure.update(
+        {"ordinary_repair_capital_active": 1, "strategic_repair_observed_session": 100}
+    )
     planned.replacement_tenure["lifecycle_exit:sz300308"] = 2
     commit_frozen_observations(current, planned)
     assert current.cash == 1000 and not current.protected_weights

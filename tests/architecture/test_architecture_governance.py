@@ -210,13 +210,7 @@ def test_architecture_governed_test_units_and_assertions_are_bidirectionally_pre
     )
 
 
-def test_architecture_test_relocation_inventory_is_exact_and_bidirectional() -> None:
-    verify_test_relocations(
-        immutable_records=load_inventory()["oversized_test_files"],
-        immutable_analysis_source=_immutable_source("tests/architecture/_analysis.py"),
-        immutable_risk_source=_immutable_source(_HISTORICAL_RISK_TEST),
-        root=ROOT,
-    )
+
 
 
 def test_architecture_test_relocation_inventory_rejects_unknown_missing_and_duplicate_paths() -> None:

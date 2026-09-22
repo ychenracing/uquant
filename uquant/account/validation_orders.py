@@ -62,11 +62,11 @@ def validate_pending_order_for_account_write(
 
 def _validate_fill_attribution_reconciliation(
     *,
-    allocated_fee_totals: Any,
-    allocations_with_fee_detail: Any,
-    attributed_shares: Any,
-    fill: Any,
-    shares: Any,
+    allocated_fee_totals: dict[str, float],
+    allocations_with_fee_detail: int,
+    attributed_shares: int,
+    fill: Fill,
+    shares: int,
 ) -> None:
     if allocations_with_fee_detail:
         if allocations_with_fee_detail != len(fill.sold_tranches):

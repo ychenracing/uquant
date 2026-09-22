@@ -1,0 +1,104 @@
+{
+  "tested_local_commit": "2ea11893e8ff6f3d3f5524cf063ef5ab2f206ee2",
+  "archive": {
+    "path": "validation-logs.tar.gz",
+    "bytes": 57396,
+    "sha256": "d5166dbd04f71e520c4fc557d4584f224ad59172600754bc8cabbea5c8e3aa34",
+    "parts": [
+      {
+        "path": "validation-logs.tar.gz.part000",
+        "offset": 0,
+        "bytes": 49152,
+        "sha256": "ce310723319f493670fa0d383f77ffe0475be87ff947c4d12ca1fa1e4ce94e6c"
+      },
+      {
+        "path": "validation-logs.tar.gz.part001",
+        "offset": 49152,
+        "bytes": 8244,
+        "sha256": "38916eb9d725299938d3c850c192b4757142283b13563daa7262d6a8d845b43b"
+      }
+    ]
+  },
+  "operations": [
+    {
+      "id": "20260922T081653-e7382f91f452",
+      "name": "reaudit-risk-authority-diagnosis",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": "unexpected ['uquant.models.ordinary_state']\nobsolete []\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T081912-693f438030d9",
+      "name": "reaudit-cli-governance",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": "........................................................................ [ 80%]\n..................                                                       [100%]\n90 passed in 296.13s (0:04:56)\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T081932-1278c96cc263",
+      "name": "reaudit-risk-relocation",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": ".                                                                        [100%]\n1 passed in 513.31s (0:08:33)\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T082253-4646a99735ca",
+      "name": "reaudit-typing",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": "Success: no issues found in 331 source files\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T082424-5bab248c4705",
+      "name": "reaudit-report-and-types",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": "............................                                             [100%]\n28 passed in 1.17s\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T082528-f850fea8aa5f",
+      "name": "reaudit-risk-scoped-proof",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": ".                                                                        [100%]\n1 passed in 151.25s (0:02:31)\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T082639-7c4e39c2d9c2",
+      "name": "reaudit-governance-negative",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": "....                                                                     [100%]\n4 passed, 74 deselected in 1.46s\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T082716-47bd77c133bd",
+      "name": "reaudit-historical-blob-prefetch",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": "missing historical production blobs: 28\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T082819-084d4b724543",
+      "name": "reaudit-report-byte-equivalence",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": "Economic attribution report: exact baseline output; invalid evidence still rejected\n",
+      "stderr": ""
+    },
+    {
+      "id": "20260922T082835-b8ac9c4db33b",
+      "name": "reaudit-complexity",
+      "status": "EXITED",
+      "returncode": 0,
+      "stdout": ".....                                                                    [100%]\n5 passed in 27.27s\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -78,13 +77,13 @@ def _mean(values: list[float], default: float = 0.0) -> float:
 
 def _aggregate_reference_breadth_inputs(
     *,
-    cfg: Any,
-    date: Any,
-    industries: Any,
-    panel: Any,
-    reference_returns: Any,
-    visible: Any,
-) -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]:
+    cfg: SystemConfig,
+    date: pd.Timestamp,
+    industries: Mapping[str, str],
+    panel: Mapping[str, pd.DataFrame],
+    reference_returns: pd.DataFrame | None,
+    visible: tuple[str, ...],
+) -> tuple[float, float, float, float, float, float, float, list[bool], dict[str, list[str]], float, float, float, dict[str, dict[str, float]], list[float], pd.DataFrame]:
     grouped: dict[str, list[str]] = {}
     raw: dict[str, dict[str, float]] = {}
     above20: list[float] = []

@@ -523,6 +523,36 @@ def production_observation_transport_unit_digests(
         ),
         *copy.deepcopy(transaction.body[2:]),
     ]
+    daily = current["_run_observation_daily"]
+    expected_daily = ast.parse(
+        "def _run_observation_daily(args: argparse.Namespace, *, account: Path, "
+        "broker: Path, paths: dict[str, Path | str]) -> None: pass"
+    ).body[0]
+    assert isinstance(expected_daily, ast.FunctionDef)
+    _assert_exact(daily.args, expected_daily.args, label="daily invocation signature")
+    assert not daily.decorator_list
+    assert ast.get_docstring(daily) == (
+        "Run the daily command and require success before publishing observation evidence."
+    )
+    daily_calls = 0
+
+    class ExpandDaily(ast.NodeTransformer):
+        def visit_Expr(self, node: ast.Expr) -> ast.Expr | list[ast.stmt]:
+            nonlocal daily_calls
+            call = node.value
+            if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+                    and call.func.id == "_run_observation_daily"):
+                return node
+            _assert_exact(
+                node,
+                _statement("_run_observation_daily(args, account=account, broker=broker, paths=paths)"),
+                label="daily invocation arguments",
+            )
+            daily_calls += 1
+            return copy.deepcopy(daily.body[1:])
+
+    ExpandDaily().visit(run)
+    assert daily_calls == 1
     _project_production_observation_cli_seams(
         run,
         {

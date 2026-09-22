@@ -1007,3 +1007,20 @@ def test_retired_leader_transport_rejects_reintroduced_owner_or_binding(injectio
     source = (ROOT / relative).read_text(encoding="utf-8")
     with pytest.raises(AssertionError):
         assert_retired_leader_owners_absent(ROOT, {relative: source + "\n" + injection})
+
+
+@pytest.mark.parametrize("before,after", (
+    ("if daily_status != 0:", "if daily_status == 0:"),
+    ("account=account, broker=broker, paths=paths)", "account=broker, broker=account, paths=paths)"),
+    ('"""Run the daily command and require success before publishing observation evidence."""',
+     'raise RuntimeError("unexpected side effect")'),
+))
+def test_observation_daily_transport_rejects_changed_execution(before: str, after: str) -> None:
+    source = (ROOT / "uquant/validation/production_observation.py").read_text(encoding="utf-8")
+    assert source.count(before) == 1
+    with pytest.raises(AssertionError):
+        production_observation_transport_unit_digests(
+            frozen_source=_immutable_source("scripts/production_observation.py"),
+            current_source=source.replace(before, after),
+            current_cli_source=(ROOT / "scripts/production_observation.py").read_text(encoding="utf-8"),
+        )

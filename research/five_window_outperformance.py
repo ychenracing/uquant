@@ -27,6 +27,7 @@ from research.window_matrix import (
 from research.window_matrix import (
     LOCKED_COMPETITOR_SOURCES as LOCKED_COMPETITOR_SOURCES,
 )
+from research.window_matrix import POOLS as POOLS
 from research.window_matrix import (
     WINDOW_SPECS,
 )
@@ -34,26 +35,17 @@ from research.window_matrix import (
     WINDOWS as WINDOWS,
 )
 from research.window_matrix import canonical_hash as _canonical_hash
+from research.window_matrix import finite_metric as _finite
+from research.window_matrix import promotion_pools as _promotion_pools
+from research.window_matrix import python_source_hash as _python_source_hash
 from uquant.engine import ProductionEngine
 from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 
 SYSTEMS = ("uquant", "aquant", "qwenquant", "trade")
 COMPETITORS = SYSTEMS[1:]
-POOLS = ("a", "b", "c", "d", "e")
+
 METRICS = ("final_wealth", "max_drawdown", "account_orders", "acute_return")
 TARGET_END = max(end for _, end in WINDOWS.values())
-
-
-
-
-def _finite(row: Mapping[str, Any], field: str) -> float:
-    value = row.get(field)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise RuntimeError(f"outperformance metric is malformed: {field}")
-    result = float(value)
-    if not math.isfinite(result):
-        raise RuntimeError(f"outperformance metric is malformed: {field}")
-    return result
 
 
 def _acute_return(curve: Sequence[Mapping[str, Any]], window: str) -> float:
@@ -293,18 +285,6 @@ def evaluate(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _promotion_pools(repository_root: Path) -> dict[str, tuple[str, ...]]:
-    payload = json.loads(
-        (repository_root / "benchmarks" / "promotion_baseline.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    raw = payload.get("pools")
-    if not isinstance(raw, dict) or set(raw) != set(POOLS):
-        raise RuntimeError("promotion baseline must contain exactly pools A-E")
-    return {pool: tuple(str(item) for item in raw[pool]) for pool in POOLS}
-
-
 def _compact_competitor_rows(
     payload: Mapping[str, Any],
     *,
@@ -425,14 +405,6 @@ def _uquant_task(task: tuple[str, tuple[str, ...], str, str]) -> dict[str, Any]:
     }
 
 
-def _python_source_hash(root: Path) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(root.rglob("*.py")):
-        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
-        digest.update(path.read_bytes())
-    return digest.hexdigest()
-
-
 def _git_executable() -> str:
     """Resolve Git explicitly so provenance commands never invoke a shell."""
 
@@ -550,8 +522,6 @@ def build(*, repository_root: Path, competitor_path: Path, workers: int) -> dict
     }
 
 
-
-
 def main(argv: Sequence[str] | None = None) -> int:
     """Write one validated matrix report and return its gate status."""
 
@@ -589,7 +559,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     print(json.dumps(payload["evaluation"], ensure_ascii=False, indent=2))
     return 0 if payload["evaluation"]["passed"] else 1
-
 
 
 if __name__ == "__main__":

@@ -50,10 +50,10 @@ _EPOCH_ID = re.compile(r"^epoch_[0-9a-f]{64}$")
 def _validate_attribution_industry_and_event_id(
     *,
     item: Any,
-    label: Any,
-    mechanism: Any,
-    origin: Any,
-    verify_event_derivation: Any,
+    label: str,
+    mechanism: AttributionMechanism,
+    origin: OriginSubsystem,
+    verify_event_derivation: bool,
 ) -> None:
     legacy_identity = bool(
         origin is OriginSubsystem.LEGACY_MIGRATION and mechanism is AttributionMechanism.LEGACY_MIGRATION

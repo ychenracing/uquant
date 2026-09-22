@@ -294,9 +294,6 @@ _validated_strategy_source_sha256 = scoped_capability_wrapper(
     scope=holdout_facade_scope,
 )
 
-# Preserve callers that derive the repository root from the historical facade path.
-__file__ = str(Path(__file__).resolve().parent.parent / "holdout.py")
-
 __all__ = (
     "FutureHoldoutContract",
     "HOLDOUT_DATA_DIRECTORY",

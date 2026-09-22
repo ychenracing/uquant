@@ -468,7 +468,7 @@ def _git_source(path: str) -> bytes:
     ).stdout
 
 
-def _immutable_python_sources() -> dict[str, bytes]:
+def _immutable_python_sources(*, path_prefix: str = "") -> dict[str, bytes]:
     paths = [
         path
         for path in subprocess.run(
@@ -478,7 +478,7 @@ def _immutable_python_sources() -> dict[str, bytes]:
             capture_output=True,
             text=True,
         ).stdout.splitlines()
-        if path.endswith(".py")
+        if path.startswith(path_prefix) and path.endswith(".py")
     ]
     batch = subprocess.run(
         ["git", "cat-file", "--batch"],
@@ -1149,8 +1149,7 @@ def test_risk_private_and_complexity_relocations_are_exact_and_fail_closed() -> 
 
     immutable_sources = {
         path: source.decode("utf-8")
-        for path, source in _immutable_python_sources().items()
-        if path.startswith("uquant/")
+        for path, source in _immutable_python_sources(path_prefix="uquant/").items()
     }
     immutable_authorities = {
         module: authority

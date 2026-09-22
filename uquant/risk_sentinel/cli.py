@@ -15,13 +15,15 @@ import pandas as pd
 
 from uquant.account import load_account
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
-from uquant.data import DataContractError, DataStore
+from uquant.contracts.universe import AIUniverse
+from uquant.data import DataContractError, DataManifest, DataStore
 from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from uquant.reference_registry import resolve_reference_symbols
+from uquant.types import AccountState
 from uquant.validation.ai_era import runtime_environment_provenance
 from uquant.validation.universe import canonical_sha256, load_ai_universe
 
-from .models import RISK_FAMILIES
+from .models import RISK_FAMILIES, SentinelAssessment
 from .provenance import legacy_sentinel_source_fingerprint as _legacy_sentinel_source_fingerprint
 from .service import evaluate_sentinel
 
@@ -144,12 +146,12 @@ def _load_panel(
 
 def _prepare_shadow_assessment(
     *,
-    account_path: Any,
-    as_of: Any,
-    data_dir: Any,
-    output_path: Any,
-    repository_root: Any,
-) -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]:
+    account_path: str | Path,
+    as_of: str,
+    data_dir: str | Path,
+    output_path: str | Path,
+    repository_root: str | Path | None,
+) -> tuple[AccountState, bytes, Path, SentinelAssessment, tuple[Mapping[str, Any], ...], Path, DataManifest, Path, Path, tuple[Path, ...], Path, AIUniverse]:
     root = (
         Path(repository_root).resolve()
         if repository_root is not None

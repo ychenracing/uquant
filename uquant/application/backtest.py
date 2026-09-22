@@ -66,15 +66,15 @@ def equity(
 
 def _finalize_backtest_metrics(
     *,
-    account: Any,
-    daily_ledger: Any,
-    daily_replay_evidence: Any,
-    decisions: Any,
-    final_date: Any,
-    final_equity: Any,
-    metrics: Any,
-    self: Any,
-    sessions: Any,
+    account: AccountState,
+    daily_ledger: list[dict[str, Any]],
+    daily_replay_evidence: list[dict[str, Any]],
+    decisions: list[Decision],
+    final_date: pd.Timestamp,
+    final_equity: float,
+    metrics: dict[str, Any],
+    self: BacktestEngineRuntime,
+    sessions: pd.DatetimeIndex,
 ) -> None:
     metrics.update(
         start=str(sessions[0].date()),

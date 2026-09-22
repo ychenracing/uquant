@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -188,3 +191,33 @@ def canonical_hash(value: Any) -> str:
         default=str,
     ).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
+
+
+POOLS = ("a", "b", "c", "d", "e")
+
+def finite_metric(row: Mapping[str, Any], field: str) -> float:
+    value = row.get(field)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RuntimeError(f"outperformance metric is malformed: {field}")
+    result = float(value)
+    if not math.isfinite(result):
+        raise RuntimeError(f"outperformance metric is malformed: {field}")
+    return result
+
+
+def promotion_pools(repository_root: Path) -> dict[str, tuple[str, ...]]:
+    payload = json.loads(
+        (repository_root / "benchmarks" / "promotion_baseline.json").read_text(encoding="utf-8")
+    )
+    raw = payload.get("pools")
+    if not isinstance(raw, dict) or set(raw) != set(POOLS):
+        raise RuntimeError("promotion baseline must contain exactly pools A-E")
+    return {pool: tuple(str(item) for item in raw[pool]) for pool in POOLS}
+
+
+def python_source_hash(root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*.py")):
+        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+        digest.update(path.read_bytes())
+    return digest.hexdigest()

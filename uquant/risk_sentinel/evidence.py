@@ -113,25 +113,25 @@ def _index_return(frame: pd.DataFrame, point: pd.Timestamp, sessions: int) -> fl
 
 def _evidence_metrics_votes_and_reasons(
     *,
-    broad_fast: Any,
-    broad_medium: Any,
-    capital_drawdown: Any,
-    equal_below: Any,
-    equal_downside: Any,
-    equal_fast: Any,
-    held: Any,
-    held_downside: Any,
-    held_fast: Any,
-    leaders: Any,
-    median_correlation: Any,
-    name_fast: Any,
-    point: Any,
-    subindustries: Any,
-    synchronized: Any,
-    tech_fast: Any,
-    tech_medium: Any,
-    volatility_ratio: Any,
-) -> tuple[Any, Any, Any]:
+    broad_fast: float,
+    broad_medium: float,
+    capital_drawdown: float | None,
+    equal_below: float,
+    equal_downside: float,
+    equal_fast: float,
+    held: list[NameMarketEvidence],
+    held_downside: float,
+    held_fast: float,
+    leaders: list[NameMarketEvidence],
+    median_correlation: float,
+    name_fast: float,
+    point: pd.Timestamp,
+    subindustries: tuple[SubindustryEvidence, ...],
+    synchronized: float,
+    tech_fast: float,
+    tech_medium: float,
+    volatility_ratio: float,
+) -> tuple[dict[str, float], dict[str, str], dict[str, bool]]:
     leader_fast = float(np.mean([item.fast_return for item in leaders])) if leaders else 0.0
     leader_below = float(np.mean([item.below_ma20 for item in leaders])) if leaders else 0.0
     capital = 0.0 if capital_drawdown is None else float(capital_drawdown)
@@ -187,11 +187,11 @@ def _evidence_metrics_votes_and_reasons(
 
 def _aggregate_book_and_breadth_evidence(
     *,
-    held_symbols: Any,
-    leader_symbols: Any,
-    subindustries: Any,
-    visible_names: Any,
-) -> tuple[Any, Any, Any, Any, Any, Any, Any, Any]:
+    held_symbols: tuple[str, ...],
+    leader_symbols: tuple[str, ...],
+    subindustries: tuple[SubindustryEvidence, ...],
+    visible_names: Mapping[str, NameMarketEvidence],
+) -> tuple[float, float, list[NameMarketEvidence], float, float, list[NameMarketEvidence], float, float]:
     equal_downside = (
         float(np.mean([item.downside_breadth for item in subindustries])) if subindustries else 0.0
     )

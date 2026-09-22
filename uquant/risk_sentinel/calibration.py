@@ -225,13 +225,13 @@ def calibrate_events(
 
 def _derive_calibration_outcome_metrics(
     *,
-    bull_dates: Any,
-    complete: Any,
-    detected: Any,
-    events: Any,
-    shock_dates: Any,
-    shock_depths: Any,
-) -> tuple[Any, Any, Any, Any, Any, Any, Any]:
+    bull_dates: tuple[str, ...],
+    complete: list[Mapping[str, object]],
+    detected: int,
+    events: Sequence[Mapping[str, object]],
+    shock_dates: tuple[str, ...],
+    shock_depths: Mapping[str, float] | None,
+) -> tuple[list[float], list[float], list[float], int, list[float], float | None, int]:
     recall = detected / len(shock_dates) if shock_dates else None
     lead_times = [
         float(cast(int | float, item["lead_time"]))
@@ -262,12 +262,12 @@ def _derive_calibration_outcome_metrics(
 
 def _match_predictions_to_outcomes(
     *,
-    bull_dates: Any,
-    contract: Any,
-    events: Any,
-    sessions: Any,
-    shock_dates: Any,
-) -> tuple[Any, Any, Any]:
+    bull_dates: tuple[str, ...],
+    contract: CalibrationContract | None,
+    events: Sequence[Mapping[str, object]],
+    sessions: tuple[str, ...],
+    shock_dates: tuple[str, ...],
+) -> tuple[list[Mapping[str, object]], int, float | None]:
     reviewed = load_calibration_contract() if contract is None else contract
     if len(sessions) != len(set(sessions)) or tuple(sorted(sessions)) != sessions:
         raise ValueError("calibration sessions must be unique and ordered")

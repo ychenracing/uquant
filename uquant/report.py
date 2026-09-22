@@ -26,27 +26,29 @@ def render_execution_journal(records: tuple[JournalRecord, ...]) -> str:
     return render_compact_execution_journal(records)
 
 
-def _economic_attribution_report_lines(
-    *,
-    accounting: Any,
-    avoidance_line: Any,
-    cash_drag: Any,
-    costs: Any,
-    current_lifecycle_rows: Any,
-    exit_mechanism_rows: Any,
-    hhi: Any,
-    holding: Any,
-    industry_hhi: Any,
-    industry_rows: Any,
-    interval: Any,
-    mechanism_rows: Any,
-    origin_lifecycle_rows: Any,
-    percentage: Any,
-    replacements: Any,
-    top1: Any,
-    top3: Any,
-    turnover: Any,
-) -> Any:
+def _attribution_bucket_rows(buckets: Mapping[str, Any], *, nonzero_only: bool = True) -> list[str]:
+    return [
+        f"{name} | {float(bucket['total_pnl']):.6f}"
+        for name, bucket in buckets.items()
+        if not nonzero_only or any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
+    ] or ["N/A | 0.000000"]
+
+
+def _attribution_contribution_lines(canonical: Mapping[str, Any]) -> list[str]:
+    interval = canonical["interval"]
+    accounting = canonical["accounting"]
+    positive = canonical["symbol_concentration"]["positive"]
+    top1, top3, hhi = (positive.get(name) for name in ("top1", "top3", "hhi"))
+    industry_hhi = canonical["industry_concentration"]["positive"].get("hhi")
+    industry_rows = _attribution_bucket_rows(canonical["by_industry"], nonzero_only=False)
+    mechanism_rows = _attribution_bucket_rows(canonical["by_mechanism"])
+    exit_mechanism_rows = _attribution_bucket_rows(canonical["by_exit_mechanism"])
+    origin_lifecycle_rows = _attribution_bucket_rows(canonical["by_origin_lifecycle"])
+    current_lifecycle_rows = _attribution_bucket_rows(canonical["by_current_lifecycle"])
+
+    def percentage(value: Any) -> str:
+        return "N/A" if value is None else f"{float(value):.2%}"
+
     lines = [
         f"# Economic Attribution — {interval['economic_start']} to {interval['economic_end']}",
         "",
@@ -93,6 +95,23 @@ def _economic_attribution_report_lines(
         "--- | ---:",
         *current_lifecycle_rows,
         "",
+    ]
+    return lines
+
+
+def _attribution_operating_lines(canonical: Mapping[str, Any]) -> list[str]:
+    turnover = canonical["turnover"]
+    holding = canonical["holding_period_sessions"]
+    replacements = canonical["replacements"]
+    costs = canonical["costs"]
+    cash_drag = canonical["diagnostics"]["cash_drag"]
+    avoidance = canonical["diagnostics"]["risk_avoidance"]
+    avoidance_line = (
+        f"Risk avoidance (paired counterfactual, not accounting PnL): {float(avoidance['value']):.6f}"
+        if avoidance.get("status") == "PAIRED_COUNTERFACTUAL"
+        else "Risk avoidance: N/A — requires an exact paired counterfactual"
+    )
+    lines = [
         "## Turnover, Holding, and Replacements",
         "",
         f"Gross turnover: {float(turnover['gross_turnover']):.6%}",
@@ -132,74 +151,7 @@ def render_economic_attribution_report(attribution: Mapping[str, Any]) -> str:
         economic_start=str(interval_value.get("economic_start")),
         economic_end=str(interval_value.get("economic_end")),
     )
-    interval = canonical["interval"]
-    accounting = canonical["accounting"]
-    costs = canonical["costs"]
-    concentration = canonical["symbol_concentration"]
-    diagnostics = canonical["diagnostics"]
-    positive = concentration["positive"]
-    top1 = positive.get("top1")
-    top3 = positive.get("top3")
-    hhi = positive.get("hhi")
-
-    def percentage(value: Any) -> str:
-        return "N/A" if value is None else f"{float(value):.2%}"
-
-    cash_drag = diagnostics["cash_drag"]
-    avoidance = diagnostics["risk_avoidance"]
-    avoidance_line = (
-        f"Risk avoidance (paired counterfactual, not accounting PnL): {float(avoidance['value']):.6f}"
-        if avoidance.get("status") == "PAIRED_COUNTERFACTUAL"
-        else "Risk avoidance: N/A — requires an exact paired counterfactual"
-    )
-    industry_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}" for name, bucket in canonical["by_industry"].items()
-    ] or ["N/A | 0.000000"]
-    mechanism_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_mechanism"].items()
-        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
-    ] or ["N/A | 0.000000"]
-    exit_mechanism_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_exit_mechanism"].items()
-        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
-    ] or ["N/A | 0.000000"]
-    origin_lifecycle_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_origin_lifecycle"].items()
-        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
-    ] or ["N/A | 0.000000"]
-    current_lifecycle_rows = [
-        f"{name} | {float(bucket['total_pnl']):.6f}"
-        for name, bucket in canonical["by_current_lifecycle"].items()
-        if any(float(bucket[field]) != 0.0 for field in ("total_pnl", "all_in_costs"))
-    ] or ["N/A | 0.000000"]
-    industry_hhi = canonical["industry_concentration"]["positive"].get("hhi")
-    holding = canonical["holding_period_sessions"]
-    turnover = canonical["turnover"]
-    replacements = canonical["replacements"]
-    lines = _economic_attribution_report_lines(
-        accounting=accounting,
-        avoidance_line=avoidance_line,
-        cash_drag=cash_drag,
-        costs=costs,
-        current_lifecycle_rows=current_lifecycle_rows,
-        exit_mechanism_rows=exit_mechanism_rows,
-        hhi=hhi,
-        holding=holding,
-        industry_hhi=industry_hhi,
-        industry_rows=industry_rows,
-        interval=interval,
-        mechanism_rows=mechanism_rows,
-        origin_lifecycle_rows=origin_lifecycle_rows,
-        percentage=percentage,
-        replacements=replacements,
-        top1=top1,
-        top3=top3,
-        turnover=turnover,
-    )
-    return "\n".join(lines)
+    return "\n".join([*_attribution_contribution_lines(canonical), *_attribution_operating_lines(canonical)])
 
 
 _BLOCK_TEXT = MappingProxyType({

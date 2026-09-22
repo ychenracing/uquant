@@ -117,7 +117,7 @@ def industry_of(symbol: str) -> str:
 def _profile_for(opportunity: str) -> str:
     if opportunity in {Opportunity.STRONG_TREND.value, Opportunity.TREND.value}:
         return Opportunity.TREND.value
-    if opportunity is Opportunity.RECOVERY.value or opportunity == Opportunity.RECOVERY.value:
+    if opportunity == Opportunity.RECOVERY.value:
         return Opportunity.RECOVERY.value
     return Opportunity.CHOPPY.value
 

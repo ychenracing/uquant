@@ -1,0 +1,11 @@
+{
+  "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
+  "changed": [
+    "uquant/application/decision.py",
+    "uquant/broker.py",
+    "uquant/broker_contract.py",
+    "uquant/cli.py",
+    "uquant/engine.py",
+    "uquant/leader.py"
+  ]
+}

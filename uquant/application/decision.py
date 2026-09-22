@@ -145,6 +145,7 @@ class _DecisionMarket:
     broad: pd.DataFrame
     tech: pd.DataFrame
     cfg: SystemConfig
+    scoring_opportunity: str
     reference_context: ReferenceContext
     reference_returns: pd.DataFrame | None
     structural_leaders: dict[str, LeaderScore]
@@ -385,7 +386,7 @@ def decision_market_context(
     combined.update(user_panel)
     broad = self._features["sh000300"]
     tech = self._features["sh000682"]
-    decision_cfg = _decision_config_for_universe(len(inputs.user_symbols), self.cfg)
+    decision_cfg = self.cfg
     reference_returns = self._reference_returns
     if reference_returns is not None:
         reference_returns = reference_returns.loc[
@@ -430,6 +431,7 @@ def decision_market_context(
         broad=broad,
         tech=tech,
         cfg=decision_cfg,
+        scoring_opportunity=account.opportunity,
         reference_context=reference_context,
         reference_returns=reference_returns,
         structural_leaders=structural_leaders,
@@ -603,9 +605,9 @@ def _allocate_decision_orders(
     user_leaders = {symbol: all_leaders[symbol] for symbol in inputs.user_symbols if symbol in all_leaders}
     leader_factor_profile = (
         "TREND"
-        if opportunity in {Opportunity.STRONG_TREND, Opportunity.TREND}
+        if market.scoring_opportunity in {Opportunity.STRONG_TREND.value, Opportunity.TREND.value}
         else "RECOVERY"
-        if opportunity is Opportunity.RECOVERY
+        if market.scoring_opportunity == Opportunity.RECOVERY.value
         else "CHOPPY"
     )
     previous_orders = list(account.pending_orders)

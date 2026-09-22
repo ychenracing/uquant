@@ -1,0 +1,162 @@
+{
+  "run": "35675265048",
+  "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
+  "source_head": "ee6c14ba4288d49199453cda87941717a2a215b8",
+  "python": "3.12.13 (main, Jun 16 2026, 22:05:08) [GCC 13.3.0]",
+  "tested_files": {
+    "tests/test_broker_sync.py": {
+      "bytes": 17625,
+      "sha256": "5634cefb617016cd4647e3c4ec6e4c12e24700f75e8843abf9ad9f128c9f5dbf",
+      "git_blob": "f05a259464cbac32719c8b88f9887995d25ef9fc"
+    },
+    "tests/test_cli_and_report.py": {
+      "bytes": 20837,
+      "sha256": "dfd478f8b43a12beba17eb0aff4affbbf6afa1db9984f1b08e10b835d32ccf50",
+      "git_blob": "2fdf00c42169957e9a16dc3d58531cf1697f4a0a"
+    },
+    "tests/test_code_audit_boundaries.py": {
+      "bytes": 7169,
+      "sha256": "96777d9ee4aca270ae34058d67272f45bf6cff532b18404f224e6d5c3214139d",
+      "git_blob": "f7621669e6cfb2c9dc0d4ed885acef8a951f10bd"
+    },
+    "tests/test_market_workspace.py": {
+      "bytes": 12693,
+      "sha256": "bcf3af674bc63ad343d013a633475e3d5d3140952875eaeb5eafba9c934cb139",
+      "git_blob": "d29daea1a812018ca673f20c780e521a630fabda"
+    },
+    "uquant/application/decision.py": {
+      "bytes": 37512,
+      "sha256": "0fef9b17119a77abc7087ec79d42400503e401c6254b6f4cffaccd5f1e19bb93",
+      "git_blob": "56897ecd3f190862bf7ec6955133eb0aa91cbacc"
+    },
+    "uquant/broker.py": {
+      "bytes": 35619,
+      "sha256": "4ddabaf3b0f965b49d75448fb7ba5cc08f4f18e5d871cd9a60ecdbf21ad40339",
+      "git_blob": "2081a9f94569bf258d06a5eb09c024c067d7a61a"
+    },
+    "uquant/broker_contract.py": {
+      "bytes": 9406,
+      "sha256": "c21007f1c16edfca041a380235eaec7cfdec5d279f8f86a0d1d598f9215620c1",
+      "git_blob": "0db6a515407836f66e6e3f175b054f0d7131272b"
+    },
+    "uquant/cli.py": {
+      "bytes": 16561,
+      "sha256": "7d880fc58f058dbcf157170d6713ce64f0d7079546a571545c40a6d3f2ab33d6",
+      "git_blob": "11d759bab22ae9c8659957414fc8d026edff5f80"
+    },
+    "uquant/engine.py": {
+      "bytes": 5595,
+      "sha256": "621c3dcb98a3eea9b7cd255aac5c60f3c8af0e3f33c5a12d0536bbbc8b24a222",
+      "git_blob": "bc7fc2c545b3e0086d18fca8f10324f68e19f10b"
+    },
+    "uquant/leader.py": {
+      "bytes": 27727,
+      "sha256": "cb310a6ed671b0ff0633efda86ee7584f6e66fef51f9f034f5f3932c23cc9c90",
+      "git_blob": "efd2bd89c226bcaf7cb9cd0a9fbb020a62af6fb0"
+    }
+  },
+  "checks": [
+    {
+      "name": "imports",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--select",
+        "I",
+        "--fix",
+        "uquant/application/decision.py",
+        "uquant/broker.py",
+        "uquant/broker_contract.py",
+        "uquant/cli.py",
+        "uquant/engine.py",
+        "uquant/leader.py",
+        "tests/test_code_audit_boundaries.py"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35675265048/imports.txt.gz",
+      "output_bytes": 38,
+      "output_sha256": "aac3a0503d8b95052cc85fb9f1717dc82b74aa55853a5aa9749b41e30275d472",
+      "tail": "Found 1 error (1 fixed, 0 remaining).\n"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "uquant/application/decision.py",
+        "uquant/broker.py",
+        "uquant/broker_contract.py",
+        "uquant/cli.py",
+        "uquant/engine.py",
+        "uquant/leader.py",
+        "tests/test_code_audit_boundaries.py"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35675265048/lint.txt.gz",
+      "output_bytes": 19,
+      "output_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "tail": "All checks passed!\n"
+    },
+    {
+      "name": "types",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "mypy",
+        "uquant/application/decision.py",
+        "uquant/broker.py",
+        "uquant/broker_contract.py",
+        "uquant/cli.py",
+        "uquant/engine.py",
+        "uquant/leader.py"
+      ],
+      "exit_code": 1,
+      "log": "artifacts/code-audit-fix/logs/35675265048/types.txt.gz",
+      "output_bytes": 486,
+      "output_sha256": "b91a48c021dc0181f92219c5e2ee929403023f20b6ea48c921e8e8fea75296a0",
+      "tail": "uquant/engine.py:93: error: Attribute \"_risk_timeline_cache_key\" already\ndefined on line 67  [no-redef]\n            self._risk_timeline_cache_key: tuple[object, ...] | None = Non...\n            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nuquant/engine.py:94: error: Attribute \"_risk_timeline_cache\" already defined on\nline 68  [no-redef]\n            self._risk_timeline_cache: RiskEvidenceTimeline | None = None\n            ^~~~~~~~~~~~~~~~~~~~~~~~~\nFound 2 errors in 1 file (checked 6 source files)\n"
+    },
+    {
+      "name": "regressions",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "-q",
+        "tests/test_code_audit_boundaries.py",
+        "tests/test_broker_sync.py",
+        "tests/test_cli_and_report.py",
+        "tests/test_market_workspace.py"
+      ],
+      "exit_code": 1,
+      "log": "artifacts/code-audit-fix/logs/35675265048/regressions.txt.gz",
+      "output_bytes": 16514,
+      "output_sha256": "fc11f744542c0d93896fffc990d486b7e6ae8e83cce3908d7ff016d212ee81da",
+      "tail": "}, pending_orders=[], order_ledger=[...MAL', last_shock_date='', last_successful_run='', data_hash='', data_hash_as_of='', data_hash_symbols=[], code_hash='')\n\n    def _validate_decoded_account(\n        *,\n        require_hashes: Any,\n        sequence_was_explicit: Any,\n        state: Any,\n    ) -> None:\n        initial_cash = _finite_number(\n            state.initial_cash,\n            field=\"account state initial_cash\",\n            minimum=0.0,\n        )\n        cash = _finite_number(state.cash, field=\"account state cash\", minimum=-1e-6)\n        if initial_cash == 0.0 or cash < -1e-6:\n            raise RuntimeError(\"account state violates cash invariants\")\n        _validate_position_state(\n            state,\n            validate_attribution=True,\n        )\n        _validate_order_state(\n            state,\n            sequence_was_explicit=sequence_was_explicit,\n        )\n        _validate_strategy_risk_state(state)\n        _validate_lot_origin_chains(state)\n        if require_hashes and (not state.data_hash or not state.code_hash):\n>           raise RuntimeError(\"account state missing validation hashes\")\nE           RuntimeError: account state missing validation hashes\n\nuquant/account/codec.py:109: RuntimeError\n___________ test_sync_receives_the_bound_custom_configuration[daily] ___________\n\ntmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/test_sync_receives_the_bound_c1')\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9bf1343b90>\ncommand = 'daily'\n\n    @pytest.mark.parametrize(\"command\", [\"account-sync\", \"daily\"])\n    def test_sync_receives_the_bound_custom_configuration(tmp_path, monkeypatch, command):\n        from test_cli_and_report import _FakeEngine\n    \n        monkeypatch.setattr(\"uquant.cli.ProductionEngine\", _FakeEngine)\n        captured = []\n        def sync(account, payload, *, cfg):\n            captured.append(cfg)\n            return sync_broker_snapshot(account, payload, cfg=cfg)\n        monkeypatch.setattr(\"uquant.cli.sync_broker_snapshot\", sync)\n        account = tmp_path / \"account.json\"\n        config = tmp_path / \"config.json\"\n        snapshot = tmp_path / \"broker.json\"\n        _bound_account(account, max_positions=3)\n        config.write_text('{\"max_positions\":3}')\n        snapshot.write_text(json.dumps(_snapshot(cash=DEFAULT_CONFIG.initial_cash)))\n        args = [command, \"--account\", str(account), \"--config\", str(config)]\n        if command == \"daily\":\n            args += [\"--broker-snapshot\", str(snapshot), \"--data-dir\", str(tmp_path / \"data\"),\n                     \"--symbols\", \"sz300308\", \"--date\", \"2026-01-06\"]\n        else:\n            args += [\"--snapshot\", str(snapshot)]\n>       assert main(args) == 0\n               ^^^^^^^^^^\n\ntests/test_code_audit_boundaries.py:121: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nuquant/cli.py:332: in main\n    return _run_daily(args)\n           ^^^^^^^^^^^^^^^^\nuquant/cli.py:192: in _run_daily\n    account = load_account(args.account)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^\nuquant/account/codec.py:59: in load_account\n    return account_from_dict(\nuquant/account/codec.py:323: in account_from_dict\n    _validate_decoded_account(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nrequire_hashes = True, sequence_was_explicit = True\nstate = AccountState(initial_cash=2000000.0, cash=2000000.0, schema_version=8, positions={}, pending_orders=[], order_ledger=[...MAL', last_shock_date='', last_successful_run='', data_hash='', data_hash_as_of='', data_hash_symbols=[], code_hash='')\n\n    def _validate_decoded_account(\n        *,\n        require_hashes: Any,\n        sequence_was_explicit: Any,\n        state: Any,\n    ) -> None:\n        initial_cash = _finite_number(\n            state.initial_cash,\n            field=\"account state initial_cash\",\n            minimum=0.0,\n        )\n        cash = _finite_number(state.cash, field=\"account state cash\", minimum=-1e-6)\n        if initial_cash == 0.0 or cash < -1e-6:\n            raise RuntimeError(\"account state violates cash invariants\")\n        _validate_position_state(\n            state,\n            validate_attribution=True,\n        )\n        _validate_order_state(\n            state,\n            sequence_was_explicit=sequence_was_explicit,\n        )\n        _validate_strategy_risk_state(state)\n        _validate_lot_origin_chains(state)\n        if require_hashes and (not state.data_hash or not state.code_hash):\n>           raise RuntimeError(\"account state missing validation hashes\")\nE           RuntimeError: account state missing validation hashes\n\nuquant/account/codec.py:109: RuntimeError\n______________ test_account_sync_rejects_unprovided_custom_config ______________\n\ntmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/test_account_sync_rejects_unpr0')\n\n    def test_account_sync_rejects_unprovided_custom_config(tmp_path):\n        account = tmp_path / \"account.json\"\n        snapshot = tmp_path / \"broker.json\"\n        _bound_account(account, max_positions=3)\n        snapshot.write_text(json.dumps(_snapshot()))\n        original = account.read_bytes()\n        with pytest.raises(ValueError, match=\"configuration identity differs\"):\n>           main([\"account-sync\", \"--account\", str(account), \"--snapshot\", str(snapshot)])\n\ntests/test_code_audit_boundaries.py:133: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nuquant/cli.py:334: in main\n    account = load_account(args.account)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^\nuquant/account/codec.py:59: in load_account\n    return account_from_dict(\nuquant/account/codec.py:323: in account_from_dict\n    _validate_decoded_account(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nrequire_hashes = True, sequence_was_explicit = True\nstate = AccountState(initial_cash=2000000.0, cash=2000000.0, schema_version=8, positions={}, pending_orders=[], order_ledger=[...MAL', last_shock_date='', last_successful_run='', data_hash='', data_hash_as_of='', data_hash_symbols=[], code_hash='')\n\n    def _validate_decoded_account(\n        *,\n        require_hashes: Any,\n        sequence_was_explicit: Any,\n        state: Any,\n    ) -> None:\n        initial_cash = _finite_number(\n            state.initial_cash,\n            field=\"account state initial_cash\",\n            minimum=0.0,\n        )\n        cash = _finite_number(state.cash, field=\"account state cash\", minimum=-1e-6)\n        if initial_cash == 0.0 or cash < -1e-6:\n            raise RuntimeError(\"account state violates cash invariants\")\n        _validate_position_state(\n            state,\n            validate_attribution=True,\n        )\n        _validate_order_state(\n            state,\n            sequence_was_explicit=sequence_was_explicit,\n        )\n        _validate_strategy_risk_state(state)\n        _validate_lot_origin_chains(state)\n        if require_hashes and (not state.data_hash or not state.code_hash):\n>           raise RuntimeError(\"account state missing validation hashes\")\nE           RuntimeError: account state missing validation hashes\n\nuquant/account/codec.py:109: RuntimeError\n=========================== short test summary info ============================\nFAILED tests/test_code_audit_boundaries.py::test_cli_broker_inputs_use_strict_decoding[account-sync] - RuntimeError: account state missing validation hashes\nFAILED tests/test_code_audit_boundaries.py::test_cli_broker_inputs_use_strict_decoding[daily] - RuntimeError: account state missing validation hashes\nFAILED tests/test_code_audit_boundaries.py::test_sync_receives_the_bound_custom_configuration[account-sync] - RuntimeError: account state missing validation hashes\nFAILED tests/test_code_audit_boundaries.py::test_sync_receives_the_bound_custom_configuration[daily] - RuntimeError: account state missing validation hashes\nFAILED tests/test_code_audit_boundaries.py::test_account_sync_rejects_unprovided_custom_config - RuntimeError: account state missing validation hashes\n"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35675265048/diff-check.txt.gz",
+      "output_bytes": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    }
+  ],
+  "passed": false,
+  "full_economic_acceptance": "NOT_RUN",
+  "main_merge": "NOT_AUTHORIZED"
+}

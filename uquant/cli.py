@@ -19,7 +19,8 @@ from .account import (
     save_account,
 )
 from .broker import sync_broker_snapshot
-from .config import DEFAULT_CONFIG, config_fingerprint
+from .broker_contract import load_broker_snapshot
+from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from .config.input import load_public_config
 from .engine import ProductionEngine, code_fingerprint
 from .infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
@@ -128,7 +129,7 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
     journal_report = journal_sub.add_parser("report")
     journal_report.add_argument("--journal", default="execution_journal.jsonl")
     journal_report.add_argument("--output", default=None)
-    for command in (init, daily, backtest):
+    for command in (init, daily, backtest, sync):
         command.add_argument("--config", default=None, help="strict JSON public settings")
     return parser
 
@@ -174,10 +175,8 @@ def _daily_output_boundary(args: argparse.Namespace) -> tuple[list[str], dict[st
     return exact_inputs, protected
 
 
-def _run_daily(args: argparse.Namespace) -> int:
-    cfg = load_public_config(args.config)
-    exact_inputs, protected = _daily_output_boundary(args)
-    account = load_account(args.account)
+def _validate_account_config(account: AccountState, cfg: SystemConfig) -> None:
+    """Require the same effective configuration for sync and daily decisions."""
     bindings = [event["effective_config_sha256"] for event in account.account_migrations
                 if event.get("migration_type") == "configuration_binding"]
     expected = bindings[-1] if bindings else config_fingerprint(DEFAULT_CONFIG)
@@ -185,10 +184,17 @@ def _run_daily(args: argparse.Namespace) -> int:
         raise ValueError("account configuration identity differs; no automatic configuration migration is available")
     if any(epoch.config_identity != "config:" + expected for epoch in account.strategic_epochs):
         raise ValueError("account strategic configuration identity differs")
+
+
+def _run_daily(args: argparse.Namespace) -> int:
+    cfg = load_public_config(args.config)
+    exact_inputs, protected = _daily_output_boundary(args)
+    account = load_account(args.account)
+    _validate_account_config(account, cfg)
     engine = ProductionEngine(args.data_dir, cfg)
     if args.broker_snapshot:
-        snapshot = json.loads(Path(args.broker_snapshot).read_text(encoding="utf-8"))
-        sync_broker_snapshot(account, snapshot)
+        snapshot = load_broker_snapshot(args.broker_snapshot)
+        sync_broker_snapshot(account, snapshot, cfg=cfg)
     decision = engine.decide(symbols=args.symbols, as_of=args.date, account=account)
     account.pending_orders = list(decision.pending_orders)
     report = render_daily_report(decision, account)
@@ -326,8 +332,10 @@ def main(argv: list[str] | None = None) -> int:
         return _run_daily(args)
     if args.command == "account-sync":
         account = load_account(args.account)
-        snapshot = json.loads(Path(args.snapshot).read_text(encoding="utf-8"))
-        summary = sync_broker_snapshot(account, snapshot)
+        cfg = load_public_config(args.config)
+        _validate_account_config(account, cfg)
+        snapshot = load_broker_snapshot(args.snapshot)
+        summary = sync_broker_snapshot(account, snapshot, cfg=cfg)
         save_account(account, args.account)
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0

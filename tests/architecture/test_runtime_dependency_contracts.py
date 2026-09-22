@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 
 from ._analysis import ROOT
-from ._initialization_edges import assert_cache_facade_delegation, blocking_architecture_debt, initialization_cycles
+from ._initialization_edges import (
+    assert_cache_facade_delegation,
+    blocking_architecture_debt,
+    initialization_cycles,
+)
 
 
 def test_current_import_initialization_is_acyclic() -> None:

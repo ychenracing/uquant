@@ -40,6 +40,7 @@ from ._governance_inventory import (
     load_inventory,
     verify_inventory_seal,
 )
+from ._initialization_edges import blocking_architecture_debt
 from ._owner_transport import (
     architecture_portfolio_reviewed_sources,
     expand_architecture_risk_assessment,
@@ -571,7 +572,7 @@ def test_architecture_production_type_ignore_debt_is_zero() -> None:
 
 
 def test_architecture_duplicate_private_helper_debt_is_zero_without_generic_utils() -> None:
-    current = measured_debt(architecture_snapshot())
+    current = blocking_architecture_debt(ROOT, measured_debt(architecture_snapshot()))
     assert current["duplicate_private_helper_groups"] == []
 
 
@@ -918,7 +919,10 @@ def test_architecture_current_blockers_match_empty_acceptance_allowlist(
     request: pytest.FixtureRequest,
 ) -> None:
     snapshot = architecture_snapshot()
-    current = measured_debt(snapshot)
+    raw = measured_debt(snapshot)
+    request.node.user_properties.append(("source_dependency_cycles", json.dumps(raw["internal_import_cycles"])))
+    request.node.user_properties.append(("same_name_helpers", json.dumps(raw["duplicate_private_helper_groups"])))
+    current = blocking_architecture_debt(ROOT, raw)
     baseline = json.loads(
         ((evidence_root() / 'artifacts/architecture_refactor/baseline_inventory.json')).read_text(
             encoding="utf-8"

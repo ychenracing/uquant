@@ -1,0 +1,30 @@
+{
+  "commit": "4f0fc7a3ee0480b3cea76675fe7f652151e65d1c",
+  "verified": true,
+  "files": [
+    {
+      "path": ".github/workflows/code-audit-candidate.yml",
+      "bytes": 5573,
+      "sha256": "72193403f6e7d9b6914f36b44aba44a26ebef1240036dc0a70edb883cf22cbc0",
+      "git_blob": "c96a18a436d37ce682d8acd6496f741980067277"
+    },
+    {
+      "path": "artifacts/code-audit-fix/INSPECTION.json",
+      "bytes": 36403,
+      "sha256": "dd3d27180bb326275395a335ead9a7fdf62ab61255c1d2c431d72d2df8c815cf",
+      "git_blob": "1dd3eb23531eb979c44a3853b0d77499b031d9f1"
+    },
+    {
+      "path": "artifacts/code-audit-fix/RUN_STATUS.json",
+      "bytes": 187,
+      "sha256": "79f9d50e17679f81324b50210c531ed6e39eef0570bff766b60d258a6b80ab0c",
+      "git_blob": "95886a9df51ff6b853e96657e4288e68667a76af"
+    },
+    {
+      "path": "artifacts/code-audit-fix/inspect_candidate.py",
+      "bytes": 1958,
+      "sha256": "8366504317a15660f0fecca7af08afcfc9750700e6953f1167db3cfae5b9e35f",
+      "git_blob": "4a1455e4c7cd0039aebd093a78fa2ae15660a24d"
+    }
+  ]
+}

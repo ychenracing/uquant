@@ -1,0 +1,195 @@
+{
+  "input_head": "90d38521e5371d59e9c94d3751861d068c9faa7e",
+  "runs": [
+    {
+      "run_id": 35678573820,
+      "head_sha": "1f819fb701eb67f8645fed4fe7822ed056b3009c",
+      "status": "in_progress",
+      "conclusion": null,
+      "jobs": [
+        {
+          "id": 106590263442,
+          "name": "Security and dependency audit",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": "2026-09-22T02:12:45Z",
+          "log_error": "the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway\n"
+        },
+        {
+          "id": 106590263512,
+          "name": "Windows smoke",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": "2026-09-22T02:12:24Z",
+          "log_error": "the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway\n"
+        },
+        {
+          "id": 106590263575,
+          "name": "Tests (architecture-remaining)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": null
+        },
+        {
+          "id": 106590263579,
+          "name": "Python 3.12",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": "2026-09-22T02:12:44Z",
+          "log_error": "the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway\n"
+        },
+        {
+          "id": 106590263595,
+          "name": "Tests (architecture-foundation)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:54Z",
+          "completed_at": null
+        },
+        {
+          "id": 106590263612,
+          "name": "Tests (application-left)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": null
+        },
+        {
+          "id": 106590263642,
+          "name": "Tests (architecture-portfolio)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": null
+        },
+        {
+          "id": 106590263692,
+          "name": "Tests (application-right)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": null
+        }
+      ]
+    },
+    {
+      "run_id": 35678573917,
+      "head_sha": "1f819fb701eb67f8645fed4fe7822ed056b3009c",
+      "status": "completed",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 106590263643,
+          "name": "Absolute input preflight",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": "2026-09-22T02:12:20Z",
+          "log_error": "the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway\n"
+        },
+        {
+          "id": 106590361560,
+          "name": "Generalization Acceptance",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-09-22T02:12:22Z",
+          "completed_at": "2026-09-22T02:12:25Z",
+          "log_error": "the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway\n"
+        },
+        {
+          "id": 106590361944,
+          "name": "Absolute shard (${{ matrix.shard }})",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-09-22T02:12:20Z",
+          "completed_at": "2026-09-22T02:12:20Z"
+        }
+      ]
+    },
+    {
+      "run_id": 35678573838,
+      "head_sha": "1f819fb701eb67f8645fed4fe7822ed056b3009c",
+      "status": "in_progress",
+      "conclusion": null,
+      "jobs": [
+        {
+          "id": 106590263527,
+          "name": "Strategic Grant Acceptance",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": null
+        }
+      ]
+    },
+    {
+      "run_id": 35678573831,
+      "head_sha": "1f819fb701eb67f8645fed4fe7822ed056b3009c",
+      "status": "in_progress",
+      "conclusion": null,
+      "jobs": [
+        {
+          "id": 106590263397,
+          "name": "Ownership model tests",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": "2026-09-22T02:12:22Z",
+          "log_error": "the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway\n"
+        },
+        {
+          "id": 106590263592,
+          "name": "Ownership shard (champion)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:12:00Z",
+          "completed_at": null
+        },
+        {
+          "id": 106590263639,
+          "name": "Ownership shard (ghost-a)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": null
+        },
+        {
+          "id": 106590263645,
+          "name": "Ownership shard (ghost-b)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:54Z",
+          "completed_at": null
+        },
+        {
+          "id": 106590263650,
+          "name": "Ownership shard (continuity)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": null
+        },
+        {
+          "id": 106590263668,
+          "name": "Ownership shard (critical)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-09-22T02:11:52Z",
+          "completed_at": null
+        }
+      ]
+    }
+  ],
+  "logs": [],
+  "repair": {
+    "path": "uquant/validation/absolute_generalization/contract.py",
+    "old_registry": "f0e5d14f2f12af6f0711e0a4fa506fd29ce2a606fa74eddb89962643048105e5",
+    "new_registry": "ef45ba91d143b77222607158d28fa8bf2b1ef7610f2bbb9c1121c32c707e07ec",
+    "sha256": "4fba8711abe383aaf72b7a6b46221f9d9a316ffe64132a77a5faaad66dbcea60",
+    "scope": "registry membership anchor only; economic policy/config/data unchanged"
+  }
+}

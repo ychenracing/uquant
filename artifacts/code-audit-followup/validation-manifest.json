@@ -1,0 +1,289 @@
+{
+  "archive_bytes": 182356,
+  "archive_sha256": "87eaf3c444db702379f6a9d305c810d0695ac235d75e5cb7420803dd29ddcebd",
+  "encoding": "concatenate raw binary parts in order; tar.gz contains complete stdout, stderr, operation records and available checkpoints",
+  "parts": [
+    {
+      "path": "validation-logs.tar.gz.part000",
+      "offset": 0,
+      "bytes": 49152,
+      "sha256": "c2f32ff645a5bab4a0d98c3382616b7f54ec6dd66366227d94ed56c7149fa125"
+    },
+    {
+      "path": "validation-logs.tar.gz.part001",
+      "offset": 49152,
+      "bytes": 49152,
+      "sha256": "9898c2cca60e6e03bdc1fb669d2b12775fce40f952047314415987da8ce6d269"
+    },
+    {
+      "path": "validation-logs.tar.gz.part002",
+      "offset": 98304,
+      "bytes": 49152,
+      "sha256": "178fa295f179f51b1c0d4ed9033fdfbed191ab0a6c358a2115f8eeb9fa259f44"
+    },
+    {
+      "path": "validation-logs.tar.gz.part003",
+      "offset": 147456,
+      "bytes": 34900,
+      "sha256": "032ea1e59aa0077b5946e4ab1dcc8f20b1ac1b4cdfb5c18785ce8c47d343744b"
+    }
+  ],
+  "operations": [
+    {
+      "operation_id": "20260922T061020-d97bd4acd61d",
+      "name": "audit-environment",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:10:20.385931+00:00"
+    },
+    {
+      "operation_id": "20260922T061123-fcfd567a1dd1",
+      "name": "audit-static",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:11:23.569131+00:00"
+    },
+    {
+      "operation_id": "20260922T061215-f225bcb200ea",
+      "name": "audit-baseline-gates",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:12:15.928930+00:00"
+    },
+    {
+      "operation_id": "20260922T061353-409f20eb8c00",
+      "name": "audit-focused-repairs",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:13:53.863141+00:00"
+    },
+    {
+      "operation_id": "20260922T061423-8bafa30a991d",
+      "name": "audit-history",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:14:23.539264+00:00"
+    },
+    {
+      "operation_id": "20260922T061513-a59b08b6da4b",
+      "name": "audit-repaired-gates",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 143,
+      "started_at": "2026-09-22T06:15:13.780801+00:00"
+    },
+    {
+      "operation_id": "20260922T061515-80616508ea5b",
+      "name": "audit-repair-integration",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 4,
+      "started_at": "2026-09-22T06:15:15.206342+00:00"
+    },
+    {
+      "operation_id": "20260922T061517-bce15e5dc903",
+      "name": "audit-types",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:15:17.338961+00:00"
+    },
+    {
+      "operation_id": "20260922T061622-48421839aa2e",
+      "name": "audit-repair-integration-valid",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:16:22.636676+00:00"
+    },
+    {
+      "operation_id": "20260922T061639-ad62a64c5912",
+      "name": "audit-public-api",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:16:39.883594+00:00"
+    },
+    {
+      "operation_id": "20260922T061707-79d4446f51d0",
+      "name": "audit-evidence-loading",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:17:07.280405+00:00"
+    },
+    {
+      "operation_id": "20260922T061925-110e464109b0",
+      "name": "audit-data-api",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:19:25.241969+00:00"
+    },
+    {
+      "operation_id": "20260922T061944-2a5104f08e45",
+      "name": "audit-risk-behavior",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:19:44.975695+00:00"
+    },
+    {
+      "operation_id": "20260922T062002-624fd193f7de",
+      "name": "audit-budget-diagnosis",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:20:02.471478+00:00"
+    },
+    {
+      "operation_id": "20260922T062032-5ffef77b60cf",
+      "name": "audit-final-static",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:20:32.565402+00:00"
+    },
+    {
+      "operation_id": "20260922T062102-9c7d9c7e492f",
+      "name": "audit-committed-input-identity",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:21:02.251161+00:00"
+    },
+    {
+      "operation_id": "20260922T062218-f789f2b52dc3",
+      "name": "audit-locked-python",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:22:18.198622+00:00"
+    },
+    {
+      "operation_id": "20260922T062219-a0ce3c909962",
+      "name": "audit-discovery-relocation",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:22:19.651420+00:00"
+    },
+    {
+      "operation_id": "20260922T062221-ca5edfd6f103",
+      "name": "audit-budget-final",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:22:21.123904+00:00"
+    },
+    {
+      "operation_id": "20260922T062620-97f61009ed7d",
+      "name": "audit-research-dedup",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:26:20.066700+00:00"
+    },
+    {
+      "operation_id": "20260922T062621-b375d75eab24",
+      "name": "audit-final-core-paths",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:26:21.541277+00:00"
+    },
+    {
+      "operation_id": "20260922T062622-1dad596344b8",
+      "name": "audit-final-budgets",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 1,
+      "started_at": "2026-09-22T06:26:22.985748+00:00"
+    },
+    {
+      "operation_id": "20260922T062804-771e3bce6f50",
+      "name": "audit-locked-uv",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:28:04.158761+00:00"
+    },
+    {
+      "operation_id": "20260922T062805-e3d876c5babe",
+      "name": "audit-final-typecheck",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:28:05.561864+00:00"
+    },
+    {
+      "operation_id": "20260922T062807-ddf50b323edd",
+      "name": "audit-remaining-risk-gate",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 143,
+      "started_at": "2026-09-22T06:28:07.006422+00:00"
+    },
+    {
+      "operation_id": "20260922T062808-6db198c111b3",
+      "name": "audit-last-budget-gates",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:28:08.464652+00:00"
+    },
+    {
+      "operation_id": "20260922T063159-353b26383f64",
+      "name": "audit-final-runtime",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:31:59.123936+00:00"
+    },
+    {
+      "operation_id": "20260922T063227-defa4778877c",
+      "name": "audit-paired-replay",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:32:27.990939+00:00"
+    },
+    {
+      "operation_id": "20260922T063257-22ccd4004b22",
+      "name": "audit-final-lint",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:32:57.415748+00:00"
+    },
+    {
+      "operation_id": "20260922T063415-2651cd3c3bf9",
+      "name": "audit-main-code-push",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 128,
+      "started_at": "2026-09-22T06:34:15.409360+00:00"
+    },
+    {
+      "operation_id": "20260922T063547-22072e8fcfc3",
+      "name": "audit-connector-publish",
+      "status": "REMOTE_VERIFICATION_RECORDED",
+      "finding": null,
+      "returncode": null,
+      "started_at": "2026-09-22T06:35:47.771433+00:00"
+    },
+    {
+      "operation_id": "20260922T063811-0b9b365a891b",
+      "name": "audit-code-readback",
+      "status": "EXITED",
+      "finding": null,
+      "returncode": 0,
+      "started_at": "2026-09-22T06:38:11.237051+00:00"
+    }
+  ]
+}

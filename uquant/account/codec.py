@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ..contracts.strict_json import strict_json_loads
 from ..models.strategic_epoch import strategic_epoch_from_payload
 from ..models.strategic_grant import (
     strategic_grant_from_payload,
@@ -26,9 +27,6 @@ from ..types import (
 from .validation_attribution import validate_lot_origin_chains as _validate_lot_origin_chains
 from .validation_common import (
     finite_number as _finite_number,
-)
-from .validation_common import (
-    reject_nonstandard_account_json_constant as _reject_nonstandard_json_constant,
 )
 from .validation_orders import validate_order_state as _validate_order_state
 from .validation_positions import (
@@ -67,10 +65,7 @@ def _read_account_payload(path: str | Path) -> dict[str, Any]:
 
     source = Path(path)
     try:
-        payload = json.loads(
-            source.read_text(encoding="utf-8"),
-            parse_constant=_reject_nonstandard_json_constant,
-        )
+        payload = strict_json_loads(source.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         raise RuntimeError(f"account state is missing or corrupt: {source}") from exc
     if not isinstance(payload, Mapping):

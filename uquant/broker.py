@@ -227,14 +227,20 @@ def _validate_released_predecessor_fill_shape(
 
 
 def _prepare_broker_sync(account: AccountState, payload: dict[str, Any]) -> _BrokerSyncState:
-    as_of_value = payload.get("as_of", "")
-    snapshot_date = _broker_date(as_of_value, field="snapshot as_of")
-    as_of = str(as_of_value)
-    if account.broker_as_of and as_of < account.broker_as_of:
+    if not isinstance(payload, dict):
+        raise ValueError("broker snapshot must be a JSON object")
+    snapshot_date = _broker_date(payload.get("as_of", ""), field="snapshot as_of")
+    as_of = snapshot_date.isoformat()
+    if account.broker_as_of and snapshot_date < _broker_date(
+        account.broker_as_of, field="stored snapshot as_of"
+    ):
         raise ValueError("broker snapshot predates the latest broker snapshot")
-    if account.last_successful_run and as_of < account.last_successful_run:
+    if account.last_successful_run and snapshot_date < _broker_date(
+        account.last_successful_run, field="last successful decision"
+    ):
         raise ValueError("broker snapshot predates the last successful decision")
-
+    if "cash" not in payload:
+        raise ValueError("broker snapshot requires an explicit cash balance")
     cash = _nonnegative(payload, "cash")
     raw_positions = payload.get("positions")
     raw_fills = payload.get("fills", [])
@@ -383,7 +389,7 @@ def _validated_broker_fill(state: _BrokerSyncState, raw: dict[str, Any]) -> _Bro
         raise ValueError("broker fill shares and price must be positive")
     fill_date_value = raw.get("fill_date", state.as_of)
     parsed_fill_date = _broker_date(fill_date_value, field="fill_date")
-    fill_date = str(fill_date_value)
+    fill_date = parsed_fill_date.isoformat()
     signal_date = _broker_date(order.signal_date, field="order signal_date")
     submitted_date = _broker_date(order.submitted_date, field="order submitted_date")
     if parsed_fill_date <= max(signal_date, submitted_date):

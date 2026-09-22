@@ -91,9 +91,12 @@ def _required_iso_date(value: Any, *, field: str) -> date_type:
     if not isinstance(value, str) or not value:
         raise RuntimeError(f"{field} requires an ISO date")
     try:
-        return date_type.fromisoformat(value)
+        parsed = date_type.fromisoformat(value)
     except ValueError as exc:
         raise RuntimeError(f"{field} requires an ISO date") from exc
+    if value != parsed.isoformat():
+        raise RuntimeError(f"{field} requires a canonical YYYY-MM-DD date")
+    return parsed
 
 
 def _finite_number(

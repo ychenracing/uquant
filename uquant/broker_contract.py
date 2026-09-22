@@ -5,10 +5,20 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import date as date_type
+from pathlib import Path
 from typing import Any
 
+from .contracts.strict_json import strict_json_loads
 from .models.trading import late_strategic_fill_allowed as _late_strategic_fill_allowed
 from .types import AccountOrder, AccountState, Fill, OrderStatus
+
+
+def load_broker_snapshot(path: str | Path) -> dict[str, Any]:
+    """Reject ambiguous JSON before any authoritative account fields are read."""
+    payload = strict_json_loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("broker snapshot must be a JSON object")
+    return payload
 
 
 @dataclass(frozen=True, slots=True)

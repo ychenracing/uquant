@@ -1,0 +1,76 @@
+--- a/tests/architecture/test_portfolio_public_owners.py
++++ b/tests/architecture/test_portfolio_public_owners.py
+@@ -3,7 +3,7 @@
+ import importlib
+ from collections.abc import Mapping
+ 
+-from ._analysis import ROOT, architecture_snapshot
++from ._analysis import ROOT, _PORTFOLIO_RELOCATED_FUNCTION_NAMES, architecture_snapshot
+ from ._explicit_delegation import assert_explicit_delegation
+ from ._private_imports import (
+     current_governed_sources,
+@@ -204,7 +204,8 @@
+         }.get(importer_name)
+         binding_owner = getattr(importer, class_name) if class_name else importer
+         owner = importlib.import_module(public_owner)
+-        assert_explicit_delegation(getattr(binding_owner, private_name), getattr(owner, public_name))
++        local_name = _PORTFOLIO_RELOCATED_FUNCTION_NAMES.get(private_name, private_name) if class_name else private_name
++        assert_explicit_delegation(getattr(binding_owner, local_name), getattr(owner, public_name))
+ 
+ 
+ def test_architecture_portfolio_current_private_edges_are_closed() -> None:
+--- a/tests/architecture/test_portfolio_boundaries.py
++++ b/tests/architecture/test_portfolio_boundaries.py
+@@ -1110,11 +1110,11 @@
+ 
+ @pytest.mark.parametrize("replacement", ['event.get("event") == ENTRY', "True"])
+ def test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events(replacement):
+-    source = (ROOT / "uquant/portfolio/allocator.py").read_text(encoding="utf-8")
++    source = (ROOT / "uquant/portfolio/freeze.py").read_text(encoding="utf-8")
+     original = 'event.get("event") == GRADUATION'
+     assert source.count(original) == 1
+     with pytest.raises(AssertionError):
+         expand_portfolio_allocator_method(
+             root=ROOT, relative="uquant/portfolio/allocator.py", name="allocate", candidate=None,
+-            overrides={"uquant/portfolio/allocator.py": source.replace(original, replacement)},
++            overrides={"uquant/portfolio/freeze.py": source.replace(original, replacement)},
+         )
+--- a/tests/test_code_audit_structure.py
++++ b/tests/test_code_audit_structure.py
+@@ -7,9 +7,11 @@
+ import inspect
+ import pickle
+ import subprocess
++import textwrap
+ from pathlib import Path
+ 
+ import pandas as pd
++import pytest
+ 
+ from uquant.config import DEFAULT_CONFIG
+ from uquant.data import DataStore
+@@ -122,3 +124,24 @@
+                 )
+                 assert baseline(account=before, **inputs) is classify_opportunity(account=after, **inputs)
+                 assert before.to_dict() == after.to_dict()
++
++
++@pytest.mark.parametrize("mutation", ("swap", "missing", "extra_state", "wrong_owner"))
++def test_explicit_delegate_check_rejects_non_equivalent_forwarding(mutation):
++    from tests.architecture._explicit_delegation import assert_explicit_delegation_source
++    from uquant.portfolio.pipeline import allocate_strategy
++
++    function = PortfolioAllocator._allocate_strategy
++    definition = ast.parse(textwrap.dedent(inspect.getsource(function))).body[0]
++    call = definition.body[-1].value
++    if mutation == "swap":
++        keyword = next(item for item in call.keywords if item.arg == "risk")
++        keyword.value = ast.Name(id="account", ctx=ast.Load())
++    elif mutation == "missing":
++        call.keywords.pop()
++    elif mutation == "extra_state":
++        definition.body.insert(0, ast.parse("account = None").body[0])
++    else:
++        call.func = ast.Name(id="allocate", ctx=ast.Load())
++    with pytest.raises((AssertionError, TypeError)):
++        assert_explicit_delegation_source(definition, function, allocate_strategy)

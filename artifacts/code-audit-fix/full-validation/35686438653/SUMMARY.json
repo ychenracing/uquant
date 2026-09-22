@@ -1,0 +1,174 @@
+{
+  "input_head": "dd59dc77655d30f92c090124723473c017fb419f",
+  "coverage": {
+    "run_id": 35679019524,
+    "producer_source": "6d4f8ab1cd72b5a7471bd2e3b92b0e035f278286",
+    "aggregate_run_id": 35685639978,
+    "percent": 87.4250299880048,
+    "threshold": 85,
+    "passed": true,
+    "python": "3.12.13 (main, Jun 16 2026, 22:05:08) [GCC 13.3.0]",
+    "coverage_version": "7.15.4",
+    "scope": "Full application-shard coverage, independent of test-suite outcomes."
+  },
+  "completed_job_logs": [],
+  "absolute": {
+    "id": 35679019431,
+    "head_sha": "6d4f8ab1cd72b5a7471bd2e3b92b0e035f278286",
+    "status": "queued",
+    "conclusion": null,
+    "run_attempt": 1,
+    "artifacts": [
+      {
+        "id": 10676211720,
+        "name": "cloud-execution-absolute-35679019431-1-loo-b",
+        "size_in_bytes": 38743,
+        "digest": "sha256:1e801195dc9da919387b59dbbb778bf6b20ad3d4d3e4c6b4beca8a28bfe02e19",
+        "expires_at": "2026-10-22T03:46:06Z"
+      },
+      {
+        "id": 10676131705,
+        "name": "absolute-generalization-35679019431-attempt-1-loo-b",
+        "size_in_bytes": 144790993,
+        "digest": "sha256:8095ee61ce8a120bf10211124a783d47f26a208e9cfaa335aff51d0034258327",
+        "expires_at": "2026-12-21T02:19:07Z"
+      },
+      {
+        "id": 10675986984,
+        "name": "absolute-generalization-35679019431-attempt-1-loo-a",
+        "size_in_bytes": 145073199,
+        "digest": "sha256:4fff08529305e986d2754f0e2c4b4ecef46be280adb3f9c144cd97dfdef54bbc",
+        "expires_at": "2026-12-21T02:19:07Z"
+      },
+      {
+        "id": 10675931953,
+        "name": "cloud-execution-absolute-35679019431-1-loo-a",
+        "size_in_bytes": 29496,
+        "digest": "sha256:5c0114c89febe4565616e1c3888a7106ccd7aa7e497c3872fd30548344058057",
+        "expires_at": "2026-10-22T03:31:59Z"
+      },
+      {
+        "id": 10675899139,
+        "name": "absolute-generalization-35679019431-attempt-1-loo-d",
+        "size_in_bytes": 144597882,
+        "digest": "sha256:3a6713d86d3e90b875be37e82a2a9f44a75bfe4e3ce51975220af2565a3247ef",
+        "expires_at": "2026-12-21T02:19:07Z"
+      },
+      {
+        "id": 10675879225,
+        "name": "cloud-execution-absolute-35679019431-1-loo-d",
+        "size_in_bytes": 37865,
+        "digest": "sha256:a1ac13a4feb0838cbfb68405a7174a5e09984b470632add3c5c0b31537ce4a0d",
+        "expires_at": "2026-10-22T03:51:53Z"
+      },
+      {
+        "id": 10675661073,
+        "name": "cloud-execution-absolute-35679019431-1-loo-e",
+        "size_in_bytes": 30235,
+        "digest": "sha256:3ae930c98f1204a84587e4d645ca2e53fbcb90cd3b2511d734c63886e498bbec",
+        "expires_at": "2026-10-22T03:20:23Z"
+      },
+      {
+        "id": 10675516272,
+        "name": "absolute-generalization-35679019431-attempt-1-loo-e",
+        "size_in_bytes": 120737255,
+        "digest": "sha256:5aa4c22387df98a9889919ce35eea352eb06af02900538ec4e1fa11dc61f1d7a",
+        "expires_at": "2026-12-21T02:19:07Z"
+      },
+      {
+        "id": 10675124243,
+        "name": "cloud-execution-absolute-35679019431-1-loo-c",
+        "size_in_bytes": 23472,
+        "digest": "sha256:7f6637f16a06a556e87ba7a98c5216832d28d777c885215bf1c7ab0d24dca0a5",
+        "expires_at": "2026-10-22T03:05:27Z"
+      },
+      {
+        "id": 10675112450,
+        "name": "cloud-execution-absolute-35679019431-1-recovery-and-reachability",
+        "size_in_bytes": 14676,
+        "digest": "sha256:0f779f6f93dd223426217783477ab1167573f4200ec8e6f73602601606561fd1",
+        "expires_at": "2026-10-22T02:47:51Z"
+      },
+      {
+        "id": 10675018349,
+        "name": "cloud-execution-absolute-35679019431-1-champion",
+        "size_in_bytes": 13690,
+        "digest": "sha256:33312dcbfe4135e1a50a52a09c4294e584c7cea5c99a90a1ce7cf5bfa6679c5d",
+        "expires_at": "2026-10-22T02:54:19Z"
+      },
+      {
+        "id": 10674943419,
+        "name": "absolute-generalization-35679019431-attempt-1-champion",
+        "size_in_bytes": 220377,
+        "digest": "sha256:fe50a9de05403de7c740160aff6d3b4f84fdff24ec6082e5708003ac43c1c415",
+        "expires_at": "2026-12-21T02:19:07Z"
+      },
+      {
+        "id": 10674659729,
+        "name": "absolute-generalization-35679019431-attempt-1-loo-c",
+        "size_in_bytes": 144837137,
+        "digest": "sha256:769e852c23f536063cdcc0588cb91f13b880065bf2dd56d25e20de2f5038e86a",
+        "expires_at": "2026-12-21T02:19:07Z"
+      },
+      {
+        "id": 10674608041,
+        "name": "cloud-execution-absolute-35679019431-1-loo-f",
+        "size_in_bytes": 21348,
+        "digest": "sha256:fddd1fd2b54241aad026dd17568959d9cbf747f9183a5f9689e408bb53c96ff4",
+        "expires_at": "2026-10-22T03:03:34Z"
+      },
+      {
+        "id": 10674498132,
+        "name": "absolute-generalization-35679019431-attempt-1-loo-f",
+        "size_in_bytes": 120647098,
+        "digest": "sha256:d9281fc171e164f129efea609ecf91116791cfb3efd597456fcfd2009219b97c",
+        "expires_at": "2026-12-21T02:19:07Z"
+      },
+      {
+        "id": 10674468191,
+        "name": "absolute-generalization-35679019431-attempt-1-recovery-and-reachability",
+        "size_in_bytes": 853951,
+        "digest": "sha256:cf13e0f25fb71a4b8c1de5f10ae7839f98470886a2b7c09dd97b678583bc272b",
+        "expires_at": "2026-12-21T02:19:07Z"
+      }
+    ],
+    "final": "NOT_YET_AVAILABLE_NO_WAIT"
+  },
+  "governance": {
+    "source": "53b36e4e58458bcd0d60177e4995e5b00fd4ab3d",
+    "run_id": 35685639978,
+    "last_failures_passed": 2,
+    "new_negative_and_sanity_cases_passed": 8,
+    "earlier_passed": {
+      "35683876795": {
+        "api_and_boundaries": 33,
+        "governance_prefix": 38
+      },
+      "35684675683": {
+        "remaining_governance": 55
+      }
+    },
+    "raw_sha256": "5c14b875d742bdc8dc673710233ba29a1decfe2d5155d6995f64893492c2622b"
+  },
+  "collector_errors": [
+    {
+      "part": "application-log",
+      "error": "CalledProcessError(1, ['gh', '--allow-escape-sequences', 'api', 'repos/ychenracing/uquant/actions/jobs/106591666407/logs'])"
+    }
+  ],
+  "tests_rerun": false,
+  "previous_original": {
+    "id": 10676991624,
+    "name": "pr83-maintenance-35685639978",
+    "size_in_bytes": 4922490,
+    "digest": "sha256:f961475c23c24b3bb70ad0cd3d77c459678e987691258c3dce7c4299a66184ac",
+    "expires_at": "2026-12-21T04:06:57Z",
+    "workflow_run": {
+      "id": 35685639978,
+      "repository_id": 1327430984,
+      "head_repository_id": 1327430984,
+      "head_branch": "codex/code-audit-fixes-20260922",
+      "head_sha": "4cf95a30e69e2cf96099327c1ceb5c0f81f386cb"
+    }
+  }
+}

@@ -91,6 +91,7 @@ def append_holdout_snapshot(
     repository_root: str | Path,
     snapshot_dir: str | Path,
     contract: FutureHoldoutContract | None = None,
+    expected_session: str | None = None,
 ) -> dict[str, object]:
     """Atomically append one complete daily snapshot outside the frozen prefix."""
 
@@ -98,6 +99,7 @@ def append_holdout_snapshot(
         repository_root=repository_root,
         snapshot_dir=snapshot_dir,
         contract=contract,
+        expected_session=expected_session,
     )
 
 

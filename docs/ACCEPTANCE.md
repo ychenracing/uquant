@@ -78,3 +78,22 @@ Actions 只上传实际生成并读回的产物；预检或分片执行失败时
 ## C2 简化替换
 
 [八场景比较](../artifacts/unified-allocation/C2_ACCEPTED_DELIVERY.md)与[验收合同](../artifacts/unified-allocation/ACCEPTANCE_C2_ACCEPTED.json)记录正式配对结果。六个标准场景的成本后终值相对基线几何平均为 103.67%，八场景最低为 97.34%，最大回撤增量均为零。2025 场景订单数由 9 增至 16，剔除 `sz300502` 场景由 45 增至 61；这两个场景的换手和成本也增加。以上结果限于已运行的八场景，不代表完整 Absolute 或未来泛化表现。
+
+## 已有完整结果与本轮身份修复
+
+main `58d4b9c` 的 [Actions 35628142765](https://github.com/ychenracing/uquant/actions/runs/35628142765)
+已完成八个 canonical 分片。保留的[原始聚合报告](../artifacts/operational-continuity/ABSOLUTE_MAIN_REPORT.json)
+记录 34/34 有效单元、零缺片/重复/回放错误，以及 `runner_success=true`、
+`capability_pass=true`、`passed=true`。这更新了 PR80 交付当时的“完整 Absolute 尚未完成”状态；
+PR80 的历史报告不回写。
+
+本轮核对同时发现原报告的配置身份错误：`effective_config_sha256` 复制了冻结政策的
+`adf8c123…`，但原源码的独立预检要求、实际默认配置均为 `4d9c3495…`。
+现由同一合同加载出口从 `DEFAULT_CONFIG` 计算实际摘要，分片、单元、缓存及 final 聚合
+沿用该出口。冻结政策字节、阈值、窗口和成员保持不变，原结果不重新封签或改贴身份。
+旧配置标注不能作为新严格验收的运行配置证明；其实际完成的数值结果、原 HEAD 和失败/通过
+声明仍如实保留。这是证据身份缺陷，不是经济 NOT_MET，也不是原回放运行失败。
+
+本轮复用未变化的经济决策、配置、数据与锁文件证据，单独验证上述身份投影及观察事务路径。
+修复后完整新身份矩阵与真实 Future Holdout 仍须有各自原始结果才能宣布通过；
+本轮不因工程修复宣称收益提高。详见[本轮交付记录](../artifacts/operational-continuity/DELIVERY_REPORT.md)。

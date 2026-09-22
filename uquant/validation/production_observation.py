@@ -37,6 +37,7 @@ from uquant.validation.holdout.cli_operations import (
     read_trusted_execution_journal,
     write_journal_checkpoint,
 )
+from uquant.validation.holdout.contract import CHECKPOINT_RELATIVE, HOLDOUT_DATA_DIRECTORY
 from uquant.validation.holdout_runtime import (
     append_holdout_snapshot,
     generate_future_holdout_replay,
@@ -439,9 +440,10 @@ def _paths_overlap(left: Path, right: Path) -> bool:
 
 @contextlib.contextmanager
 def _observation_lock(root: Path, account: Path) -> Iterator[None]:
-    """Serialize the complete observation transaction for one repository/account."""
+    """Serialize transactions sharing the repository holdout prefix and outputs."""
 
-    identity = f"{root.resolve(strict=False)}\0{account.resolve(strict=False)}".encode()
+    # ponytail: repository lock; split only after shared evidence has separate ownership.
+    identity = str(root.resolve(strict=False)).encode()
     lock_name = f"uquant-production-observation-{_sha256(identity)}.lock"
     lock_path = Path(tempfile.gettempdir()) / lock_name
     _reject_symlink_chain(lock_path, label="production observation lock")
@@ -538,7 +540,21 @@ def _preflight_run(args: argparse.Namespace) -> dict[str, Path | str]:
     protected_paths = tuple(
         Path(paths[key]) for key in ("account", "broker", "holdout_account", "journal", "journal_checkpoint")
     )
-    protected_roots = (Path(paths["data_dir"]), Path(paths["snapshot_dir"]))
+    protected_roots = (Path(paths["data_dir"]), Path(paths["snapshot_dir"]),
+                       root / "data/frozen", root / HOLDOUT_DATA_DIRECTORY)
+    # The live account is also an output; replay anchors and journals are never aliases.
+    carrier_keys = ("account", "broker", "holdout_account", "journal", "journal_checkpoint")
+    for index, key in enumerate(carrier_keys):
+        carrier = Path(paths[key])
+        for other in carrier_keys[index + 1:]:
+            if _paths_overlap(carrier, Path(paths[other])):
+                raise ValueError(f"production observation protected paths overlap: {key}, {other}")
+        validate_atomic_output_boundary(
+            carrier, protected_paths=(root / CHECKPOINT_RELATIVE,), protected_roots=protected_roots,
+        )
+        if _paths_overlap(carrier, Path(paths["backup_root"])):
+            raise ValueError(f"production observation carrier overlaps backup checkpoint: {key}")
+    protected_paths = (*protected_paths, root / CHECKPOINT_RELATIVE)
     for key in ("daily_report", "lane_report", "replay_output", "decision_output"):
         validate_atomic_output_boundary(
             Path(paths[key]),
@@ -662,6 +678,7 @@ def run_production_observation(args: argparse.Namespace) -> dict[str, Any]:
             append_result = observation_cli_seams().append_holdout_snapshot(
                 repository_root=root,
                 snapshot_dir=Path(paths["snapshot_dir"]),
+                expected_session=args.date,
             )
             steps.append("holdout_snapshot_appended")
             if append_result.get("session") != args.date:

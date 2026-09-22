@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "tested_code_commit": "d48686668d0631c1230ae42e946f50a1e030133f",
+  "source_files": {
+    "tests/test_absolute_generalization_contract.py": "3069a21f79863374a61aeeaecc8783fbd952b4125a02b65efa20aacd07540dfe",
+    "tests/test_production_observation.py": "99a9fb0e2faa2824e387d84001f57abdbee16fd4438037b754451b1e07e4a63a",
+    "uquant/validation/absolute_generalization/contract.py": "45016d4bcbc2b6aca3123aeb09f7701296ffd7374ac4b7acc064ff01599f8a67",
+    "uquant/validation/holdout/service.py": "92c88e72991db73689e6143cfc9b96667008f5474abd98f315994237969c7fbd",
+    "uquant/validation/holdout/snapshots.py": "565cbd2b372c71d87798050b835fe570320b1062eaf288fa98b85027fee9b7ab",
+    "uquant/validation/holdout_runtime.py": "6f02af32b77ac5c317e569e563f7154f2d1e1de3b1277844dde7a38113a9e635",
+    "uquant/validation/production_observation.py": "13a5a6e6b7bdaba8ba4778f1c069bd89ce84c3b99d2f2793f6385d9c89296352"
+  },
+  "verified": {
+    "daily_observation_broker_journal": 150,
+    "absolute_contract_runner_artifacts_aggregation": 268,
+    "documentation_source_contracts": 36,
+    "ruff_changed_python": "PASS",
+    "mypy_five_changed_modules": "PASS",
+    "absolute_preflight_pinned_runtime": "PASS",
+    "static_lanes": "PASS",
+    "economic_source_unchanged": true
+  },
+  "absolute_batches": {
+    "first_finished_with_junit": {
+      "passed": 226,
+      "failed": 42,
+      "reason": "ambient uv 0.12.15 rejected; not economic failure"
+    },
+    "pinned_uv_retry": {
+      "passed": 26,
+      "failed": 16,
+      "reason": "subprocess checked dirty HEAD; later tests saw changed checkout because code was committed during the run"
+    },
+    "stable_committed_retry": {
+      "passed": 16,
+      "failed": 0
+    }
+  },
+  "other_retained_failures": [
+    "pre-fix native snapshot and carrier regressions: 7 failed, 1 passed",
+    "pre-fix different-account lock does not serialize",
+    "pre-fix Absolute actual configuration mismatch",
+    "new test initially hashed its own embedded seal; fixed test hashing, production policy unchanged"
+  ],
+  "runtime": {
+    "python": "3.12.13",
+    "numpy": "2.5.1",
+    "pandas": "3.0.5",
+    "absolute_uv": "0.11.33",
+    "ambient_uv": "0.12.15"
+  },
+  "unrun": [
+    "full local suite",
+    "new complete canonical Absolute economic matrix",
+    "real broker daily run",
+    "new real Future Holdout sessions and formal review"
+  ],
+  "operations": [
+    {
+      "id": "20260921T234848-a6c714c8ded4",
+      "name": "setup-runtime",
+      "status": "EXITED",
+      "returncode": 0,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 1871,
+          "sha256": "9cb155cdda653ea5bdcf06eeee7bde5cfe0ae647e7b1b3baa7d6c3b180057423"
+        },
+        "stdout.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "id": "20260921T235050-14abfcb0e6e8",
+      "name": "reproduce-observation-boundaries",
+      "status": "EXITED",
+      "returncode": 1,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 21714,
+          "sha256": "7bd7925caed9290550b2cd3e3029405768951d89047baed997bb83cd45434fea"
+        }
+      }
+    },
+    {
+      "id": "20260921T235123-f17690eedb0d",
+      "name": "verify-observation-boundaries",
+      "status": "EXITED",
+      "returncode": 0,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 100,
+          "sha256": "f39e28dd6380642b50f5fa87cb322bbebf690ccbc18166846196820938a9c765"
+        }
+      }
+    },
+    {
+      "id": "20260921T235246-6e69378dae09",
+      "name": "reproduce-shared-observation-lock",
+      "status": "EXITED",
+      "returncode": 1,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 2546,
+          "sha256": "68fb501c66c4707fc442a17a530f4734c5a22df16ed7565e76f9f78c2b225828"
+        }
+      }
+    },
+    {
+      "id": "20260921T235316-33a38f617d5e",
+      "name": "verify-operational-paths",
+      "status": "EXITED",
+      "returncode": 0,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 261,
+          "sha256": "f29c586a3d0d9e93a6625052d8c1a9f54076bbad63762c4fd524ffa910218647"
+        }
+      }
+    },
+    {
+      "id": "20260921T235622-b6ee739d5d98",
+      "name": "reproduce-absolute-config-identity",
+      "status": "EXITED",
+      "returncode": 1,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 1276,
+          "sha256": "afda4d97668f430fa175f9696d813fe364e9280951a0ea542f34556e4bafbb8a"
+        }
+      }
+    },
+    {
+      "id": "20260921T235635-a509afd9ab0a",
+      "name": "verify-absolute-config-identity",
+      "status": "EXITED",
+      "returncode": 1,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 56,
+          "sha256": "4c9643d999adc05bf08b4f875e6dd897399aea3091b990e18dcb5aa6dc7f19f8"
+        }
+      }
+    },
+    {
+      "id": "20260921T235910-9e3824b7b528",
+      "name": "verify-absolute-config-final",
+      "status": "EXITED",
+      "returncode": 1,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 80744,
+          "sha256": "624ed6c337215297953e347617bafbb645f165e79d8abe5c908818b76376b5dd"
+        }
+      }
+    },
+    {
+      "id": "20260922T000054-eb92f98c704d",
+      "name": "verify-docs-and-source-contracts",
+      "status": "EXITED",
+      "returncode": 0,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 99,
+          "sha256": "f9e2e011e7732d1682855f0099a36948bc98ac2071af8471173bd4751035b2d9"
+        }
+      }
+    },
+    {
+      "id": "20260922T000123-36a5d9d670fc",
+      "name": "verify-absolute-pinned-runtime",
+      "status": "EXITED",
+      "returncode": 1,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 11722,
+          "sha256": "c024abe09eb91057661da54d373b2d345c90a0b117197c4b7008e2d0b212f2a3"
+        }
+      }
+    },
+    {
+      "id": "20260922T000247-7c5325f3ed63",
+      "name": "absolute-config-preflight",
+      "status": "EXITED",
+      "returncode": 0,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "id": "20260922T000344-aa3658d3a817",
+      "name": "verify-absolute-stable-checkout",
+      "status": "EXITED",
+      "returncode": 0,
+      "logs": {
+        "stderr.private.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout.private.log": {
+          "bytes": 100,
+          "sha256": "a00e196a7385cd7ac26cefb8e7e0de950a851ae10e5cdc334ac3009161427357"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+name: Audit source transfer
+on:
+  push:
+    branches: [codex/code-audit-fixes-20260922]
+    paths: [.github/workflows/code-audit-source.yml]
+permissions:
+  contents: read
+jobs:
+  export:
+    if: github.ref == 'refs/heads/codex/code-audit-fixes-20260922'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Export pinned source with Git object manifest
+        run: |
+          python - <<'PY'
+          import hashlib,json,subprocess,zipfile
+          from pathlib import Path
+          def git(*args): return subprocess.check_output(['git',*args])
+          head=git('rev-parse','HEAD').decode().strip()
+          base='7bc5cd5e20038c94ab5cf556ce107104692236ac'
+          roots=('uquant/','tests/','scripts/','tools/','docs/','benchmarks/','data/','.github/','artifacts/code-audit-fix/')
+          singles={'AGENTS.md','PROJECT_STATE.md','README.md','pyproject.toml','uv.lock','setup.py','MANIFEST.in','.gitignore'}
+          rows=[]
+          with zipfile.ZipFile('audit-source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for ref,prefix in ((head,'candidate/'),(base,'baseline/')):
+                  for line in git('ls-tree','-r',ref).decode().splitlines():
+                      metadata,path=line.split('\t',1)
+                      mode,kind,oid=metadata.split()
+                      if kind!='blob' or not (path in singles or path.startswith(roots)): continue
+                      if prefix=='baseline/' and not (path.startswith(('uquant/','benchmarks/')) or path=='pyproject.toml'): continue
+                      data=git('cat-file','blob',oid)
+                      assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==oid
+                      z.writestr(prefix+path,data)
+                      rows.append({'path':prefix+path,'bytes':len(data),'git_blob':oid,'sha256':hashlib.sha256(data).hexdigest()})
+              z.writestr('MANIFEST.json',json.dumps({'head':head,'base':base,'files':rows},indent=2))
+          p=Path('audit-source.zip')
+          print(json.dumps({'head':head,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'files':len(rows)}))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: audit-source
+          path: audit-source.zip
+          retention-days: 7
+          if-no-files-found: error

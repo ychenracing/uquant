@@ -32,7 +32,7 @@ jobs:
         run: >-
           python -m tools.cloud_guard run --name pr83-contract-repairs --timeout 540 --
           python artifacts/code-audit-fix/ci-maintenance.py
-      - name: Preserve readback and originals
+      - name: Preserve readback and controlled execution originals
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -41,5 +41,6 @@ jobs:
             /tmp/pr83-changed-source.zip
             /tmp/pr83-readback.json
             artifacts/code-audit-fix/full-validation/${{ github.run_id }}
+            .cloud-task-journal/*/checkpoint.zip
           include-hidden-files: true
           if-no-files-found: error

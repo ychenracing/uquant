@@ -17,6 +17,7 @@ from .account.validation_positions import validate_position_state as _validate_p
 from .account.validation_strategy import validate_strategy_risk_state as _validate_strategy_risk_state
 from .broker_contract import BrokerFillValues as _BrokerFillValues
 from .broker_contract import broker_date as _broker_date
+from .broker_contract import broker_identity as _broker_identity
 from .broker_contract import broker_integer as _broker_integer
 from .broker_contract import broker_nonnegative as _nonnegative
 from .broker_contract import ordered_broker_fills as _ordered_broker_fills
@@ -379,10 +380,8 @@ def _validated_fill_order_progress(
 
 
 def _validated_broker_fill(state: _BrokerSyncState, raw: dict[str, Any]) -> _BrokerFillValues:
-    fill_id = str(raw.get("fill_id", "")).strip()
-    if not fill_id:
-        raise ValueError("each broker fill requires a stable fill_id")
-    order_id = str(raw.get("order_id", "")).strip()
+    fill_id = _broker_identity(raw, "fill_id")
+    order_id = _broker_identity(raw, "order_id")
     order = state.ledger.get(order_id)
     if order is None:
         raise ValueError(f"broker fill references unknown order {order_id!r}")
@@ -671,8 +670,8 @@ def _apply_broker_order_updates(state: _BrokerSyncState) -> None:
     for raw in state.raw_orders:
         if not isinstance(raw, dict):
             raise ValueError("each broker order must be an object")
-        order_id = str(raw.get("order_id", "")).strip()
-        if not order_id or order_id in seen_broker_orders:
+        order_id = _broker_identity(raw, "order_id")
+        if order_id in seen_broker_orders:
             raise ValueError("broker orders require unique stable order_id values")
         seen_broker_orders.add(order_id)
         order = state.ledger.get(order_id)

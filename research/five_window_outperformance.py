@@ -33,6 +33,7 @@ from research.window_matrix import (
 from research.window_matrix import (
     WINDOWS as WINDOWS,
 )
+from research.window_matrix import canonical_hash as _canonical_hash
 from uquant.engine import ProductionEngine
 from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 
@@ -43,16 +44,6 @@ METRICS = ("final_wealth", "max_drawdown", "account_orders", "acute_return")
 TARGET_END = max(end for _, end in WINDOWS.values())
 
 
-def _canonical_hash(value: Any) -> str:
-    raw = json.dumps(
-        value,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-        default=str,
-    ).encode("utf-8")
-    return hashlib.sha256(raw).hexdigest()
 
 
 def _finite(row: Mapping[str, Any], field: str) -> float:

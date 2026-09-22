@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from ._analysis import ROOT, architecture_snapshot
+from ._initialization_edges import initialization_cycles
 
 
 def _ids(rows: object) -> set[str]:
@@ -147,7 +148,7 @@ def test_internal_import_cycles_are_exact_and_can_only_disappear(
     assert isinstance(graph, Mapping)
     initial = _ids(debt["initial"]["internal_import_cycles"])
     allowed = set(debt["temporary_allowlist"]["internal_import_cycles"])
-    observed = _ids(graph["cycles"])
+    observed = _ids(initialization_cycles(ROOT))
     assert allowed == initial
     assert observed <= allowed
 

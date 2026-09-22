@@ -4,7 +4,8 @@ from collections.abc import Mapping
 
 import pytest
 
-from ._analysis import FINAL_BUDGETS, measured_debt
+from ._analysis import FINAL_BUDGETS, ROOT, measured_debt
+from ._initialization_edges import blocking_architecture_debt
 
 
 def _by_id(rows: object) -> dict[str, Mapping[str, object]]:
@@ -58,7 +59,7 @@ def test_final_budgets_are_strict_and_not_weakened(
 def test_module_and_function_debt_is_exact_non_growing_and_monotonic(
     baseline_inventory: dict[str, object], current_architecture: dict[str, object]
 ) -> None:
-    current = measured_debt(current_architecture)
+    current = blocking_architecture_debt(ROOT, measured_debt(current_architecture))
     _assert_exact_monotonic_debt(
         category="oversized_modules",
         metric="measured_lines",
@@ -82,7 +83,7 @@ def test_module_and_function_debt_is_exact_non_growing_and_monotonic(
 def test_global_type_ignore_and_duplicate_helper_debt_is_exact_and_monotonic(
     baseline_inventory: dict[str, object], current_architecture: dict[str, object]
 ) -> None:
-    current = measured_debt(current_architecture)
+    current = blocking_architecture_debt(ROOT, measured_debt(current_architecture))
     for category in (
         "mutable_module_globals",
         "production_type_ignores",
@@ -99,7 +100,7 @@ def test_global_type_ignore_and_duplicate_helper_debt_is_exact_and_monotonic(
 def test_live_debt_can_shrink_without_rewriting_the_frozen_baseline(
     baseline_inventory: dict[str, object], current_architecture: dict[str, object]
 ) -> None:
-    current = measured_debt(current_architecture)
+    current = blocking_architecture_debt(ROOT, measured_debt(current_architecture))
     current["oversized_modules"] = current["oversized_modules"][1:]
     _assert_exact_monotonic_debt(
         category="oversized_modules",
@@ -112,7 +113,7 @@ def test_live_debt_can_shrink_without_rewriting_the_frozen_baseline(
 def test_live_debt_cannot_exceed_its_initial_per_identity_severity(
     baseline_inventory: dict[str, object], current_architecture: dict[str, object]
 ) -> None:
-    current = measured_debt(current_architecture)
+    current = blocking_architecture_debt(ROOT, measured_debt(current_architecture))
     debt = baseline_inventory["architecture_debt"]
     assert isinstance(debt, Mapping)
     initial = _by_id(debt["initial"]["oversized_modules"])

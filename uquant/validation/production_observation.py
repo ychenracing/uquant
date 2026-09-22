@@ -506,8 +506,8 @@ def _git_head(root: Path) -> str | None:
     return value if completed.returncode == 0 and re.fullmatch(r"[0-9a-f]{40}", value) else None
 
 
-def _preflight_run(args: argparse.Namespace) -> dict[str, Path | str]:
-    root = Path(args.repository_root).resolve()
+def _observation_run_identity(args: argparse.Namespace) -> tuple[str, str]:
+    """Validate the date and run identifier before deriving transaction paths."""
     try:
         run_date = date.fromisoformat(args.date).isoformat()
     except ValueError as exc:
@@ -517,6 +517,12 @@ def _preflight_run(args: argparse.Namespace) -> dict[str, Path | str]:
     run_id = args.run_id or run_date
     if not _RUN_ID.fullmatch(run_id) or run_id in {".", ".."}:
         raise ValueError("production observation run ID is malformed")
+    return run_date, run_id
+
+
+def _preflight_run(args: argparse.Namespace) -> dict[str, Path | str]:
+    root = Path(args.repository_root).resolve()
+    run_date, run_id = _observation_run_identity(args)
     paths: dict[str, Path | str] = {
         "root": root,
         "run_id": run_id,
@@ -647,6 +653,31 @@ def _prepare_observation_run(
     )
 
 
+def _run_observation_daily(
+    args: argparse.Namespace, *, account: Path, broker: Path, paths: dict[str, Path | str]
+) -> None:
+    """Run the daily command and require success before publishing observation evidence."""
+    daily_arguments = [
+        "daily",
+        "--symbols",
+        *args.symbols,
+        "--date",
+        args.date,
+        "--account",
+        str(account),
+        "--data-dir",
+        str(paths["data_dir"]),
+        "--broker-snapshot",
+        str(broker),
+        "--output",
+        str(paths["daily_report"]),
+    ]
+    with contextlib.redirect_stdout(io.StringIO()):
+        daily_status = observation_cli_seams().uquant_main(daily_arguments)
+    if daily_status != 0:
+        raise RuntimeError(f"uquant daily returned status {daily_status}")
+
+
 def run_production_observation(args: argparse.Namespace) -> dict[str, Any]:
     """Run the canonical observation sequence without feeding evidence back to decisions."""
 
@@ -694,25 +725,7 @@ def run_production_observation(args: argparse.Namespace) -> dict[str, Any]:
                 journal_path=journal,
             )
             steps.append("holdout_replay_generated")
-            daily_arguments = [
-                "daily",
-                "--symbols",
-                *args.symbols,
-                "--date",
-                args.date,
-                "--account",
-                str(account),
-                "--data-dir",
-                str(paths["data_dir"]),
-                "--broker-snapshot",
-                str(broker),
-                "--output",
-                str(paths["daily_report"]),
-            ]
-            with contextlib.redirect_stdout(io.StringIO()):
-                daily_status = observation_cli_seams().uquant_main(daily_arguments)
-            if daily_status != 0:
-                raise RuntimeError(f"uquant daily returned status {daily_status}")
+            _run_observation_daily(args, account=account, broker=broker, paths=paths)
             steps.append("account_synced_and_daily_generated")
             lane_args = argparse.Namespace(
                 repository_root=str(root),

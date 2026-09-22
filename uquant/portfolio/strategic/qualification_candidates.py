@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol
@@ -9,10 +11,12 @@ from typing import TYPE_CHECKING, Any, Protocol
 import pandas as pd
 
 from ...config import SystemConfig
+from ...models.strategic_universe import StrategicUniverseRoles, build_strategic_universe_roles
 from ...types import AccountState, LeaderScore, RiskAssessment
 
 if TYPE_CHECKING:
     from ...portfolio_core import PortfolioCore
+    from .discovery import StrategicPortfolioPolicy
 
 
 class StrategicQualificationPolicy(Protocol):
@@ -526,3 +530,170 @@ __all__ = (
     "strategic_candidate_meets_route",
     "strategic_route_candidates",
 )
+
+
+def strategic_qualification_evidence_sha256(
+    *,
+    date: pd.Timestamp,
+    route: StrategicRoute,
+    symbols: list[str],
+    signature: str,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+) -> str:
+    def finite_payload(values: dict[str, float]) -> dict[str, str]:
+        return {
+            key: float(value).hex() for key, value in sorted(values.items()) if math.isfinite(float(value))
+        }
+
+    payload = {
+        "candidate_snapshots": {symbol: finite_payload(snapshots[symbol]) for symbol in sorted(symbols)},
+        "leaders": {
+            symbol: {
+                "confidence": float(leaders[symbol].confidence).hex(),
+                "industry": leaders[symbol].industry,
+                "score": float(leaders[symbol].score).hex(),
+            }
+            for symbol in sorted(symbols)
+            if symbol in leaders
+        },
+        "market_confirmation": {
+            key: risk.evidence.get(key)
+            for key in (
+                "breadth20",
+                "broad_ret20",
+                "broad_ret120",
+                "risk_anchor_group_count",
+                "tech_ret20",
+                "tech_ret120",
+            )
+        },
+        "reversal_observations": risk.evidence.get("reversal_observations", {}),
+        "route": route.route,
+        "session": str(date.date()),
+        "signature": signature,
+        "symbols": sorted(symbols),
+    }
+    encoded = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def strategic_candidate_symbol(
+    *,
+    route: StrategicRoute,
+    symbols: list[str],
+    leaders: dict[str, LeaderScore],
+) -> str:
+    if route.owner_symbol:
+        if route.owner_symbol not in symbols:
+            raise ValueError("strategic route owner is outside its witness set")
+        return route.owner_symbol
+    if route.decisive_reversal_symbol in symbols:
+        return str(route.decisive_reversal_symbol)
+    return min(symbols, key=lambda symbol: (-leaders[symbol].score, symbol))
+
+
+def strategic_quorum_candidate_symbols(
+    *,
+    route: StrategicRoute,
+    route_symbols: list[str],
+) -> tuple[str, ...]:
+    """Use a synchronized witness group without granting it target authority."""
+
+    route_set = set(route_symbols)
+    witness_groups = [tuple(group) for group in route.reversal_groups if route_set <= set(group)]
+    if route.synchronized_reversal and witness_groups:
+        return min(
+            witness_groups,
+            key=lambda group: (-len(group), tuple(sorted(group))),
+        )
+    return tuple(route_symbols)
+
+
+def strategic_qualification_snapshots(
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+) -> dict[str, dict[str, float]]:
+    snapshots: dict[str, dict[str, float]] = {}
+    for symbol, frame in user_panel.items():
+        if date not in frame.index:
+            continue
+        history = frame.loc[:date, "close"].dropna()
+        if len(history) < 121 or "amount" not in frame.columns or not self._liquidity_confirmed(frame, date):
+            continue
+        rolling240 = history / history.shift(240) - 1.0
+        persistent = rolling240.dropna().tail(self.cfg.strategic_cohort_confirm_days)
+        leader = leaders.get(symbol)
+        components = leader.components if leader is not None else {}
+        transition_score = (
+            0.20 * components.get("short_relative_strength", 0.0)
+            + 0.20 * components.get("breakout_quality", 0.0)
+            + 0.15 * components.get("acceleration", 0.0)
+            + 0.15 * components.get("momentum60", 0.0)
+            + 0.10 * components.get("relative_strength", 0.0)
+            + 0.10 * components.get("industry_rotation_strength", 0.0)
+            + 0.10 * components.get("trend_persistence", 0.0)
+        )
+        snapshots[symbol] = {
+            "history": float(len(history)),
+            "ret240": float(rolling240.iloc[-1]) if not persistent.empty else -math.inf,
+            "persistent_ret240": float(persistent.median()) if not persistent.empty else -math.inf,
+            "ret20": float(history.iloc[-1] / history.iloc[-21] - 1.0),
+            "ret5": float(history.iloc[-1] / history.iloc[-6] - 1.0),
+            "ret60": float(history.iloc[-1] / history.iloc[-61] - 1.0),
+            "ret120": float(history.iloc[-1] / history.iloc[-121] - 1.0),
+            "leader_score": leader.score if leader is not None else 0.0,
+            "leader_confidence": leader.confidence if leader is not None else 0.0,
+            "secular_score": components.get("secular_score", 0.0),
+            "secular_confidence": components.get("secular_confidence", 0.0),
+            "industry_confidence": components.get("industry_inference_confidence", 0.0),
+            "momentum60": components.get("momentum60", 0.0),
+            "momentum120": components.get("momentum120", 0.0),
+            "relative_strength": components.get("relative_strength", 0.0),
+            "short_relative_strength": components.get("short_relative_strength", 0.0),
+            "trend_persistence": components.get("trend_persistence", 0.0),
+            "breakout_quality": components.get("breakout_quality", 0.0),
+            "transition_score": transition_score,
+            "liquidity_confirmation": 1.0,
+        }
+    return snapshots
+
+
+def resolve_strategic_qualification_inputs(
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    qualification_panel: dict[str, pd.DataFrame] | None,
+    qualification_leaders: dict[str, LeaderScore] | None,
+    strategic_universe: StrategicUniverseRoles | None,
+) -> tuple[
+    dict[str, pd.DataFrame],
+    dict[str, LeaderScore],
+    StrategicUniverseRoles,
+]:
+    panel = qualification_panel if qualification_panel is not None else user_panel
+    scores = qualification_leaders if qualification_leaders is not None else leaders
+    universe = strategic_universe
+    if universe is None:
+        universe = build_strategic_universe_roles(
+            as_of=str(date.date()),
+            tradable_symbols=user_panel,
+            qualification_reference_symbols=panel,
+            risk_reference_symbols=(),
+            industries={
+                symbol: scores[symbol].industry if symbol in scores else "unknown" for symbol in panel
+            },
+            available_symbols=panel,
+        )
+    return panel, scores, universe

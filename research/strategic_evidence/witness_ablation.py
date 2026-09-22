@@ -899,3 +899,47 @@ __all__ = (
     "rank_critical_symbols",
     "select_bounded_search",
 )
+
+
+def divergences_from_compact(value: object) -> FirstDivergences:
+    if not isinstance(value, Mapping) or set(value) != {
+        "route",
+        "state",
+        "economic",
+        "comparable",
+        "uncompared_reason",
+    }:
+        raise ValueError("witness ablation compact divergences are malformed")
+    raw = dict(value)
+    layers: dict[str, Mapping[str, str] | None] = {}
+    for name in ("route", "state", "economic"):
+        item = raw[name]
+        if item is not None and (
+            not isinstance(item, Mapping)
+            or set(item) != {"date", "layer"}
+            or not all(isinstance(field, str) and field for field in item.values())
+        ):
+            raise ValueError("witness ablation compact divergence layer is malformed")
+        layers[name] = None if item is None else {str(key): str(field) for key, field in item.items()}
+    comparable = raw["comparable"]
+    reason = raw["uncompared_reason"]
+    if not isinstance(comparable, bool) or (reason is not None and not isinstance(reason, str)):
+        raise ValueError("witness ablation compact comparability is malformed")
+    return FirstDivergences(
+        route=layers["route"],
+        state=layers["state"],
+        economic=layers["economic"],
+        comparable=comparable,
+        uncompared_reason=reason,
+    )
+
+
+def search_spec(symbols: Sequence[str], *, scope: str) -> AblationSpec:
+    removed = tuple(sorted(symbols))
+    return AblationSpec(
+        scope=scope,
+        subject="+".join(removed),
+        removed_symbols=removed,
+        axis=FULL_REMOVAL,
+        evidence_class=ECONOMIC,
+    )

@@ -11,7 +11,7 @@ import time
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, replace
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any
 
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
@@ -44,6 +44,8 @@ from .provenance import (
     validate_provenance,
     verify_sealed_payload,
 )
+from .provenance import relative_artifact_identity as _relative_artifact_identity
+from .provenance import resolve_artifact_identity as _resolve_artifact_identity
 from .replay import (
     ReplayRequest,
     ReplayResult,
@@ -462,45 +464,8 @@ def _portable_route_identity(route_metadata: Mapping[str, Any]) -> dict[str, Any
     }
 
 
-def _relative_artifact_identity(
-    repository: Path,
-    artifact: Path,
-    *,
-    label: str,
-) -> str:
-    """Return one canonical repository-relative POSIX artifact identity."""
-
-    try:
-        relative = artifact.resolve().relative_to(repository.resolve())
-    except ValueError as exc:
-        raise ValueError(f"{label} must be inside the repository") from exc
-    identity = relative.as_posix()
-    if not identity or identity == ".":
-        raise ValueError(f"{label} identity is malformed")
-    return identity
 
 
-def _resolve_artifact_identity(
-    repository: Path,
-    value: object,
-    *,
-    label: str,
-) -> Path:
-    """Resolve a canonical repository-relative POSIX identity under root."""
-
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"{label} identity is malformed")
-    identity = PurePosixPath(value)
-    if (
-        identity.is_absolute()
-        or identity.as_posix() != value
-        or any(part in {".", ".."} for part in identity.parts)
-    ):
-        raise ValueError(f"{label} identity is not repository-relative POSIX")
-    resolved = (repository.resolve() / Path(*identity.parts)).resolve()
-    if not resolved.is_relative_to(repository.resolve()):
-        raise ValueError(f"{label} identity escapes the repository")
-    return resolved
 
 
 def _write_summary_and_manifest(

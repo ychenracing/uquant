@@ -261,7 +261,6 @@ def assess_confirmed_concentrated_break(
     )
     _prepare_confirmed_break(ctx)
     account.shock_severity = _confirmed_break_severity(ctx)
-    state = Risk.CRISIS
     shock = "SHOCK"
     crisis_gross = min(
         persistent_crisis_cap(
@@ -272,14 +271,14 @@ def assess_confirmed_concentrated_break(
         overlay_cap,
     )
     reason = _confirmed_break_reason(ctx)
-    account.risk = state.value
+    account.risk = Risk.CRISIS.value
     account.shock_state = shock
     account.risk_streaks["concentrated_repair"] = 0
     account.risk_events.append(
         {
             "date": str(date.date()),
             "from": previous.value,
-            "to": state.value,
+            "to": Risk.CRISIS.value,
             "votes": votes,
             "reasons": [reason],
             "break_reason_code": _confirmed_break_code(ctx),
@@ -289,7 +288,7 @@ def assess_confirmed_concentrated_break(
         }
     )
     return RiskAssessment(
-        state=state,
+        state=Risk.CRISIS,
         target_gross_cap=crisis_gross,
         votes=votes,
         evidence=_confirmed_break_evidence(ctx),

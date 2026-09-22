@@ -6,12 +6,14 @@ import math
 from typing import Any
 
 from ...config import SystemConfig
-from ...models.strategic_grant import StrategicQualificationObservation
+from ...models.strategic_grant import StrategicGrantIntent, StrategicQualificationObservation
 from ...models.strategic_rearm import (
     FlatBookCapitalRepairState,
     FlatBookCapitalRepairStatus,
     StrategicCashRearmPredicate,
     StrategicCashRearmRejectionReason,
+    StrategicCashRearmState,
+    StrategicCashRearmStatus,
 )
 from ...models.strategic_universe import StrategicUniverseRoles
 from ...types import AccountState, Opportunity, Risk, RiskAssessment
@@ -445,3 +447,89 @@ __all__ = (
     "candidate_rearm_predicates",
     "flat_book_repair_predicates",
 )
+
+
+def unfilled_authorized_grant_attempt(
+    account: AccountState,
+    *,
+    live_authority_fields: tuple[str, ...],
+) -> bool:
+    """Return whether live state is only the consumed grant's unfilled attempt."""
+
+    authorization = account.strategic_cash_rearm
+    grant = account.strategic_grant
+    if (
+        authorization.status != StrategicCashRearmStatus.CONSUMED.value
+        or grant is None
+        or authorization.consumed_grant_id != grant.grant_id
+        or authorization.authorization_id != grant.authorization_id
+        or grant.filled_shares > 0
+        or any(position.shares > 0 for position in account.positions.values())
+    ):
+        return False
+    grant_epochs = [epoch for epoch in account.strategic_epochs if epoch.grant_id == grant.grant_id]
+    if any(epoch.first_fill_session or epoch.active_session for epoch in grant_epochs):
+        return False
+    if any(order.grant_id != grant.grant_id for order in account.pending_orders) or any(
+        order.grant_id != grant.grant_id
+        for order in account.order_ledger
+        if order.status not in {"FILLED", "CANCELLED", "REPLACED"}
+    ):
+        return False
+    allowed_fields = {
+        "late_fill_pending",
+        "pending_orders",
+        "protected_weights",
+        "strategic_cohort_symbols",
+        "strategic_cohort_targets",
+        "strategic_epochs",
+        "strategic_grant",
+        "unsettled_execution",
+    }
+    return set(live_authority_fields) <= allowed_fields
+
+
+def rearm_grant_identity_open(
+    *,
+    grant: StrategicGrantIntent | None,
+    observation: StrategicQualificationObservation,
+    rearm: StrategicCashRearmState,
+) -> bool:
+    return bool(
+        grant is not None
+        and not grant.terminal
+        and bool(grant.authorization_id)
+        and rearm.status == StrategicCashRearmStatus.CONSUMED.value
+        and rearm.authorization_id == grant.authorization_id
+        and rearm.consumed_grant_id == grant.grant_id
+        and bool(grant.epoch_id)
+        and observation.candidate_symbol == grant.candidate_symbol
+        and observation.qualification_ready
+        and not (
+            observation.deployment_blocked and observation.deployment_block_reason != "pending_execution"
+        )
+    )
+
+
+def ordinary_rearm_attempt_pending(account: AccountState) -> bool:
+    state = account.strategic_cash_rearm
+    reference = state.consumed_order
+    return bool(
+        state.status == StrategicCashRearmStatus.CONSUMED.value
+        and reference is not None
+        and any(
+            order.order_id == reference.order_id
+            and order.event_id == reference.event_id
+            and order.symbol == state.candidate_symbol
+            and order.side == "BUY"
+            and not order.grant_id
+            and not order.epoch_id
+            for order in account.pending_orders
+        )
+        and any(
+            order.order_id == reference.order_id
+            and order.event_id == reference.event_id
+            and order.status not in {"FILLED", "CANCELLED", "REPLACED"}
+            for order in account.order_ledger
+        )
+    )

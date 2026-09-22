@@ -13,6 +13,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from uquant.contracts.strict_json import canonical_json_sha256
+
 SystemId = Literal["uquant_base", "uquant_sentinel", "trade"]
 TraceStatus = Literal["READY", "DEGRADED", "NOT_READY", "UNOBSERVABLE"]
 
@@ -61,15 +63,7 @@ CAPABILITY_CATEGORIES = frozenset(
 def canonical_sha256(payload: dict[str, object]) -> str:
     """Hash canonical JSON while excluding the envelope's own seal."""
 
-    normalized = {key: value for key, value in payload.items() if key != "payload_sha256"}
-    encoded = json.dumps(
-        normalized,
-        ensure_ascii=False,
-        allow_nan=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return canonical_json_sha256({key: value for key, value in payload.items() if key != "payload_sha256"})
 
 
 def canonical_bytes(payload: object) -> bytes:

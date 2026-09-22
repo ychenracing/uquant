@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -173,3 +176,15 @@ def select_acute_window(
         raise RuntimeError("acute reference session lookup is ambiguous")
     acute_start = values.index[end_position - horizon_sessions]
     return str(acute_start.date()), str(acute_end.date()), minimum
+
+
+def canonical_hash(value: Any) -> str:
+    raw = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+        default=str,
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()

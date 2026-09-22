@@ -591,31 +591,24 @@ def _allocate_decision_orders(
         "code_hash": inputs.current_code_hash,
         "data_hash": inputs.data_digest,
     }
-    structural_users = {
-        symbol: market.structural_leaders[symbol]
-        for symbol in inputs.user_symbols
-        if symbol in market.structural_leaders
-    }
+    all_leaders = market.structural_leaders
+    user_leaders = {symbol: all_leaders[symbol] for symbol in inputs.user_symbols if symbol in all_leaders}
     opportunity = classify_opportunity(
         date=inputs.date,
         broad=market.broad,
         tech=market.tech,
         reference_panel=market.reference_panel,
-        leaders=structural_users,
+        leaders=user_leaders,
         risk=risk.state,
         account=account,
         cfg=market.cfg,
         reference_context=None,
     )
-    all_leaders = market.structural_leaders
-    user_leaders = {symbol: all_leaders[symbol] for symbol in inputs.user_symbols if symbol in all_leaders}
-    leader_factor_profile = (
-        "TREND"
-        if market.scoring_opportunity in {Opportunity.STRONG_TREND.value, Opportunity.TREND.value}
-        else "RECOVERY"
-        if market.scoring_opportunity == Opportunity.RECOVERY.value
-        else "CHOPPY"
-    )
+    leader_factor_profile = {
+        Opportunity.STRONG_TREND.value: "TREND",
+        Opportunity.TREND.value: "TREND",
+        Opportunity.RECOVERY.value: "RECOVERY",
+    }.get(market.scoring_opportunity, "CHOPPY")
     previous_orders = list(account.pending_orders)
     strategic_universe = _decision_strategic_universe(inputs=inputs, market=market)
     qualification_panel = {

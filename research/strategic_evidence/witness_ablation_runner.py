@@ -15,7 +15,7 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from itertools import combinations
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any, Protocol
 
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
@@ -35,6 +35,8 @@ from .provenance import (
     validate_provenance,
     verify_sealed_payload,
 )
+from .provenance import relative_artifact_identity as _relative_identity
+from .provenance import resolve_artifact_identity as _resolve_identity
 from .replay import ReplayRequest, ReplayResult, run_replay
 from .trace import RouteTraceRow
 from .witness_ablation import (
@@ -61,6 +63,8 @@ from .witness_ablation import (
     rank_critical_symbols,
     select_bounded_search,
 )
+from .witness_ablation import divergences_from_compact as _divergences_from_compact
+from .witness_ablation import search_spec as _search_spec
 
 _STREAM_SCHEMA_VERSION = 1
 _ROUTE_METADATA_FIELDS = frozenset(
@@ -928,37 +932,6 @@ def _route_from_mapping(value: object) -> RouteTraceRow:
         raise ValueError("witness ablation route row is malformed") from exc
 
 
-def _divergences_from_compact(value: object) -> FirstDivergences:
-    if not isinstance(value, Mapping) or set(value) != {
-        "route",
-        "state",
-        "economic",
-        "comparable",
-        "uncompared_reason",
-    }:
-        raise ValueError("witness ablation compact divergences are malformed")
-    raw = dict(value)
-    layers: dict[str, Mapping[str, str] | None] = {}
-    for name in ("route", "state", "economic"):
-        item = raw[name]
-        if item is not None and (
-            not isinstance(item, Mapping)
-            or set(item) != {"date", "layer"}
-            or not all(isinstance(field, str) and field for field in item.values())
-        ):
-            raise ValueError("witness ablation compact divergence layer is malformed")
-        layers[name] = None if item is None else {str(key): str(field) for key, field in item.items()}
-    comparable = raw["comparable"]
-    reason = raw["uncompared_reason"]
-    if not isinstance(comparable, bool) or (reason is not None and not isinstance(reason, str)):
-        raise ValueError("witness ablation compact comparability is malformed")
-    return FirstDivergences(
-        route=layers["route"],
-        state=layers["state"],
-        economic=layers["economic"],
-        comparable=comparable,
-        uncompared_reason=reason,
-    )
 
 
 def read_cell_shard(
@@ -1089,31 +1062,8 @@ def _portable_metadata(metadata: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _relative_identity(repository: Path, artifact: Path, *, label: str) -> str:
-    try:
-        relative = artifact.resolve().relative_to(repository.resolve())
-    except ValueError as exc:
-        raise ValueError(f"{label} must be inside the repository") from exc
-    identity = relative.as_posix()
-    if not identity or identity == ".":
-        raise ValueError(f"{label} identity is malformed")
-    return identity
 
 
-def _resolve_identity(repository: Path, value: object, *, label: str) -> Path:
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"{label} identity is malformed")
-    identity = PurePosixPath(value)
-    if (
-        identity.is_absolute()
-        or identity.as_posix() != value
-        or any(part in {".", ".."} for part in identity.parts)
-    ):
-        raise ValueError(f"{label} identity is not repository-relative POSIX")
-    resolved = (repository.resolve() / Path(*identity.parts)).resolve()
-    if not resolved.is_relative_to(repository.resolve()):
-        raise ValueError(f"{label} identity escapes the repository")
-    return resolved
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -1650,15 +1600,6 @@ def _causal_scores(
     return scores
 
 
-def _search_spec(symbols: Sequence[str], *, scope: str) -> AblationSpec:
-    removed = tuple(sorted(symbols))
-    return AblationSpec(
-        scope=scope,
-        subject="+".join(removed),
-        removed_symbols=removed,
-        axis=FULL_REMOVAL,
-        evidence_class=ECONOMIC,
-    )
 
 
 def execute_witness_ablation_matrix(

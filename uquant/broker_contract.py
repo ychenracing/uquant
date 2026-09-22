@@ -57,6 +57,14 @@ def broker_nonnegative(payload: dict[str, Any], key: str, default: float = 0.0) 
     return value
 
 
+def broker_identity(payload: dict[str, Any], key: str) -> str:
+    """Read a stable external identifier without coercing nulls or numbers."""
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"broker {key} must be a nonempty string")
+    return value.strip()
+
+
 def broker_integer(
     payload: dict[str, Any],
     key: str,
@@ -95,13 +103,11 @@ def _prepare_broker_fills(raw_fills: list[Any], *, as_of: str) -> list[_Prepared
     for raw in raw_fills:
         if not isinstance(raw, dict):
             raise ValueError("each broker fill must be an object")
-        fill_id = str(raw.get("fill_id", "")).strip()
-        if not fill_id:
-            raise ValueError("each broker fill requires a stable fill_id")
+        fill_id = broker_identity(raw, "fill_id")
         if fill_id in seen_fill_ids:
             raise ValueError(f"broker snapshot repeats fill_id {fill_id!r}")
         seen_fill_ids.add(fill_id)
-        order_id = str(raw.get("order_id", "")).strip()
+        order_id = broker_identity(raw, "order_id")
         fill_date = broker_date(raw.get("fill_date", as_of), field="fill_date")
         if "final" not in raw:
             raise ValueError("broker fill requires explicit boolean final")

@@ -12,7 +12,6 @@ from typing import cast
 from ...config import SystemConfig, config_fingerprint
 from ...models.ordinary_state import record_repair_origin
 from ...models.strategic_grant import (
-    StrategicGrantIntent,
     StrategicQualificationObservation,
 )
 from ...models.strategic_rearm import (
@@ -48,6 +47,15 @@ from .rearm_predicates import (
     flat_book_repair_predicates,
     repair_reference_evidence_complete,
 )
+from .rearm_predicates import (
+    ordinary_rearm_attempt_pending as _ordinary_rearm_attempt_pending,
+)
+from .rearm_predicates import (
+    rearm_grant_identity_open as _rearm_grant_identity_open,
+)
+from .rearm_predicates import (
+    unfilled_authorized_grant_attempt as _unfilled_authorized_grant_attempt,
+)
 
 CASH_REARM_HEALTHY_SESSION_LIMITS = MappingProxyType(
     {
@@ -74,8 +82,6 @@ def flat_book_capital_repair_requirement(capital_budget_level: int) -> tuple[int
 
 def _ensure_account_identity(account: AccountState, *, observed_session: str) -> str:
     if not account.account_identity:
-        import hashlib
-
         identity_payload = "|".join(
             (
                 float(account.initial_cash).hex(),
@@ -86,45 +92,6 @@ def _ensure_account_identity(account: AccountState, *, observed_session: str) ->
         account.account_identity = "account_" + hashlib.sha256(identity_payload.encode()).hexdigest()
     return account.account_identity
 
-
-def _unfilled_authorized_grant_attempt(
-    account: AccountState,
-    *,
-    live_authority_fields: tuple[str, ...],
-) -> bool:
-    """Return whether live state is only the consumed grant's unfilled attempt."""
-
-    authorization = account.strategic_cash_rearm
-    grant = account.strategic_grant
-    if (
-        authorization.status != StrategicCashRearmStatus.CONSUMED.value
-        or grant is None
-        or authorization.consumed_grant_id != grant.grant_id
-        or authorization.authorization_id != grant.authorization_id
-        or grant.filled_shares > 0
-        or any(position.shares > 0 for position in account.positions.values())
-    ):
-        return False
-    grant_epochs = [epoch for epoch in account.strategic_epochs if epoch.grant_id == grant.grant_id]
-    if any(epoch.first_fill_session or epoch.active_session for epoch in grant_epochs):
-        return False
-    if any(order.grant_id != grant.grant_id for order in account.pending_orders) or any(
-        order.grant_id != grant.grant_id
-        for order in account.order_ledger
-        if order.status not in {"FILLED", "CANCELLED", "REPLACED"}
-    ):
-        return False
-    allowed_fields = {
-        "late_fill_pending",
-        "pending_orders",
-        "protected_weights",
-        "strategic_cohort_symbols",
-        "strategic_cohort_targets",
-        "strategic_epochs",
-        "strategic_grant",
-        "unsettled_execution",
-    }
-    return set(live_authority_fields) <= allowed_fields
 
 
 def observe_flat_book_capital_repair_state(
@@ -705,27 +672,6 @@ def strategic_cash_rearm_grant_open(
     )
 
 
-def _rearm_grant_identity_open(
-    *,
-    grant: StrategicGrantIntent | None,
-    observation: StrategicQualificationObservation,
-    rearm: StrategicCashRearmState,
-) -> bool:
-    return bool(
-        grant is not None
-        and not grant.terminal
-        and bool(grant.authorization_id)
-        and rearm.status == StrategicCashRearmStatus.CONSUMED.value
-        and rearm.authorization_id == grant.authorization_id
-        and rearm.consumed_grant_id == grant.grant_id
-        and bool(grant.epoch_id)
-        and observation.candidate_symbol == grant.candidate_symbol
-        and observation.qualification_ready
-        and not (
-            observation.deployment_blocked and observation.deployment_block_reason != "pending_execution"
-        )
-    )
-
 
 def _rearm_capital_context_clear(
     *,
@@ -784,29 +730,6 @@ __all__ = (
     "strategic_cash_rearm_weight",
 )
 
-
-def _ordinary_rearm_attempt_pending(account: AccountState) -> bool:
-    state = account.strategic_cash_rearm
-    reference = state.consumed_order
-    return bool(
-        state.status == StrategicCashRearmStatus.CONSUMED.value
-        and reference is not None
-        and any(
-            order.order_id == reference.order_id
-            and order.event_id == reference.event_id
-            and order.symbol == state.candidate_symbol
-            and order.side == "BUY"
-            and not order.grant_id
-            and not order.epoch_id
-            for order in account.pending_orders
-        )
-        and any(
-            order.order_id == reference.order_id
-            and order.event_id == reference.event_id
-            and order.status not in {"FILLED", "CANCELLED", "REPLACED"}
-            for order in account.order_ledger
-        )
-    )
 
 
 def _ordinary_repair_context_invalid(

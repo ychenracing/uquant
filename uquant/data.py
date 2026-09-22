@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+import numpy as np
 import pandas as pd
 
 REQUIRED_COLUMNS = ("date", "open", "high", "low", "close", "volume")
@@ -112,16 +113,15 @@ class DataStore:
             raise DataContractError(f"{symbol} missing columns: {sorted(missing)}")
         out = frame.copy()
         out["date"] = pd.to_datetime(out["date"], errors="raise").dt.normalize()
-        if out["date"].duplicated().any() or not out["date"].is_monotonic_increasing:
+        if out["date"].isna().any() or out["date"].duplicated().any() or not out["date"].is_monotonic_increasing:
             raise DataContractError(f"{symbol} dates must be unique and increasing")
         for column in REQUIRED_COLUMNS[1:]:
             out[column] = pd.to_numeric(out[column], errors="coerce")
         invalid = (
-            out[["open", "high", "low", "close"]].isna().any(axis=1)
+            ~np.isfinite(out[["open", "high", "low", "close", "volume"]]).all(axis=1)
             | (out[["open", "high", "low", "close"]] <= 0).any(axis=1)
             | (out["high"] < out[["open", "close", "low"]].max(axis=1))
             | (out["low"] > out[["open", "close", "high"]].min(axis=1))
-            | out["volume"].isna()
             | (out["volume"] < 0)
         )
         if invalid.any():
@@ -131,6 +131,8 @@ class DataStore:
         else:
             out["amount"] = pd.to_numeric(out["amount"], errors="coerce")
             out["amount"] = out["amount"].fillna(out["close"] * out["volume"])
+        if (~np.isfinite(out["amount"]) | (out["amount"] < 0)).any():
+            raise DataContractError(f"{symbol} contains invalid turnover amounts")
         return out.set_index("date", drop=True)
 
     def common_sessions(self, symbols: Iterable[str], start: str, end: str) -> pd.DatetimeIndex:

@@ -1,7 +1,6 @@
 """Read immutable evidence and producer bytes for audit without executing them."""
 from __future__ import annotations
 
-import io
 import shutil
 import subprocess  # nosec B404
 import tarfile
@@ -19,25 +18,31 @@ def evidence_root() -> Path:
     git = shutil.which("git")
     if git is None:
         raise RuntimeError("Git is required to read the immutable evidence source")
-    try:
-        archive = subprocess.run(
-            [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
-             "benchmarks/current_heads_competitor_matrix.json",
-             "benchmarks/cross_ai_stage1_baselines.json",
-             "research/current_heads_competitor_matrix.py",
-             "benchmarks/strategic_evidence_closure_contract.json"],
-            check=True, capture_output=True,
-        ).stdout  # nosec B603
-    except subprocess.CalledProcessError as exc:
-        raise RuntimeError(
-            f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
-            f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
-        ) from exc
-    destination = Path(tempfile.mkdtemp(prefix="uquant-evidence-"))
-    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as bundle:
-        for member in bundle.getmembers():
-            path = Path(member.name)
-            if path.is_absolute() or ".." in path.parts or not (member.isfile() or member.isdir()):
-                raise ValueError("immutable evidence archive contains an unsafe member")
-        bundle.extractall(destination, filter="data")
+    with tempfile.TemporaryFile() as archive:
+        try:
+            subprocess.run(
+                [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                 "benchmarks/current_heads_competitor_matrix.json",
+                 "benchmarks/cross_ai_stage1_baselines.json",
+                 "research/current_heads_competitor_matrix.py",
+                 "benchmarks/strategic_evidence_closure_contract.json"],
+                check=True, stdout=archive, stderr=subprocess.PIPE,
+            )  # nosec B603
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(
+                f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+            ) from exc
+        archive.seek(0)
+        destination = Path(tempfile.mkdtemp(prefix="uquant-evidence-"))
+        try:
+            with tarfile.open(fileobj=archive, mode="r:") as bundle:
+                for member in bundle.getmembers():
+                    path = Path(member.name)
+                    if path.is_absolute() or ".." in path.parts or not (member.isfile() or member.isdir()):
+                        raise ValueError("immutable evidence archive contains an unsafe member")
+                bundle.extractall(destination, filter="data")
+        except BaseException:
+            shutil.rmtree(destination)
+            raise
     return destination

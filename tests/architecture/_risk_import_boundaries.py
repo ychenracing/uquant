@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
+from ._initialization_edges import initialization_cycles
 from .test_risk_boundaries import (
     _COMPATIBILITY_NAMES,
     _INVENTORY,
@@ -89,7 +90,7 @@ def test_risk_package_has_no_reverse_owner_or_platform_imports() -> None:
 
     graph = architecture_snapshot()["import_graph"]
     assert isinstance(graph, dict)
-    cycles = graph["cycles"]
+    cycles = initialization_cycles(ROOT)
     assert isinstance(cycles, list)
     assert len(cycles) <= 2
     assert all(

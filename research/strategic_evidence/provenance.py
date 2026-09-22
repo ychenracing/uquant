@@ -6,12 +6,13 @@ import gzip
 import json
 import sys
 from collections.abc import Iterable, Mapping
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from uquant.contracts.strict_json import canonical_json_bytes as canonical_json_bytes
 from uquant.infrastructure.atomic_files import atomic_write_bytes
 
 from .contract import StrategicEvidenceContract
@@ -40,16 +41,6 @@ _PROVENANCE_FIELDS = frozenset(
 )
 
 
-def canonical_json_bytes(value: object) -> bytes:
-    """Encode JSON deterministically, rejecting non-finite evidence values."""
-
-    return json.dumps(
-        value,
-        allow_nan=False,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
 
 
 def seal_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -229,3 +220,44 @@ __all__ = (
     "write_gzip_shard",
     "write_shard",
 )
+
+
+def relative_artifact_identity(
+    repository: Path,
+    artifact: Path,
+    *,
+    label: str,
+) -> str:
+    """Return one canonical repository-relative POSIX artifact identity."""
+
+    try:
+        relative = artifact.resolve().relative_to(repository.resolve())
+    except ValueError as exc:
+        raise ValueError(f"{label} must be inside the repository") from exc
+    identity = relative.as_posix()
+    if not identity or identity == ".":
+        raise ValueError(f"{label} identity is malformed")
+    return identity
+
+
+def resolve_artifact_identity(
+    repository: Path,
+    value: object,
+    *,
+    label: str,
+) -> Path:
+    """Resolve a canonical repository-relative POSIX identity under root."""
+
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{label} identity is malformed")
+    identity = PurePosixPath(value)
+    if (
+        identity.is_absolute()
+        or identity.as_posix() != value
+        or any(part in {".", ".."} for part in identity.parts)
+    ):
+        raise ValueError(f"{label} identity is not repository-relative POSIX")
+    resolved = (repository.resolve() / Path(*identity.parts)).resolve()
+    if not resolved.is_relative_to(repository.resolve()):
+        raise ValueError(f"{label} identity escapes the repository")
+    return resolved

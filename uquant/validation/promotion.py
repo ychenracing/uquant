@@ -18,6 +18,7 @@ from statistics import median
 from typing import Any, Final, cast
 
 import uquant.validation.promotion_contract as _promotion_contract
+from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.validation.acceptance_tolerance import (
     acceptance_revision,
     order_ceiling,
@@ -181,14 +182,7 @@ def _reject_nonstandard_promotion_constant(value: str) -> None:
 
 
 def _promotion_fingerprint(value: Any) -> str:
-    encoded = json.dumps(
-        value,
-        allow_nan=False,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return canonical_json_sha256(value)
 
 
 def _promotion_validation_fingerprint(spec: Mapping[str, Any]) -> str:

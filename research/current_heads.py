@@ -11,6 +11,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Final, cast
 
+from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.validation.ai_era import AI_ERA_ACUTE_WINDOWS, AI_ERA_WINDOWS
 from uquant.validation.competitor import CANONICAL_EXECUTION_CONTRACT
 from uquant.validation.evidence_source import evidence_root
@@ -98,14 +99,7 @@ def _current_heads_adapter_sha256(adapter_path: Path) -> str:
 def canonical_sha256(value: Any) -> str:
     """Hash strict canonical JSON without accepting NaN or lossy values."""
 
-    encoded = json.dumps(
-        value,
-        allow_nan=False,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return canonical_json_sha256(value)
 
 
 def python_source_sha256(root: Path) -> str:

@@ -326,3 +326,20 @@ def test_leader_tenure_mutates_once_after_same_day_alpha(data_dir) -> None:
     apply_leader_tenure(alpha, account=account, cfg=engine.cfg)
 
     assert max(account.leader_tenure.values(), default=0) <= 1
+
+
+@pytest.mark.parametrize("column", ["open", "high", "low", "close", "volume", "amount"])
+@pytest.mark.parametrize("value", [float("inf"), float("-inf")])
+def test_market_data_rejects_infinite_economic_inputs(column, value):
+    row = dict(date="2026-01-05", open=10., high=11., low=9., close=10., volume=100., amount=1000.)
+    row[column] = value
+    with pytest.raises(DataContractError):
+        DataStore._validate(pd.DataFrame([row]), "sz300308")
+
+
+def test_market_data_rejects_negative_turnover_and_keeps_optional_amount_fallback():
+    row = dict(date="2026-01-05", open=10., high=11., low=9., close=10., volume=100., amount=-1.)
+    with pytest.raises(DataContractError, match="turnover"):
+        DataStore._validate(pd.DataFrame([row]), "sz300308")
+    del row["amount"]
+    assert DataStore._validate(pd.DataFrame([row]), "sz300308")["amount"].iloc[0] == 1000.

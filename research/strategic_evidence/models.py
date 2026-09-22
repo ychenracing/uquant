@@ -2,23 +2,15 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Any
+
+from uquant.contracts.strict_json import canonical_json_sha256
 
 
 def canonical_sha256(payload: dict[str, Any]) -> str:
     """Seal canonical JSON while excluding the self-referential envelope field."""
 
-    normalized = {key: value for key, value in payload.items() if key != "payload_sha256"}
-    encoded = json.dumps(
-        normalized,
-        ensure_ascii=False,
-        allow_nan=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return canonical_json_sha256({key: value for key, value in payload.items() if key != "payload_sha256"})
 
 
 def require_sha256(value: object, *, field: str) -> str:

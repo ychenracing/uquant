@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any, cast
 
@@ -15,9 +16,6 @@ from .observation.execution_journal.models import (
     JournalCheckpoint as _CanonicalCheckpoint,
 )
 
-JournalCheckpoint = _models.LegacyJournalCheckpoint
-JournalRecord = _models.LegacyJournalRecord
-JournalStatus = _models.LegacyJournalStatus
 _PLAN_ID = _models.PLAN_ID_PATTERN
 _SHA256 = _models.SHA256_PATTERN
 _SYMBOL = _models.SYMBOL_PATTERN
@@ -40,27 +38,56 @@ __all__ = (  # noqa: RUF022 - frozen public-name order
 )
 
 
-for _type, _name in (
-    (JournalCheckpoint, "JournalCheckpoint"),
-    (JournalRecord, "JournalRecord"),
-    (JournalStatus, "JournalStatus"),
-):
-    _type.__name__ = _name
-    _type.__qualname__ = _name
-    _type.__module__ = __name__
-JournalRecord.__dataclass_fields__["status"].type = "JournalStatus"
-JournalRecord.__annotations__["status"] = "JournalStatus"
-JournalRecord.__init__.__annotations__["status"] = "JournalStatus"
-for _type, _name in (
-    (JournalCheckpoint, "JournalCheckpoint"),
-    (JournalRecord, "JournalRecord"),
-):
-    for _method_name in ("__init__", "__repr__", "__eq__", "__hash__"):
-        _method = getattr(_type, _method_name)
-        _method.__module__ = __name__
-        _method.__qualname__ = f"{_name}.{_method_name}"
-JournalCheckpoint.__post_init__.__module__ = __name__
-JournalCheckpoint.__post_init__.__qualname__ = "JournalCheckpoint.__post_init__"
+class JournalStatus(str, Enum):
+    """Frozen status type exposed by the historical v1 facade."""
+
+    PLANNED = "PLANNED"
+    FILLED = "FILLED"
+    SKIPPED = "SKIPPED"
+
+
+@dataclass(frozen=True, slots=True)
+class JournalRecord:
+    """Frozen v1 record shape exposed by the historical facade."""
+
+    schema_version: int
+    sequence: int
+    status: JournalStatus
+    plan_id: str
+    recorded_at: str
+    symbol: str | None
+    side: str | None
+    planned_price: float | None
+    planned_shares: int | None
+    next_open: float | None
+    actual_time: str | None
+    actual_price: float | None
+    actual_shares: int | None
+    manual_skip: str | None
+    slippage_per_share: float | None
+    slippage_bps: float | None
+    slippage_value: float | None
+    previous_sha256: str
+    record_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class JournalCheckpoint:
+    """Frozen checkpoint shape exposed by the historical v1 facade."""
+
+    schema_version: int
+    sequence: int
+    record_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != 1:
+            raise ValueError("trusted checkpoint schema is malformed")
+        if isinstance(self.sequence, bool) or not isinstance(self.sequence, int) or self.sequence < 0:
+            raise ValueError("trusted checkpoint sequence is malformed")
+        if not _SHA256.fullmatch(self.record_sha256):
+            raise ValueError("trusted checkpoint hash is malformed")
+        if self.sequence == 0 and self.record_sha256 != _ZERO_HASH:
+            raise ValueError("trusted empty checkpoint hash is malformed")
 
 
 def _legacy_record(record: Any) -> JournalRecord:

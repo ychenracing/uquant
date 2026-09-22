@@ -591,3 +591,26 @@ def test_broker_sync_reuses_strategy_risk_state_validation():
             },
         )
     assert account.to_dict() == before
+
+
+@pytest.mark.parametrize("field", ["fill_id", "order_id"])
+@pytest.mark.parametrize("value", [None, True, 1, [], {}, "", "   "])
+def test_broker_rejects_coerced_fill_identifiers_without_mutation(field, value):
+    account = _state_with_open_order()
+    before = copy.deepcopy(account.to_dict())
+    snapshot = _valid_broker_snapshot()
+    snapshot["fills"][0][field] = value
+    with pytest.raises(ValueError, match=field + " must be a nonempty string"):
+        sync_broker_snapshot(account, snapshot)
+    assert account.to_dict() == before
+
+
+@pytest.mark.parametrize("value", [None, True, 1, [], {}, "", "   "])
+def test_broker_rejects_coerced_order_update_identifiers_without_mutation(value):
+    account = _state_with_open_order()
+    before = copy.deepcopy(account.to_dict())
+    snapshot = _valid_broker_snapshot()
+    snapshot["orders"] = [{"order_id": value, "status": "FILLED"}]
+    with pytest.raises(ValueError, match="order_id must be a nonempty string"):
+        sync_broker_snapshot(account, snapshot)
+    assert account.to_dict() == before

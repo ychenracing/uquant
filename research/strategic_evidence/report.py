@@ -32,10 +32,8 @@ from .provenance import (
 )
 from .reachability import ReachabilityCellResult, ReachabilityCellSpec
 from .witness_ablation import (
-    ECONOMIC,
     FULL_REMOVAL,
     AblationCell,
-    AblationSpec,
     FirstDivergences,
     ablation_cell_from_compact,
     enumerate_initial_specs,
@@ -43,8 +41,10 @@ from .witness_ablation import (
     minimal_decisive_witness_sets,
     necessary_triple_support,
     rank_critical_symbols,
+    search_spec,
     select_bounded_search,
 )
+from .witness_ablation import divergences_from_compact as divergences_from_compact
 from .witness_ablation_runner import (
     BalancedIndustryUniverse,
     build_witness_ablation_scenario,
@@ -63,39 +63,6 @@ _REACHABILITY_LOGICAL_PATH = (
 )
 
 
-def divergences_from_compact(value: object) -> FirstDivergences:
-    """Decode the frozen Witness-ablation divergence schema without changing its source identity."""
-
-    if not isinstance(value, Mapping) or set(value) != {
-        "route",
-        "state",
-        "economic",
-        "comparable",
-        "uncompared_reason",
-    }:
-        raise ValueError("witness ablation compact divergences are malformed")
-    raw = dict(value)
-    layers: dict[str, Mapping[str, str] | None] = {}
-    for name in ("route", "state", "economic"):
-        item = raw[name]
-        if item is not None and (
-            not isinstance(item, Mapping)
-            or set(item) != {"date", "layer"}
-            or not all(isinstance(field, str) and field for field in item.values())
-        ):
-            raise ValueError("witness ablation compact divergence layer is malformed")
-        layers[name] = None if item is None else {str(key): str(field) for key, field in item.items()}
-    comparable = raw["comparable"]
-    reason = raw["uncompared_reason"]
-    if not isinstance(comparable, bool) or (reason is not None and not isinstance(reason, str)):
-        raise ValueError("witness ablation compact comparability is malformed")
-    return FirstDivergences(
-        route=layers["route"],
-        state=layers["state"],
-        economic=layers["economic"],
-        comparable=comparable,
-        uncompared_reason=reason,
-    )
 
 
 def _sha256_file(path: Path) -> str:
@@ -410,15 +377,6 @@ def _witness_ablation_claim_validation(
         raise ValueError("Witness-ablation critical ranking differs")
     pairs, _ = select_bounded_search(ranked, {})
 
-    def search_spec(symbols: tuple[str, ...], *, scope: str) -> AblationSpec:
-        removed = tuple(sorted(symbols))
-        return AblationSpec(
-            scope=scope,
-            subject="+".join(removed),
-            removed_symbols=removed,
-            axis=FULL_REMOVAL,
-            evidence_class=ECONOMIC,
-        )
 
     pair_specs = tuple(search_spec(pair, scope="CRITICAL_PAIR") for pair in pairs)
     outcomes = {

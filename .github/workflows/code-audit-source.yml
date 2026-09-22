@@ -1,4 +1,5 @@
 name: Audit source transfer
+# Final source and original-evidence readback; removed after verification.
 on:
   push:
     branches: [codex/code-audit-fixes-20260922]
@@ -23,7 +24,7 @@ jobs:
           head=git('rev-parse','HEAD').decode().strip()
           base='7bc5cd5e20038c94ab5cf556ce107104692236ac'
           roots=('uquant/','tests/','scripts/','tools/','docs/','benchmarks/','data/','.github/','artifacts/code-audit-fix/')
-          singles={'AGENTS.md','PROJECT_STATE.md','README.md','pyproject.toml','uv.lock','setup.py','MANIFEST.in','.gitignore'}
+          singles={'AGENTS.md','PROJECT_STATE.md','README.md','pyproject.toml','uv.lock','setup.py','MANIFEST.in','.gitignore','requirements.txt'}
           rows=[]
           with zipfile.ZipFile('audit-source.zip','w',zipfile.ZIP_DEFLATED) as z:
               for ref,prefix in ((head,'candidate/'),(base,'baseline/')):
@@ -31,7 +32,7 @@ jobs:
                       metadata,path=line.split('\t',1)
                       mode,kind,oid=metadata.split()
                       if kind!='blob' or not (path in singles or path.startswith(roots)): continue
-                      if prefix=='baseline/' and not (path.startswith(('uquant/','benchmarks/')) or path=='pyproject.toml'): continue
+                      if prefix=='baseline/' and not (path.startswith(('uquant/','benchmarks/')) or path in {'pyproject.toml','requirements.txt'}): continue
                       data=git('cat-file','blob',oid)
                       assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==oid
                       z.writestr(prefix+path,data)

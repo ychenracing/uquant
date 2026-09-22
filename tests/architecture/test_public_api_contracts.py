@@ -10,6 +10,7 @@ from ._analysis import (
     public_api_snapshot,
     public_module_names,
 )
+from ._code_audit_api_projection import code_audit_api_projection
 from ._cross_vintage_api_projection import cross_vintage_api_projection
 
 
@@ -19,6 +20,7 @@ def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_c
     expected = public_api_contract["contract"]
     assert isinstance(expected, Mapping)
     assert public_api_contract["contract_sha256"] == canonical_sha256(expected)
+    expected = code_audit_api_projection(cross_vintage_api_projection(expected))
     modules = expected["modules"]
     assert isinstance(modules, Mapping)
     assert set(modules) == set(public_module_names())
@@ -26,7 +28,7 @@ def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_c
     # Runtime targets and fills belong to strategy acceptance, not API identity.
     # The sealed historical trace remains evidence of the superseded strategy.
     assert "decision_fill_account_trace" not in expected
-    assert observed == cross_vintage_api_projection(expected)
+    assert observed == expected
 
 
 def test_public_api_contract_uses_current_governance_identity(

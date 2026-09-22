@@ -50,6 +50,7 @@ target-version = "py312"
 extend-exclude = [
     "artifacts/research-20260914/joint-allocation",
     "artifacts/unified-allocation",
+    "artifacts/code-audit-fix",
 ]
 
 [tool.ruff.lint]

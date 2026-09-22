@@ -143,7 +143,8 @@ def _cohort_break_state(
                 position.shares > 0
                 for symbol, position in account.positions.items()
                 if symbol in account.strategic_cohort_symbols
-            ) >= 2
+            )
+            >= 2
         )
         and held_damage_ratio >= 1.0 - 1e-12
         and operating_dd
@@ -265,7 +266,9 @@ def _assess_break_conditions(
     emergency_tail_break = (
         any(held_damage) and operating_dd >= cfg.portfolio_break_dd and votes >= cfg.portfolio_break_votes
     )
-    concentrated_break = shock_rearmed and not protected_weights_for_current_episode(account) and concentrated_structure_break
+    concentrated_break = (
+        shock_rearmed and not protected_weights_for_current_episode(account) and concentrated_structure_break
+    )
     break_key = "concentrated_break"
     account.risk_streaks[break_key] = account.risk_streaks.get(break_key, 0) + 1 if concentrated_break else 0
     narrow_structure = (
@@ -447,7 +450,10 @@ def _acute_evacuation_assessment(
         account.sector_recovery_streak = 0
     _reset_recovery_owner_rearm(account)
     capture_protected_holdings(
-        account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,
+        account=account,
+        date=ctx.date,
+        user_panel=ctx.user_panel,
+        equity=ctx.equity,
     )
     account.shock_start_date = str(ctx.date.date())
     account.last_shock_date = str(ctx.date.date())
@@ -510,6 +516,7 @@ def _capital_cooldown_assessment(ctx: _AcuteContext) -> RiskAssessment:
         "sector_guard_negative_exposure",
     ):
         evidence.pop(key)
+    evidence["recovery_owner_reset_required"] = True
     return RiskAssessment(
         state=Risk.CRISIS,
         target_gross_cap=0.0,

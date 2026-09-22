@@ -1,0 +1,93 @@
+--- a/tests/architecture/test_architecture_governance.py
++++ b/tests/architecture/test_architecture_governance.py
+@@ -12,6 +12,8 @@
+ 
+ from uquant.validation.evidence_source import evidence_root
+ 
++from ._explicit_delegation import assert_explicit_delegation
++from ._source_mutations import fragment_spans
+ from ._analysis import FINAL_BUDGETS, ROOT, architecture_snapshot, measured_debt
+ from ._cli_transport import (
+     current_heads_adapter_transport_unit_digests,
+@@ -604,7 +606,7 @@
+     from uquant.portfolio import PortfolioAllocator
+     from uquant.portfolio.pipeline import allocate_strategy
+ 
+-    assert PortfolioAllocator._allocate_strategy is allocate_strategy
++    assert_explicit_delegation(PortfolioAllocator._allocate_strategy, allocate_strategy)
+ 
+ 
+ @pytest.mark.parametrize(
+@@ -617,7 +619,7 @@
+         ("uquant/portfolio/pipeline.py", "from .capital import committed_capital, funded_increment", "from ..capital import committed_capital, funded_increment"),
+         ("uquant/portfolio/capital.py", "{**committed, symbol: current}", "{symbol: current}"),
+         ("uquant/portfolio/pipeline.py", "assess_strategic_capital_authority(account)", "assess_strategic_capital_authority(None)"),
+-        ("uquant/portfolio/pipeline.py", "owned, strategic_targets, proposed, committed, cash_room)", "owned, strategic_targets, dict(proposed), committed, cash_room)"),
++        ("uquant/portfolio/pipeline.py", "owned, strategic_targets, proposed, committed, cash_room,)", "owned, strategic_targets, dict(proposed), committed, cash_room,)"),
+         ("uquant/portfolio/allocation_book.py", "gross_cap=self.gross_cap,", "gross_cap=self.policy.cfg.max_gross,"),
+         ("uquant/portfolio/allocation_book.py", "return min(self.policy.cfg.max_gross, self.risk.target_gross_cap)", "return self.policy.cfg.max_gross"),
+         ("uquant/portfolio/allocation_book.py", "return accepted", "self.account.cash = 0.0\n        return accepted"),
+@@ -633,12 +635,11 @@
+     mutation: str,
+ ) -> None:
+     source = architecture_portfolio_reviewed_sources(root=ROOT)[relative]
+-    assert original in source
+-    for occurrence in range(source.count(original)):
+-        offset = 0
+-        for _ in range(occurrence + 1):
+-            offset = source.index(original, offset) + len(original)
+-        changed = source[:offset - len(original)] + mutation + source[offset:]
++    spans = fragment_spans(source, original)
++    assert spans, "mutation stimulus was not exercised"
++    for start, end in spans:
++        changed = source[:start] + mutation + source[end:]
++        ast.parse(changed)
+         with pytest.raises(AssertionError):
+             validate_combined_allocator_topology(root=ROOT, overrides={relative: changed})
+ 
+@@ -667,11 +668,13 @@
+         else "uquant/portfolio/pipeline.py"
+     )
+     source = (ROOT / relative).read_text(encoding="utf-8")
+-    assert source.count(original) == 1
+-    with pytest.raises(AssertionError):
+-        validate_combined_allocator_topology(
+-            root=ROOT, overrides={relative: source.replace(original, mutation, 1)},
+-        )
++    spans = fragment_spans(source, original)
++    assert len(spans) == 1
++    start, end = spans[0]
++    changed = source[:start] + mutation + source[end:]
++    ast.parse(changed)
++    with pytest.raises(AssertionError):
++        validate_combined_allocator_topology(root=ROOT, overrides={relative: changed})
+ 
+ 
+ def test_architecture_risk_market_transport_rejects_delegation_argument_mutation() -> None:
+--- a/tests/architecture/test_portfolio_public_owners.py
++++ b/tests/architecture/test_portfolio_public_owners.py
+@@ -4,6 +4,7 @@
+ from collections.abc import Mapping
+ 
+ from ._analysis import ROOT, architecture_snapshot
++from ._explicit_delegation import assert_explicit_delegation
+ from ._private_imports import (
+     current_governed_sources,
+     scan_governed_private_edges,
+@@ -196,9 +197,14 @@
+             continue
+         importer_name = str(row["importer"])
+         importer = importlib.import_module(importer_name)
+-        binding_owner = importer.PortfolioAllocator if importer_name == "uquant.portfolio" else importer
++        class_name = {
++            "uquant.portfolio": "PortfolioAllocator",
++            "uquant.portfolio.leaders": "LeaderPortfolioPolicy",
++            "uquant.portfolio.strategic": "StrategicPortfolioPolicy",
++        }.get(importer_name)
++        binding_owner = getattr(importer, class_name) if class_name else importer
+         owner = importlib.import_module(public_owner)
+-        assert getattr(binding_owner, private_name) is getattr(owner, public_name)
++        assert_explicit_delegation(getattr(binding_owner, private_name), getattr(owner, public_name))
+ 
+ 
+ def test_architecture_portfolio_current_private_edges_are_closed() -> None:

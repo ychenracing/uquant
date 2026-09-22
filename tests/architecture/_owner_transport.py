@@ -35,6 +35,7 @@ _RETIRED_PORTFOLIO_PRIVATE_EDGES = frozenset(
 
 _ECONOMIC_ADDITIONS = frozenset(
     {
+        "uquant/models/ordinary_state.py",
         "uquant/ordinary_pullback.py",
         "uquant/models/ordinary_entry.py",
         "uquant/risk/pullback.py",
@@ -94,6 +95,7 @@ _SENTINEL_ADDITIONS = frozenset(
 )
 _VALIDATION_ADDITIONS = frozenset(
     {
+        "uquant/models/ordinary_state.py",
         "research/cross_ai_acceptance.py",
         "research/execution_stress.py",
         "uquant/validation/evidence_source.py",

@@ -1,0 +1,24 @@
+{
+  "run": "35677354320",
+  "passed": true,
+  "reused_tests": 197,
+  "reused_from_run": "35676785570",
+  "paired_sessions": 106,
+  "checks": [
+    {
+      "name": "lint",
+      "exit_code": 0,
+      "tail": "All checks passed!\n"
+    },
+    {
+      "name": "reflection-contract",
+      "exit_code": 0,
+      "tail": ".                                                                        [100%]\n"
+    },
+    {
+      "name": "diff-check",
+      "exit_code": 0,
+      "tail": ""
+    }
+  ]
+}

@@ -1,0 +1,445 @@
+{
+  "input_head": "12ecaa8b9680d03c90421e0ae8bdcb21b6d1c0e0",
+  "tested_source": "12ecaa8b9680d03c90421e0ae8bdcb21b6d1c0e0",
+  "reused_from": "023877453c2176a2f9399c93ef595b86e7c0d6cf",
+  "reused_governance_cases": [
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_inventory_is_bound_to_immutable_blobs_and_reference_sets",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_source_surface_migration_is_exact_for_all_five_v1_surfaces",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_responsibility_owners_replace_execution_monolith_and_engine_bodies",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_facade_and_decision_fanout_are_bounded",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_private_edges_are_exactly_bound_to_the_mechanical_split",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_exemption",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_moved_definitions_are_mechanically_bound_to_immutable_source",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_public_reflection_and_pickle_identities_remain_legacy",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_engine_imports_when_python_strips_docstrings_and_assertions",
+    "tests/architecture/test_execution_application_boundaries.py::test_execution_engine_method_reflection_and_descriptors_match_immutable_source",
+    "tests/architecture/test_execution_application_boundaries.py::test_engine_code_fingerprint_uses_reviewed_registry_membership_without_tree_discovery",
+    "tests/architecture/test_execution_application_boundaries.py::test_engine_code_fingerprint_fails_closed_for_missing_and_symlinked_members",
+    "tests/architecture/test_execution_application_boundaries.py::test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[account=account, orders=orders, risk=risk, date=-account=account, orders=previous_orders, risk=risk, date=]",
+    "tests/architecture/test_execution_application_boundaries.py::test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations-from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations, unrelated]",
+    "tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_decision_rejects_stale_input_identity[code_hash=account.code_hash]",
+    "tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_decision_rejects_stale_input_identity[data_hash=account.data_hash]",
+    "tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[swap]",
+    "tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[code]",
+    "tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[data]",
+    "tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_cannot_precede_real_order_reconciliation",
+    "tests/architecture/test_architecture_governance.py::test_governance_inventory_matches_immutable_start_tree_and_is_not_self_signed",
+    "tests/architecture/test_architecture_governance.py::test_governance_inventory_covers_exact_start_debt_files_seams_and_reproducibility",
+    "tests/architecture/test_architecture_governance.py::test_architecture_cli_help_and_failure_seams_match_immutable_start",
+    "tests/architecture/test_architecture_governance.py::test_architecture_governed_test_units_and_assertions_are_bidirectionally_preserved",
+    "tests/architecture/test_architecture_governance.py::test_architecture_test_relocation_inventory_rejects_unknown_missing_and_duplicate_paths",
+    "tests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_authorities.py-\"uquant.portfolio.pipeline\": \"production_safe\",-\"uquant.portfolio.pipeline\": \"validation_runner\",]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_authorities.py-\"uquant.risk.market_book\",-\"uquant.risk.market_book_typo\",]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_debt.py-root, source_texts, governed_source_texts-root, dict(source_texts or {}), governed_source_texts]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_debt.py-*governed_private_edges[\"qualified\"],-*governed_private_edges[\"direct\"],]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_risk_test_transport_rejects_unknown_call_arguments[architecture_source_surface_projection(identifier, expected)-architecture_source_surface_projection(identifier, set(expected))]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_risk_test_transport_rejects_unknown_call_arguments[architecture_risk_historical_base_lines(root=ROOT, current_row=base)-architecture_risk_historical_base_lines(root=ROOT, current_row=dict(base))]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_policy_evaluation_uses_exact_owned_contract_identities",
+    "tests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[raw, files, status_value = _validated_backup_manifest(root)-raw, files, status_value = _validated_backup_manifest(Path(root))]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[root=root,\\n            account=account,-root=Path(root),\\n            account=account,]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[_validate_backup_inventory(root, files)-_validate_backup_carriers(root, files)]",
+    "tests/architecture/test_architecture_governance.py::test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_layers",
+    "tests/architecture/test_architecture_governance.py::test_architecture_analyzer_mutations_expose_unknown_debt_instead_of_filtering_it",
+    "tests/architecture/test_architecture_governance.py::test_architecture_cross_private_debt_is_zero_without_renamed_exemptions"
+  ],
+  "previous_complete_boundary_cases": 33,
+  "checks": [
+    {
+      "name": "remaining-governance",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "-vv",
+        "--tb=short",
+        "--maxfail=8",
+        "tests/architecture/test_execution_application_boundaries.py",
+        "tests/architecture/test_architecture_governance.py",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_inventory_is_bound_to_immutable_blobs_and_reference_sets",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_source_surface_migration_is_exact_for_all_five_v1_surfaces",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_responsibility_owners_replace_execution_monolith_and_engine_bodies",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_facade_and_decision_fanout_are_bounded",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_private_edges_are_exactly_bound_to_the_mechanical_split",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_exemption",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_moved_definitions_are_mechanically_bound_to_immutable_source",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_public_reflection_and_pickle_identities_remain_legacy",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_engine_imports_when_python_strips_docstrings_and_assertions",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_execution_engine_method_reflection_and_descriptors_match_immutable_source",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_engine_code_fingerprint_uses_reviewed_registry_membership_without_tree_discovery",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_engine_code_fingerprint_fails_closed_for_missing_and_symlinked_members",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[account=account, orders=orders, risk=risk, date=-account=account, orders=previous_orders, risk=risk, date=]",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations-from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations, unrelated]",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_decision_rejects_stale_input_identity[code_hash=account.code_hash]",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_decision_rejects_stale_input_identity[data_hash=account.data_hash]",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[swap]",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[code]",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[data]",
+        "--deselect=tests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_cannot_precede_real_order_reconciliation",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_governance_inventory_matches_immutable_start_tree_and_is_not_self_signed",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_governance_inventory_covers_exact_start_debt_files_seams_and_reproducibility",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_cli_help_and_failure_seams_match_immutable_start",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_governed_test_units_and_assertions_are_bidirectionally_preserved",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_test_relocation_inventory_rejects_unknown_missing_and_duplicate_paths",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_authorities.py-\"uquant.portfolio.pipeline\": \"production_safe\",-\"uquant.portfolio.pipeline\": \"validation_runner\",]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_authorities.py-\"uquant.risk.market_book\",-\"uquant.risk.market_book_typo\",]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_debt.py-root, source_texts, governed_source_texts-root, dict(source_texts or {}), governed_source_texts]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_debt.py-*governed_private_edges[\"qualified\"],-*governed_private_edges[\"direct\"],]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_risk_test_transport_rejects_unknown_call_arguments[architecture_source_surface_projection(identifier, expected)-architecture_source_surface_projection(identifier, set(expected))]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_risk_test_transport_rejects_unknown_call_arguments[architecture_risk_historical_base_lines(root=ROOT, current_row=base)-architecture_risk_historical_base_lines(root=ROOT, current_row=dict(base))]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_policy_evaluation_uses_exact_owned_contract_identities",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[raw, files, status_value = _validated_backup_manifest(root)-raw, files, status_value = _validated_backup_manifest(Path(root))]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[root=root,\\n            account=account,-root=Path(root),\\n            account=account,]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[_validate_backup_inventory(root, files)-_validate_backup_carriers(root, files)]",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_layers",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_analyzer_mutations_expose_unknown_debt_instead_of_filtering_it",
+        "--deselect=tests/architecture/test_architecture_governance.py::test_architecture_cross_private_debt_is_zero_without_renamed_exemptions",
+        "--junitxml=/home/runner/work/uquant/uquant/artifacts/code-audit-fix/full-validation/35684675683/remaining.xml"
+      ],
+      "exit_code": 1,
+      "tail": "+                 {\nE     +                     'module': 'uquant.engine',\nE     +                     'path': 'uquant/engine.py',\nE     +                     'line': 50,\nE     +                 },\nE     +             ],\nE     +         },\nE     +         {\nE     +             'id': 'duplicate-helper:_write_risk_timeline_disk_cache',\nE     +             'name': '_write_risk_timeline_disk_cache',\nE     +             'members': [\nE     +                 {\nE     +                     'module': 'uquant.application.risk_timeline_cache',\nE     +                     'path': 'uquant/application/risk_timeline_cache.py',\nE     +                     'line': 83,\nE     +                 },\nE     +                 {\nE     +                     'module': 'uquant.engine',\nE     +                     'path': 'uquant/engine.py',\nE     +                     'line': 56,\nE     +                 },\nE     +             ],\nE     +         },\nE     +     ],\nE       }\n- generated xml file: /home/runner/work/uquant/uquant/artifacts/code-audit-fix/full-validation/35684675683/remaining.xml -\n=========================== short test summary info ============================\nFAILED tests/architecture/test_architecture_governance.py::test_architecture_duplicate_private_helper_debt_is_zero_without_generic_utils - AssertionError: assert [{'id': 'dupl...'line': 56}]}] == []\n  \n  Left contains 2 more items, first extra item: {'id': 'duplicate-helper:_load_risk_timeline_disk_cache', 'name': '_load_risk_timeline_disk_cache', 'members': [{'modu...application/risk_timeline_cache.py', 'line': 54}, {'module': 'uquant.engine', 'path': 'uquant/engine.py', 'line': 50}]}\n  \n  Full diff:\n  - []\n  + [\n  +     {\n  +         'id': 'duplicate-helper:_load_risk_timeline_disk_cache',\n  +         'name': '_load_risk_timeline_disk_cache',\n  +         'members': [\n  +             {\n  +                 'module': 'uquant.application.risk_timeline_cache',\n  +                 'path': 'uquant/application/risk_timeline_cache.py',\n  +                 'line': 54,\n  +             },\n  +             {\n  +                 'module': 'uquant.engine',\n  +                 'path': 'uquant/engine.py',\n  +                 'line': 50,\n  +             },\n  +         ],\n  +     },\n  +     {\n  +         'id': 'duplicate-helper:_write_risk_timeline_disk_cache',\n  +         'name': '_write_risk_timeline_disk_cache',\n  +         'members': [\n  +             {\n  +                 'module': 'uquant.application.risk_timeline_cache',\n  +                 'path': 'uquant/application/risk_timeline_cache.py',\n  +                 'line': 83,\n  +             },\n  +             {\n  +                 'module': 'uquant.engine',\n  +                 'path': 'uquant/engine.py',\n  +                 'line': 56,\n  +             },\n  +         ],\n  +     },\n  + ]\nFAILED tests/architecture/test_architecture_governance.py::test_architecture_current_blockers_match_empty_acceptance_allowlist - AssertionError: assert {'mutable_mod...gets']}], ...} == {'mutable_mod...les': [], ...}\n  \n  Omitting 3 identical items, use -vv to show\n  Differing items:\n  {'duplicate_private_helper_groups': [{'id': 'duplicate-helper:_load_risk_timeline_disk_cache', 'name': '_load_risk_tim...plication/risk_timeline_cache.py', 'line': 83}, {'module': 'uquant.engine', 'path': 'uquant/engine.py', 'line': 56}]}]} != {'duplicate_private_helper_groups': []}\n  {'internal_import_cycles': [{'id': 'scc:uquant.portfolio.allocation_book,uquant.portfolio.allocator,uquant.portfolio.l...s': ['uquant.portfolio.leaders.admission', 'uquant.portfolio.leaders.lifecycle', 'uquant.portfolio.leaders.targets']}]} != {'internal_import_cycles': []}\n  \n  Full diff:\n    {\n        'mutable_module_globals': [],\n        'production_type_ignores': [],\n        'cross_module_private_imports': [],\n  -     'internal_import_cycles': [],\n  ?                                --\n  +     'internal_import_cycles': [\n  +         {\n  +             'id': 'scc:uquant.portfolio.allocation_book,uquant.portfolio.allocator,uquant.portfolio.leaders.cycle,uquant.portfolio.ordinary,uquant.portfolio.pipeline,uquant.portfolio.recovery.current_cohort,uquant.portfolio.risk_reduction',\n  +             'modules': [\n  +                 'uquant.portfolio.allocation_book',\n  +                 'uquant.portfolio.allocator',\n  +                 'uquant.portfolio.leaders.cycle',\n  +                 'uquant.portfolio.ordinary',\n  +                 'uquant.portfolio.pipeline',\n  +                 'uquant.portfolio.recovery.current_cohort',\n  +                 'uquant.portfolio.risk_reduction',\n  +             ],\n  +         },\n  +         {\n  +             'id': 'scc:uquant.portfolio.strategic.discovery,uquant.portfolio.strategic.grant_lifecycle,uquant.portfolio.strategic.lifecycle,uquant.portfolio.strategic.targets',\n  +             'modules': [\n  +                 'uquant.portfolio.strategic.discovery',\n  +                 'uquant.portfolio.strategic.grant_lifecycle',\n  +                 'uquant.portfolio.strategic.lifecycle',\n  +                 'uquant.portfolio.strategic.targets',\n  +             ],\n  +         },\n  +         {\n  +             'id': 'scc:uquant.portfolio.leaders.admission,uquant.portfolio.leaders.lifecycle,uquant.portfolio.leaders.targets',\n  +             'modules': [\n  +                 'uquant.portfolio.leaders.admission',\n  +                 'uquant.portfolio.leaders.lifecycle',\n  +                 'uquant.portfolio.leaders.targets',\n  +             ],\n  +         },\n  +     ],\n  -     'duplicate_private_helper_groups': [],\n  ?                                         --\n  +     'duplicate_private_helper_groups': [\n  +         {\n  +             'id': 'duplicate-helper:_load_risk_timeline_disk_cache',\n  +             'name': '_load_risk_timeline_disk_cache',\n  +             'members': [\n  +                 {\n  +                     'module': 'uquant.application.risk_timeline_cache',\n  +                     'path': 'uquant/application/risk_timeline_cache.py',\n  +                     'line': 54,\n  +                 },\n  +                 {\n  +                     'module': 'uquant.engine',\n  +                     'path': 'uquant/engine.py',\n  +                     'line': 50,\n  +                 },\n  +             ],\n  +         },\n  +         {\n  +             'id': 'duplicate-helper:_write_risk_timeline_disk_cache',\n  +             'name': '_write_risk_timeline_disk_cache',\n  +             'members': [\n  +                 {\n  +                     'module': 'uquant.application.risk_timeline_cache',\n  +                     'path': 'uquant/application/risk_timeline_cache.py',\n  +                     'line': 83,\n  +                 },\n  +                 {\n  +                     'module': 'uquant.engine',\n  +                     'path': 'uquant/engine.py',\n  +                     'line': 56,\n  +                 },\n  +             ],\n  +         },\n  +     ],\n    }\n=========== 2 failed, 55 passed, 38 deselected in 155.67s (0:02:35) ============\n"
+    }
+  ],
+  "logs": [
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35684675683/remaining.txt.gz",
+      "raw_bytes": 25813,
+      "raw_sha256": "18c03a7be77aae2cd12a4d7be116fc98523177b2270ec14c3be59a6decc170d1",
+      "bytes": 3594,
+      "sha256": "1f51e3e7bd344ca561414857f86971ff564661350f98a34b309d11d87d84429d",
+      "git_blob": "f59f4997d082382e6044861b678d9b590930b0af"
+    }
+  ],
+  "formal_runs": [
+    {
+      "id": 35679019431,
+      "head_sha": "6d4f8ab1cd72b5a7471bd2e3b92b0e035f278286",
+      "status": "queued",
+      "conclusion": null,
+      "run_attempt": 1,
+      "created_at": "2026-09-22T02:19:07Z",
+      "jobs": [
+        {
+          "id": 106591666142,
+          "name": "Absolute input preflight",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:23:03Z",
+          "completed_at": "2026-09-22T02:23:27Z"
+        },
+        {
+          "id": 106592484786,
+          "name": "Absolute shard (loo-d)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:35:46Z",
+          "completed_at": "2026-09-22T03:51:57Z"
+        },
+        {
+          "id": 106592484806,
+          "name": "Absolute shard (loo-c)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:28:06Z",
+          "completed_at": "2026-09-22T03:05:33Z"
+        },
+        {
+          "id": 106592484810,
+          "name": "Absolute shard (loo-a)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:39:35Z",
+          "completed_at": "2026-09-22T03:32:05Z"
+        },
+        {
+          "id": 106592484813,
+          "name": "Absolute shard (loo-e)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:24:32Z",
+          "completed_at": "2026-09-22T03:20:30Z"
+        },
+        {
+          "id": 106592484814,
+          "name": "Absolute shard (champion)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:40:00Z",
+          "completed_at": "2026-09-22T02:54:22Z"
+        },
+        {
+          "id": 106592484816,
+          "name": "Absolute shard (loo-f)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:31:50Z",
+          "completed_at": "2026-09-22T03:03:40Z"
+        },
+        {
+          "id": 106592484827,
+          "name": "Absolute shard (loo-b)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:29:15Z",
+          "completed_at": "2026-09-22T03:46:12Z"
+        },
+        {
+          "id": 106592484883,
+          "name": "Absolute shard (recovery-and-reachability)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:32:00Z",
+          "completed_at": "2026-09-22T02:47:57Z"
+        },
+        {
+          "id": 106608981376,
+          "name": "Generalization Acceptance",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": "2026-09-22T03:51:58Z",
+          "completed_at": null
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 10676211720,
+          "name": "cloud-execution-absolute-35679019431-1-loo-b",
+          "size_in_bytes": 38743,
+          "digest": "sha256:1e801195dc9da919387b59dbbb778bf6b20ad3d4d3e4c6b4beca8a28bfe02e19",
+          "expired": false,
+          "expires_at": "2026-10-22T03:46:06Z"
+        },
+        {
+          "id": 10676131705,
+          "name": "absolute-generalization-35679019431-attempt-1-loo-b",
+          "size_in_bytes": 144790993,
+          "digest": "sha256:8095ee61ce8a120bf10211124a783d47f26a208e9cfaa335aff51d0034258327",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        },
+        {
+          "id": 10675986984,
+          "name": "absolute-generalization-35679019431-attempt-1-loo-a",
+          "size_in_bytes": 145073199,
+          "digest": "sha256:4fff08529305e986d2754f0e2c4b4ecef46be280adb3f9c144cd97dfdef54bbc",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        },
+        {
+          "id": 10675931953,
+          "name": "cloud-execution-absolute-35679019431-1-loo-a",
+          "size_in_bytes": 29496,
+          "digest": "sha256:5c0114c89febe4565616e1c3888a7106ccd7aa7e497c3872fd30548344058057",
+          "expired": false,
+          "expires_at": "2026-10-22T03:31:59Z"
+        },
+        {
+          "id": 10675899139,
+          "name": "absolute-generalization-35679019431-attempt-1-loo-d",
+          "size_in_bytes": 144597882,
+          "digest": "sha256:3a6713d86d3e90b875be37e82a2a9f44a75bfe4e3ce51975220af2565a3247ef",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        },
+        {
+          "id": 10675879225,
+          "name": "cloud-execution-absolute-35679019431-1-loo-d",
+          "size_in_bytes": 37865,
+          "digest": "sha256:a1ac13a4feb0838cbfb68405a7174a5e09984b470632add3c5c0b31537ce4a0d",
+          "expired": false,
+          "expires_at": "2026-10-22T03:51:53Z"
+        },
+        {
+          "id": 10675661073,
+          "name": "cloud-execution-absolute-35679019431-1-loo-e",
+          "size_in_bytes": 30235,
+          "digest": "sha256:3ae930c98f1204a84587e4d645ca2e53fbcb90cd3b2511d734c63886e498bbec",
+          "expired": false,
+          "expires_at": "2026-10-22T03:20:23Z"
+        },
+        {
+          "id": 10675516272,
+          "name": "absolute-generalization-35679019431-attempt-1-loo-e",
+          "size_in_bytes": 120737255,
+          "digest": "sha256:5aa4c22387df98a9889919ce35eea352eb06af02900538ec4e1fa11dc61f1d7a",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        },
+        {
+          "id": 10675124243,
+          "name": "cloud-execution-absolute-35679019431-1-loo-c",
+          "size_in_bytes": 23472,
+          "digest": "sha256:7f6637f16a06a556e87ba7a98c5216832d28d777c885215bf1c7ab0d24dca0a5",
+          "expired": false,
+          "expires_at": "2026-10-22T03:05:27Z"
+        },
+        {
+          "id": 10675112450,
+          "name": "cloud-execution-absolute-35679019431-1-recovery-and-reachability",
+          "size_in_bytes": 14676,
+          "digest": "sha256:0f779f6f93dd223426217783477ab1167573f4200ec8e6f73602601606561fd1",
+          "expired": false,
+          "expires_at": "2026-10-22T02:47:51Z"
+        },
+        {
+          "id": 10675018349,
+          "name": "cloud-execution-absolute-35679019431-1-champion",
+          "size_in_bytes": 13690,
+          "digest": "sha256:33312dcbfe4135e1a50a52a09c4294e584c7cea5c99a90a1ce7cf5bfa6679c5d",
+          "expired": false,
+          "expires_at": "2026-10-22T02:54:19Z"
+        },
+        {
+          "id": 10674943419,
+          "name": "absolute-generalization-35679019431-attempt-1-champion",
+          "size_in_bytes": 220377,
+          "digest": "sha256:fe50a9de05403de7c740160aff6d3b4f84fdff24ec6082e5708003ac43c1c415",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        },
+        {
+          "id": 10674659729,
+          "name": "absolute-generalization-35679019431-attempt-1-loo-c",
+          "size_in_bytes": 144837137,
+          "digest": "sha256:769e852c23f536063cdcc0588cb91f13b880065bf2dd56d25e20de2f5038e86a",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        },
+        {
+          "id": 10674608041,
+          "name": "cloud-execution-absolute-35679019431-1-loo-f",
+          "size_in_bytes": 21348,
+          "digest": "sha256:fddd1fd2b54241aad026dd17568959d9cbf747f9183a5f9689e408bb53c96ff4",
+          "expired": false,
+          "expires_at": "2026-10-22T03:03:34Z"
+        },
+        {
+          "id": 10674498132,
+          "name": "absolute-generalization-35679019431-attempt-1-loo-f",
+          "size_in_bytes": 120647098,
+          "digest": "sha256:d9281fc171e164f129efea609ecf91116791cfb3efd597456fcfd2009219b97c",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        },
+        {
+          "id": 10674468191,
+          "name": "absolute-generalization-35679019431-attempt-1-recovery-and-reachability",
+          "size_in_bytes": 853951,
+          "digest": "sha256:cf13e0f25fb71a4b8c1de5f10ae7839f98470886a2b7c09dd97b678583bc272b",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        }
+      ]
+    },
+    {
+      "id": 35679019524,
+      "head_sha": "6d4f8ab1cd72b5a7471bd2e3b92b0e035f278286",
+      "status": "queued",
+      "conclusion": null,
+      "run_attempt": 1,
+      "created_at": "2026-09-22T02:19:07Z",
+      "jobs": [
+        {
+          "id": 106591666110,
+          "name": "Security and dependency audit",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:23:31Z",
+          "completed_at": "2026-09-22T02:24:20Z"
+        },
+        {
+          "id": 106591666348,
+          "name": "Tests (architecture-foundation)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-09-22T02:24:54Z",
+          "completed_at": "2026-09-22T02:29:13Z"
+        },
+        {
+          "id": 106591666355,
+          "name": "Python 3.12",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:28:59Z",
+          "completed_at": "2026-09-22T02:29:48Z"
+        },
+        {
+          "id": 106591666393,
+          "name": "Tests (application-right)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:28:48Z",
+          "completed_at": "2026-09-22T02:57:12Z"
+        },
+        {
+          "id": 106591666402,
+          "name": "Windows smoke",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-22T02:29:49Z",
+          "completed_at": "2026-09-22T02:30:30Z"
+        },
+        {
+          "id": 106591666407,
+          "name": "Tests (application-left)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-09-22T02:30:33Z",
+          "completed_at": "2026-09-22T03:40:31Z"
+        },
+        {
+          "id": 106591666479,
+          "name": "Tests (architecture-remaining)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-09-22T02:32:00Z",
+          "completed_at": "2026-09-22T02:53:36Z"
+        },
+        {
+          "id": 106591666531,
+          "name": "Tests (architecture-portfolio)",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-09-22T02:31:23Z",
+          "completed_at": "2026-09-22T02:47:11Z"
+        },
+        {
+          "id": 106606916158,
+          "name": "Engineering",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": "2026-09-22T03:40:31Z",
+          "completed_at": null
+        },
+        {
+          "id": 106606916837,
+          "name": "Combined branch coverage",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-09-22T03:40:31Z",
+          "completed_at": "2026-09-22T03:40:31Z"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 10676051586,
+          "name": "engineering-coverage-35679019524-attempt-1-application-left",
+          "size_in_bytes": 1026264,
+          "digest": "sha256:16c6c2b95be750eca93f25a7cbde1ca2121a7f4c606a8ac550d092af4edcfc75",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        },
+        {
+          "id": 10674162954,
+          "name": "engineering-coverage-35679019524-attempt-1-application-right",
+          "size_in_bytes": 793918,
+          "digest": "sha256:cf1e5de60dfc0048a1b8964da8cdb7ec67aab59f306e436d092b62c41895c61e",
+          "expired": false,
+          "expires_at": "2026-12-21T02:19:07Z"
+        }
+      ]
+    }
+  ],
+  "full_acceptance_passed": null,
+  "local_checks_passed": false
+}

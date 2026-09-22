@@ -1,0 +1,7 @@
+{
+  "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
+  "changed": [
+    "tests/architecture/test_portfolio_boundaries.py",
+    "uquant/application/__init__.py"
+  ]
+}

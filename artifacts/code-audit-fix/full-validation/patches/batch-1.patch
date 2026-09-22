@@ -1,0 +1,77 @@
+--- a/tests/architecture/_analysis_authorities.py
++++ b/tests/architecture/_analysis_authorities.py
+@@ -133,6 +133,7 @@
+     "uquant.portfolio.ordinary": "production_safe",
+     "uquant.ordinary_pullback": "production_safe",
+     "uquant.models.ordinary_entry": "production_safe",
++    "uquant.models.ordinary_state": "production_safe",
+     "uquant.risk.pullback": "production_safe",
+     "uquant.portfolio.pipeline": "production_safe",
+     "uquant.portfolio.recovery": "production_safe",
+--- a/tests/architecture/_owner_transport.py
++++ b/tests/architecture/_owner_transport.py
+@@ -35,6 +35,7 @@
+ 
+ _ECONOMIC_ADDITIONS = frozenset(
+     {
++        "uquant/models/ordinary_state.py",
+         "uquant/ordinary_pullback.py",
+         "uquant/models/ordinary_entry.py",
+         "uquant/risk/pullback.py",
+@@ -94,6 +95,7 @@
+ )
+ _VALIDATION_ADDITIONS = frozenset(
+     {
++        "uquant/models/ordinary_state.py",
+         "research/cross_ai_acceptance.py",
+         "research/execution_stress.py",
+         "uquant/validation/evidence_source.py",
+--- a/uquant/application/__init__.py
++++ b/uquant/application/__init__.py
+@@ -33,7 +33,7 @@
+ )
+ from .backtest import backtest as run_backtest
+ from .backtest import equity as mark_equity
+-from .decision import _DecisionResult as ObservedDecisionResult
++from .decision import ObservedDecisionResult as ObservedDecisionResult
+ from .decision import decide as run_decision
+ from .decision import decision_config_for_universe as decision_config_for_universe
+ from .decision import deterministic_decision as deterministic_decision
+--- a/uquant/application/decision.py
++++ b/uquant/application/decision.py
+@@ -183,7 +183,7 @@
+ 
+ 
+ @dataclass(frozen=True, slots=True)
+-class _DecisionResult:
++class ObservedDecisionResult:
+     decision: Decision
+     observation: _ObservedDecisionFacts
+ 
+@@ -757,7 +757,7 @@
+     market: _DecisionMarket,
+     allocation: _DecisionAllocation,
+     account: AccountState,
+-) -> _DecisionResult:
++) -> ObservedDecisionResult:
+     decision = Decision(
+         date=str(inputs.date.date()),
+         opportunity=allocation.opportunity,
+@@ -837,7 +837,7 @@
+             _freeze_observed_fact(allocation.qualification_snapshots),
+         ),
+     )
+-    return _DecisionResult(decision=finalized, observation=observation)
++    return ObservedDecisionResult(decision=finalized, observation=observation)
+ 
+ 
+ def _decide_result(
+@@ -852,7 +852,7 @@
+     as_of: str,
+     account: AccountState,
+     strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
+-) -> _DecisionResult:
++) -> ObservedDecisionResult:
+     """Produce one decision and its private lossless production observation.
+ 
+     The account is advanced in place after all data, code, state, and

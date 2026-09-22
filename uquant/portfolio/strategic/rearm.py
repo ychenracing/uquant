@@ -10,6 +10,7 @@ from types import MappingProxyType
 from typing import cast
 
 from ...config import SystemConfig, config_fingerprint
+from ...models.ordinary_state import record_repair_origin
 from ...models.strategic_grant import (
     StrategicGrantIntent,
     StrategicQualificationObservation,
@@ -82,9 +83,7 @@ def _ensure_account_identity(account: AccountState, *, observed_session: str) ->
                 observed_session,
             )
         )
-        account.account_identity = "account_" + hashlib.sha256(
-            identity_payload.encode()
-        ).hexdigest()
+        account.account_identity = "account_" + hashlib.sha256(identity_payload.encode()).hexdigest()
     return account.account_identity
 
 
@@ -106,15 +105,10 @@ def _unfilled_authorized_grant_attempt(
         or any(position.shares > 0 for position in account.positions.values())
     ):
         return False
-    grant_epochs = [
-        epoch for epoch in account.strategic_epochs if epoch.grant_id == grant.grant_id
-    ]
+    grant_epochs = [epoch for epoch in account.strategic_epochs if epoch.grant_id == grant.grant_id]
     if any(epoch.first_fill_session or epoch.active_session for epoch in grant_epochs):
         return False
-    if any(
-        order.grant_id != grant.grant_id
-        for order in account.pending_orders
-    ) or any(
+    if any(order.grant_id != grant.grant_id for order in account.pending_orders) or any(
         order.grant_id != grant.grant_id
         for order in account.order_ledger
         if order.status not in {"FILLED", "CANCELLED", "REPLACED"}
@@ -172,9 +166,7 @@ def observe_flat_book_capital_repair_state(
             previous=previous,
             observed_session=observed_session,
         )
-    target_level, required = flat_book_capital_repair_requirement(
-        account.capital_budget_level
-    )
+    target_level, required = flat_book_capital_repair_requirement(account.capital_budget_level)
     predicates, rejection_reasons = flat_book_repair_predicates(
         account=account,
         risk=risk,
@@ -244,9 +236,7 @@ def _clear_flat_book_repair(
         cleared.last_observed_session = observed_session
         cleared.healthy_session_count = 0
         cleared.status = FlatBookCapitalRepairStatus.RESET.value
-        cleared.reset_reason = (
-            FlatBookCapitalRepairResetReason.CAPITAL_BUDGET_CLEARED.value
-        )
+        cleared.reset_reason = FlatBookCapitalRepairResetReason.CAPITAL_BUDGET_CLEARED.value
         cleared.last_reset_session = observed_session
         account.flat_book_capital_repair = cleared
     else:
@@ -276,9 +266,7 @@ def _repair_episode_transition(
     elif config_identity != previous.config_identity:
         reset_reason = FlatBookCapitalRepairResetReason.CONFIG_IDENTITY_CHANGED.value
     elif risk_reference_identity != previous.risk_reference_universe_identity:
-        reset_reason = (
-            FlatBookCapitalRepairResetReason.RISK_REFERENCE_IDENTITY_CHANGED.value
-        )
+        reset_reason = FlatBookCapitalRepairResetReason.RISK_REFERENCE_IDENTITY_CHANGED.value
     elif previous.status == FlatBookCapitalRepairStatus.RESET.value:
         start_new_episode = not authority.has_live_authority
     if reset_reason:
@@ -509,12 +497,9 @@ def _invalidate_incomplete_rearm(
     invalidated.consumed_grant_id = ""
     invalidated.consumed_order = None
     invalidated.qualification_ready = False
-    invalidated.rejection_reasons = [
-        StrategicCashRearmRejectionReason.QUALIFICATION_NOT_READY.value
-    ]
+    invalidated.rejection_reasons = [StrategicCashRearmRejectionReason.QUALIFICATION_NOT_READY.value]
     account.strategic_cash_rearm = invalidated
     return invalidated
-
 
 
 def _candidate_rearm_state(
@@ -540,9 +525,7 @@ def _candidate_rearm_state(
         qualification_evidence_sha256=observation.qualification_evidence_sha256,
         capital_budget_level=account.capital_budget_level,
         tradable_universe_identity=universe.tradable_identity,
-        qualification_reference_universe_identity=(
-            universe.qualification_reference_identity
-        ),
+        qualification_reference_universe_identity=(universe.qualification_reference_identity),
         risk_reference_universe_identity=universe.risk_reference_identity,
         point_in_time_industry_identity=universe.point_in_time_industry_identity,
         status=(
@@ -580,9 +563,7 @@ def _bind_candidate_rearm_authorization(
         qualification_evidence_sha256=current.qualification_evidence_sha256,
         capital_budget_level=current.capital_budget_level,
         tradable_universe_identity=current.tradable_universe_identity,
-        qualification_reference_universe_identity=(
-            current.qualification_reference_universe_identity
-        ),
+        qualification_reference_universe_identity=(current.qualification_reference_universe_identity),
         risk_reference_universe_identity=current.risk_reference_universe_identity,
         point_in_time_industry_identity=current.point_in_time_industry_identity,
         authorized_session=observed_session,
@@ -648,8 +629,7 @@ def _risk_and_market_healthy(
     evidence = risk.evidence
     return bool(
         risk.state is Risk.NORMAL
-        and account.opportunity
-        in {Opportunity.TREND.value, Opportunity.STRONG_TREND.value}
+        and account.opportunity in {Opportunity.TREND.value, Opportunity.STRONG_TREND.value}
         and risk.target_gross_cap > 0.0
         and risk.votes == 0
         and risk.shock_state == "NONE"
@@ -742,8 +722,7 @@ def _rearm_grant_identity_open(
         and observation.candidate_symbol == grant.candidate_symbol
         and observation.qualification_ready
         and not (
-            observation.deployment_blocked
-            and observation.deployment_block_reason != "pending_execution"
+            observation.deployment_blocked and observation.deployment_block_reason != "pending_execution"
         )
     )
 
@@ -812,77 +791,126 @@ def _ordinary_rearm_attempt_pending(account: AccountState) -> bool:
     return bool(
         state.status == StrategicCashRearmStatus.CONSUMED.value
         and reference is not None
-        and any(order.order_id == reference.order_id and order.event_id == reference.event_id
-                and order.symbol == state.candidate_symbol and order.side == "BUY"
-                and not order.grant_id and not order.epoch_id
-                for order in account.pending_orders)
-        and any(order.order_id == reference.order_id and order.event_id == reference.event_id
-                and order.status not in {"FILLED", "CANCELLED", "REPLACED"}
-                for order in account.order_ledger)
+        and any(
+            order.order_id == reference.order_id
+            and order.event_id == reference.event_id
+            and order.symbol == state.candidate_symbol
+            and order.side == "BUY"
+            and not order.grant_id
+            and not order.epoch_id
+            for order in account.pending_orders
+        )
+        and any(
+            order.order_id == reference.order_id
+            and order.event_id == reference.event_id
+            and order.status not in {"FILLED", "CANCELLED", "REPLACED"}
+            for order in account.order_ledger
+        )
     )
 
 
 def _ordinary_repair_context_invalid(
-    *, account: AccountState, risk: RiskAssessment, universe: StrategicUniverseRoles,
-    symbol: str, observed_session: str, cfg: SystemConfig,
-    inputs: object, repair: FlatBookCapitalRepairState,
+    *,
+    account: AccountState,
+    risk: RiskAssessment,
+    universe: StrategicUniverseRoles,
+    symbol: str,
+    observed_session: str,
+    cfg: SystemConfig,
+    inputs: object,
+    repair: FlatBookCapitalRepairState,
 ) -> bool:
     """Keep current decision provenance and ready account repair guards together."""
-    return (not isinstance(inputs, dict) or inputs.get("as_of") != observed_session
-            or inputs.get("code_hash") != account.code_hash or not inputs.get("data_hash")
-            or repair.status != FlatBookCapitalRepairStatus.READY.value
-            or repair.last_observed_session != observed_session
-            or repair.config_identity != config_fingerprint(cfg)
-            or repair.capital_budget_level != account.capital_budget_level
-            or repair.account_identity != account.account_identity
-            or repair.risk_reference_universe_identity != universe.risk_reference_identity
-            or symbol not in universe.tradable_symbols
-            or symbol not in universe.available_symbols
-            or assess_strategic_capital_authority(account).has_live_authority
-            or not _risk_and_market_healthy(account=account, risk=risk, cfg=cfg)
-            or not _reference_coverage_complete(risk=risk, universe=universe, cfg=cfg))
+    return (
+        not isinstance(inputs, dict)
+        or inputs.get("as_of") != observed_session
+        or inputs.get("code_hash") != account.code_hash
+        or not inputs.get("data_hash")
+        or repair.status != FlatBookCapitalRepairStatus.READY.value
+        or repair.last_observed_session != observed_session
+        or repair.config_identity != config_fingerprint(cfg)
+        or repair.capital_budget_level != account.capital_budget_level
+        or repair.account_identity != account.account_identity
+        or repair.risk_reference_universe_identity != universe.risk_reference_identity
+        or symbol not in universe.tradable_symbols
+        or symbol not in universe.available_symbols
+        or assess_strategic_capital_authority(account).has_live_authority
+        or not _risk_and_market_healthy(account=account, risk=risk, cfg=cfg)
+        or not _reference_coverage_complete(risk=risk, universe=universe, cfg=cfg)
+    )
 
 
 def authorize_ordinary_cash_rearm(
-    *, account: AccountState, risk: RiskAssessment, universe: StrategicUniverseRoles,
-    symbol: str, certificate: dict[str, object], observed_session: str, cfg: SystemConfig,
+    *,
+    account: AccountState,
+    risk: RiskAssessment,
+    universe: StrategicUniverseRoles,
+    symbol: str,
+    certificate: dict[str, object],
+    observed_session: str,
+    cfg: SystemConfig,
 ) -> bool:
     """Reserve repaired capital for current independent qualification."""
     repair = account.flat_book_capital_repair
     confirmations = certificate.get("confirmations")
     route = "independent_core"
     inputs = risk.evidence.get("decision_input_identity")
-    if (_ordinary_repair_context_invalid(
-            account=account, risk=risk, universe=universe, symbol=symbol,
-            observed_session=observed_session, cfg=cfg, inputs=inputs, repair=repair,
+    if (
+        _ordinary_repair_context_invalid(
+            account=account,
+            risk=risk,
+            universe=universe,
+            symbol=symbol,
+            observed_session=observed_session,
+            cfg=cfg,
+            inputs=inputs,
+            repair=repair,
         )
-            or certificate.get("qualification_quorum") not in (None, "INDEPENDENT_CORE")
-            or certificate.get("block") != "READY"
-            or certificate.get("as_of") != observed_session
-            or certificate.get("required_confirmation") != cfg.leader_tenure_days
-            or not isinstance(confirmations, dict)
-            or confirmations.get("independent_core", 0) < cfg.leader_tenure_days):
+        or certificate.get("qualification_quorum") not in (None, "INDEPENDENT_CORE")
+        or certificate.get("block") != "READY"
+        or certificate.get("as_of") != observed_session
+        or certificate.get("required_confirmation") != cfg.leader_tenure_days
+        or not isinstance(confirmations, dict)
+        or confirmations.get("independent_core", 0) < cfg.leader_tenure_days
+    ):
         return False
-    proof = {**certificate, "candidate": symbol, "code_hash": account.code_hash,
-             "prior_data_hash": account.data_hash, "decision_input_identity": dict(cast(dict[str, object], inputs)),
-             "max_target_weight": strategic_cash_rearm_weight(account=account, risk=risk, cfg=cfg)}
-    evidence = hashlib.sha256(json.dumps(
-        proof,
-        sort_keys=True, separators=(",", ":"), allow_nan=False,
-    ).encode()).hexdigest()
+    proof = {
+        **certificate,
+        "candidate": symbol,
+        "code_hash": account.code_hash,
+        "prior_data_hash": account.data_hash,
+        "decision_input_identity": dict(cast(dict[str, object], inputs)),
+        "max_target_weight": strategic_cash_rearm_weight(account=account, risk=risk, cfg=cfg),
+    }
+    evidence = hashlib.sha256(
+        json.dumps(
+            proof,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode()
+    ).hexdigest()
     current = StrategicCashRearmState(
-        observed_session=observed_session, repair_episode_id=repair.repair_episode_id,
-        candidate_symbol=symbol, qualification_signature=route + ":" + symbol,
-        qualification_route=route, qualification_quorum="INDEPENDENT_CORE",
-        qualification_evidence_sha256=evidence, capital_budget_level=account.capital_budget_level,
+        observed_session=observed_session,
+        repair_episode_id=repair.repair_episode_id,
+        candidate_symbol=symbol,
+        qualification_signature=route + ":" + symbol,
+        qualification_route=route,
+        qualification_quorum="INDEPENDENT_CORE",
+        qualification_evidence_sha256=evidence,
+        capital_budget_level=account.capital_budget_level,
         tradable_universe_identity=universe.tradable_identity,
         qualification_reference_universe_identity=universe.qualification_reference_identity,
         risk_reference_universe_identity=universe.risk_reference_identity,
         point_in_time_industry_identity=universe.point_in_time_industry_identity,
-        status=StrategicCashRearmStatus.AUTHORIZED.value, authorized_session=observed_session,
-        qualification_ready=True, route_consistent_absolute_quality=True, authorized=True,
-        predicate_results=[StrategicCashRearmPredicate(
-            code="current_" + route, passed=True, authoritative_state=proof)],
+        status=StrategicCashRearmStatus.AUTHORIZED.value,
+        authorized_session=observed_session,
+        qualification_ready=True,
+        route_consistent_absolute_quality=True,
+        authorized=True,
+        predicate_results=[
+            StrategicCashRearmPredicate(code="current_" + route, passed=True, authoritative_state=proof)
+        ],
     )
     _bind_candidate_rearm_authorization(account, current=current, observed_session=observed_session)
     account.strategic_cash_rearm = current
@@ -890,39 +918,63 @@ def authorize_ordinary_cash_rearm(
 
 
 def _new_ordinary_repair_order_matches(
-    *, account: AccountState, order: PendingOrder, observed_session: str,
+    *,
+    account: AccountState,
+    order: PendingOrder,
+    observed_session: str,
 ) -> bool:
     state = account.strategic_cash_rearm
     return bool(
-        order.symbol == state.candidate_symbol and order.side == "BUY"
-        and order.signal_date == observed_session and order.lifecycle == "CORE"
-        and order.origin_subsystem == "LEADER" and order.mechanism == "LEADER_SELECTION"
-        and not order.grant_id and not order.epoch_id and order.order_id and order.event_id
-        and 0 < order.target_weight <= state.predicate_results[0].authoritative_state["max_target_weight"] + 1e-12
-        and any(record.order_id == order.order_id
-                and order_intent_metadata(record) == order_intent_metadata(order)
-                and record.status == "SUBMITTED" and record.requested_shares >= 0
-                for record in account.order_ledger)
+        order.symbol == state.candidate_symbol
+        and order.side == "BUY"
+        and order.signal_date == observed_session
+        and order.lifecycle == "CORE"
+        and order.origin_subsystem == "LEADER"
+        and order.mechanism == "LEADER_SELECTION"
+        and not order.grant_id
+        and not order.epoch_id
+        and order.order_id
+        and order.event_id
+        and 0
+        < order.target_weight
+        <= state.predicate_results[0].authoritative_state["max_target_weight"] + 1e-12
+        and any(
+            record.order_id == order.order_id
+            and order_intent_metadata(record) == order_intent_metadata(order)
+            and record.status == "SUBMITTED"
+            and record.requested_shares >= 0
+            for record in account.order_ledger
+        )
     )
 
 
 def consume_ordinary_cash_rearm_authorization(
-    *, account: AccountState, orders: tuple[PendingOrder, ...], observed_session: str,
+    *,
+    account: AccountState,
+    orders: tuple[PendingOrder, ...],
+    observed_session: str,
 ) -> None:
     """Commit consumption only after ordinary attribution and native reconciliation."""
     state = account.strategic_cash_rearm
-    if (state.status != StrategicCashRearmStatus.AUTHORIZED.value
-            or state.qualification_quorum not in {"INDEPENDENT_CORE", "MATURE_CORE"}
-            or state.authorized_session != observed_session):
+    if (
+        state.status != StrategicCashRearmStatus.AUTHORIZED.value
+        or state.qualification_quorum not in {"INDEPENDENT_CORE", "MATURE_CORE"}
+        or state.authorized_session != observed_session
+    ):
         return
-    matches = [order for order in orders if _new_ordinary_repair_order_matches(
-        account=account, order=order, observed_session=observed_session)]
+    matches = [
+        order
+        for order in orders
+        if _new_ordinary_repair_order_matches(account=account, order=order, observed_session=observed_session)
+    ]
     if not matches:
         account.strategic_cash_rearm = StrategicCashRearmState()
         return
     repair = account.flat_book_capital_repair
-    if len(matches) != 1 or repair.status != FlatBookCapitalRepairStatus.READY.value or (
-        repair.repair_episode_id != state.repair_episode_id
+    if (
+        len(matches) != 1
+        or repair.status != FlatBookCapitalRepairStatus.READY.value
+        or (repair.repair_episode_id != state.repair_episode_id)
     ):
         raise RuntimeError("ordinary repair lost its unique ready order binding")
     order = matches[0]
@@ -930,40 +982,54 @@ def consume_ordinary_cash_rearm_authorization(
     state.status = StrategicCashRearmStatus.CONSUMED.value
     state.authorized = False
     repair.status = FlatBookCapitalRepairStatus.CONSUMED.value
-    account.candidate_tenure["ordinary_repair_capital_active"] = 1
-    account.candidate_tenure[f"ordinary_repair_origin:{order.order_id}:{order.event_id}"] = 1
+    record_repair_origin(account, order.order_id, order.event_id)
 
 
 def _ordinary_rearm_order_identity(account: AccountState, order: PendingOrder) -> bool:
     state = account.strategic_cash_rearm
     reference = state.consumed_order
     return bool(
-        _ordinary_rearm_attempt_pending(account) and reference is not None
-        and order.order_id == reference.order_id and order.event_id == reference.event_id
-        and any(record.order_id == order.order_id
-                and order_intent_metadata(record) == order_intent_metadata(order)
-                for record in account.order_ledger)
-        and any(pending.order_id == order.order_id
-                and order_intent_metadata(pending) == order_intent_metadata(order)
-                for pending in account.pending_orders)
-        and 0 < order.target_weight <= state.predicate_results[0].authoritative_state["max_target_weight"] + 1e-12
+        _ordinary_rearm_attempt_pending(account)
+        and reference is not None
+        and order.order_id == reference.order_id
+        and order.event_id == reference.event_id
+        and any(
+            record.order_id == order.order_id
+            and order_intent_metadata(record) == order_intent_metadata(order)
+            for record in account.order_ledger
+        )
+        and any(
+            pending.order_id == order.order_id
+            and order_intent_metadata(pending) == order_intent_metadata(order)
+            for pending in account.pending_orders
+        )
+        and 0
+        < order.target_weight
+        <= state.predicate_results[0].authoritative_state["max_target_weight"] + 1e-12
     )
 
 
 def ordinary_cash_rearm_order_open(
-    *, account: AccountState, risk: RiskAssessment, cfg: SystemConfig, order: PendingOrder,
+    *,
+    account: AccountState,
+    risk: RiskAssessment,
+    cfg: SystemConfig,
+    order: PendingOrder,
 ) -> bool:
     """Allow only the original ordinary remainder through the capital freeze."""
     state = account.strategic_cash_rearm
-    return bool(_ordinary_rearm_order_identity(account, order)
+    return bool(
+        _ordinary_rearm_order_identity(account, order)
         and account.flat_book_capital_repair.config_identity == config_fingerprint(cfg)
         and state.capital_budget_level == account.capital_budget_level
         and state.tradable_universe_identity == account.strategic_tradable_universe_identity
-        and state.qualification_reference_universe_identity == account.strategic_qualification_universe_identity
+        and state.qualification_reference_universe_identity
+        == account.strategic_qualification_universe_identity
         and state.risk_reference_universe_identity == account.strategic_risk_universe_identity
         and _risk_and_market_healthy(account=account, risk=risk, cfg=cfg)
         and _reference_coverage_complete(risk=risk, universe=None, cfg=cfg)
-        and not account.anchor_weights and not account.strategic_restore_weights
+        and not account.anchor_weights
+        and not account.strategic_restore_weights
         and not account.recovery_owner_epoch_id
         and not assess_strategic_capital_authority(account).orphan_residue_fields
         and not assess_strategic_capital_authority(account).late_fill_order_ids
@@ -971,16 +1037,29 @@ def ordinary_cash_rearm_order_open(
 
 
 def bind_ordinary_entry_authorizations(
-    *, account: AccountState, orders: tuple[PendingOrder, ...], risk: RiskAssessment,
-    date: str, cfg: SystemConfig, code_hash: str, data_hash: str,
+    *,
+    account: AccountState,
+    orders: tuple[PendingOrder, ...],
+    risk: RiskAssessment,
+    date: str,
+    cfg: SystemConfig,
+    code_hash: str,
+    data_hash: str,
 ) -> None:
     """Bind existing permissions after reconciliation; never grant new risk here."""
     from ...models.ordinary_entry import bind_pullback_orders
 
     consume_ordinary_cash_rearm_authorization(
-        account=account, orders=orders, observed_session=date,
+        account=account,
+        orders=orders,
+        observed_session=date,
     )
     bind_pullback_orders(
-        account=account, orders=orders, risk=risk, date=date, cfg=cfg,
-        code_hash=code_hash, data_hash=data_hash,
+        account=account,
+        orders=orders,
+        risk=risk,
+        date=date,
+        cfg=cfg,
+        code_hash=code_hash,
+        data_hash=data_hash,
     )

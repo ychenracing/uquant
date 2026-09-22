@@ -1,0 +1,346 @@
+{
+  "run": "35677354320",
+  "input_commit": "898d2ab1f5b1a3eb8a30d43f758f0461c313c699",
+  "python": "3.12.13 (main, Jun 16 2026, 22:05:08) [GCC 13.3.0]",
+  "current_code_fingerprint": "ebae4b4d1cf816d953c7d10a066a0d91db584f126039c070f4a41f9b82c97674",
+  "verified_files": {
+    "tests/test_broker_sync.py": {
+      "bytes": 17625,
+      "sha256": "5634cefb617016cd4647e3c4ec6e4c12e24700f75e8843abf9ad9f128c9f5dbf",
+      "git_blob": "f05a259464cbac32719c8b88f9887995d25ef9fc"
+    },
+    "tests/test_cli_and_report.py": {
+      "bytes": 20837,
+      "sha256": "dfd478f8b43a12beba17eb0aff4affbbf6afa1db9984f1b08e10b835d32ccf50",
+      "git_blob": "2fdf00c42169957e9a16dc3d58531cf1697f4a0a"
+    },
+    "tests/test_code_audit_boundaries.py": {
+      "bytes": 7498,
+      "sha256": "bd60cc0935ee11a3257432afbf7a6aabf4aa9692b490a801dba2a2f0f0d23e37",
+      "git_blob": "ea603a45a0826453d901b5ce389a2e220fe22ba0"
+    },
+    "tests/test_code_audit_state.py": {
+      "bytes": 6387,
+      "sha256": "162c8e4c6674d1caac50f4cda48b419c0516e031298fb91ea25d77a4e4f78c61",
+      "git_blob": "93b6a342ebf27b348507158940563d0e5c224568"
+    },
+    "tests/test_code_audit_structure.py": {
+      "bytes": 4797,
+      "sha256": "8b9ab1101c245340e1788982fa2df8302a2d1422dbfcf545d28514abbfdba761",
+      "git_blob": "42ecedd3a552a80db79956b11d28b172e9b1bc36"
+    },
+    "tests/test_market_workspace.py": {
+      "bytes": 12693,
+      "sha256": "bcf3af674bc63ad343d013a633475e3d5d3140952875eaeb5eafba9c934cb139",
+      "git_blob": "d29daea1a812018ca673f20c780e521a630fabda"
+    },
+    "uquant/application/__init__.py": {
+      "bytes": 3874,
+      "sha256": "b097f37c6179d8c292b879fbbbfa3533fea6cb514dad510cf2e36c2e4a3eab5b",
+      "git_blob": "9c322a3ad68a4f1e2e56fad0b414775dd27f5138"
+    },
+    "uquant/application/decision.py": {
+      "bytes": 37353,
+      "sha256": "c5f80e289a39e7622e7edd9aa03ecf2eaebd5d77b2ffbdff3d56a470c38d0d51",
+      "git_blob": "51df3d755e2628dd5f015ff3262f0051138424e2"
+    },
+    "uquant/broker.py": {
+      "bytes": 35691,
+      "sha256": "37b83c1260ffa597c162b9671e76287114a5aa6ee38732f1b98d2405094954fa",
+      "git_blob": "e5ab13b4a8f5e0e15bc9c1eec0f8851a0792d500"
+    },
+    "uquant/broker_contract.py": {
+      "bytes": 9482,
+      "sha256": "1991eb3461283d0523cdd7d00fec76218fe67d28f2eff64221504ffd2bb13e86",
+      "git_blob": "722b42e18ad6e3f60ef5c4f3f7a35895fffd8b28"
+    },
+    "uquant/cli.py": {
+      "bytes": 16650,
+      "sha256": "c580355277d79c7bd4a6a7fde3262893f1aed36ed826ae2cbf23f93ad6661dfc",
+      "git_blob": "3aa57c4044b8464e12b4af2d6b4f455969137012"
+    },
+    "uquant/engine.py": {
+      "bytes": 7788,
+      "sha256": "12d234e170fb88e0372e635adb7143466b2e3c1d8f3463b0c40820fd2d486b82",
+      "git_blob": "bbd1b170f8850fb1ff4461e53c379702fc40f0a5"
+    },
+    "uquant/leader.py": {
+      "bytes": 27727,
+      "sha256": "cb310a6ed671b0ff0633efda86ee7584f6e66fef51f9f034f5f3932c23cc9c90",
+      "git_blob": "efd2bd89c226bcaf7cb9cd0a9fbb020a62af6fb0"
+    },
+    "uquant/models/ordinary_state.py": {
+      "bytes": 3226,
+      "sha256": "0f058df9beca9dcfda0fa6de43d1db033f645dd75d52f71530137c47b97c198d",
+      "git_blob": "4f484d4cec71838b493b88b43b4a136a220e4969"
+    },
+    "uquant/opportunity.py": {
+      "bytes": 8913,
+      "sha256": "a99bc61a1a5901a1f05e86e9a613542571448451e32ffeff35cb45d970f64abf",
+      "git_blob": "634174157bd6381526361a630d054a42906fa259"
+    },
+    "uquant/portfolio/__init__.py": {
+      "bytes": 228,
+      "sha256": "99a9074e727ac37a711f339ad7020f6b4739c5092cb5775f1bc2a0f164dc3f27",
+      "git_blob": "6edc00be3cbb20375a53eff30b061fe6072c9a39"
+    },
+    "uquant/portfolio/allocator.py": {
+      "bytes": 15694,
+      "sha256": "0924e1493dab8a70e6da30681f67d460e4c316d952ddb4b9d8545dc2b4e2a3ae",
+      "git_blob": "2515405bf73cf7302fef011c08ef16245156b54d"
+    },
+    "uquant/portfolio/freeze.py": {
+      "bytes": 11643,
+      "sha256": "ee7212c2bac963cca32db876c15bd2c63d2907ae8c1cddae8ce60a8204630c9a",
+      "git_blob": "3665fa04cda564ee9d04a4c5cbd70295144eaf7c"
+    },
+    "uquant/portfolio/leaders/__init__.py": {
+      "bytes": 109,
+      "sha256": "c5d6b5b2d613bda24c2903373c7324d897921566cbcc6cd5ea8115fc783b5aea",
+      "git_blob": "7398976c81cba8c21b50d3f8b76cef09f0a4336c"
+    },
+    "uquant/portfolio/leaders/admission.py": {
+      "bytes": 14576,
+      "sha256": "7ce52e58724805ed2f63ccf82955024084ef0ddf9c2b03f77a40c8fa18fb5458",
+      "git_blob": "f9c0c3927e654c1efb61452ced4cc32951553746"
+    },
+    "uquant/portfolio/pipeline.py": {
+      "bytes": 59552,
+      "sha256": "a373e848af8cf03aa4c230e8dd10502ab446a16abbccfec9ffa05f495163711d",
+      "git_blob": "e6a9d4b81bad2349b67dabd42188d7b28a62f568"
+    },
+    "uquant/portfolio/recovery/admission.py": {
+      "bytes": 2878,
+      "sha256": "bd24644fc1d32c5a2a086a4e6da2e6d3577448b41e6349027e13723456270f09",
+      "git_blob": "3e85f92ebcea6a22f45fdb65ea81b7cafb6e2b4c"
+    },
+    "uquant/portfolio/strategic/__init__.py": {
+      "bytes": 118,
+      "sha256": "fea0756c8a2ac4ceda1afe22ea28b3e2e37f1eebc768614edb98dd73327ef4e6",
+      "git_blob": "08037a470ba22aa44083dc27784cb6bc017a8e26"
+    },
+    "uquant/portfolio/strategic/discovery.py": {
+      "bytes": 47681,
+      "sha256": "cfcf610b397c922398d34982644d3d8496576d13cc1742440717f5073bc9cee1",
+      "git_blob": "190cd512a21545d53b22ee76f598cd1b6c86f076"
+    },
+    "uquant/portfolio/strategic/rearm.py": {
+      "bytes": 38631,
+      "sha256": "83e0464de85f7eaea7fe9e77c133734c3f9a14d914924503152d6d7377ea5238",
+      "git_blob": "c86a8b6ac63d8aa9376b4e4a811e1b08c4419e5a"
+    },
+    "uquant/risk/confirmed_break.py": {
+      "bytes": 11194,
+      "sha256": "651f762d31b884fbf8aa2cfa5a2cce789c23fe6ca8ac37827614accb0450c4ad",
+      "git_blob": "df76ef81ed9b844bd7cf70cf6b85cc04b74e3896"
+    },
+    "uquant/risk/recovery_state.py": {
+      "bytes": 13840,
+      "sha256": "a332aa7444e9d77e9c47f46a42709b9c504a4244db5d0899588d209c065468ea",
+      "git_blob": "f4dbbf0114bf1fe5c164652cae0614d32bcc9c6c"
+    },
+    "uquant/risk/transitions.py": {
+      "bytes": 21910,
+      "sha256": "e19f6003aa42d6e1bbb0ab35d5218053c396339f69353619924d94390177e094",
+      "git_blob": "33c4bd5fc495512aeb745df337961cb60561e999"
+    },
+    "tests/architecture/test_portfolio_boundaries.py": {
+      "bytes": 47557,
+      "sha256": "c2614dd8f6f54dafd3c850a8747ef4649953d24f19163c219f72d36dc1228040",
+      "git_blob": "a1f9f133cf636865e60b4d224e49c1422671df6f"
+    }
+  },
+  "reused_from_run": "35676785570",
+  "reused_source_commit": "dabd50db8833640b055318fede7fa54e929cc9e0",
+  "reuse_proof": {
+    "tests/test_broker_sync.py": "BYTE_IDENTICAL",
+    "tests/test_cli_and_report.py": "BYTE_IDENTICAL",
+    "tests/test_code_audit_boundaries.py": "BYTE_IDENTICAL",
+    "tests/test_code_audit_state.py": "BYTE_IDENTICAL",
+    "tests/test_code_audit_structure.py": "BYTE_IDENTICAL",
+    "tests/test_market_workspace.py": "BYTE_IDENTICAL",
+    "uquant/application/__init__.py": "ONLY_EXPLICIT_EXPORT_TUPLE_ORDER_CHANGED",
+    "uquant/application/decision.py": "BYTE_IDENTICAL",
+    "uquant/broker.py": "BYTE_IDENTICAL",
+    "uquant/broker_contract.py": "BYTE_IDENTICAL",
+    "uquant/cli.py": "BYTE_IDENTICAL",
+    "uquant/engine.py": "BYTE_IDENTICAL",
+    "uquant/leader.py": "BYTE_IDENTICAL",
+    "uquant/models/ordinary_state.py": "BYTE_IDENTICAL",
+    "uquant/opportunity.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/__init__.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/allocator.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/freeze.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/leaders/__init__.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/leaders/admission.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/pipeline.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/recovery/admission.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/strategic/__init__.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/strategic/discovery.py": "BYTE_IDENTICAL",
+    "uquant/portfolio/strategic/rearm.py": "BYTE_IDENTICAL",
+    "uquant/risk/confirmed_break.py": "BYTE_IDENTICAL",
+    "uquant/risk/recovery_state.py": "BYTE_IDENTICAL",
+    "uquant/risk/transitions.py": "BYTE_IDENTICAL"
+  },
+  "reused_successful_checks": [
+    {
+      "name": "format",
+      "log": "artifacts/code-audit-fix/logs/35676785570/format.txt.gz",
+      "output_sha256": "ab8a05f421ee63ba66edb5a877df416eee51a6ae9249067afe606de0557d0914"
+    },
+    {
+      "name": "imports",
+      "log": "artifacts/code-audit-fix/logs/35676785570/imports.txt.gz",
+      "output_sha256": "6f4e3c8cb6a43f32a8b47add0b65207f17bd814c84308623b3720ad789c0d769"
+    },
+    {
+      "name": "types",
+      "log": "artifacts/code-audit-fix/logs/35676785570/types.txt.gz",
+      "output_sha256": "5ca59a2361304496c36048048a43aa6f41eb23e74111d16719b962637888fc08"
+    },
+    {
+      "name": "regressions",
+      "log": "artifacts/code-audit-fix/logs/35676785570/regressions.txt.gz",
+      "output_sha256": "3465dfdabcd2a6655674fd82ca948c9c444aa28eae2b9f9be50a59480d529f2f"
+    },
+    {
+      "name": "state-invariants",
+      "log": "artifacts/code-audit-fix/logs/35676785570/state-invariants.txt.gz",
+      "output_sha256": "b2cace8d442dfd18f85561da7ba0822d6c7c22d40c04361fb9e32fe98ee722ed"
+    },
+    {
+      "name": "public-seams",
+      "log": "artifacts/code-audit-fix/logs/35676785570/public-seams.txt.gz",
+      "output_sha256": "99db33d5c94c6f7da021687c7391181685cc33299c5435b1c861e2db3be3ec87"
+    },
+    {
+      "name": "paired-replay",
+      "log": "artifacts/code-audit-fix/logs/35676785570/paired-replay.txt.gz",
+      "output_sha256": "9a4967ae0467fdda3022dd8c09887d0aa33cb5e38f2e163c1b27b2a0f135da5f"
+    },
+    {
+      "name": "diff-check",
+      "log": "artifacts/code-audit-fix/logs/35676785570/diff-check.txt.gz",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "paired_replay": {
+    "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
+    "candidate_source": "4085d5baeb6d724233b3db9fa38ac5fdafe4375c",
+    "source_fingerprints": {
+      "base": "27131f3e591fbe1ace0ea2f1abf02bbc98b5242f1b60589f474ac189c5971e40",
+      "candidate": "63117a6dfb67e6fb04f00ddf4144d22ad139bb2d9ae47877cc5c1636711c226b"
+    },
+    "config": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6",
+    "comparisons": [
+      {
+        "scenario": "early-trend",
+        "sessions": 59,
+        "equal": true,
+        "first_difference": null,
+        "fills": 4,
+        "final_equity": 4269102.12359264
+      },
+      {
+        "scenario": "recent-risk",
+        "sessions": 47,
+        "equal": true,
+        "first_difference": null,
+        "fills": 6,
+        "final_equity": 2111421.3070430905
+      }
+    ],
+    "originals": {
+      "baseline.json.gz": {
+        "compressed_bytes": 556961,
+        "raw_bytes": 4365808,
+        "raw_sha256": "97ef74ef80965583ba433282b010626f77d69ae68f75e6060b34e6727294b086",
+        "sha256": "f0e14ca6d25bae0e22560f644305f5a0fd2a4d50835dc81c5371f8b92477e48f"
+      },
+      "candidate.json.gz": {
+        "compressed_bytes": 556998,
+        "raw_bytes": 4365809,
+        "raw_sha256": "ead945f43a20b9958b43738ee188ec9ddf99d188acb5edb483d77dcf1f1d12b0",
+        "sha256": "4a3e28bffc2477cbda1603cf036ae61373937e7ed6725b89ca99a88eeabe25cf"
+      }
+    },
+    "scope": "diagnostic economic projection, not full frozen acceptance; identity invariants covered separately",
+    "passed": true
+  },
+  "checks": [
+    {
+      "name": "lint",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "uquant/application/__init__.py",
+        "uquant/application/decision.py",
+        "uquant/broker.py",
+        "uquant/broker_contract.py",
+        "uquant/cli.py",
+        "uquant/engine.py",
+        "uquant/leader.py",
+        "uquant/models/ordinary_state.py",
+        "uquant/opportunity.py",
+        "uquant/portfolio/__init__.py",
+        "uquant/portfolio/allocator.py",
+        "uquant/portfolio/freeze.py",
+        "uquant/portfolio/leaders/__init__.py",
+        "uquant/portfolio/leaders/admission.py",
+        "uquant/portfolio/pipeline.py",
+        "uquant/portfolio/recovery/admission.py",
+        "uquant/portfolio/strategic/__init__.py",
+        "uquant/portfolio/strategic/discovery.py",
+        "uquant/portfolio/strategic/rearm.py",
+        "uquant/risk/confirmed_break.py",
+        "uquant/risk/recovery_state.py",
+        "uquant/risk/transitions.py",
+        "tests/test_code_audit_boundaries.py",
+        "tests/test_code_audit_structure.py",
+        "tests/test_code_audit_state.py",
+        "tests/architecture/test_portfolio_boundaries.py"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35677354320/lint.txt.gz",
+      "output_bytes": 19,
+      "output_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "tail": "All checks passed!\n"
+    },
+    {
+      "name": "reflection-contract",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "-q",
+        "tests/architecture/test_portfolio_boundaries.py::test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35677354320/reflection-contract.txt.gz",
+      "output_bytes": 80,
+      "output_sha256": "423b1d0e014eb1eab96f4420f7b344c2615be505dd574b756ac884826ca74f2d",
+      "tail": ".                                                                        [100%]\n"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35677354320/diff-check.txt.gz",
+      "output_bytes": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    }
+  ],
+  "passed": true,
+  "full_repository_ci": "NOT_RUN",
+  "full_economic_acceptance": "NOT_RUN",
+  "main_merge": "NOT_AUTHORIZED"
+}

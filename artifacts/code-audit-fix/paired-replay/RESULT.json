@@ -1,0 +1,43 @@
+{
+  "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
+  "candidate_source": "4085d5baeb6d724233b3db9fa38ac5fdafe4375c",
+  "source_fingerprints": {
+    "base": "27131f3e591fbe1ace0ea2f1abf02bbc98b5242f1b60589f474ac189c5971e40",
+    "candidate": "63117a6dfb67e6fb04f00ddf4144d22ad139bb2d9ae47877cc5c1636711c226b"
+  },
+  "config": "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6",
+  "comparisons": [
+    {
+      "scenario": "early-trend",
+      "sessions": 59,
+      "equal": true,
+      "first_difference": null,
+      "fills": 4,
+      "final_equity": 4269102.12359264
+    },
+    {
+      "scenario": "recent-risk",
+      "sessions": 47,
+      "equal": true,
+      "first_difference": null,
+      "fills": 6,
+      "final_equity": 2111421.3070430905
+    }
+  ],
+  "originals": {
+    "baseline.json.gz": {
+      "compressed_bytes": 556961,
+      "raw_bytes": 4365808,
+      "raw_sha256": "97ef74ef80965583ba433282b010626f77d69ae68f75e6060b34e6727294b086",
+      "sha256": "f0e14ca6d25bae0e22560f644305f5a0fd2a4d50835dc81c5371f8b92477e48f"
+    },
+    "candidate.json.gz": {
+      "compressed_bytes": 556998,
+      "raw_bytes": 4365809,
+      "raw_sha256": "ead945f43a20b9958b43738ee188ec9ddf99d188acb5edb483d77dcf1f1d12b0",
+      "sha256": "4a3e28bffc2477cbda1603cf036ae61373937e7ed6725b89ca99a88eeabe25cf"
+    }
+  },
+  "scope": "diagnostic economic projection, not full frozen acceptance; identity invariants covered separately",
+  "passed": true
+}

@@ -1,0 +1,28 @@
+{
+  "candidate_source": "2cfe78cc3a8ec1e9fb07068cb3822d17cf592782",
+  "source_archive_artifact": 10678110677,
+  "source_archive_sha256": "cf7696d879c563dd6035269757d3cb150e3664537c114211df7e9dc572693192",
+  "source_files_byte_verified": 846,
+  "absolute_run": 35679019431,
+  "absolute_producer_head": "9632d4cb770502c33934f5bdc5df556b69921936",
+  "absolute_producer_fingerprint": "ebae4b4d1cf816d953c7d10a066a0d91db584f126039c070f4a41f9b82c97674",
+  "current_economic_fingerprint": "e84bd39fae1a38a61f6a331b6900b96dc5200395587725ac6d61af56929c311a",
+  "changed_economic_members": [
+    "uquant/application/__init__.py",
+    "uquant/application/decision.py"
+  ],
+  "normalized_ast_equal": true,
+  "normalization": "Only internal result class _DecisionResult to ObservedDecisionResult and its same-class re-export; no conditions, calls, data, costs, targets or thresholds normalized.",
+  "fixture_blob_unchanged_since_passed_run": "559eeb46f1732f715868721f849742eaf6c6975a",
+  "absolute_original_seal": "a23524983483bb8a93adb4e6839ec725e49daee06a195d89c00da712ceb6a2b8",
+  "absolute_original_seal_verified": true,
+  "old_raw_artifacts_not_relabelled": true,
+  "new_head_full_ci_status": "QUEUED_NO_WAIT",
+  "collector_readback": {
+    "source": "GitHub.fetch_file at pinned 2cfe78cc3a8ec1e9fb07068cb3822d17cf592782",
+    "bytes": 7686,
+    "sha256": "460d8a3592e74d1023e49073b276724ab9321253771de62dc1c2019299415cf2",
+    "git_blob": "008f958a33cfa3dfcdbc9aa32da069464c8a915b",
+    "equal_bytes": true
+  }
+}

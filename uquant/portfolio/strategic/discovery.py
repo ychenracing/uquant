@@ -6,7 +6,7 @@ import hashlib
 import json
 import math
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pandas as pd
 
@@ -61,44 +61,74 @@ from .rearm import (
 class StrategicPortfolioPolicy(PortfolioCore):
     """Discover, protect, trail, and retire a causal strategic cohort."""
 
-    if TYPE_CHECKING:
+    def _bounded_strategic_restore_risk_open(self, *, risk: RiskAssessment, account: AccountState) -> bool:
+        from .lifecycle import bounded_strategic_restore_risk_open
 
-        def _bounded_strategic_restore_risk_open(
-            self, *, risk: RiskAssessment, account: AccountState
-        ) -> bool: ...
+        return bounded_strategic_restore_risk_open(self, risk=risk, account=account)
 
-        @staticmethod
-        def _retire_strategic_member(account: AccountState, symbol: str) -> None: ...
+    @staticmethod
+    def _retire_strategic_member(account: AccountState, symbol: str) -> None:
+        from .lifecycle import retire_strategic_member
 
-        def _initialize_strategic_cohort(
+        return retire_strategic_member(account, symbol)
+
+    def _initialize_strategic_cohort(
+        self,
+        *,
+        date: pd.Timestamp,
+        user_panel: dict[str, pd.DataFrame],
+        leaders: dict[str, LeaderScore],
+        account: AccountState,
+        risk: RiskAssessment,
+        admission_open: bool = True,
+        qualification_panel: dict[str, pd.DataFrame] | None = None,
+        qualification_leaders: dict[str, LeaderScore] | None = None,
+        strategic_universe: StrategicUniverseRoles | None = None,
+    ) -> None:
+        return _initialize_strategic_cohort(
             self,
-            *,
-            date: pd.Timestamp,
-            user_panel: dict[str, pd.DataFrame],
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-            risk: RiskAssessment,
-            admission_open: bool = True,
-            qualification_panel: dict[str, pd.DataFrame] | None = None,
-            qualification_leaders: dict[str, LeaderScore] | None = None,
-            strategic_universe: StrategicUniverseRoles | None = None,
-        ) -> None: ...
+            date=date,
+            user_panel=user_panel,
+            leaders=leaders,
+            account=account,
+            risk=risk,
+            admission_open=admission_open,
+            qualification_panel=qualification_panel,
+            qualification_leaders=qualification_leaders,
+            strategic_universe=strategic_universe,
+        )
 
-        def _strategic_cohort_targets(
+    def _strategic_cohort_targets(
+        self,
+        *,
+        date: pd.Timestamp,
+        risk: RiskAssessment,
+        user_panel: dict[str, pd.DataFrame],
+        leaders: dict[str, LeaderScore],
+        account: AccountState,
+        prices: dict[str, float],
+        weights_now: dict[str, float],
+        admission_open: bool = True,
+        qualification_panel: dict[str, pd.DataFrame] | None = None,
+        qualification_leaders: dict[str, LeaderScore] | None = None,
+        strategic_universe: StrategicUniverseRoles | None = None,
+    ) -> tuple[Target, ...] | None:
+        from .lifecycle import strategic_cohort_targets
+
+        return strategic_cohort_targets(
             self,
-            *,
-            date: pd.Timestamp,
-            risk: RiskAssessment,
-            user_panel: dict[str, pd.DataFrame],
-            leaders: dict[str, LeaderScore],
-            account: AccountState,
-            prices: dict[str, float],
-            weights_now: dict[str, float],
-            admission_open: bool = True,
-            qualification_panel: dict[str, pd.DataFrame] | None = None,
-            qualification_leaders: dict[str, LeaderScore] | None = None,
-            strategic_universe: StrategicUniverseRoles | None = None,
-        ) -> tuple[Target, ...] | None: ...
+            date=date,
+            risk=risk,
+            user_panel=user_panel,
+            leaders=leaders,
+            account=account,
+            prices=prices,
+            weights_now=weights_now,
+            admission_open=admission_open,
+            qualification_panel=qualification_panel,
+            qualification_leaders=qualification_leaders,
+            strategic_universe=strategic_universe,
+        )
 
     def _strategic_qualification_snapshots(
         self,
@@ -149,15 +179,11 @@ def strategic_qualification_evidence_sha256(
 ) -> str:
     def finite_payload(values: dict[str, float]) -> dict[str, str]:
         return {
-            key: float(value).hex()
-            for key, value in sorted(values.items())
-            if math.isfinite(float(value))
+            key: float(value).hex() for key, value in sorted(values.items()) if math.isfinite(float(value))
         }
 
     payload = {
-        "candidate_snapshots": {
-            symbol: finite_payload(snapshots[symbol]) for symbol in sorted(symbols)
-        },
+        "candidate_snapshots": {symbol: finite_payload(snapshots[symbol]) for symbol in sorted(symbols)},
         "leaders": {
             symbol: {
                 "confidence": float(leaders[symbol].confidence).hex(),
@@ -217,11 +243,7 @@ def strategic_quorum_candidate_symbols(
     """Use a synchronized witness group without granting it target authority."""
 
     route_set = set(route_symbols)
-    witness_groups = [
-        tuple(group)
-        for group in route.reversal_groups
-        if route_set <= set(group)
-    ]
+    witness_groups = [tuple(group) for group in route.reversal_groups if route_set <= set(group)]
     if route.synchronized_reversal and witness_groups:
         return min(
             witness_groups,
@@ -270,10 +292,7 @@ def _strategic_risk_deployment_block(
         return "risk_off"
     if risk.state.value == "CRISIS":
         return "crisis"
-    if (
-        risk.freeze_new_risk
-        or bool(risk.evidence.get("freeze_new_risk", False))
-    ) and not cash_rearm_open:
+    if (risk.freeze_new_risk or bool(risk.evidence.get("freeze_new_risk", False))) and not cash_rearm_open:
         return "freeze_new_risk"
     if risk.state.value == "CAUTION" and risk.votes >= 2:
         return "risk_caution"
@@ -298,11 +317,7 @@ def strategic_qualification_snapshots(
         if date not in frame.index:
             continue
         history = frame.loc[:date, "close"].dropna()
-        if (
-            len(history) < 121
-            or "amount" not in frame.columns
-            or not self._liquidity_confirmed(frame, date)
-        ):
+        if len(history) < 121 or "amount" not in frame.columns or not self._liquidity_confirmed(frame, date):
             continue
         rolling240 = history / history.shift(240) - 1.0
         persistent = rolling240.dropna().tail(self.cfg.strategic_cohort_confirm_days)
@@ -365,13 +380,11 @@ def resolve_strategic_qualification_inputs(
             qualification_reference_symbols=panel,
             risk_reference_symbols=(),
             industries={
-                symbol: scores[symbol].industry if symbol in scores else "unknown"
-                for symbol in panel
+                symbol: scores[symbol].industry if symbol in scores else "unknown" for symbol in panel
             },
             available_symbols=panel,
         )
     return panel, scores, universe
-
 
 
 def _independent_market_confirmation(
@@ -379,7 +392,6 @@ def _independent_market_confirmation(
     risk: RiskAssessment,
 ) -> bool:
     return independent_market_confirmation(cfg=self.cfg, risk=risk)
-
 
 
 def _strategic_cohort_quality(
@@ -561,9 +573,13 @@ def strategic_route_admission_open(
 
 
 def _strategic_route_quorum(
-    self: StrategicPortfolioPolicy, *, route: StrategicRoute,
-    snapshots: dict[str, dict[str, float]], leaders: dict[str, LeaderScore],
-    risk: RiskAssessment, reference_snapshots: dict[str, dict[str, float]],
+    self: StrategicPortfolioPolicy,
+    *,
+    route: StrategicRoute,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+    reference_snapshots: dict[str, dict[str, float]],
     strategic_universe: StrategicUniverseRoles,
 ) -> tuple[StrategicQuorumResult | None, bool]:
     """Assess one witness set without changing confirmation or deployment state."""
@@ -580,49 +596,72 @@ def _strategic_route_quorum(
         if route_symbols
         else ""
     )
-    quorum = evaluate_strategic_quorum(
-        owner_symbol=candidate,
-        candidate_symbols=strategic_quorum_candidate_symbols(
-            route=route,
-            route_symbols=route_symbols,
-        ),
-        snapshots=reference_snapshots,
-        leaders=leaders,
-        risk=risk,
-        universe=strategic_universe,
-        cfg=self.cfg,
-        synchronized_full_cohort=legacy_raw,
-    ) if candidate else None
+    quorum = (
+        evaluate_strategic_quorum(
+            owner_symbol=candidate,
+            candidate_symbols=strategic_quorum_candidate_symbols(
+                route=route,
+                route_symbols=route_symbols,
+            ),
+            snapshots=reference_snapshots,
+            leaders=leaders,
+            risk=risk,
+            universe=strategic_universe,
+            cfg=self.cfg,
+            synchronized_full_cohort=legacy_raw,
+        )
+        if candidate
+        else None
+    )
     if quorum is not None and (
-        not quorum.qualified
-        or (quorum.route is StrategicQuorumRoute.FULL_COHORT and not legacy_raw)
+        not quorum.qualified or (quorum.route is StrategicQuorumRoute.FULL_COHORT and not legacy_raw)
     ):
         quorum = None
     return quorum, synchronized_before_anchor
 
 
 def _route_confirmation(
-    *, account: AccountState, candidate: str, route: str, quorum: StrategicQuorumResult,
+    *,
+    account: AccountState,
+    candidate: str,
+    route: str,
+    quorum: StrategicQuorumResult,
 ) -> int:
     streak = strategic_candidate_confirmation(account=account, symbol=candidate, route=route)
     if quorum.route is StrategicQuorumRoute.ABSOLUTE_SINGLE:
-        streak = min(streak, strategic_candidate_confirmation(
-            account=account, symbol=candidate, route="independent_core"))
+        streak = min(
+            streak,
+            strategic_candidate_confirmation(account=account, symbol=candidate, route="independent_core"),
+        )
     return streak
 
 
 def strategic_candidate_certificates(
-    self: StrategicPortfolioPolicy, *, snapshots: dict[str, dict[str, float]],
-    leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
-    reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
+    self: StrategicPortfolioPolicy,
+    *,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+    account: AccountState,
+    reference_snapshots: dict[str, dict[str, float]],
+    strategic_universe: StrategicUniverseRoles,
 ) -> list[tuple[StrategicRoute, StrategicQuorumResult, int]]:
     """Read all current certificates without allocating or replacing an owner."""
-    evaluated: list[tuple[tuple[int, int, int, float, int, str, str, tuple[str, ...]],
-                          tuple[StrategicRoute, StrategicQuorumResult, int]]] = []
+    evaluated: list[
+        tuple[
+            tuple[int, int, int, float, int, str, str, tuple[str, ...]],
+            tuple[StrategicRoute, StrategicQuorumResult, int],
+        ]
+    ] = []
     for route in strategic_route_candidates(self, snapshots=snapshots, leaders=leaders, risk=risk):
         quorum, _ = _strategic_route_quorum(
-            self, route=route, snapshots=snapshots, leaders=leaders, risk=risk,
-            reference_snapshots=reference_snapshots, strategic_universe=strategic_universe,
+            self,
+            route=route,
+            snapshots=snapshots,
+            leaders=leaders,
+            risk=risk,
+            reference_snapshots=reference_snapshots,
+            strategic_universe=strategic_universe,
         )
         if quorum is None:
             continue
@@ -632,55 +671,97 @@ def strategic_candidate_certificates(
         observation = risk.evidence.get("reversal_observations", {}).get(candidate, {})
         observed = observation.get("observed_session", "")
         freshness = pd.Timestamp(observed).toordinal() if observed else 0
-        key = (-int(streak >= quorum.required_confirm_days),
-               -int(route.decisive_reversal_symbol == candidate), -freshness, -leaders[candidate].score,
-               -len(witnesses), candidate, route.route, tuple(sorted(route.symbols)))
+        key = (
+            -int(streak >= quorum.required_confirm_days),
+            -int(route.decisive_reversal_symbol == candidate),
+            -freshness,
+            -leaders[candidate].score,
+            -len(witnesses),
+            candidate,
+            route.route,
+            tuple(sorted(route.symbols)),
+        )
         evaluated.append((key, (route, quorum, streak)))
     return [certificate for _, certificate in sorted(evaluated, key=lambda item: item[0])]
 
 
 def _new_strategic_formation_open(
-    self: StrategicPortfolioPolicy, *, route: StrategicRoute,
-    snapshots: dict[str, dict[str, float]], quorum_route: str, admission_open: bool,
+    self: StrategicPortfolioPolicy,
+    *,
+    route: StrategicRoute,
+    snapshots: dict[str, dict[str, float]],
+    quorum_route: str,
+    admission_open: bool,
 ) -> bool:
     """Reserve new long-cycle grants for formation, not ordinary trend strength."""
     return bool(
         quorum_route == StrategicQuorumRoute.ABSOLUTE_SINGLE.value
-        or (route.route == "reversal_industry" and route.synchronized_reversal
-            and (quorum_route != StrategicQuorumRoute.FULL_COHORT.value
-                 or admission_open
-                 or (len(route.symbols) == 2 and route.decisive_reversal_symbol in route.symbols)))
-        or (route.route == "persistent_industry" and route.symbols
-            and all(snapshots[symbol]["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
-                    for symbol in route.symbols))
+        or (
+            route.route == "reversal_industry"
+            and route.synchronized_reversal
+            and (
+                quorum_route != StrategicQuorumRoute.FULL_COHORT.value
+                or admission_open
+                or (len(route.symbols) == 2 and route.decisive_reversal_symbol in route.symbols)
+            )
+        )
+        or (
+            route.route == "persistent_industry"
+            and route.symbols
+            and all(
+                snapshots[symbol]["persistent_ret240"] >= self.cfg.strategic_cohort_min_ret240
+                for symbol in route.symbols
+            )
+        )
     )
 
 
 def _select_qualified_strategic_route(
-    self: StrategicPortfolioPolicy, *, snapshots: dict[str, dict[str, float]],
-    leaders: dict[str, LeaderScore], risk: RiskAssessment, account: AccountState,
-    reference_snapshots: dict[str, dict[str, float]], strategic_universe: StrategicUniverseRoles,
+    self: StrategicPortfolioPolicy,
+    *,
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    risk: RiskAssessment,
+    account: AccountState,
+    reference_snapshots: dict[str, dict[str, float]],
+    strategic_universe: StrategicUniverseRoles,
     admission_open: bool,
 ) -> StrategicRoute:
     evaluated = strategic_candidate_certificates(
-        self, snapshots=snapshots, leaders=leaders, risk=risk, account=account,
-        reference_snapshots=reference_snapshots, strategic_universe=strategic_universe,
+        self,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+        account=account,
+        reference_snapshots=reference_snapshots,
+        strategic_universe=strategic_universe,
     )
     if account.flat_book_capital_repair.status != "READY":
         for route, quorum, streak in evaluated:
-            if (streak >= quorum.required_confirm_days and _new_strategic_formation_open(
-                self, route=route, snapshots=snapshots, quorum_route=quorum.route.value,
+            if streak >= quorum.required_confirm_days and _new_strategic_formation_open(
+                self,
+                route=route,
+                snapshots=snapshots,
+                quorum_route=quorum.route.value,
                 admission_open=admission_open,
-            )):
+            ):
                 return route
     # Keep the ranked fallback observable for genuine cash-rearm authorization.
-    return evaluated[0][0] if evaluated else StrategicRoute(
-        [], "none", None, False, [], "risk_anchor_symbols" in risk.evidence, False)
+    return (
+        evaluated[0][0]
+        if evaluated
+        else StrategicRoute([], "none", None, False, [], "risk_anchor_symbols" in risk.evidence, False)
+    )
 
 
 def current_core_qualification(
-    self: StrategicPortfolioPolicy, *, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore], account: AccountState, risk: RiskAssessment,
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
     qualification_panel: dict[str, pd.DataFrame] | None = None,
     qualification_leaders: dict[str, LeaderScore] | None = None,
     strategic_universe: StrategicUniverseRoles | None = None,
@@ -689,18 +770,31 @@ def current_core_qualification(
     if not self.cfg.strategic_dynamic_enabled:
         return {}
     panel, scores, universe = resolve_strategic_qualification_inputs(
-        date=date, user_panel=user_panel, leaders=leaders, qualification_panel=qualification_panel,
-        qualification_leaders=qualification_leaders, strategic_universe=strategic_universe,
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
     )
     references = strategic_qualification_snapshots(
-        self, date=date, user_panel={symbol: frame for symbol, frame in panel.items()
-                                    if symbol in universe.available_symbols}, leaders=scores,
+        self,
+        date=date,
+        user_panel={symbol: frame for symbol, frame in panel.items() if symbol in universe.available_symbols},
+        leaders=scores,
     )
-    snapshots = {symbol: values for symbol, values in references.items() if symbol in user_panel and symbol in leaders}
+    snapshots = {
+        symbol: values for symbol, values in references.items() if symbol in user_panel and symbol in leaders
+    }
     evidence: dict[str, dict[str, Any]] = {}
     for route, quorum, streak in strategic_candidate_certificates(
-        self, snapshots=snapshots, leaders=scores, risk=risk, account=account,
-        reference_snapshots=references, strategic_universe=universe,
+        self,
+        snapshots=snapshots,
+        leaders=scores,
+        risk=risk,
+        account=account,
+        reference_snapshots=references,
+        strategic_universe=universe,
     ):
         owner = strategic_candidate_symbol(route=route, symbols=route.symbols, leaders=scores)
         if streak < quorum.required_confirm_days or owner in evidence:
@@ -708,12 +802,22 @@ def current_core_qualification(
         _, signature = strategic_route_signature(route=route, symbols=route.symbols, leaders=scores)
         witnesses = strategic_quorum_candidate_symbols(route=route, route_symbols=route.symbols)
         evidence[owner] = {
-            "block": "READY", "qualification_route": route.route, "qualification_quorum": quorum.route.value,
-            "required_confirmation": quorum.required_confirm_days, "confirmations": {route.route: streak},
-            "qualification_signature": signature, "witnesses": sorted(witnesses), "as_of": str(date.date()),
+            "block": "READY",
+            "qualification_route": route.route,
+            "qualification_quorum": quorum.route.value,
+            "required_confirmation": quorum.required_confirm_days,
+            "confirmations": {route.route: streak},
+            "qualification_signature": signature,
+            "witnesses": sorted(witnesses),
+            "as_of": str(date.date()),
             "qualification_evidence_sha256": strategic_qualification_evidence_sha256(
-                date=date, route=route, symbols=list(witnesses), signature=signature,
-                snapshots=references, leaders=scores, risk=risk,
+                date=date,
+                route=route,
+                symbols=list(witnesses),
+                signature=signature,
+                snapshots=references,
+                leaders=scores,
+                risk=risk,
             ),
         }
     return evidence
@@ -733,11 +837,20 @@ def _qualify_strategic_route(
     strategic_universe: StrategicUniverseRoles,
 ) -> QualifiedStrategicRoute | None:
     quorum, synchronized_before_anchor = _strategic_route_quorum(
-        self, route=route, snapshots=snapshots, leaders=leaders, risk=risk,
-        reference_snapshots=reference_snapshots, strategic_universe=strategic_universe,
+        self,
+        route=route,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+        reference_snapshots=reference_snapshots,
+        strategic_universe=strategic_universe,
     )
     route_symbols = list(route.symbols)
-    candidate = strategic_candidate_symbol(route=route, symbols=route_symbols, leaders=leaders) if route_symbols else ""
+    candidate = (
+        strategic_candidate_symbol(route=route, symbols=route_symbols, leaders=leaders)
+        if route_symbols
+        else ""
+    )
     raw = quorum is not None
     symbols = route_symbols if raw else []
     account.candidate_tenure["strategic_long_cycle_open"] = int(raw)
@@ -748,12 +861,11 @@ def _qualify_strategic_route(
     )
     account.candidate_tenure["strategic_cohort_qualification"] = (
         _route_confirmation(account=account, candidate=candidate, route=route.route, quorum=quorum)
-        if symbols and quorum is not None else 0
+        if symbols and quorum is not None
+        else 0
     )
     required_days = (
-        quorum.required_confirm_days
-        if quorum is not None
-        else self.cfg.strategic_cohort_confirm_days
+        quorum.required_confirm_days if quorum is not None else self.cfg.strategic_cohort_confirm_days
     )
     route_admission_open = strategic_route_admission_open(
         self,
@@ -844,28 +956,14 @@ def _record_ready_strategic_qualification(
         leaders=leaders,
     )
     streak = account.candidate_tenure["strategic_cohort_qualification"]
-    quorum_route = (
-        quorum.route.value
-        if quorum is not None
-        else StrategicQuorumRoute.NONE.value
-    )
-    unavailable = (
-        list(quorum.unavailable_references) if quorum is not None else []
-    )
+    quorum_route = quorum.route.value if quorum is not None else StrategicQuorumRoute.NONE.value
+    unavailable = list(quorum.unavailable_references) if quorum is not None else []
     evidence_status = (
         {
-            "INDUSTRY_CONFIRMATION": (
-                "CONFIRMED" if quorum.industry_confirmation else "FAILED"
-            ),
-            "MARKET_CONFIRMATION": (
-                "CONFIRMED" if quorum.market_confirmation else "FAILED"
-            ),
-            "OWNER_ABSOLUTE_QUALITY": (
-                "CONFIRMED" if quorum.owner_absolute_quality else "FAILED"
-            ),
-            "ROBUSTNESS_CONFIRMATION": (
-                "CONFIRMED" if quorum.robustness_confirmation else "DEGRADED"
-            ),
+            "INDUSTRY_CONFIRMATION": ("CONFIRMED" if quorum.industry_confirmation else "FAILED"),
+            "MARKET_CONFIRMATION": ("CONFIRMED" if quorum.market_confirmation else "FAILED"),
+            "OWNER_ABSOLUTE_QUALITY": ("CONFIRMED" if quorum.owner_absolute_quality else "FAILED"),
+            "ROBUSTNESS_CONFIRMATION": ("CONFIRMED" if quorum.robustness_confirmation else "DEGRADED"),
         }
         if quorum is not None
         else {}
@@ -893,11 +991,14 @@ def _record_ready_strategic_qualification(
     )
 
 
-
-
 def _observe_resolved_strategic_candidates(
-    self: StrategicPortfolioPolicy, *, date: pd.Timestamp, account: AccountState,
-    risk: RiskAssessment, panel: dict[str, pd.DataFrame], leaders: dict[str, LeaderScore],
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    account: AccountState,
+    risk: RiskAssessment,
+    panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
     universe: StrategicUniverseRoles,
 ) -> tuple[dict[str, dict[str, float]], dict[str, dict[str, int]]]:
     if account.candidate_tenure.get("strategic_repair_observed_session", 0) != date.toordinal():
@@ -905,61 +1006,104 @@ def _observe_resolved_strategic_candidates(
         account.candidate_tenure["strategic_repair_observed_session"] = date.toordinal()
     panel = {symbol: frame for symbol, frame in panel.items() if symbol in universe.available_symbols}
     snapshots = strategic_qualification_snapshots(self, date=date, user_panel=panel, leaders=leaders)
-    eligibility = observe_strategic_candidate_eligibility(date=date, snapshots=snapshots, leaders=leaders,
-                                           risk=risk, account=account, cfg=self.cfg,
-                                           independent_core_symbols=frozenset(
-                                               symbol for symbol in snapshots if strict_absolute_owner_quality(
-                                                   symbol=symbol, snapshots=snapshots, leaders=leaders, cfg=self.cfg)))
+    eligibility = observe_strategic_candidate_eligibility(
+        date=date,
+        snapshots=snapshots,
+        leaders=leaders,
+        risk=risk,
+        account=account,
+        cfg=self.cfg,
+        independent_core_symbols=frozenset(
+            symbol
+            for symbol in snapshots
+            if strict_absolute_owner_quality(
+                symbol=symbol, snapshots=snapshots, leaders=leaders, cfg=self.cfg
+            )
+        ),
+    )
     return snapshots, eligibility
 
 
 def observe_strategic_candidates(
-    self: StrategicPortfolioPolicy, *, date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
-    leaders: dict[str, LeaderScore], account: AccountState, risk: RiskAssessment,
+    self: StrategicPortfolioPolicy,
+    *,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
     qualification_panel: dict[str, pd.DataFrame] | None = None,
     qualification_leaders: dict[str, LeaderScore] | None = None,
     strategic_universe: StrategicUniverseRoles | None = None,
 ) -> dict[str, dict[str, int]]:
     """Observe account repair and all candidates before any grant/owner early return."""
     panel, scores, universe = resolve_strategic_qualification_inputs(
-        date=date, user_panel=user_panel, leaders=leaders, qualification_panel=qualification_panel,
-        qualification_leaders=qualification_leaders, strategic_universe=strategic_universe,
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
+        strategic_universe=strategic_universe,
     )
     _, eligibility = _observe_resolved_strategic_candidates(
-        self, date=date, account=account, risk=risk, panel=panel, leaders=scores, universe=universe,
+        self,
+        date=date,
+        account=account,
+        risk=risk,
+        panel=panel,
+        leaders=scores,
+        universe=universe,
     )
     return eligibility
 
 
 def _confirm_persistent_formation_entries(
-    self: StrategicPortfolioPolicy, *, qualified: QualifiedStrategicRoute,
-    entries: dict[str, dict[str, Any]], snapshots: dict[str, dict[str, float]],
-    leaders: dict[str, LeaderScore], account: AccountState, risk: RiskAssessment,
-    date: pd.Timestamp, user_panel: dict[str, pd.DataFrame],
+    self: StrategicPortfolioPolicy,
+    *,
+    qualified: QualifiedStrategicRoute,
+    entries: dict[str, dict[str, Any]],
+    snapshots: dict[str, dict[str, float]],
+    leaders: dict[str, LeaderScore],
+    account: AccountState,
+    risk: RiskAssessment,
+    date: pd.Timestamp,
+    user_panel: dict[str, pd.DataFrame],
 ) -> None:
     """Use current own long-cycle proof for a complete initial formation."""
     observed = account.strategic_qualification
-    if (qualified.route != "persistent_industry" or qualified.quorum_route != "FULL_COHORT"
-            or qualified.cash_rearm_authorized or not qualified.admission_authorized
-            or len(set(qualified.symbols)) < self.cfg.strategic_cohort_min_size
-            or not observed.qualification_ready
-            or observed.qualification_last_observed_session != str(date.date())):
+    if (
+        qualified.route != "persistent_industry"
+        or qualified.quorum_route != "FULL_COHORT"
+        or qualified.cash_rearm_authorized
+        or not qualified.admission_authorized
+        or len(set(qualified.symbols)) < self.cfg.strategic_cohort_min_size
+        or not observed.qualification_ready
+        or observed.qualification_last_observed_session != str(date.date())
+    ):
         return
     for symbol in qualified.symbols:
         entry = entries.get(symbol, {})
-        if (entry.get("block") not in {"READY", "STRUCTURE_NOT_REPAIRED"}
-                or entry.get("as_of") != str(date.date())
-                or entry.get("qualification_route") != "persistent_industry"
-                or entry.get("qualification_quorum") != "FULL_COHORT"
-                or entry.get("qualification_signature") != qualified.signature
-                or entry.get("qualification_evidence_sha256") != observed.qualification_evidence_sha256
-                or symbol not in user_panel or date not in user_panel[symbol].index
-                or not self._liquidity_confirmed(user_panel[symbol], date)
-                or strategic_candidate_confirmation(account=account, symbol=symbol,
-                    route="persistent_industry") < self.cfg.strategic_cohort_confirm_days
-                or not strategic_candidate_meets_route(candidate_symbol=symbol,
-                    qualification_route="persistent_industry", snapshots=snapshots,
-                    leaders=leaders, risk=risk, cfg=self.cfg)):
+        if (
+            entry.get("block") not in {"READY", "STRUCTURE_NOT_REPAIRED"}
+            or entry.get("as_of") != str(date.date())
+            or entry.get("qualification_route") != "persistent_industry"
+            or entry.get("qualification_quorum") != "FULL_COHORT"
+            or entry.get("qualification_signature") != qualified.signature
+            or entry.get("qualification_evidence_sha256") != observed.qualification_evidence_sha256
+            or symbol not in user_panel
+            or date not in user_panel[symbol].index
+            or not self._liquidity_confirmed(user_panel[symbol], date)
+            or strategic_candidate_confirmation(account=account, symbol=symbol, route="persistent_industry")
+            < self.cfg.strategic_cohort_confirm_days
+            or not strategic_candidate_meets_route(
+                candidate_symbol=symbol,
+                qualification_route="persistent_industry",
+                snapshots=snapshots,
+                leaders=leaders,
+                risk=risk,
+                cfg=self.cfg,
+            )
+        ):
             return
     for symbol in qualified.symbols:
         entries[symbol].update(block="READY", formation_quality="CONFIRMED_PERSISTENT")
@@ -992,8 +1136,13 @@ def _initialize_strategic_cohort(
         strategic_universe=strategic_universe,
     )
     reference_snapshots, _ = _observe_resolved_strategic_candidates(
-        self, date=date, account=account, risk=risk, panel=resolved_panel,
-        leaders=resolved_leaders, universe=resolved_universe,
+        self,
+        date=date,
+        account=account,
+        risk=risk,
+        panel=resolved_panel,
+        leaders=resolved_leaders,
+        universe=resolved_universe,
     )
     if account.active_strategic_epoch_id:
         return
@@ -1016,8 +1165,13 @@ def _initialize_strategic_cohort(
         _record_unavailable_strategic_candidate(account=account, user_panel=user_panel)
         return
     route = _select_qualified_strategic_route(
-        self, snapshots=snapshots, leaders=resolved_leaders, risk=risk, account=account,
-        reference_snapshots=reference_snapshots, strategic_universe=resolved_universe,
+        self,
+        snapshots=snapshots,
+        leaders=resolved_leaders,
+        risk=risk,
+        account=account,
+        reference_snapshots=reference_snapshots,
+        strategic_universe=resolved_universe,
         admission_open=admission_open,
     )
     qualified = _qualify_strategic_route(
@@ -1047,31 +1201,54 @@ def _initialize_strategic_cohort(
     if qualified is None or account.strategic_qualification.deployment_blocked:
         return
     if not qualified.cash_rearm_authorized and not _new_strategic_formation_open(
-        self, route=route, snapshots=snapshots, quorum_route=qualified.quorum_route,
+        self,
+        route=route,
+        snapshots=snapshots,
+        quorum_route=qualified.quorum_route,
         admission_open=admission_open,
     ):
         account.strategic_qualification.deployment_blocked = True
         account.strategic_qualification.deployment_block_reason = (
-            "strategic_market_opportunity_required" if route.route == "reversal_industry"
+            "strategic_market_opportunity_required"
+            if route.route == "reversal_industry"
             else "ordinary_trend_participation"
         )
         return
     certificates = current_core_qualification(
-        self, date=date, user_panel=user_panel, leaders=leaders, account=account, risk=risk,
-        qualification_panel=qualification_panel, qualification_leaders=qualification_leaders,
+        self,
+        date=date,
+        user_panel=user_panel,
+        leaders=leaders,
+        account=account,
+        risk=risk,
+        qualification_panel=qualification_panel,
+        qualification_leaders=qualification_leaders,
         strategic_universe=strategic_universe,
     )
     entry_eligibility = {
         symbol: candidate_entry(
-            self, symbol=symbol, score=leaders[symbol], date=date, user_panel=user_panel,
-            account=account, confirmation_days=self.cfg.leader_tenure_days,
+            self,
+            symbol=symbol,
+            score=leaders[symbol],
+            date=date,
+            user_panel=user_panel,
+            account=account,
+            confirmation_days=self.cfg.leader_tenure_days,
             certificate=certificates.get(symbol),
         )
-        for symbol in qualified.symbols if symbol in leaders and symbol in user_panel
+        for symbol in qualified.symbols
+        if symbol in leaders and symbol in user_panel
     }
     _confirm_persistent_formation_entries(
-        self, qualified=qualified, entries=entry_eligibility, snapshots=snapshots,
-        leaders=resolved_leaders, account=account, risk=risk, date=date, user_panel=user_panel,
+        self,
+        qualified=qualified,
+        entries=entry_eligibility,
+        snapshots=snapshots,
+        leaders=resolved_leaders,
+        account=account,
+        risk=risk,
+        date=date,
+        user_panel=user_panel,
     )
     activate_strategic_cohort(
         self,
@@ -1121,9 +1298,7 @@ def _observe_strategic_universe_and_repair(
     universe: StrategicUniverseRoles,
 ) -> None:
     account.strategic_tradable_universe_identity = universe.tradable_identity
-    account.strategic_qualification_universe_identity = (
-        universe.qualification_reference_identity
-    )
+    account.strategic_qualification_universe_identity = universe.qualification_reference_identity
     account.strategic_risk_universe_identity = universe.risk_reference_identity
     observe_flat_book_capital_repair_state(
         account=account,
@@ -1173,7 +1348,7 @@ def _observe_strategic_deployment(
             account=account,
             risk=risk,
             admission_open=(qualified.admission_authorized if qualified is not None else admission_open),
-                cash_rearm_authorized=False,
+            cash_rearm_authorized=False,
         )
         account.strategic_qualification.deployment_blocked = bool(block_reason)
         account.strategic_qualification.deployment_block_reason = block_reason
@@ -1198,12 +1373,11 @@ def _observe_strategic_deployment(
                 account=account,
                 risk=risk,
                 admission_open=qualified.admission_authorized,
-                        cash_rearm_authorized=True,
+                cash_rearm_authorized=True,
             )
             account.strategic_qualification.deployment_blocked = bool(block_reason)
             account.strategic_qualification.deployment_block_reason = block_reason
     return qualified
-
 
 
 initialize_strategic_cohort = _initialize_strategic_cohort

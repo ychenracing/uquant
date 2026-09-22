@@ -1,0 +1,162 @@
+{
+  "run": "35675388562",
+  "base": "7bc5cd5e20038c94ab5cf556ce107104692236ac",
+  "source_head": "9cf132ae5b12c2716642133a1a2f57d0380fba7d",
+  "python": "3.12.13 (main, Jun 16 2026, 22:05:08) [GCC 13.3.0]",
+  "tested_files": {
+    "tests/test_broker_sync.py": {
+      "bytes": 17625,
+      "sha256": "5634cefb617016cd4647e3c4ec6e4c12e24700f75e8843abf9ad9f128c9f5dbf",
+      "git_blob": "f05a259464cbac32719c8b88f9887995d25ef9fc"
+    },
+    "tests/test_cli_and_report.py": {
+      "bytes": 20837,
+      "sha256": "dfd478f8b43a12beba17eb0aff4affbbf6afa1db9984f1b08e10b835d32ccf50",
+      "git_blob": "2fdf00c42169957e9a16dc3d58531cf1697f4a0a"
+    },
+    "tests/test_code_audit_boundaries.py": {
+      "bytes": 7247,
+      "sha256": "e9eaeb3e6c35c6d86c3bd6b7024251da29b3452174c00feb6e6f14874651e0de",
+      "git_blob": "3686328c7b51e6e28ca008bdb41e48ae5dd013f8"
+    },
+    "tests/test_market_workspace.py": {
+      "bytes": 12693,
+      "sha256": "bcf3af674bc63ad343d013a633475e3d5d3140952875eaeb5eafba9c934cb139",
+      "git_blob": "d29daea1a812018ca673f20c780e521a630fabda"
+    },
+    "uquant/application/decision.py": {
+      "bytes": 37512,
+      "sha256": "0fef9b17119a77abc7087ec79d42400503e401c6254b6f4cffaccd5f1e19bb93",
+      "git_blob": "56897ecd3f190862bf7ec6955133eb0aa91cbacc"
+    },
+    "uquant/broker.py": {
+      "bytes": 35619,
+      "sha256": "4ddabaf3b0f965b49d75448fb7ba5cc08f4f18e5d871cd9a60ecdbf21ad40339",
+      "git_blob": "2081a9f94569bf258d06a5eb09c024c067d7a61a"
+    },
+    "uquant/broker_contract.py": {
+      "bytes": 9406,
+      "sha256": "c21007f1c16edfca041a380235eaec7cfdec5d279f8f86a0d1d598f9215620c1",
+      "git_blob": "0db6a515407836f66e6e3f175b054f0d7131272b"
+    },
+    "uquant/cli.py": {
+      "bytes": 16561,
+      "sha256": "7d880fc58f058dbcf157170d6713ce64f0d7079546a571545c40a6d3f2ab33d6",
+      "git_blob": "11d759bab22ae9c8659957414fc8d026edff5f80"
+    },
+    "uquant/engine.py": {
+      "bytes": 5639,
+      "sha256": "845cb088d0a8036b2174bac3d0ec47f8f79af553ac71f6d4e5ce9c2af0caf190",
+      "git_blob": "3481af7b8ffa45a8b037dcf7625657fa0cc916b1"
+    },
+    "uquant/leader.py": {
+      "bytes": 27727,
+      "sha256": "cb310a6ed671b0ff0633efda86ee7584f6e66fef51f9f034f5f3932c23cc9c90",
+      "git_blob": "efd2bd89c226bcaf7cb9cd0a9fbb020a62af6fb0"
+    }
+  },
+  "checks": [
+    {
+      "name": "imports",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--select",
+        "I",
+        "--fix",
+        "uquant/application/decision.py",
+        "uquant/broker.py",
+        "uquant/broker_contract.py",
+        "uquant/cli.py",
+        "uquant/engine.py",
+        "uquant/leader.py",
+        "tests/test_code_audit_boundaries.py"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35675388562/imports.txt.gz",
+      "output_bytes": 19,
+      "output_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "tail": "All checks passed!\n"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "uquant/application/decision.py",
+        "uquant/broker.py",
+        "uquant/broker_contract.py",
+        "uquant/cli.py",
+        "uquant/engine.py",
+        "uquant/leader.py",
+        "tests/test_code_audit_boundaries.py"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35675388562/lint.txt.gz",
+      "output_bytes": 19,
+      "output_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "tail": "All checks passed!\n"
+    },
+    {
+      "name": "types",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "mypy",
+        "uquant/application/decision.py",
+        "uquant/broker.py",
+        "uquant/broker_contract.py",
+        "uquant/cli.py",
+        "uquant/engine.py",
+        "uquant/leader.py"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35675388562/types.txt.gz",
+      "output_bytes": 43,
+      "output_sha256": "ab35ee42183d4d6d3ba483825ab037d18a5a15622d03be01d82220b1564851ff",
+      "tail": "Success: no issues found in 6 source files\n"
+    },
+    {
+      "name": "regressions",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "-q",
+        "tests/test_code_audit_boundaries.py",
+        "tests/test_broker_sync.py",
+        "tests/test_cli_and_report.py",
+        "tests/test_market_workspace.py"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35675388562/regressions.txt.gz",
+      "output_bytes": 160,
+      "output_sha256": "6692934017b7c49d882f90bacacdf46a1fb73798aa5057b4c7edfb9fb4d213af",
+      "tail": "........................................................................ [ 80%]\n.................                                                        [100%]\n"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "artifacts/code-audit-fix/logs/35675388562/diff-check.txt.gz",
+      "output_bytes": 0,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    }
+  ],
+  "passed": true,
+  "full_economic_acceptance": "NOT_RUN",
+  "main_merge": "NOT_AUTHORIZED"
+}

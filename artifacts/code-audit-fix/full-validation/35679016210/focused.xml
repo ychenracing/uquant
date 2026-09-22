@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="11" skipped="0" tests="47" time="248.535" timestamp="2026-09-22T02:20:11.847557+00:00" hostname="runnervmlun5p"><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_inventory_is_bound_to_immutable_blobs_and_reference_sets" time="7.238" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_source_surface_migration_is_exact_for_all_five_v1_surfaces" time="0.005"><failure message="AssertionError: assert {'uquant/__in...tore.py', ...} == {'uquant/__in...tore.py', ...}&#10;  &#10;  Extra items in the left set:&#10;  'uquant/models/ordinary_state.py'&#10;  &#10;  Full diff:&#10;    {&#10;        'uquant/__init__.py',&#10;        'uquant/account/__init__.py',&#10;        'uquant/account/code_identity.py',&#10;        'uquant/account/codec.py',&#10;        'uquant/account/economic_identity.py',&#10;        'uquant/account/store.py',&#10;        'uquant/account/validation_attribution.py',&#10;        'uquant/account/validation_common.py',&#10;        'uquant/account/validation_orders.py',&#10;        'uquant/account/validation_positions.py',&#10;        'uquant/account/validation_strategy.py',&#10;        'uquant/application/__init__.py',&#10;        'uquant/application/backtest.py',&#10;        'uquant/application/decision.py',&#10;        'uquant/application/market_observations.py',&#10;        'uquant/application/metrics.py',&#10;        'uquant/application/risk_timeline_cache.py',&#10;        'uquant/application/target_attribution.py',&#10;        'uquant/attribution/__init__.py',&#10;        'uquant/attribution/builder.py',&#10;        'uquant/attribution/concentration.py',&#10;        'uquant/attribution/diagnostics.py',&#10;        'uquant/attribution/ledger.py',&#10;        'uquant/attribution/replay_evidence.py',&#10;        'uquant/attribution/validation.py',&#10;        'uquant/attribution/validation_artifact.py',&#10;        'uquant/attribution/validation_lots.py',&#10;        'uquant/config/__init__.py',&#10;        'uquant/config/model.py',&#10;        'uquant/config/policies.py',&#10;        'uquant/config/validation/__init__.py',&#10;        'uquant/config/validation/execution.py',&#10;        'uquant/config/validation/market.py',&#10;        'uquant/config/validation/portfolio.py',&#10;        'uquant/config/validation/recovery.py',&#10;        'uquant/config/validation/risk.py',&#10;        'uquant/config/validation/sentinel.py',&#10;        'uquant/config/validation/strategic.py',&#10;        'uquant/config_governance.py',&#10;        'uquant/contracts/__init__.py',&#10;        'uquant/contracts/runtime_identity.py',&#10;        'uquant/contracts/source_surfaces.py',&#10;        'uquant/contracts/strict_json.py',&#10;        'uquant/contracts/universe.py',&#10;        'uquant/data.py',&#10;        'uquant/engine.py',&#10;        'uquant/execution/__init__.py',&#10;        'uquant/execution/fees.py',&#10;        'uquant/execution/market_constraints.py',&#10;        'uquant/execution/open_execution.py',&#10;        'uquant/execution/order_planning.py',&#10;        'uquant/execution/pending.py',&#10;        'uquant/execution/reconciliation.py',&#10;        'uquant/execution/tranches.py',&#10;        'uquant/features.py',&#10;        'uquant/holding_history.py',&#10;        'uquant/industry.py',&#10;        'uquant/infrastructure/__init__.py',&#10;        'uquant/infrastructure/atomic_files.py',&#10;        'uquant/infrastructure/git_source.py',&#10;        'uquant/leader.py',&#10;        'uquant/market/__init__.py',&#10;        'uquant/market/replay.py',&#10;        'uquant/market/workspace.py',&#10;        'uquant/market_risk.py',&#10;        'uquant/models/__init__.py',&#10;        'uquant/models/account.py',&#10;        'uquant/models/decision.py',&#10;        'uquant/models/enums.py',&#10;        'uquant/models/ordinary_entry.py',&#10;  +     'uquant/models/ordinary_state.py',&#10;        'uquant/models/strategic_epoch.py',&#10;        'uquant/models/strategic_grant.py',&#10;        'uquant/models/strategic_rearm.py',&#10;        'uquant/models/strategic_universe.py',&#10;        'uquant/models/trading.py',&#10;        'uquant/opportunity.py',&#10;        'uquant/ordinary_pullback.py',&#10;        'uquant/portfolio/__init__.py',&#10;        'uquant/portfolio/allocation_book.py',&#10;        'uquant/portfolio/allocator.py',&#10;        'uquant/portfolio/capital.py',&#10;        'uquant/portfolio/freeze.py',&#10;        'uquant/portfolio/leaders/__init__.py',&#10;        'uquant/portfolio/leaders/admission.py',&#10;        'uquant/portfolio/leaders/cycle.py',&#10;        'uquant/portfolio/leaders/lifecycle.py',&#10;        'uquant/portfolio/leaders/targets.py',&#10;        'uquant/portfolio/ordinary.py',&#10;        'uquant/portfolio/pipeline.py',&#10;        'uquant/portfolio/recovery/__init__.py',&#10;        'uquant/portfolio/recovery/admission.py',&#10;        'uquant/portfolio/recovery/cohort_admission.py',&#10;        'uquant/portfolio/recovery/current_cohort.py',&#10;        'uquant/portfolio/recovery/substitution.py',&#10;        'uquant/portfolio/recovery/tactical_admission.py',&#10;        'uquant/portfolio/recovery/targets.py',&#10;        'uquant/portfolio/risk_reduction.py',&#10;        'uquant/portfolio/strategic/__init__.py',&#10;        'uquant/portfolio/strategic/authority.py',&#10;        'uquant/portfolio/strategic/discovery.py',&#10;        'uquant/portfolio/strategic/grant_lifecycle.py',&#10;        'uquant/portfolio/strategic/lifecycle.py',&#10;        'uquant/portfolio/strategic/ownership.py',&#10;        'uquant/portfolio/strategic/qualification_candidates.py',&#10;        'uquant/portfolio/strategic/quorum.py',&#10;        'uquant/portfolio/strategic/rearm.py',&#10;        'uquant/portfolio/strategic/rearm_predicates.py',&#10;        'uquant/portfolio/strategic/targets.py',&#10;        'uquant/portfolio_core.py',&#10;        'uquant/portfolio_leaders.py',&#10;        'uquant/portfolio_recovery.py',&#10;        'uquant/portfolio_strategic.py',&#10;        'uquant/provenance/fingerprints.py',&#10;        'uquant/provenance/surfaces.py',&#10;        'uquant/reference.py',&#10;        'uquant/reference_registry.py',&#10;        'uquant/risk/__init__.py',&#10;        'uquant/risk/anchors.py',&#10;        'uquant/risk/assessment.py',&#10;        'uquant/risk/capital.py',&#10;        'uquant/risk/confirmed_break.py',&#10;        'uquant/risk/market_book.py',&#10;        'uquant/risk/protected_recovery.py',&#10;        'uquant/risk/pullback.py',&#10;        'uquant/risk/recovery_state.py',&#10;        'uquant/risk/strategic_guard.py',&#10;        'uquant/risk/transition_resolution.py',&#10;        'uquant/risk/transitions.py',&#10;        'uquant/risk_sector.py',&#10;        'uquant/risk_sentinel/__init__.py',&#10;        'uquant/risk_sentinel/coverage.py',&#10;        'uquant/risk_sentinel/evidence.py',&#10;        'uquant/risk_sentinel/history.py',&#10;        'uquant/risk_sentinel/history_cache.py',&#10;        'uquant/risk_sentinel/integration.py',&#10;        'uquant/risk_sentinel/models.py',&#10;        'uquant/risk_sentinel/opinion.py',&#10;        'uquant/risk_sentinel/service.py',&#10;        'uquant/types.py',&#10;    }">tests/architecture/test_execution_application_boundaries.py:498: in test_execution_source_surface_migration_is_exact_for_all_five_v1_surfaces
+    assert set(candidate[identifier]["source_paths"]) == expected_sources
+E   AssertionError: assert {'uquant/__in...tore.py', ...} == {'uquant/__in...tore.py', ...}
+E     
+E     Extra items in the left set:
+E     'uquant/models/ordinary_state.py'
+E     
+E     Full diff:
+E       {
+E           'uquant/__init__.py',
+E           'uquant/account/__init__.py',
+E           'uquant/account/code_identity.py',
+E           'uquant/account/codec.py',
+E           'uquant/account/economic_identity.py',
+E           'uquant/account/store.py',
+E           'uquant/account/validation_attribution.py',
+E           'uquant/account/validation_common.py',
+E           'uquant/account/validation_orders.py',
+E           'uquant/account/validation_positions.py',
+E           'uquant/account/validation_strategy.py',
+E           'uquant/application/__init__.py',
+E           'uquant/application/backtest.py',
+E           'uquant/application/decision.py',
+E           'uquant/application/market_observations.py',
+E           'uquant/application/metrics.py',
+E           'uquant/application/risk_timeline_cache.py',
+E           'uquant/application/target_attribution.py',
+E           'uquant/attribution/__init__.py',
+E           'uquant/attribution/builder.py',
+E           'uquant/attribution/concentration.py',
+E           'uquant/attribution/diagnostics.py',
+E           'uquant/attribution/ledger.py',
+E           'uquant/attribution/replay_evidence.py',
+E           'uquant/attribution/validation.py',
+E           'uquant/attribution/validation_artifact.py',
+E           'uquant/attribution/validation_lots.py',
+E           'uquant/config/__init__.py',
+E           'uquant/config/model.py',
+E           'uquant/config/policies.py',
+E           'uquant/config/validation/__init__.py',
+E           'uquant/config/validation/execution.py',
+E           'uquant/config/validation/market.py',
+E           'uquant/config/validation/portfolio.py',
+E           'uquant/config/validation/recovery.py',
+E           'uquant/config/validation/risk.py',
+E           'uquant/config/validation/sentinel.py',
+E           'uquant/config/validation/strategic.py',
+E           'uquant/config_governance.py',
+E           'uquant/contracts/__init__.py',
+E           'uquant/contracts/runtime_identity.py',
+E           'uquant/contracts/source_surfaces.py',
+E           'uquant/contracts/strict_json.py',
+E           'uquant/contracts/universe.py',
+E           'uquant/data.py',
+E           'uquant/engine.py',
+E           'uquant/execution/__init__.py',
+E           'uquant/execution/fees.py',
+E           'uquant/execution/market_constraints.py',
+E           'uquant/execution/open_execution.py',
+E           'uquant/execution/order_planning.py',
+E           'uquant/execution/pending.py',
+E           'uquant/execution/reconciliation.py',
+E           'uquant/execution/tranches.py',
+E           'uquant/features.py',
+E           'uquant/holding_history.py',
+E           'uquant/industry.py',
+E           'uquant/infrastructure/__init__.py',
+E           'uquant/infrastructure/atomic_files.py',
+E           'uquant/infrastructure/git_source.py',
+E           'uquant/leader.py',
+E           'uquant/market/__init__.py',
+E           'uquant/market/replay.py',
+E           'uquant/market/workspace.py',
+E           'uquant/market_risk.py',
+E           'uquant/models/__init__.py',
+E           'uquant/models/account.py',
+E           'uquant/models/decision.py',
+E           'uquant/models/enums.py',
+E           'uquant/models/ordinary_entry.py',
+E     +     'uquant/models/ordinary_state.py',
+E           'uquant/models/strategic_epoch.py',
+E           'uquant/models/strategic_grant.py',
+E           'uquant/models/strategic_rearm.py',
+E           'uquant/models/strategic_universe.py',
+E           'uquant/models/trading.py',
+E           'uquant/opportunity.py',
+E           'uquant/ordinary_pullback.py',
+E           'uquant/portfolio/__init__.py',
+E           'uquant/portfolio/allocation_book.py',
+E           'uquant/portfolio/allocator.py',
+E           'uquant/portfolio/capital.py',
+E           'uquant/portfolio/freeze.py',
+E           'uquant/portfolio/leaders/__init__.py',
+E           'uquant/portfolio/leaders/admission.py',
+E           'uquant/portfolio/leaders/cycle.py',
+E           'uquant/portfolio/leaders/lifecycle.py',
+E           'uquant/portfolio/leaders/targets.py',
+E           'uquant/portfolio/ordinary.py',
+E           'uquant/portfolio/pipeline.py',
+E           'uquant/portfolio/recovery/__init__.py',
+E           'uquant/portfolio/recovery/admission.py',
+E           'uquant/portfolio/recovery/cohort_admission.py',
+E           'uquant/portfolio/recovery/current_cohort.py',
+E           'uquant/portfolio/recovery/substitution.py',
+E           'uquant/portfolio/recovery/tactical_admission.py',
+E           'uquant/portfolio/recovery/targets.py',
+E           'uquant/portfolio/risk_reduction.py',
+E           'uquant/portfolio/strategic/__init__.py',
+E           'uquant/portfolio/strategic/authority.py',
+E           'uquant/portfolio/strategic/discovery.py',
+E           'uquant/portfolio/strategic/grant_lifecycle.py',
+E           'uquant/portfolio/strategic/lifecycle.py',
+E           'uquant/portfolio/strategic/ownership.py',
+E           'uquant/portfolio/strategic/qualification_candidates.py',
+E           'uquant/portfolio/strategic/quorum.py',
+E           'uquant/portfolio/strategic/rearm.py',
+E           'uquant/portfolio/strategic/rearm_predicates.py',
+E           'uquant/portfolio/strategic/targets.py',
+E           'uquant/portfolio_core.py',
+E           'uquant/portfolio_leaders.py',
+E           'uquant/portfolio_recovery.py',
+E           'uquant/portfolio_strategic.py',
+E           'uquant/provenance/fingerprints.py',
+E           'uquant/provenance/surfaces.py',
+E           'uquant/reference.py',
+E           'uquant/reference_registry.py',
+E           'uquant/risk/__init__.py',
+E           'uquant/risk/anchors.py',
+E           'uquant/risk/assessment.py',
+E           'uquant/risk/capital.py',
+E           'uquant/risk/confirmed_break.py',
+E           'uquant/risk/market_book.py',
+E           'uquant/risk/protected_recovery.py',
+E           'uquant/risk/pullback.py',
+E           'uquant/risk/recovery_state.py',
+E           'uquant/risk/strategic_guard.py',
+E           'uquant/risk/transition_resolution.py',
+E           'uquant/risk/transitions.py',
+E           'uquant/risk_sector.py',
+E           'uquant/risk_sentinel/__init__.py',
+E           'uquant/risk_sentinel/coverage.py',
+E           'uquant/risk_sentinel/evidence.py',
+E           'uquant/risk_sentinel/history.py',
+E           'uquant/risk_sentinel/history_cache.py',
+E           'uquant/risk_sentinel/integration.py',
+E           'uquant/risk_sentinel/models.py',
+E           'uquant/risk_sentinel/opinion.py',
+E           'uquant/risk_sentinel/service.py',
+E           'uquant/types.py',
+E       }</failure></testcase><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_responsibility_owners_replace_execution_monolith_and_engine_bodies" time="0.001" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_facade_and_decision_fanout_are_bounded" time="33.834"><failure message="AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]">tests/architecture/test_execution_application_boundaries.py:595: in test_execution_facade_and_decision_fanout_are_bounded
+    snapshot = architecture_snapshot()
+               ^^^^^^^^^^^^^^^^^^^^^^^
+tests/architecture/_analysis_debt.py:560: in architecture_snapshot
+    raise AssertionError(
+E   AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]</failure></testcase><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_private_edges_are_exactly_bound_to_the_mechanical_split" time="33.732"><failure message="AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]">tests/architecture/test_execution_application_boundaries.py:615: in test_execution_private_edges_are_exactly_bound_to_the_mechanical_split
+    graph = architecture_snapshot()["import_graph"]
+            ^^^^^^^^^^^^^^^^^^^^^^^
+tests/architecture/_analysis_debt.py:560: in architecture_snapshot
+    raise AssertionError(
+E   AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]</failure></testcase><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_exemption" time="33.791"><failure message="AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]">tests/architecture/test_execution_application_boundaries.py:648: in test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_exemption
+    snapshot = architecture_snapshot()
+               ^^^^^^^^^^^^^^^^^^^^^^^
+tests/architecture/_analysis_debt.py:560: in architecture_snapshot
+    raise AssertionError(
+E   AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]</failure></testcase><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_moved_definitions_are_mechanically_bound_to_immutable_source" time="0.630"><failure message="AssertionError: assert 'FunctionDef(...pe_params=[])' == 'FunctionDef(...pe_params=[])'&#10;  &#10;  Skipping 1470 identical leading characters in diff, use -v to show&#10;  - words=[]))], orelse=[])], decorator_list=[], returns=Constant(value=None), type_params=[])&#10;  + words=[])), Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='_leader_score_cache', ctx=Load()), attr='clear', ctx=Load()), args=[], keywords=[])), Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='_reversal_observation_cache', ctx=Load()), attr='clear', ctx=Load()), args=[], keywords=[])), Expr(value=Call(func=Attribute(value=Name(id='object', ctx=Load()), attr='__setattr__', ctx=Load()), args=[Name(id='self', ctx=Load()), Constant(value='_risk_timeline_cache_key'), Constant(value=None)], keywords=[])), Expr(value=Call(func=Attribute(value=Name(id='object', ctx=Load()), attr='__setattr__', ctx=Load()), args=[Name(id='self', ctx=Load()), Constant(value='_risk_timeline_cache'), Constant(value=None)], keywords=[]))], orelse=[])], decorator_list=[], returns=Constant(value=None), type_params=[])">tests/architecture/test_execution_application_boundaries.py:821: in test_execution_moved_definitions_are_mechanically_bound_to_immutable_source
+    assert ast.dump(candidate, include_attributes=False) == ast.dump(immutable, include_attributes=False)
+E   AssertionError: assert 'FunctionDef(...pe_params=[])' == 'FunctionDef(...pe_params=[])'
+E     
+E     Skipping 1470 identical leading characters in diff, use -v to show
+E     - words=[]))], orelse=[])], decorator_list=[], returns=Constant(value=None), type_params=[])
+E     + words=[])), Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='_leader_score_cache', ctx=Load()), attr='clear', ctx=Load()), args=[], keywords=[])), Expr(value=Call(func=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='_reversal_observation_cache', ctx=Load()), attr='clear', ctx=Load()), args=[], keywords=[])), Expr(value=Call(func=Attribute(value=Name(id='object', ctx=Load()), attr='__setattr__', ctx=Load()), args=[Name(id='self', ctx=Load()), Constant(value='_risk_timeline_cache_key'), Constant(value=None)], keywords=[])), Expr(value=Call(func=Attribute(value=Name(id='object', ctx=Load()), attr='__setattr__', ctx=Load()), args=[Name(id='self', ctx=Load()), Constant(value='_risk_timeline_cache'), Constant(value=None)], keywords=[]))], orelse=[])], decorator_list=[], returns=Constant(value=None), type_params=[])</failure></testcase><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_public_reflection_and_pickle_identities_remain_legacy" time="0.001" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_engine_imports_when_python_strips_docstrings_and_assertions" time="2.234" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_execution_engine_method_reflection_and_descriptors_match_immutable_source" time="0.030"><failure message="AssertionError: assert 'uquant.appli...imeline_cache' == 'uquant.engine'&#10;  &#10;  - uquant.engine&#10;  + uquant.application.risk_timeline_cache">tests/architecture/test_execution_application_boundaries.py:889: in test_execution_engine_method_reflection_and_descriptors_match_immutable_source
+    assert observed.__module__ == expected.__module__ == "uquant.engine"
+E   AssertionError: assert 'uquant.appli...imeline_cache' == 'uquant.engine'
+E     
+E     - uquant.engine
+E     + uquant.application.risk_timeline_cache</failure></testcase><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_engine_code_fingerprint_uses_reviewed_registry_membership_without_tree_discovery" time="0.071" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_engine_code_fingerprint_fails_closed_for_missing_and_symlinked_members" time="0.005" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[account=account, orders=orders, risk=risk, date=-account=account, orders=previous_orders, risk=risk, date=]" time="0.001"><failure message="assert 0 == 1&#10; +  where 0 = &lt;built-in method count of str object at 0x5556f64491d0&gt;('account=account, orders=orders, risk=risk, date=')&#10; +    where &lt;built-in method count of str object at 0x5556f64491d0&gt; = '&quot;&quot;&quot;Production daily-decision orchestration.&quot;&quot;&quot;\n\nfrom __future__ import annotations\n\nimport copy\nimport hashlib\n...\n\n\ndecision_config_for_universe = _decision_config_for_universe\nmark_account_positions = _mark_account_positions\n'.count">tests/architecture/test_execution_application_boundaries.py:1007: in test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies
+    assert source.count(before) == 1
+E   assert 0 == 1
+E    +  where 0 = &lt;built-in method count of str object at 0x5556f64491d0&gt;('account=account, orders=orders, risk=risk, date=')
+E    +    where &lt;built-in method count of str object at 0x5556f64491d0&gt; = '"""Production daily-decision orchestration."""\n\nfrom __future__ import annotations\n\nimport copy\nimport hashlib\n...\n\n\ndecision_config_for_universe = _decision_config_for_universe\nmark_account_positions = _mark_account_positions\n'.count</failure></testcase><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations-from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations, unrelated]" time="0.013" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_ordinary_binding_decision_rejects_stale_input_identity[code_hash=account.code_hash]" time="0.018" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_ordinary_binding_decision_rejects_stale_input_identity[data_hash=account.data_hash]" time="0.017" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[swap]" time="0.026" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[code]" time="0.018" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[data]" time="0.018" /><testcase classname="tests.architecture.test_execution_application_boundaries" name="test_ordinary_binding_cannot_precede_real_order_reconciliation" time="0.035" /><testcase classname="tests.architecture.test_portfolio_public_owners" name="test_architecture_portfolio_public_routes_preserve_exact_owner_identity" time="33.758"><failure message="AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]">tests/architecture/test_portfolio_public_owners.py:167: in test_architecture_portfolio_public_routes_preserve_exact_owner_identity
+    rows = _portfolio_rows()
+           ^^^^^^^^^^^^^^^^^
+tests/architecture/test_portfolio_public_owners.py:158: in _portfolio_rows
+    graph = architecture_snapshot()["import_graph"]
+            ^^^^^^^^^^^^^^^^^^^^^^^
+tests/architecture/_analysis_debt.py:560: in architecture_snapshot
+    raise AssertionError(
+E   AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]</failure></testcase><testcase classname="tests.architecture.test_portfolio_public_owners" name="test_architecture_portfolio_importers_keep_exact_local_legacy_bindings" time="33.732"><failure message="AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]">tests/architecture/test_portfolio_public_owners.py:187: in test_architecture_portfolio_importers_keep_exact_local_legacy_bindings
+    for row in _portfolio_rows():
+               ^^^^^^^^^^^^^^^^^
+tests/architecture/test_portfolio_public_owners.py:158: in _portfolio_rows
+    graph = architecture_snapshot()["import_graph"]
+            ^^^^^^^^^^^^^^^^^^^^^^^
+tests/architecture/_analysis_debt.py:560: in architecture_snapshot
+    raise AssertionError(
+E   AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]</failure></testcase><testcase classname="tests.architecture.test_portfolio_public_owners" name="test_architecture_portfolio_current_private_edges_are_closed" time="33.810"><failure message="AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]">tests/architecture/test_portfolio_public_owners.py:205: in test_architecture_portfolio_current_private_edges_are_closed
+    historical_ids = {str(row["id"]) for row in _portfolio_rows()}
+                                                ^^^^^^^^^^^^^^^^^
+tests/architecture/test_portfolio_public_owners.py:158: in _portfolio_rows
+    graph = architecture_snapshot()["import_graph"]
+            ^^^^^^^^^^^^^^^^^^^^^^^
+tests/architecture/_analysis_debt.py:560: in architecture_snapshot
+    raise AssertionError(
+E   AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]</failure></testcase><testcase classname="tests.architecture.test_portfolio_public_owners" name="test_architecture_portfolio_current_private_import_contract_is_closed" time="33.599"><failure message="AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]">tests/architecture/test_portfolio_public_owners.py:216: in test_architecture_portfolio_current_private_import_contract_is_closed
+    assert len(_portfolio_rows()) == 35
+               ^^^^^^^^^^^^^^^^^
+tests/architecture/test_portfolio_public_owners.py:158: in _portfolio_rows
+    graph = architecture_snapshot()["import_graph"]
+            ^^^^^^^^^^^^^^^^^^^^^^^
+tests/architecture/_analysis_debt.py:560: in architecture_snapshot
+    raise AssertionError(
+E   AssertionError: module authority map must be explicit and complete; missing=['uquant.models.ordinary_state'], stale=[]</failure></testcase><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_is_strict_canonical_json_with_exact_schema_and_compiled_seal" time="0.231" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_freezes_exact_absolute_policy_and_historical_baseline" time="0.326" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_still_rejects_current_economic_source_mismatch" time="0.292" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_rejects_duplicate_keys_and_nonfinite_json[{&quot;schema_version&quot;:1,&quot;schema_version&quot;:1}-duplicate JSON key]" time="0.002" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_rejects_duplicate_keys_and_nonfinite_json[{&quot;value&quot;:NaN}-nonstandard JSON constant]" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_rejects_duplicate_keys_and_nonfinite_json[{&quot;value&quot;:Infinity}-nonstandard JSON constant]" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_rejects_duplicate_keys_and_nonfinite_json[{&quot;value&quot;:-Infinity}-nonstandard JSON constant]" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_rejects_duplicate_keys_and_nonfinite_json[{&quot;value&quot;:1e999}-only finite numbers]" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_physical_reader_rejects_leaf_and_ancestor_symlinks[leaf]" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_physical_reader_rejects_leaf_and_ancestor_symlinks[ancestor]" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_ownership_authority_reader_rejects_symlinks" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_rejects_tampering_even_when_candidate_reseals_it" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_public_surface_has_only_reviewed_runtime_acceptance_paths" time="0.000" /><testcase classname="tests.test_absolute_generalization_contract" name="test_contract_sources_and_resource_are_registered_only_on_validation_surfaces" time="0.007" /><testcase classname="tests.test_absolute_generalization_contract" name="test_independent_identity_mismatch_fails_closed[git_source_surface_fingerprint-&lt;lambda&gt;-candidate source identity]" time="0.048" /><testcase classname="tests.test_absolute_generalization_contract" name="test_independent_identity_mismatch_fails_closed[config_fingerprint-&lt;lambda&gt;-effective config identity]" time="0.007" /><testcase classname="tests.test_absolute_generalization_contract" name="test_current_registry_authority_mismatch_fails_closed" time="0.001" /><testcase classname="tests.test_absolute_generalization_contract" name="test_policy_cannot_be_resealed_by_candidate[thresholds-minimum_positive_return_fraction-0.1]" time="0.002" /><testcase classname="tests.test_absolute_generalization_contract" name="test_policy_cannot_be_resealed_by_candidate[window-end-2026-08-04]" time="0.002" /><testcase classname="tests.test_absolute_generalization_contract" name="test_policy_cannot_be_resealed_by_candidate[inputs-ai_universe_sha256-1111111111111111111111111111111111111111111111111111111111111111]" time="0.002" /><testcase classname="tests.test_absolute_generalization_contract" name="test_policy_cannot_be_resealed_by_candidate[inputs-uv_lock_sha256-1111111111111111111111111111111111111111111111111111111111111111]" time="0.002" /><testcase classname="tests.test_absolute_generalization_contract" name="test_policy_cannot_be_resealed_by_candidate[frozen_baseline-champion_minimum_final_wealth-1.0]" time="0.002" /><testcase classname="tests.test_absolute_generalization_contract" name="test_runtime_config_identity_is_measured_without_rewriting_frozen_policy" time="0.324" /></testsuite></testsuites>

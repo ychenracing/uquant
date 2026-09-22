@@ -145,6 +145,7 @@ class _DecisionMarket:
     broad: pd.DataFrame
     tech: pd.DataFrame
     cfg: SystemConfig
+    scoring_opportunity: str
     reference_context: ReferenceContext
     reference_returns: pd.DataFrame | None
     structural_leaders: dict[str, LeaderScore]
@@ -182,16 +183,14 @@ class _ObservedDecisionFacts:
 
 
 @dataclass(frozen=True, slots=True)
-class _DecisionResult:
+class ObservedDecisionResult:
     decision: Decision
     observation: _ObservedDecisionFacts
 
 
 def _freeze_observed_fact(value: object) -> object:
     if isinstance(value, Mapping):
-        return MappingProxyType(
-            {str(key): _freeze_observed_fact(item) for key, item in value.items()}
-        )
+        return MappingProxyType({str(key): _freeze_observed_fact(item) for key, item in value.items()})
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return tuple(_freeze_observed_fact(item) for item in value)
     return value
@@ -221,20 +220,14 @@ def _declared_reference_roles(
 
     if declaration is None:
         return active_reference_symbols, active_reference_symbols
-    declared = set(declaration.qualification_reference_symbols) | set(
-        declaration.risk_reference_symbols
-    )
+    declared = set(declaration.qualification_reference_symbols) | set(declaration.risk_reference_symbols)
     allowed = set(workspace.filter_reference_symbols(declared))
     unknown = tuple(sorted(declared - allowed))
     if unknown:
         raise ValueError(f"strategic reference declaration is outside the production registry: {unknown}")
     active = set(active_reference_symbols)
     return (
-        tuple(
-            symbol
-            for symbol in declaration.qualification_reference_symbols
-            if symbol in active
-        ),
+        tuple(symbol for symbol in declaration.qualification_reference_symbols if symbol in active),
         tuple(symbol for symbol in declaration.risk_reference_symbols if symbol in active),
     )
 
@@ -385,7 +378,7 @@ def decision_market_context(
     combined.update(user_panel)
     broad = self._features["sh000300"]
     tech = self._features["sh000682"]
-    decision_cfg = _decision_config_for_universe(len(inputs.user_symbols), self.cfg)
+    decision_cfg = self.cfg
     reference_returns = self._reference_returns
     if reference_returns is not None:
         reference_returns = reference_returns.loc[
@@ -418,9 +411,7 @@ def decision_market_context(
         cfg=decision_cfg,
         universe=universe,
         role_absent_symbols=tuple(
-            symbol
-            for symbol in canonical_symbols
-            if symbol not in risk_reference_symbols
+            symbol for symbol in canonical_symbols if symbol not in risk_reference_symbols
         ),
     )
     return _DecisionMarket(
@@ -430,6 +421,7 @@ def decision_market_context(
         broad=broad,
         tech=tech,
         cfg=decision_cfg,
+        scoring_opportunity=account.opportunity,
         reference_context=reference_context,
         reference_returns=reference_returns,
         structural_leaders=structural_leaders,
@@ -535,7 +527,10 @@ def assess_decision_risk(
 
 
 def _record_final_allocation_trace(
-    *, risk: RiskAssessment, targets: tuple[Target, ...], orders: tuple[PendingOrder, ...],
+    *,
+    risk: RiskAssessment,
+    targets: tuple[Target, ...],
+    orders: tuple[PendingOrder, ...],
     planning: dict[str, dict[str, object]],
 ) -> None:
     """Bind allocator observations to the final risk-capped targets and reconciled intents."""
@@ -552,18 +547,30 @@ def _record_final_allocation_trace(
         row["final_target_weight"] = target.weight if target is not None else 0.0
         row["final_target_reason"] = target.reason if target is not None else "NO_TARGET"
         row["order_planning"] = planning.get(symbol, {"block": "NO_TARGET"})
-        row["orders"] = [{"side": order.side, "order_id": order.order_id, "event_id": order.event_id,
-                          "remaining_shares": order.remaining_shares}
-                         for order in orders if order.symbol == symbol]
+        row["orders"] = [
+            {
+                "side": order.side,
+                "order_id": order.order_id,
+                "event_id": order.event_id,
+                "remaining_shares": order.remaining_shares,
+            }
+            for order in orders
+            if order.symbol == symbol
+        ]
 
 
 def _retained_allocation_orders(
-    *, previous_orders: list[PendingOrder], risk: RiskAssessment,
+    *,
+    previous_orders: list[PendingOrder],
+    risk: RiskAssessment,
 ) -> list[PendingOrder]:
     """Carry allocator rejections through identity reuse and pending-order merge."""
     rows = risk.evidence.get("core_allocation", {}).get("symbols", {})
-    return [order for order in previous_orders
-            if order.side != "BUY" or rows.get(order.symbol, {}).get("pending_buy_rejected") is not True]
+    return [
+        order
+        for order in previous_orders
+        if order.side != "BUY" or rows.get(order.symbol, {}).get("pending_buy_rejected") is not True
+    ]
 
 
 def _allocate_decision_orders(
@@ -580,7 +587,8 @@ def _allocate_decision_orders(
     # lets any newly created grant bind the exact production source identity.
     bind_decision_account_identity(inputs=inputs, account=account)
     risk.evidence["decision_input_identity"] = {
-        "as_of": str(inputs.date.date()), "code_hash": inputs.current_code_hash,
+        "as_of": str(inputs.date.date()),
+        "code_hash": inputs.current_code_hash,
         "data_hash": inputs.data_digest,
     }
     structural_users = {
@@ -603,9 +611,9 @@ def _allocate_decision_orders(
     user_leaders = {symbol: all_leaders[symbol] for symbol in inputs.user_symbols if symbol in all_leaders}
     leader_factor_profile = (
         "TREND"
-        if opportunity in {Opportunity.STRONG_TREND, Opportunity.TREND}
+        if market.scoring_opportunity in {Opportunity.STRONG_TREND.value, Opportunity.TREND.value}
         else "RECOVERY"
-        if opportunity is Opportunity.RECOVERY
+        if market.scoring_opportunity == Opportunity.RECOVERY.value
         else "CHOPPY"
     )
     previous_orders = list(account.pending_orders)
@@ -663,11 +671,15 @@ def _allocate_decision_orders(
         removed_buy_reason="sentinel_freeze_new_risk" if sentinel_freeze_authorized(risk) else None,
     )
     bind_ordinary_entry_authorizations(
-        account=account, orders=orders, risk=risk, date=str(inputs.date.date()),
-        cfg=self.cfg, code_hash=inputs.current_code_hash, data_hash=inputs.data_digest,
+        account=account,
+        orders=orders,
+        risk=risk,
+        date=str(inputs.date.date()),
+        cfg=self.cfg,
+        code_hash=inputs.current_code_hash,
+        data_hash=inputs.data_digest,
     )
-    _record_final_allocation_trace(risk=risk, targets=targets, orders=orders,
-                                   planning=planning_diagnostics)
+    _record_final_allocation_trace(risk=risk, targets=targets, orders=orders, planning=planning_diagnostics)
     account.last_successful_run = str(inputs.date.date())
     account.data_hash = inputs.data_digest
     account.data_hash_as_of = str(inputs.date.date())
@@ -702,9 +714,9 @@ def bind_decision_account_identity(
             ",".join(inputs.current_symbols),
         )
     )
-    account.account_identity = "account_" + hashlib.sha256(
-        account_identity_payload.encode("utf-8")
-    ).hexdigest()
+    account.account_identity = (
+        "account_" + hashlib.sha256(account_identity_payload.encode("utf-8")).hexdigest()
+    )
 
 
 def _decision_strategic_universe(
@@ -717,13 +729,7 @@ def _decision_strategic_universe(
         **market.qualification_reference_panel,
         **market.user_panel,
     }
-    available = tuple(
-        sorted(
-            symbol
-            for symbol, frame in panels.items()
-            if inputs.date in frame.index
-        )
-    )
+    available = tuple(sorted(symbol for symbol, frame in panels.items() if inputs.date in frame.index))
     return build_strategic_universe_roles(
         as_of=str(inputs.date.date()),
         tradable_symbols=inputs.user_symbols,
@@ -751,7 +757,7 @@ def _finalize_decision_result(
     market: _DecisionMarket,
     allocation: _DecisionAllocation,
     account: AccountState,
-) -> _DecisionResult:
+) -> ObservedDecisionResult:
     decision = Decision(
         date=str(inputs.date.date()),
         opportunity=allocation.opportunity,
@@ -773,21 +779,13 @@ def _finalize_decision_result(
             "strategic_epoch": account.strategic_epoch,
             "strategic_candidate_signature": account.strategic_candidate_signature,
             "strategic_qualification": asdict(account.strategic_qualification),
-            "strategic_successor_qualification": asdict(
-                account.strategic_successor_qualification
-            ),
-            "strategic_grant": (
-                None
-                if account.strategic_grant is None
-                else asdict(account.strategic_grant)
-            ),
+            "strategic_successor_qualification": asdict(account.strategic_successor_qualification),
+            "strategic_grant": (None if account.strategic_grant is None else asdict(account.strategic_grant)),
             "strategic_epochs": [asdict(item) for item in account.strategic_epochs],
             "active_strategic_epoch_id": account.active_strategic_epoch_id,
             "strategic_universe_identities": {
                 "tradable": account.strategic_tradable_universe_identity,
-                "qualification_reference": (
-                    account.strategic_qualification_universe_identity
-                ),
+                "qualification_reference": (account.strategic_qualification_universe_identity),
                 "risk_reference": account.strategic_risk_universe_identity,
             },
             "flat_book_capital_repair": asdict(account.flat_book_capital_repair),
@@ -823,9 +821,7 @@ def _finalize_decision_result(
     )
     observation = _ObservedDecisionFacts(
         effective_config_sha256=config_fingerprint(market.cfg),
-        risk_assessment=cast(
-            Mapping[str, object], _freeze_observed_fact(asdict(allocation.risk))
-        ),
+        risk_assessment=cast(Mapping[str, object], _freeze_observed_fact(asdict(allocation.risk))),
         strategic_universe_roles=allocation.strategic_universe,
         strategic_qualification=cast(
             Mapping[str, object],
@@ -841,7 +837,7 @@ def _finalize_decision_result(
             _freeze_observed_fact(allocation.qualification_snapshots),
         ),
     )
-    return _DecisionResult(decision=finalized, observation=observation)
+    return ObservedDecisionResult(decision=finalized, observation=observation)
 
 
 def _decide_result(
@@ -856,7 +852,7 @@ def _decide_result(
     as_of: str,
     account: AccountState,
     strategic_universe_declaration: StrategicUniverseDeclaration | None = None,
-) -> _DecisionResult:
+) -> ObservedDecisionResult:
     """Produce one decision and its private lossless production observation.
 
     The account is advanced in place after all data, code, state, and
@@ -890,9 +886,13 @@ def _decide_result(
         evaluate_sentinel_fn=evaluate_sentinel_fn,
     )
     risk.evidence["reversal_observations"] = recent_reversal_observations(
-        data=self.data, cfg=market.cfg, date=inputs.date,
-        panel={**market.qualification_reference_panel, **market.user_panel}, tech=market.tech,
-        allocator=self.allocator, score_cache=self._leader_score_cache,
+        data=self.data,
+        cfg=market.cfg,
+        date=inputs.date,
+        panel={**market.qualification_reference_panel, **market.user_panel},
+        tech=market.tech,
+        allocator=self.allocator,
+        score_cache=self._leader_score_cache,
         observation_cache=self._reversal_observation_cache,
     )
     allocation = _allocate_decision_orders(

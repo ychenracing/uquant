@@ -24,7 +24,7 @@
 
 ### 日常加载
 
-`account-init`、`daily`、`backtest` 共用可选 `--config settings.json`。
+`account-init`、`account-sync`、`daily`、`backtest` 共用可选 `--config settings.json`。
 省略时使用默认设置。JSON 只接受上表公开键，省略键使用默认值；拒绝重复键、
 固定规则覆盖、非有限数值、未知键、布尔冒充数值及生产 `SHADOW` 模式。
 

@@ -91,6 +91,12 @@ uv run uquant account-sync \
   --snapshot broker_snapshot.json
 ```
 
+使用自定义配置初始化的账户，同步时也必须提供相同的 `--config settings.json`；
+`daily --broker-snapshot` 会将同一有效配置传入对账与决策，两者不能各用一套限制。
+
+券商 JSON 必须是对象，重复键会被拒绝。`cash` 必须明确给出：零现金合法，缺失现金不是零。
+日期先解析再比较时间先后，新导入的快照和成交日期规范化为 `YYYY-MM-DD`；旧账户记录不回写。
+
 快照顶层至少包含：
 
 | 字段 | 含义 |

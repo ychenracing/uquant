@@ -444,6 +444,33 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
             )
     # Derive import-mode expectations from the same independent reflection
     # structure, changing only Python -OO's documented removal of docstrings.
+    # Explicit methods keep signatures, descriptors, class identity and pickle
+    # bytes. Only their true source module and absent wrapper docstrings change;
+    # production code no longer fabricates historical reflection metadata.
+    declared_owners = {
+        "PortfolioAllocator": ("uquant.portfolio.allocator", (
+            "_confirmed_recovery_gross", "_risk_attribution_mechanism",
+            "_risk_retention_score", "_risk_retention_vector", "_risk_lifecycle_rank",
+            "_subset_retention_vector", "_sparse_risk_reduce", "_risk_reduction_metadata",
+            "_turnover_aware_sector_cap", "allocate", "_commit_frozen_exit_state",
+            "_frozen_existing_targets", "_allocate_strategy",
+        )),
+        "LeaderPortfolioPolicy": ("uquant.portfolio.leaders.admission", (
+            "_cap_opportunity_gross", "_conviction_shares", "_conviction_evidence_qualified",
+            "_session_clock", "_session_distance", "_correlations", "_admission_utility",
+            "_dynamic_k", "_rotation_allowed", "_retention_score",
+            "_leader_lifecycle_exit_confirmed", "_industry_handoff",
+        )),
+        "StrategicPortfolioPolicy": ("uquant.portfolio.strategic.discovery", (
+            "_bounded_strategic_restore_risk_open", "_retire_strategic_member",
+            "_initialize_strategic_cohort", "_strategic_cohort_targets",
+        )),
+    }
+    for class_name, (module, methods) in declared_owners.items():
+        for method_name in methods:
+            method = classes[class_name]["methods"][method_name]
+            method["module"] = module
+            method["raw_docstring"] = None
     stripped = json.loads(json.dumps(expected["normal"]))
     for contract in stripped["classes"].values():
         contract["raw_docstring"] = None
@@ -1083,11 +1110,11 @@ def test_portfolio_leaders_private_and_complexity_relocations_are_exact() -> Non
 
 @pytest.mark.parametrize("replacement", ['event.get("event") == ENTRY', "True"])
 def test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events(replacement):
-    source = (ROOT / "uquant/portfolio/allocator.py").read_text(encoding="utf-8")
+    source = (ROOT / "uquant/portfolio/freeze.py").read_text(encoding="utf-8")
     original = 'event.get("event") == GRADUATION'
     assert source.count(original) == 1
     with pytest.raises(AssertionError):
         expand_portfolio_allocator_method(
             root=ROOT, relative="uquant/portfolio/allocator.py", name="allocate", candidate=None,
-            overrides={"uquant/portfolio/allocator.py": source.replace(original, replacement)},
+            overrides={"uquant/portfolio/freeze.py": source.replace(original, replacement)},
         )

@@ -488,6 +488,16 @@ def production_observation_transport_unit_digests(
                     "release_error": ("cleanup_error", 4),
                 },
             )
+        if name == "_observation_lock":
+            _assert_exact(
+                projected.body[1],
+                _statement("identity = str(root.resolve(strict=False)).encode()"),
+                label="repository-wide observation lock identity",
+            )
+            assert ast.get_docstring(projected) == (
+                "Serialize transactions sharing the repository holdout prefix and outputs."
+            )
+            projected.body[0:2] = copy.deepcopy(frozen[name].body[0:2])
         _assert_exact(projected, frozen[name], label=f"typed seam owner {name}")
         projected_functions.append(projected)
 
@@ -524,6 +534,14 @@ def production_observation_transport_unit_digests(
             "uquant_main": 1,
         },
     )
+    append_calls = [node for node in ast.walk(run) if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name) and node.func.id == "append_holdout_snapshot"]
+    assert len(append_calls) == 1
+    expected_session = [keyword for keyword in append_calls[0].keywords if keyword.arg == "expected_session"]
+    assert len(expected_session) == 1
+    _assert_exact(expected_session[0].value, ast.parse("args.date", mode="eval").body,
+                  label="append expected session precondition")
+    append_calls[0].keywords.remove(expected_session[0])
     _assert_exact(
         run,
         frozen["run_production_observation"],

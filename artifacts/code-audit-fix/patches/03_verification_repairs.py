@@ -1,0 +1,3 @@
+"""Repair the concrete first-run typing and fixture failures, not the guards."""
+replace('uquant/engine.py', '            self._risk_timeline_cache_key = None\n            self._risk_timeline_cache = None\n', '            object.__setattr__(self, "_risk_timeline_cache_key", None)\n            object.__setattr__(self, "_risk_timeline_cache", None)\n')
+replace('tests/test_code_audit_boundaries.py', '    account = AccountState.empty(cfg.initial_cash)\n    account.account_migrations.append', '    account = AccountState.empty(cfg.initial_cash)\n    account.data_hash = "fixture-data"\n    account.code_hash = "fixture-code"\n    account.account_migrations.append')

@@ -1,0 +1,142 @@
+{
+  "input_head": "0f6eaa155729cacd3be2ec46fddc8dc10f4ae9d3",
+  "checks": [
+    {
+      "name": "apply-fixtures",
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.13/x64/bin/python",
+        "artifacts/code-audit-fix/full-validation/followup-repairs.py"
+      ],
+      "exit_code": 0,
+      "tail": ""
+    },
+    {
+      "name": "api-evolution",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "artifacts/code-audit-fix/full-validation/api-evolution.py"
+      ],
+      "exit_code": 0,
+      "tail": "{\"delta_sha256\": \"2d8f970ba4b4e3b49b7306c6774060d2ca84ec1b97e9fa9fc6fe26afc7230415\", \"bytes\": 108113, \"modules\": [\"uquant\", \"uquant.application\", \"uquant.application.backtest\", \"uquant.application.decision\", \"uquant.broker_contract\", \"uquant.engine\", \"uquant.models.ordinary_state\", \"uquant.portfolio.allocator\", \"uquant.portfolio.freeze\", \"uquant.validation.holdout.service\", \"uquant.validation.holdout_runtime\"], \"result_sha256\": \"d75e3c6d0b0f449dbf67a49c7f42bc9968bfcd7feee5f90d9df9276c401951c5\"}\n"
+    },
+    {
+      "name": "imports",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--select",
+        "I",
+        "--fix",
+        "tests/_lifecycle_restoration_risk_cases.py",
+        "tests/architecture/test_current_allocation_book.py",
+        "tests/architecture/test_public_api_contracts.py",
+        "tests/architecture/test_risk_boundaries.py",
+        "tests/architecture/_code_audit_api_projection.py"
+      ],
+      "exit_code": 0,
+      "tail": "Found 1 error (1 fixed, 0 remaining).\n"
+    },
+    {
+      "name": "lint",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "ruff",
+        "check",
+        "tests/_lifecycle_restoration_risk_cases.py",
+        "tests/architecture/test_current_allocation_book.py",
+        "tests/architecture/test_public_api_contracts.py",
+        "tests/architecture/test_risk_boundaries.py",
+        "tests/architecture/_code_audit_api_projection.py"
+      ],
+      "exit_code": 0,
+      "tail": "All checks passed!\n"
+    },
+    {
+      "name": "api-and-boundaries",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "-vv",
+        "--tb=short",
+        "tests/architecture/test_public_api_contracts.py",
+        "tests/architecture/test_current_allocation_book.py",
+        "tests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape",
+        "tests/architecture/test_risk_boundaries.py::test_risk_source_surface_migration_is_exact_and_requirements_stay_bound",
+        "tests/architecture/test_validation_boundaries.py::test_validation_policy_relocation_is_closed_and_source_bound",
+        "tests/architecture/test_validation_boundaries.py::test_validation_policy_resigned_relocation_tamper_is_rejected",
+        "tests/architecture/test_portfolio_public_owners.py",
+        "tests/architecture/test_portfolio_boundaries.py::test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events",
+        "tests/test_code_audit_structure.py::test_explicit_delegate_check_rejects_non_equivalent_forwarding",
+        "tests/test_lifecycle_and_risk.py::test_failed_restoration_retires_strategic_restore_before_early_return"
+      ],
+      "exit_code": 0,
+      "tail": "uquant/uquant\nconfigfile: pyproject.toml\nplugins: cov-7.1.0, hypothesis-6.165.2\ncollecting ... collected 33 items\n\ntests/architecture/test_public_api_contracts.py::test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_current_contract PASSED [  3%]\ntests/architecture/test_public_api_contracts.py::test_public_api_contract_uses_current_governance_identity PASSED [  6%]\ntests/architecture/test_public_api_contracts.py::test_cli_help_covers_every_declared_script_and_nested_parser PASSED [  9%]\ntests/architecture/test_current_allocation_book.py::test_moved_book_rejects_authority_mutations[uquant/portfolio/allocation_book.py-min(self.policy.cfg.max_gross, self.risk.target_gross_cap)-self.policy.cfg.max_gross] PASSED [ 12%]\ntests/architecture/test_current_allocation_book.py::test_moved_book_rejects_authority_mutations[uquant/portfolio/allocation_book.py-gross_cap=self.gross_cap,-gross_cap=1.0,] PASSED [ 15%]\ntests/architecture/test_current_allocation_book.py::test_moved_book_rejects_authority_mutations[uquant/portfolio/allocation_book.py-self.cash_room -= max(0.0, increment - reserved)-self.account.cash -= max(0.0, increment - reserved)] PASSED [ 18%]\ntests/architecture/test_current_allocation_book.py::test_moved_book_rejects_authority_mutations[uquant/portfolio/pipeline.py-from .allocation_book import AllocationBook-from .capital import AllocationBook] PASSED [ 21%]\ntests/architecture/test_current_allocation_book.py::test_moved_book_rejects_authority_mutations[uquant/portfolio/pipeline.py-owned, strategic_targets, proposed, committed, cash_room,)-owned, strategic_targets, proposed, committed, 1.0,)] PASSED [ 24%]\ntests/architecture/test_current_allocation_book.py::test_current_book_topology_passes PASSED [ 27%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/holding_history.py-if position.entry_date <= boundary:-if True:] PASSED [ 30%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/holding_history.py-position = account.positions.get(symbol)-account.max_exposure = 1.0\\n    position = account.positions.get(symbol)] PASSED [ 33%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/protected_recovery.py-retained.setdefault(symbol,-retained.update(symbol,] PASSED [ 36%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/protected_recovery.py-else protected_weights_for_current_episode(account)-else account.protected_weights] PASSED [ 39%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/protected_recovery.py-from ..holding_history import-from ..other_history import] PASSED [ 42%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/confirmed_break.py-equity=ctx.equity,-equity=ctx.equity, use_anchors=False,] PASSED [ 45%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/transition_resolution.py-use_anchors=False-use_anchors=True] PASSED [ 48%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/transitions.py-account=account, date=ctx.date, user_panel=ctx.user_panel, equity=ctx.equity,-account=account, date=ctx.date, user_panel=ctx.reference_panel, equity=ctx.equity,] PASSED [ 51%]\ntests/architecture/test_risk_boundaries.py::test_current_holding_protection_gate_rejects_semantic_escape[uquant/risk/transitions.py-concentrated_break = (shock_rearmed and not protected_weights_for_current_episode(account)-concentrated_break = (shock_rearmed and not account.protected_weights] PASSED [ 54%]\ntests/architecture/test_risk_boundaries.py::test_risk_source_surface_migration_is_exact_and_requirements_stay_bound PASSED [ 57%]\ntests/architecture/test_validation_boundaries.py::test_validation_policy_relocation_is_closed_and_source_bound PASSED [ 60%]\ntests/architecture/test_validation_boundaries.py::test_validation_policy_resigned_relocation_tamper_is_rejected PASSED [ 63%]\ntests/architecture/test_portfolio_public_owners.py::test_architecture_portfolio_public_routes_preserve_exact_owner_identity PASSED [ 66%]\ntests/architecture/test_portfolio_public_owners.py::test_architecture_portfolio_importers_keep_exact_local_legacy_bindings PASSED [ 69%]\ntests/architecture/test_portfolio_public_owners.py::test_architecture_portfolio_current_private_edges_are_closed PASSED [ 72%]\ntests/architecture/test_portfolio_public_owners.py::test_architecture_portfolio_current_private_import_contract_is_closed PASSED [ 75%]\ntests/architecture/test_portfolio_boundaries.py::test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events[event.get(\"event\") == ENTRY] PASSED [ 78%]\ntests/architecture/test_portfolio_boundaries.py::test_allocator_sentinel_copy_rejects_entry_or_unfiltered_events[True] PASSED [ 81%]\ntests/test_code_audit_structure.py::test_explicit_delegate_check_rejects_non_equivalent_forwarding[swap] PASSED [ 84%]\ntests/test_code_audit_structure.py::test_explicit_delegate_check_rejects_non_equivalent_forwarding[missing] PASSED [ 87%]\ntests/test_code_audit_structure.py::test_explicit_delegate_check_rejects_non_equivalent_forwarding[extra_state] PASSED [ 90%]\ntests/test_code_audit_structure.py::test_explicit_delegate_check_rejects_non_equivalent_forwarding[wrong_owner] PASSED [ 93%]\ntests/test_lifecycle_and_risk.py::test_failed_restoration_retires_strategic_restore_before_early_return[capital drawdown relapse in restored holdings] PASSED [ 96%]\ntests/test_lifecycle_and_risk.py::test_failed_restoration_retires_strategic_restore_before_early_return[market-backed portfolio break in incomplete restoration] PASSED [100%]\n\n======================== 33 passed in 156.45s (0:02:36) ========================\n"
+    },
+    {
+      "name": "remaining-governance",
+      "command": [
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "-x",
+        "-vv",
+        "--tb=short",
+        "tests/architecture/test_execution_application_boundaries.py",
+        "tests/architecture/test_architecture_governance.py"
+      ],
+      "exit_code": 124,
+      "tail": "n_application_boundaries.py::test_execution_public_reflection_and_pickle_identities_remain_legacy PASSED [  8%]\ntests/architecture/test_execution_application_boundaries.py::test_execution_engine_imports_when_python_strips_docstrings_and_assertions PASSED [  9%]\ntests/architecture/test_execution_application_boundaries.py::test_execution_engine_method_reflection_and_descriptors_match_immutable_source PASSED [ 10%]\ntests/architecture/test_execution_application_boundaries.py::test_engine_code_fingerprint_uses_reviewed_registry_membership_without_tree_discovery PASSED [ 11%]\ntests/architecture/test_execution_application_boundaries.py::test_engine_code_fingerprint_fails_closed_for_missing_and_symlinked_members PASSED [ 12%]\ntests/architecture/test_execution_application_boundaries.py::test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[account=account, orders=orders, risk=risk, date=-account=account, orders=previous_orders, risk=risk, date=] PASSED [ 13%]\ntests/architecture/test_execution_application_boundaries.py::test_decision_rearm_owner_rejects_unregistered_orders_or_extra_dependencies[from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations-from ..portfolio.strategic.rearm import bind_ordinary_entry_authorizations, unrelated] PASSED [ 14%]\ntests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_decision_rejects_stale_input_identity[code_hash=account.code_hash] PASSED [ 15%]\ntests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_decision_rejects_stale_input_identity[data_hash=account.data_hash] PASSED [ 16%]\ntests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[swap] PASSED [ 17%]\ntests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[code] PASSED [ 18%]\ntests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_wrapper_rejects_order_or_identity_mutation[data] PASSED [ 20%]\ntests/architecture/test_execution_application_boundaries.py::test_ordinary_binding_cannot_precede_real_order_reconciliation PASSED [ 21%]\ntests/architecture/test_architecture_governance.py::test_governance_inventory_matches_immutable_start_tree_and_is_not_self_signed PASSED [ 22%]\ntests/architecture/test_architecture_governance.py::test_governance_inventory_covers_exact_start_debt_files_seams_and_reproducibility PASSED [ 23%]\ntests/architecture/test_architecture_governance.py::test_architecture_cli_help_and_failure_seams_match_immutable_start PASSED [ 24%]\ntests/architecture/test_architecture_governance.py::test_architecture_governed_test_units_and_assertions_are_bidirectionally_preserved PASSED [ 25%]\ntests/architecture/test_architecture_governance.py::test_architecture_test_relocation_inventory_rejects_unknown_missing_and_duplicate_paths PASSED [ 26%]\ntests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_authorities.py-\"uquant.portfolio.pipeline\": \"production_safe\",-\"uquant.portfolio.pipeline\": \"validation_runner\",] PASSED [ 27%]\ntests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_authorities.py-\"uquant.risk.market_book\",-\"uquant.risk.market_book_typo\",] PASSED [ 28%]\ntests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_debt.py-root, source_texts, governed_source_texts-root, dict(source_texts or {}), governed_source_texts] PASSED [ 29%]\ntests/architecture/test_architecture_governance.py::test_architecture_analysis_legacy_transport_rejects_unknown_live_governance_mutation[tests/architecture/_analysis_debt.py-*governed_private_edges[\"qualified\"],-*governed_private_edges[\"direct\"],] PASSED [ 30%]\ntests/architecture/test_architecture_governance.py::test_architecture_risk_test_transport_rejects_unknown_call_arguments[architecture_source_surface_projection(identifier, expected)-architecture_source_surface_projection(identifier, set(expected))] PASSED [ 31%]\ntests/architecture/test_architecture_governance.py::test_architecture_risk_test_transport_rejects_unknown_call_arguments[architecture_risk_historical_base_lines(root=ROOT, current_row=base)-architecture_risk_historical_base_lines(root=ROOT, current_row=dict(base))] PASSED [ 32%]\ntests/architecture/test_architecture_governance.py::test_architecture_policy_evaluation_uses_exact_owned_contract_identities PASSED [ 33%]\ntests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[raw, files, status_value = _validated_backup_manifest(root)-raw, files, status_value = _validated_backup_manifest(Path(root))] PASSED [ 34%]\ntests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[root=root,\\n            account=account,-root=Path(root),\\n            account=account,] PASSED [ 35%]\ntests/architecture/test_architecture_governance.py::test_architecture_production_observation_transport_rejects_unknown_stage_arguments[_validate_backup_inventory(root, files)-_validate_backup_carriers(root, files)] PASSED [ 36%]\ntests/architecture/test_architecture_governance.py::test_architecture_governed_cli_units_are_bidirectionally_preserved_in_owned_layers PASSED [ 37%]\ntests/architecture/test_architecture_governance.py::test_architecture_analyzer_mutations_expose_unknown_debt_instead_of_filtering_it PASSED [ 38%]\ntests/architecture/test_architecture_governance.py::test_architecture_cross_private_debt_is_zero_without_renamed_exemptions PASSED [ 40%]\ntests/architecture/test_architecture_governance.py::test_architecture_mutable_global_debt_is_genuinely_immutable "
+    }
+  ],
+  "logs": [
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35683876795/apply-fixtures.txt.gz",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35683876795/api-evolution.txt.gz",
+      "raw_bytes": 500,
+      "raw_sha256": "2aa0026defe104edeefc39c4ce9d84d21ce7ad0398b6939b593768ba23e2d627",
+      "sha256": "0489cbb43ffcbfe0b5edc0c2b345e8b9ebe4fa77179ed7eab1a75c72433c275e"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35683876795/imports.txt.gz",
+      "raw_bytes": 38,
+      "raw_sha256": "aac3a0503d8b95052cc85fb9f1717dc82b74aa55853a5aa9749b41e30275d472",
+      "sha256": "ccb76413606c8f301d68c9f8982efabd190de2c6928c4d01387e979788566341"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35683876795/lint.txt.gz",
+      "raw_bytes": 19,
+      "raw_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "sha256": "47f394a1497b1873bc6e6d6f9bb92aa51b990821f1ddd7770a933ffd29c456cd"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35683876795/api-and-boundaries.txt.gz",
+      "raw_bytes": 6383,
+      "raw_sha256": "8c5fe7a58fdd5753ffb6abbebda153a226d92ee30f87940b82be916a1c8ab998",
+      "sha256": "b47cf7330e9d848d24b02d3d103fab825875b8b80824f2489d9346037f542ebc"
+    },
+    {
+      "path": "artifacts/code-audit-fix/full-validation/35683876795/remaining-governance.txt.gz",
+      "raw_bytes": 7568,
+      "raw_sha256": "3c5c8e3274a3ed15e6d261697ff8d45ad15f504b93408bcb65c183add5000e42",
+      "sha256": "c0ceeb30cf3e7260dceeb3641cc58aa3abc1875c2721924de8a0d529147c57c7"
+    }
+  ],
+  "tested_source": "023877453c2176a2f9399c93ef595b86e7c0d6cf",
+  "passed": false
+}

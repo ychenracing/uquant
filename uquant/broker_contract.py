@@ -5,10 +5,20 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import date as date_type
-from typing import Any
+from pathlib import Path
+from typing import Any, cast
 
+from .contracts.strict_json import strict_json_loads
 from .models.trading import late_strategic_fill_allowed as _late_strategic_fill_allowed
 from .types import AccountOrder, AccountState, Fill, OrderStatus
+
+
+def load_broker_snapshot(path: str | Path) -> dict[str, Any]:
+    """Read an unambiguous broker object before any account mutation."""
+    payload = strict_json_loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("broker snapshot must be a JSON object")
+    return cast(dict[str, Any], payload)
 
 
 @dataclass(frozen=True, slots=True)
@@ -176,11 +186,16 @@ def _validate_order_fill_continuations(
             key=lambda item: (item[0], item[1] if item[1] is not None else 0, item[3]),
         )
         order = next((item for item in account.order_ledger if item.order_id == order_id), None)
-        if order is not None and order.status in {
-            OrderStatus.FILLED.value,
-            OrderStatus.CANCELLED.value,
-            OrderStatus.REPLACED.value,
-        } and not _late_strategic_fill_allowed(order):
+        if (
+            order is not None
+            and order.status
+            in {
+                OrderStatus.FILLED.value,
+                OrderStatus.CANCELLED.value,
+                OrderStatus.REPLACED.value,
+            }
+            and not _late_strategic_fill_allowed(order)
+        ):
             raise ValueError("broker cannot append a fill to a terminal account order")
         if order is not None and order.last_update_date and order.filled_shares:
             last_update = broker_date(order.last_update_date, field="order last_update_date")

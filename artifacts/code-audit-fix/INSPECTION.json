@@ -1,0 +1,101 @@
+{
+  "base": "898d2ab1f5b1a3eb8a30d43f758f0461c313c699",
+  "instructions": {
+    "AGENTS.md": "# uquant working agreement\n\n## Scope and working method\n\nFollow the current task's explicit scope and acceptance criteria within platform permissions. Preserve business, security, data, economic and release contracts. Read applicable nested `AGENTS.md` before editing that directory. Historical plans are context, not new authority; analysis-only and approval-before-edit requests remain read-only until authorized.\n\nFor continuation work, read `PROJECT_STATE.md`, resolve mutable branch/PR/SHA/check/artifact facts from GitHub, and inspect existing local changes. Resume matching work. Consult `.github/CHATGPT_PROJECT_BRIEF.md` only for relevant architecture, commands or boundaries; read the active diff and affected files, expanding for uncertainty or impact. Reuse unchanged context rather than preloading history, skills or logs.\n\nSkills provide methods, not additional authorization, approval or stopping gates. Respect platform requirements, but do not impose repeated design confirmations, mandatory full workflows or ceremonial announcements on bounded authorized work. Prefer existing implementation/dependencies and the smallest sufficient change. Plan material decisions, batch related edits, and keep one writer per shared file, branch, runtime or evidence identity.\n\n## Testing and economic evidence\n\n- Use risk-based, minimum sufficient verification based on changed behavior and real call paths. Do not enforce Superpowers TDD or fresh-verification-per-message workflows. Tests may precede or follow implementation; never delete working code solely because it was written before a test. For defects, prefer a minimal reproduction and necessary regression coverage; reuse existing tests rather than adding redundant or brittle implementation-detail assertions.\n- Run the failing case and directly affected checks first. Expand for concrete cross-module risk, uncertain impact or an explicit applicable acceptance requirement. Neither each small edit nor each final delivery automatically requires every tool, the full suite or a complete economic matrix.\n- Reuse evidence while covered behavior, tests, dependencies, configuration, data and relevant environment remain equivalent. For economic evidence, assess the relevant production tree, data manifest, universe, runtime lock and runner. Only affected evidence is invalidated. Messages, handoffs, commits, pushes or new SHAs alone do not require rerunning unchanged checks. Record the actual tested source and reuse scope; never present an old CI result as a new HEAD result. Actual required checks and explicit exact-revision acceptance still apply.\n- Behavior-neutral documentation/provenance changes need only relevant format, link, command or documentation-contract checks. Instruction edits also require ambiguity, duplication, conflict, authorization and completion-boundary review. Do not recompute unrelated economic results. Executable inputs, generated configuration and parsed documentation are not automatically behavior-neutral.\n- For strategy, funds, orders, risk, security or persistent-data changes, verify affected invariants and necessary integration/replay paths. Before an expensive matrix, validate runner, schema, attribution, failure retention and readback with a small representative sentinel set. Run full/expensive validation on a stable candidate only when impact or the applicable delivery contract requires it; a partial matrix is not full acceptance.\n- Review the task diff once and repeat focused review after material changes. Reuse existing tests and logs, not a new verification framework. Report verified, reused, unrun and failed items with their scope. Never weaken frozen thresholds, inputs, scenarios, attribution or guards to pass; preserve failed and historical evidence and actual repository protections.\n\n## Execution, Git and recovery\n\nContinue safe authorized work without repeated requests to continue. Read to resolve factual ambiguity; ask only for a necessary decision that cannot be resolved safely. Authorization does not imply spending, live trading, credential/permission changes, irreversible actions, unrelated writes or scheduled-task changes.\n\nResume the matching branch/PR; new work uses a feature branch unless a direct default-branch update is explicitly authorized. Preserve required reviews/checks and any PR-only policy. Save coherent milestones, push authorized changes and verify the remote SHA. Keep mutable recovery state in the existing PR; do not create empty bootstrap commits or routine process files/Issues. Without explicit authorization, do not reset, clean, rebase, force-push, rewrite history, delete branches/worktrees, discard unknown work or overwrite unrelated changes. Never commit secrets.\n\nA failed check or candidate calls for diagnosis and an evidence-supported correction or bounded alternative, not task termination or repetitive trials. Stay within scope and budget, retain failures and continue independent work past local blockers. Finish when applicable acceptance and actual required checks are satisfied; do not add marginal optimization afterward. A checkpoint, PR or partial pass alone is not completion. If no safe authorized action remains, preserve recoverable progress and report completed, failed, blocked and unverified items without promising background completion.\n\n## Documentation boundary\n\n`README.md`, current `docs/` guides and accepted ADRs describe the current system. Frozen `artifacts/**` evidence remains historical and must not be rewritten as current results.\n\n## Git/GitHub transfer and preservation\n\n- Inspect object identities, sizes and outgoing paths before transfers; select necessary files and reuse unchanged references, not entire working directories. Prefer authorized native Git or file-aware programmatic transfer; when unavailable, use the authorized connector without extracting credentials or asking the user to perform the transfer. Do not repeat a confirmed-failed transport.\n- Keep large bodies out of model/tool output and arguments: no complete Base64, huge JSON, archives, full logs or chunk-then-giant-request uploads. Prefer file-to-file transfer, selective/range reads and bounded excerpts. String-only connectors are for small recoverable batches.\n- Required large originals still need preservation. Use supported resumable or deterministic multipart transport where necessary, recording order, offsets, raw/encoded lengths and hashes. Verify byte-for-byte reconstruction and expected Git/LFS object identities where applicable. Separate blobs are not append operations; a summary/hash is not a backup.\n- Keep large transfers bounded and serial. Reuse a concise ledger of local/remote locations, identities and verification status; inspect state after interruption before retrying. Verify final local bytes and remote tree/commit/ref or storage manifest, not merely a created blob. Report unpreserved originals and temporary-runtime loss risk while continuing independent work. Never replace required evidence with summaries or rewrite historical evidence.\n\n## Cloud execution continuity\n\nFor cloud engineering tasks, use [the cloud runner](tools/cloud_guard/README.md) by default for long local commands and external writes. On first execution or recovery, run `python -m tools.cloud_guard inspect`; reconcile any same-name unfinished operation before retrying. Run long commands through `python -m tools.cloud_guard run --name <stable-operation> --timeout <appropriate-seconds> -- <command>`. This automatically records the command and preserves a verified local checkpoint; it does not automatically upload it. Use `begin`/`finish` around connector writes, then record actual remote readback. Ordinary short reads need no wrapper.\n\nReuse the existing PR/handoff for task state and add only the journal location, last verified operation and unconfirmed writes. Preserve required originals through an authorized channel before environment loss; never publish private command logs without reviewing their content. The Absolute and Ownership shard workflows record commands automatically. AGENTS instructions are not a platform hook: before-first-tool model failures and an already-lost container remain unobservable here. Do not claim to prevent or cure Thinking failed, infer OOM from SIGKILL alone, or replay unknown writes automatically. Keep this machinery outside strategy behavior and economic acceptance.\n"
+  },
+  "tests": [
+    "tests/_engine_account_and_metrics_cases.py",
+    "tests/_engine_decision_state_cases.py",
+    "tests/_engineering_holdout_observation_cases.py",
+    "tests/_engineering_provenance_universe_cases.py",
+    "tests/architecture/_cli_transport.py",
+    "tests/architecture/_compatibility_baseline.py",
+    "tests/architecture/_compatibility_validation_runtime.py",
+    "tests/architecture/_portfolio_inventory.py",
+    "tests/architecture/_portfolio_trace.py",
+    "tests/architecture/_portfolio_trace_reference.py",
+    "tests/architecture/_portfolio_transport.py",
+    "tests/architecture/test_compatibility_contracts.py",
+    "tests/architecture/test_import_contracts.py",
+    "tests/architecture/test_market_boundaries.py",
+    "tests/architecture/test_portfolio_boundaries.py",
+    "tests/architecture/test_portfolio_public_owners.py",
+    "tests/architecture/test_private_import_contracts.py",
+    "tests/fixtures/compatibility_config_validation_contract.json",
+    "tests/fixtures/market_contract_baseline.json",
+    "tests/test_account_broker_schema.py",
+    "tests/test_broker_sync.py",
+    "tests/test_cli_and_report.py",
+    "tests/test_engine_contracts.py",
+    "tests/test_engineering_gate_edges.py",
+    "tests/test_independent_market_confirmation.py",
+    "tests/test_market_cache.py",
+    "tests/test_market_replay.py",
+    "tests/test_market_workspace.py",
+    "tests/test_mature_market_rearm.py",
+    "tests/test_opportunity_capture_audit.py",
+    "tests/test_portfolio_calendar.py",
+    "tests/test_reversal_market_admission.py",
+    "tests/test_risk_sentinel_cli.py",
+    "tests/test_validation_cli.py"
+  ],
+  "matches": {
+    "core_transfer:": [
+      {
+        "path": "uquant/models/ordinary_state.py",
+        "line": 19,
+        "context": "16: \n17:     @property\n18:     def key(self) -> str:\n19:         return f\"core_transfer:{self.incumbent}->{self.challenger}\"\n20: \n21:     @property\n22:     def session_key(self) -> str:\n23:         return f\"core_transfer_session:{self.incumbent}->{self.challenger}\""
+      },
+      {
+        "path": "uquant/models/ordinary_state.py",
+        "line": 68,
+        "context": "65: \n66: def transfers(account: AccountState) -> tuple[CoreTransfer, ...]:\n67:     return tuple(\n68:         CoreTransfer.from_key(key) for key in account.replacement_tenure if key.startswith(\"core_transfer:\")\n69:     )\n70: \n71: \n72: def _repair_origin_key(order_id: str, event_id: str) -> str:"
+      }
+    ],
+    "core_transfer_session:": [
+      {
+        "path": "uquant/models/ordinary_state.py",
+        "line": 23,
+        "context": "20: \n21:     @property\n22:     def session_key(self) -> str:\n23:         return f\"core_transfer_session:{self.incumbent}->{self.challenger}\"\n24: \n25:     @classmethod\n26:     def from_key(cls, key: str) -> CoreTransfer:\n27:         prefix, separator, pair = key.partition(\":\")"
+      }
+    ],
+    "ordinary_repair_origin:": [
+      {
+        "path": "uquant/models/ordinary_state.py",
+        "line": 73,
+        "context": "70: \n71: \n72: def _repair_origin_key(order_id: str, event_id: str) -> str:\n73:     return f\"ordinary_repair_origin:{order_id}:{event_id}\"\n74: \n75: \n76: def repair_origin_recorded(account: AccountState, order_id: str, event_id: str) -> bool:\n77:     return account.candidate_tenure.get(_repair_origin_key(order_id, event_id)) == 1"
+      },
+      {
+        "path": "uquant/models/ordinary_state.py",
+        "line": 88,
+        "context": "85: def clear_repair_origins(account: AccountState) -> None:\n86:     account.candidate_tenure.pop(\"ordinary_repair_capital_active\", None)\n87:     for key in tuple(account.candidate_tenure):\n88:         if key.startswith(\"ordinary_repair_origin:\"):\n89:             account.candidate_tenure.pop(key)"
+      }
+    ],
+    "market-backed portfolio break in incomplete restoration": [
+      {
+        "path": "uquant/risk/confirmed_break.py",
+        "line": 127,
+        "context": "124: def _confirmed_break_reason(ctx: ConfirmedBreakContext) -> str:\n125:     return {\n126:         \"DYNAMIC_COHORT_BREAK\": \"confirmed dynamic cohort structural break\",\n127:         \"INCOMPLETE_RESTORATION_BREAK\": \"market-backed portfolio break in incomplete restoration\",\n128:         \"MARKET_BACKED_RESTORATION_RELAPSE\": \"market-backed drawdown relapse in restored holdings\",\n129:         \"CAPITAL_RESTORATION_RELAPSE\": \"capital drawdown relapse in restored holdings\",\n130:         \"RESERVE_BACKED_TAIL_GUARD\": \"reserve-backed incomplete-universe tail guard\",\n131:         \"UNBACKED_CAPITAL_EXIT\": \"unbacked incomplete-universe capital exit\","
+      },
+      {
+        "path": "uquant/risk/recovery_state.py",
+        "line": 208,
+        "context": "205:             reason\n206:             in {\n207:                 \"market-backed drawdown relapse in restored holdings\",\n208:                 \"market-backed portfolio break in incomplete restoration\",\n209:             }\n210:             for reason in event.get(\"reasons\", ())\n211:             if isinstance(reason, str)\n212:         ):"
+      }
+    ],
+    "capital drawdown relapse in restored holdings": [
+      {
+        "path": "uquant/risk/confirmed_break.py",
+        "line": 129,
+        "context": "126:         \"DYNAMIC_COHORT_BREAK\": \"confirmed dynamic cohort structural break\",\n127:         \"INCOMPLETE_RESTORATION_BREAK\": \"market-backed portfolio break in incomplete restoration\",\n128:         \"MARKET_BACKED_RESTORATION_RELAPSE\": \"market-backed drawdown relapse in restored holdings\",\n129:         \"CAPITAL_RESTORATION_RELAPSE\": \"capital drawdown relapse in restored holdings\",\n130:         \"RESERVE_BACKED_TAIL_GUARD\": \"reserve-backed incomplete-universe tail guard\",\n131:         \"UNBACKED_CAPITAL_EXIT\": \"unbacked incomplete-universe capital exit\",\n132:         \"STRATEGIC_CAPITAL_GUARD\": \"confirmed strategic cohort capital guard\",\n133:         \"CONCENTRATED_LEADER_BREAK\": \"confirmed concentrated leader break\","
+      }
+    ],
+    "capital guard cooldown after failed restoration": [
+      {
+        "path": "uquant/risk/transitions.py",
+        "line": 525,
+        "context": "522:         target_gross_cap=0.0,\n523:         votes=ctx.votes,\n524:         evidence=evidence,\n525:         reasons=(\"capital guard cooldown after failed restoration\",),\n526:         shock_state=\"CAPITAL_GUARD_COOLDOWN\",\n527:         freeze_new_risk=True,\n528:         reduction_level=3,\n529:         severity=\"SEVERE\","
+      }
+    ]
+  }
+}

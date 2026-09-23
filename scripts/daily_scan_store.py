@@ -159,16 +159,26 @@ def preserve_execution_logs(log_root: Path, checkout: Path) -> str:
     store = open_private_store(checkout)
     prefix = f"runs/{run_id}-{attempt}"
     paths = []
-    for name in ("bootstrap.log", "scan.log", "cloud.zip", "cloud.zip.receipt.json"):
-        origin = log_root / name
+    originals = [(log_root / name, name) for name in
+                 ("bootstrap.log", "scan.log", "cloud.zip", "cloud.zip.receipt.json")]
+    operation = log_root.parent / "operation"
+    if operation.is_dir():
+        # Preserve an unpublished result/account after a publication failure, not just logs.
+        # The checked-out Git database is not a run original and must not be archived.
+        originals.extend((path, "recovery/" + path.relative_to(operation).as_posix())
+                         for path in sorted(operation.rglob("*"))
+                         if path.is_file() and path.relative_to(operation).parts[0] != "state")
+    for origin, relative in originals:
         if origin.is_file():
+            if origin.is_symlink():
+                raise RuntimeError("refusing a linked execution original")
             before = fingerprint(origin)
-            destination = store.root / prefix / name
+            destination = safe_path(store.root, prefix + "/" + relative)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(origin, destination)
             if fingerprint(origin) != before or fingerprint(destination) != before:
-                raise RuntimeError("log changed during preservation")
-            paths.append(f"{prefix}/{name}")
+                raise RuntimeError("execution original changed during preservation")
+            paths.append(f"{prefix}/{relative}")
     if not paths:
         raise ValueError("no completed execution logs available")
     put_json(store.root, prefix + "/manifest.json", {path: fingerprint(store.root / path) for path in paths})

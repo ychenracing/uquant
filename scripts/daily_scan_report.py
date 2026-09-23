@@ -130,6 +130,7 @@ def render_report(payload: dict[str, Any], production_report: str) -> str:
                   display(row["leader"]), display(row["qualification"]), display(row["risk_limits"]),
                   display(actions) if actions else "未生成订单意图（不等于持有或允许买入）", display((row["target"] or {}).get("weight"))]
         lines.append(" | ".join(values))
-    lines.extend(["", "目标权重以0—1表示；订单只是下一可交易日人工核对的意图，不是成交。", "",
-                  "## 生产系统完整原始日报", "", production_report])
+    lines.extend(["", "目标权重以0—1表示；订单只是下一可交易日人工核对的意图，不是成交。", ""])
+    if production_report:
+        lines.extend(["## 生产系统完整原始日报", "", production_report])
     return "\n".join(lines) + "\n"

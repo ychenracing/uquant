@@ -110,6 +110,7 @@ def test_data_failure_keeps_diagnostics_but_publishes_no_account(tmp_path, monke
     _, store = stores(tmp_path)
     work = tmp_path / "work"
     work.mkdir()
+
     def fail_refresh(root, _day, _previous):
         put_json(root, "input_audit.json", {"failures": {"symbol": "missing close"}})
         raise ValueError("missing close")
@@ -132,6 +133,7 @@ def test_real_production_engine_two_sessions_and_duplicate_guard(tmp_path, monke
     data = DataStore(data_dir)
     sessions = data.common_sessions(symbols, "2026-01-01", "2026-08-05")
     dates = [str(date.date()) for date in sessions[-3:]]
+
     def fixture_refresh(root, day, _previous):
         root.mkdir()
         for symbol in symbols:
@@ -150,3 +152,24 @@ def test_real_production_engine_two_sessions_and_duplicate_guard(tmp_path, monke
         assert prior_result(store.root, context)["target_date"] == day
     monkeypatch.setattr(daily_scan, "refresh_inputs", lambda *_: pytest.fail("duplicate refresh/decision"))
     assert daily_scan.run_once(store, work, context, "b" * 40, "duplicate-run")["status"] == "REUSED"
+
+
+def test_preservation_keeps_unpublished_originals_without_git_database(tmp_path, monkeypatch):
+    from scripts import daily_scan_store
+
+    _, store = stores(tmp_path)
+    logs = tmp_path / "run" / "logs"
+    logs.mkdir(parents=True)
+    (logs / "scan.log").write_text("private scan output")
+    candidate = logs.parent / "operation" / "candidate-test"
+    put_json(candidate, "result.json", {"status": "COMPLETE"})
+    put_json(candidate, "account_after.json", {"not_published": True})
+    put_json(logs.parent / "operation" / "state" / ".git", "config", {"exclude": True})
+    monkeypatch.setenv("GITHUB_RUN_ID", "123")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "1")
+    monkeypatch.setattr(daily_scan_store, "open_private_store", lambda _: store)
+    daily_scan_store.preserve_execution_logs(logs, tmp_path / "unused")
+    prefix = store.root / "runs" / "123-1"
+    assert (prefix / "recovery/candidate-test/result.json").read_bytes() == (candidate / "result.json").read_bytes()
+    assert (prefix / "recovery/candidate-test/account_after.json").read_bytes() == (candidate / "account_after.json").read_bytes()
+    assert not (prefix / "recovery/state").exists()

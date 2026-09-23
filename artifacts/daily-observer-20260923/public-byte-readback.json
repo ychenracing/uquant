@@ -1,0 +1,43 @@
+{
+  "run_id": 35811276217,
+  "artifact_id": 10729432722,
+  "head_sha": "03078ae55f9229df15b9363473b5f9b2cf532168",
+  "archive_digest_verified": true,
+  "files": [
+    {
+      "path": ".github/workflows/bootstrap-check.yml",
+      "size": 1052,
+      "sha256": "a1f8d53be72cb3bbbf03df76b8cec1cb9e3e10a3f8bfb7c9ff32fb9a0c0a8b9c",
+      "git_blob_sha": "53c2ceda90550937429f4cb304be8722776e7251",
+      "byte_equal": true
+    },
+    {
+      "path": ".github/workflows/uquant-daily-report.yml",
+      "size": 1032,
+      "sha256": "cbc7e1208b12a4bc8ed3272939ffc82df4c51d21243b944b4a49f5ca1eb99d58",
+      "git_blob_sha": "426676d7414c64975c720f141729a5964f775ada",
+      "byte_equal": true
+    },
+    {
+      "path": "README.md",
+      "size": 2016,
+      "sha256": "6ba8f77fd4f4ef95853df577be661bb3fdc20ef197686ec1aaef91c32e53a295",
+      "git_blob_sha": "68e5418622dff35e44ae2fa31762addcbb830297",
+      "byte_equal": true
+    },
+    {
+      "path": "scripts/run_private_daily.py",
+      "size": 4604,
+      "sha256": "d519ba3f0005f3bde3752f330b923cf692a1742d91919a83dc51b02f5164e17a",
+      "git_blob_sha": "f4f5cca05bf99b36042fa4329770aa187af8479a",
+      "byte_equal": true
+    },
+    {
+      "path": "tests/test_bootstrap.py",
+      "size": 1775,
+      "sha256": "4de282a5ee7693e91936284f9dc78dc19ae2b69d6a9678dc7425d1cc54cc7d35",
+      "git_blob_sha": "7569bd9f41b4183d180209866611e57a48998029",
+      "byte_equal": true
+    }
+  ]
+}

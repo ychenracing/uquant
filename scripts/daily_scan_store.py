@@ -10,9 +10,12 @@ import subprocess
 import tempfile
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-REPORT_REPOSITORY = "ychenracing/uquant"
+if TYPE_CHECKING:
+    from scripts.daily_scan_public import PublicReportStore
+
+REPORT_REPOSITORY = "geniusgrok/uquant-cli"
 REPORT_BRANCH = "uquant-daily-reports"
 
 
@@ -49,17 +52,17 @@ def verify_manifest(root: Path, manifest: dict[str, Any]) -> None:
             raise ValueError("preserved report bytes differ: " + relative)
 
 
-def require_private_destination(token: str) -> None:
+def require_report_destination(token: str) -> None:
     if not token:
-        raise RuntimeError("PRIVATE_DELIVERY_UNCONFIGURED")
+        raise RuntimeError("REPORT_WRITE_TOKEN_UNAVAILABLE")
     request = urllib.request.Request(
         "https://api.github.com/repos/" + REPORT_REPOSITORY,
         headers={"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json"},
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         metadata = json.load(response)
-    if metadata.get("full_name") != REPORT_REPOSITORY or metadata.get("private") is not True:
-        raise RuntimeError("report destination must remain the approved private repository")
+    if metadata.get("full_name") != REPORT_REPOSITORY or metadata.get("private") is not False:
+        raise RuntimeError("report destination must be the approved public runner repository")
 
 
 class GitStore:
@@ -94,11 +97,11 @@ class GitStore:
     def publish(self, paths: list[str], message: str) -> str:
         for relative in paths:
             safe_path(self.root, relative)
-        token = os.environ.get("UQUANT_REPORT_WRITE_TOKEN", "")
+        token = os.environ.get("GITHUB_TOKEN", "")
         if self.remote.startswith("https://"):
             if self.remote != "https://github.com/" + REPORT_REPOSITORY + ".git":
                 raise RuntimeError("unapproved report destination")
-            require_private_destination(token)
+            require_report_destination(token)
         self.git("add", "--", *paths)
         self.git("commit", "--quiet", "-m", message)
         expected = self.git("rev-parse", "HEAD").stdout.decode().strip()
@@ -136,20 +139,22 @@ class GitStore:
         return actual
 
 
-def open_private_store(root: Path) -> GitStore:
-    """The read-only source token is deliberately never a persistence fallback."""
-    token = os.environ.get("UQUANT_REPORT_WRITE_TOKEN", "")
-    require_private_destination(token)
+def open_private_store(root: Path) -> PublicReportStore:
+    """Open a private working view backed by public reports and sealed state."""
+    from scripts.daily_scan_public import PublicReportStore
+    token = os.environ.get("GITHUB_TOKEN", "")
+    require_report_destination(token)
     env = os.environ.copy()
     authorization = base64.b64encode(("x-access-token:" + token).encode()).decode()
     env.update({"GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_COUNT": "1",
                 "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
                 "GIT_CONFIG_VALUE_0": "AUTHORIZATION: basic " + authorization})
-    return GitStore(root, "https://github.com/" + REPORT_REPOSITORY + ".git", env)
+    repository = GitStore(root.parent / (root.name + "-remote"), "https://github.com/" + REPORT_REPOSITORY + ".git", env)
+    return PublicReportStore(root, repository, os.environ.get("UQUANT_STATE_PASSPHRASE", ""))
 
 
 def preserve_execution_logs(log_root: Path, checkout: Path) -> str:
-    """Archive only closed, explicitly named logs through the private writer."""
+    """Seal closed execution originals before writing to the public runner repository."""
     import shutil
 
     run_id = os.environ.get("GITHUB_RUN_ID", "")
@@ -160,14 +165,14 @@ def preserve_execution_logs(log_root: Path, checkout: Path) -> str:
     prefix = f"runs/{run_id}-{attempt}"
     paths = []
     originals = [(log_root / name, name) for name in
-                 ("bootstrap.log", "scan.log", "cloud.zip", "cloud.zip.receipt.json")]
+                 ("bootstrap.log", "scan.log", "cloud.zip", "cloud.zip.receipt.json", "junit.xml", "lint.json")]
     operation = log_root.parent / "operation"
     if operation.is_dir():
         # Preserve an unpublished result/account after a publication failure, not just logs.
         # The checked-out Git database is not a run original and must not be archived.
         originals.extend((path, "recovery/" + path.relative_to(operation).as_posix())
                          for path in sorted(operation.rglob("*"))
-                         if path.is_file() and path.relative_to(operation).parts[0] != "state")
+                         if path.is_file() and path.relative_to(operation).parts[0] not in {"state", "state-remote"})
     for origin, relative in originals:
         if origin.is_file():
             if origin.is_symlink():
@@ -188,7 +193,7 @@ def preserve_execution_logs(log_root: Path, checkout: Path) -> str:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Preserve closed observer logs privately")
+    parser = argparse.ArgumentParser(description="Preserve closed observer logs as encrypted originals")
     parser.add_argument("--logs", type=Path, required=True)
     parser.add_argument("--checkout", type=Path, required=True)
     options = parser.parse_args()

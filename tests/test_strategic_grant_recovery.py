@@ -264,11 +264,25 @@ def test_remainder_successor_keeps_registered_quantity_across_next_open_drift(
                     "volume": 10_000_000.0,
                     "amount": 10_000_000.0 * next_open,
                 },
+                {
+                    "date": "2026-01-08",
+                    "open": next_open,
+                    "high": next_open * 1.02,
+                    "low": next_open * 0.98,
+                    "close": next_open,
+                    "volume": 10_000_000.0,
+                    "amount": 10_000_000.0 * next_open,
+                },
             ]
         )
     }
-    final_fills = planner.execute_open(
+    partial_fills = planner.execute_open(
         date=pd.Timestamp("2026-01-07"), account=account, panel=drift_panel
+    )
+    assert len(partial_fills) == 1 and account.pending_orders
+    # Capacity on January 7 is based on January 6's completed session.
+    final_fills = planner.execute_open(
+        date=pd.Timestamp("2026-01-08"), account=account, panel=drift_panel
     )
     assert len(final_fills) == 1
 

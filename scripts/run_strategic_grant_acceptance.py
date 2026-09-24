@@ -43,63 +43,6 @@ def _canonical_sha256(value: object) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _strip_fields(value: object, ignored: frozenset[str]) -> object:
-    if isinstance(value, Mapping):
-        return {
-            str(key): _strip_fields(item, ignored)
-            for key, item in value.items()
-            if str(key) not in ignored
-        }
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        return [_strip_fields(item, ignored) for item in value]
-    return value
-
-
-def _baseline_views(result: Mapping[str, Any], ignored: frozenset[str]) -> dict[str, object]:
-    trace = result["decision_trace"]
-    if not isinstance(trace, list):
-        raise ValueError("baseline decision trace is malformed")
-    targets = [
-        {
-            "date": row["date"],
-            "targets": row["targets"],
-            "target_gross": row["target_gross"],
-        }
-        for row in trace
-    ]
-    account = result["final_account"]
-    if not isinstance(account, Mapping):
-        raise ValueError("baseline final account is malformed")
-    orders = json.loads(json.dumps(result["order_ledger"]))
-    event_order_ids: dict[str, str] = {}
-    physical_order_ids: dict[str, str] = {}
-    for index, order in enumerate(orders, start=1):
-        canonical_order_id = f"ECONOMIC_ORDER_{index:06d}"
-        physical_order_ids[str(order["order_id"])] = canonical_order_id
-        order["order_id"] = canonical_order_id
-    fills = json.loads(json.dumps(account["fills"]))
-    for fill in fills:
-        event_id = str(fill.get("event_id", ""))
-        physical_order_id = str(fill["order_id"])
-        if event_id:
-            event_order_ids.setdefault(
-                event_id, f"ECONOMIC_ORDER_{len(event_order_ids) + 1:06d}"
-            )
-        matched_order_id = event_order_ids.get(event_id) or physical_order_ids.get(
-            physical_order_id
-        )
-        if matched_order_id is None:
-            raise ValueError("baseline fill has no matching economic order")
-        fill["order_id"] = matched_order_id
-    return {
-        "targets": _strip_fields(targets, ignored),
-        "orders": _strip_fields(orders, ignored),
-        "fills": _strip_fields(fills, ignored),
-        "positions": _strip_fields(result["daily_replay_evidence"], ignored),
-        "equity": _strip_fields(result["equity_curve"], ignored),
-    }
-
-
 def run_baseline(contract: Mapping[str, Any]) -> dict[str, object]:
     baseline = contract["baseline"]
     if not isinstance(baseline, Mapping):

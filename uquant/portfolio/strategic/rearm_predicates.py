@@ -150,7 +150,7 @@ def _risk_repair_predicates(
     transition_repaired = bool(
         isinstance(transition_damage, (int, float))
         and not isinstance(transition_damage, bool)
-        and _finite_repair_evidence(transition_damage, 0.0)
+        and finite_repair_evidence(transition_damage, 0.0)
         and float(transition_damage) <= cfg.transition_damage_repair
     )
     risk_reason = (
@@ -262,10 +262,10 @@ def _risk_repair_predicates(
 def repair_reference_evidence_complete(evidence: dict[str, Any]) -> bool:
     """Require the same finite reference coverage for repair observation and authorization."""
     return bool(
-        _finite_repair_evidence(evidence.get("reference_coverage"), 1.0)
-        and _finite_repair_evidence(evidence.get("risk_anchor_group_count"), 0.0)
+        finite_repair_evidence(evidence.get("reference_coverage"), 1.0)
+        and finite_repair_evidence(evidence.get("risk_anchor_group_count"), 0.0)
         and all(
-            _finite_repair_evidence(evidence.get(name), -math.inf)
+            finite_repair_evidence(evidence.get(name), -math.inf)
             for name in (
                 "breadth20",
                 "broad_ret20",
@@ -436,7 +436,7 @@ def candidate_rearm_predicates(
     )
 
 
-def _finite_repair_evidence(value: object, minimum: float) -> bool:
+def finite_repair_evidence(value: object, minimum: float) -> bool:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return False
     converted = float(value)

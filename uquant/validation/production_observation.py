@@ -136,26 +136,23 @@ def create_backup_checkpoint(
         raise FileExistsError(f"backup checkpoint already exists: {checkpoint}") from exc
 
     files: dict[str, dict[str, object]] = {}
-    try:
-        for name, source in sorted(sources.items()):
-            if Path(name).name != name or name == "manifest.json":
-                raise ValueError(f"backup carrier name is unsafe: {name}")
-            payload = _require_physical_file(Path(source), label="backup source")
-            destination = checkpoint / name
-            observation_cli_seams().atomic_write_bytes(destination, payload)
-            files[name] = {
-                "sha256": _sha256(payload),
-                "size": len(payload),
-                "source": str(Path(source).resolve()),
-            }
-        manifest = _manifest_payload(run_id=run_id, status="PREPARED", files=files)
-        observation_cli_seams().atomic_write_text(
-            checkpoint / "manifest.json",
-            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        )
-    except BaseException:
-        # Preserve the incomplete checkpoint for forensic recovery; never reuse its run ID.
-        raise
+    # Incomplete checkpoints stay on disk for forensic recovery; their run IDs cannot be reused.
+    for name, source in sorted(sources.items()):
+        if Path(name).name != name or name == "manifest.json":
+            raise ValueError(f"backup carrier name is unsafe: {name}")
+        payload = _require_physical_file(Path(source), label="backup source")
+        destination = checkpoint / name
+        observation_cli_seams().atomic_write_bytes(destination, payload)
+        files[name] = {
+            "sha256": _sha256(payload),
+            "size": len(payload),
+            "source": str(Path(source).resolve()),
+        }
+    manifest = _manifest_payload(run_id=run_id, status="PREPARED", files=files)
+    observation_cli_seams().atomic_write_text(
+        checkpoint / "manifest.json",
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+    )
     return checkpoint, manifest
 
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 import shutil
-from pathlib import Path
 
 from ..infrastructure.atomic_files import atomic_write_text
 from .ai_era import AI_ERA_WINDOWS
@@ -41,7 +40,6 @@ from .holdout.checkpoints import (
     verify_checkpoint_artifacts as _verify_checkpoint_artifacts,
 )
 from .holdout.contract import CHECKPOINT_RELATIVE as _CHECKPOINT_RELATIVE
-from .holdout.contract import FutureHoldoutContract
 from .holdout.replay import (
     DAILY_DECISION_FIELDS as _DAILY_DECISION_FIELDS,
     REPLAY_FIELDS as _REPLAY_FIELDS,
@@ -86,26 +84,8 @@ def current_runtime_capabilities() -> HoldoutRuntimeCapabilities:
     )
 
 
-def append_holdout_snapshot(
-    *,
-    repository_root: str | Path,
-    snapshot_dir: str | Path,
-    contract: FutureHoldoutContract | None = None,
-    expected_session: str | None = None,
-) -> dict[str, object]:
-    """Atomically append one complete daily snapshot outside the frozen prefix."""
-
-    return _append_holdout_snapshot(
-        repository_root=repository_root,
-        snapshot_dir=snapshot_dir,
-        contract=contract,
-        expected_session=expected_session,
-    )
-
-
-_owner_append_holdout_snapshot = append_holdout_snapshot
 append_holdout_snapshot = scoped_capability_wrapper(
-    _owner_append_holdout_snapshot,
+    _append_holdout_snapshot,
     capabilities=current_runtime_capabilities,
     scope=holdout_runtime_scope,
 )

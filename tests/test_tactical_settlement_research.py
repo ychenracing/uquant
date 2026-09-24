@@ -61,3 +61,37 @@ def test_settlement_cannot_erase_existing_rights_or_invent_execution(owner):
     allocate_confirmed_recovery(book, opportunity=Opportunity.WEAK, frozen=True)
     assert account.candidate_tenure['tactical_active'] == 1
     assert account.tactical_anchor_symbol == symbol
+
+
+@pytest.mark.parametrize('capital_drawdown,exit_expected', [
+    (0.0, True), (.18, False), (None, False),
+])
+def test_frozen_tactical_profit_exit_requires_repaired_account(capital_drawdown, exit_expected):
+    policy, _, dates, panel, leaders, risk = _restorable()
+    symbol = next(iter(panel))
+    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account.code_hash, account.data_hash = 'fixture-code', 'fixture-data'
+    entry = Target(symbol, .6, 'RECOVERY', .9, .9, 'tactical entry',
+                   origin_subsystem='RECOVERY', mechanism='TACTICAL_REBOUND',
+                   origin_lifecycle='RECOVERY')
+    _submit(account, dates[0], (entry,))
+    executor = ExecutionPlanner(DEFAULT_CONFIG)
+    buy = executor.execute_open(date=dates[1], account=account, panel=panel)
+    assert len(buy) == 1 and buy[0].side == 'BUY'
+    account.candidate_tenure.update(tactical_active=1, tactical_promotable=0)
+    account.tactical_anchor_symbol = symbol
+    evidence = {**risk.evidence}
+    if capital_drawdown is not None:
+        evidence['capital_drawdown'] = capital_drawdown
+    risk = replace(risk, evidence=evidence)
+    book = AllocationBook(policy, pd.Timestamp(dates[2]), risk, panel, leaders, account,
+                          {symbol: 10.8}, {symbol: .6}, set(), {}, {}, {}, 1.)
+    allocate_confirmed_recovery(book, opportunity=Opportunity.WEAK, frozen=True)
+    assert book.proposed[symbol] == (0. if exit_expected else .6)
+    if exit_expected:
+        orders = _submit(account, dates[2], tuple(book.recovery_targets.values()))
+        assert len(orders) == 1 and orders[0].side == 'SELL'
+        sold = executor.execute_open(date=dates[3], account=account, panel=panel)
+        assert len(sold) == 1 and sold[0].order_id == orders[0].order_id
+    else:
+        assert account.positions[symbol].shares == buy[0].shares

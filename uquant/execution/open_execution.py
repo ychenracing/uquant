@@ -272,12 +272,16 @@ def _size_open_order(
     if registered_remainder is not None:
         requested = min(requested, registered_remainder)
         target_requested = registered_remainder
-    volume_shares = float(row.get("volume", 0.0))
-    # Some data sources report hands; amount/close detects that case without future data.
-    implied = float(row.get("amount", 0.0)) / max(float(row["close"]), 1e-12)
-    if implied > volume_shares * 50:
+    previous_row = cast(pd.Series, panel[order.symbol].loc[:date].iloc[-2])
+    volume_shares = float(previous_row.get("volume", 0.0))
+    # Yesterday's amount and close identify sources reporting volume in hands.
+    previous_close = float(previous_row["close"])
+    implied = float(previous_row.get("amount", 0.0)) / max(previous_close, 1e-12)
+    if math.isfinite(implied) and volume_shares > 0 and implied > volume_shares * 50:
         volume_shares *= 100.0
-    capacity = int(math.floor(volume_shares * cfg.max_volume_participation / 100.0) * 100)
+    # Previous-session liquidity is a proxy, not a guarantee of opening auction quantity.
+    capacity = (int(math.floor(volume_shares * cfg.max_volume_participation / 100.0) * 100)
+                if math.isfinite(volume_shares) and volume_shares > 0 else 0)
     shares = min(requested, capacity)
     if order.side == Side.BUY.value:
         projected_positions = sum(position.shares > 0 for position in account.positions.values()) + (
@@ -345,7 +349,7 @@ def _apply_buy_fill(
     current.shares += request.shares
     current.avg_cost = (old_value + gross + commission + transfer) / current.shares
     current.entry_date = current.entry_date or date_str
-    current.highest_close = max(current.highest_close, float(request.row["close"]))
+    current.highest_close = max(current.highest_close, request.open_price)
     current.lifecycle = order.lifecycle
     if order.grant_id:
         current.grant_id = order.grant_id
@@ -371,8 +375,8 @@ def _apply_buy_fill(
             avg_cost=(gross + commission + transfer) / request.shares,
             entry_date=date_str,
             sellable_date=sellable_date,
-            highest_close=float(request.row["close"]),
-            lowest_close=float(request.row["close"]),
+            highest_close=request.open_price,
+            lowest_close=request.open_price,
             entry_score=order.entry_score,
             entry_confidence=order.entry_confidence,
             entry_regime=order.entry_regime,

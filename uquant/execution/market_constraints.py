@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 
 from ..types import (
@@ -20,21 +22,21 @@ def _blocked(
     row: pd.Series | pd.DataFrame,
     previous_close: float,
 ) -> bool:
-    """Return whether volume or a one-price limit prevents this side from filling."""
+    """Use only the observable open; a limit-price open has no assured fill."""
 
     if isinstance(row, pd.DataFrame):
         if row.empty:
             return True
         row = row.iloc[-1]
-    volume = float(row.get("volume", 0.0) or 0.0)
-    if volume <= 0 or previous_close <= 0:
+    open_price = float(row["open"])
+    if not math.isfinite(open_price) or open_price <= 0 or not math.isfinite(previous_close) or previous_close <= 0:
         return True
     rate = _limit_rate(symbol)
     upper = previous_close * (1.0 + rate)
     lower = previous_close * (1.0 - rate)
     if side == Side.BUY.value:
-        return float(row["open"]) >= upper * 0.999 and float(row["low"]) >= upper * 0.999
-    return float(row["open"]) <= lower * 1.001 and float(row["high"]) <= lower * 1.001
+        return open_price >= upper * 0.999
+    return open_price <= lower * 1.001
 
 
 market_execution_blocked = _blocked

@@ -12,6 +12,7 @@ from ..types import (
     OrderStatus,
     OriginSubsystem,
     PendingOrder,
+    ReductionPolicy,
     Side,
     Target,
     derive_attribution_event_id,
@@ -191,7 +192,8 @@ def _plan_target_order(
             return retained_identity
     if target.weight == 0 and current_value > 0:
         difference = -current_value
-    elif abs(difference) < threshold and not restoration_buy_below_completion:
+    elif (abs(difference) < threshold and not restoration_buy_below_completion
+          and not (difference < 0 and target.reduction_policy == ReductionPolicy.RISK_PRIORITY.value)):
         detail["block"] = "NO_TRADE_BAND"
         return None
     side = Side.BUY.value if difference > 0 else Side.SELL.value

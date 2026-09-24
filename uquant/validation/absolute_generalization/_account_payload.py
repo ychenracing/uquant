@@ -73,10 +73,12 @@ def _validate_account_runtime(account: AccountState) -> None:
         allowed = _ORDER_STATUS_EVENTS.get(order.status)
         if allowed is None or order.last_event not in allowed:
             raise ValueError("absolute reachability order status/event pair is impossible")
-        if order.last_event in {"T_PLUS_ONE_BLOCKED", "LIQUIDITY_PROXY_BLOCKED", "RISK_TARGET_UNMET_LOT"}:
-            if order.side != "SELL" or (order.last_event == "RISK_TARGET_UNMET_LOT"
-                                        and order.reduction_policy != "RISK_PRIORITY"):
-                raise ValueError("absolute reachability risk sell event is impossible")
+        if (
+            order.last_event in {"T_PLUS_ONE_BLOCKED", "LIQUIDITY_PROXY_BLOCKED", "RISK_TARGET_UNMET_LOT"}
+            and (order.side != "SELL" or (order.last_event == "RISK_TARGET_UNMET_LOT"
+                                          and order.reduction_policy != "RISK_PRIORITY"))
+        ):
+            raise ValueError("absolute reachability risk sell event is impossible")
 
 
 def validate_account_payload(value: object) -> AccountState:

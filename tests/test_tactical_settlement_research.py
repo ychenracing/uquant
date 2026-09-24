@@ -61,3 +61,47 @@ def test_settlement_cannot_erase_existing_rights_or_invent_execution(owner):
     allocate_confirmed_recovery(book, opportunity=Opportunity.WEAK, frozen=True)
     assert account.candidate_tenure['tactical_active'] == 1
     assert account.tactical_anchor_symbol == symbol
+
+
+@pytest.mark.parametrize('case,exits', [
+    ('profit', True), ('not_due', False), ('promotable', False),
+    ('crisis', False), ('protected_recovery', False),
+])
+def test_frozen_tactical_exit_uses_existing_due_and_risk_permissions(case, exits):
+    policy, _, dates, panel, leaders, risk = _restorable()
+    symbol = next(iter(panel))
+    account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
+    account.code_hash, account.data_hash = 'fixture-code', 'fixture-data'
+    entry = Target(symbol, .6, 'RECOVERY', .9, .9, 'tactical entry',
+                   origin_subsystem='RECOVERY', mechanism='TACTICAL_REBOUND',
+                   origin_lifecycle='RECOVERY')
+    _submit(account, dates[0], (entry,))
+    executor = ExecutionPlanner(DEFAULT_CONFIG)
+    buy = executor.execute_open(date=dates[1], account=account, panel=panel)
+    assert len(buy) == 1 and buy[0].side == 'BUY'
+    account.candidate_tenure.update(tactical_active=1, tactical_promotable=int(case == 'promotable'))
+    account.tactical_anchor_symbol = symbol
+    if case == 'crisis':
+        risk = replace(risk, state=risk.state.CRISIS)
+    if case == 'protected_recovery':
+        account.protected_weights[symbol] = .6
+    price = 10.2 if case == 'not_due' else 10.8
+    book = AllocationBook(policy, pd.Timestamp(dates[2]), risk, panel, leaders, account,
+                          {symbol: price}, {symbol: .6}, set(), {}, {}, {}, 1.)
+    allocate_confirmed_recovery(book, opportunity=Opportunity.WEAK, frozen=True)
+    assert book.proposed[symbol] == (0. if exits else .6)
+    if exits:
+        order = _submit(account, dates[2], tuple(book.recovery_targets.values()))
+        assert len(order) == 1 and order[0].side == 'SELL' and order[0].order_id
+        sell = executor.execute_open(date=dates[3], account=account, panel=panel)
+        assert len(sell) == 1 and sell[0].side == 'SELL'
+        assert sell[0].order_id == order[0].order_id
+        assert sell[0].commission > 0 and sell[0].stamp_duty > 0
+        assert account.cash == pytest.approx(
+            DEFAULT_CONFIG.initial_cash - buy[0].gross_value - buy[0].commission
+            - buy[0].transfer_fee + sell[0].gross_value - sell[0].commission
+            - sell[0].stamp_duty - sell[0].transfer_fee
+        )
+        assert not account.positions and not account.pending_orders
+    else:
+        assert account.positions[symbol].shares == buy[0].shares

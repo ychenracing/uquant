@@ -294,7 +294,7 @@ def _size_open_order(
     if registered_remainder is not None:
         requested = min(requested, registered_remainder)
         target_requested = registered_remainder
-    previous_row = cast(pd.Series, panel[order.symbol].loc[:date].iloc[-2])
+    previous_row = panel[order.symbol].loc[:date].iloc[-2]
     # Previous-session liquidity is a proxy, not a guarantee of opening auction quantity.
     shares = min(requested, _previous_session_capacity(previous_row, cfg))
     if order.side == Side.BUY.value:

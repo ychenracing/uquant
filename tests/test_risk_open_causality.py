@@ -1,6 +1,7 @@
 """Risk sizing and open-time information boundary."""
 
 import unittest
+from copy import deepcopy
 
 import pandas as pd
 
@@ -10,6 +11,7 @@ from uquant.execution.open_execution import _size_open_order
 from uquant.execution.order_planning import plan_orders
 from uquant.execution.pending import merge_pending_orders
 from uquant.types import AccountOrder, AccountState, PendingOrder, Position, Target
+from uquant.validation.absolute_generalization._account_payload import _validate_account_runtime
 
 
 class RiskOpenCausalityTest(unittest.TestCase):
@@ -88,6 +90,37 @@ class RiskOpenCausalityTest(unittest.TestCase):
         self.assertEqual(retained, [order])
         self.assertEqual(ledger.last_event, "RISK_TARGET_UNMET_LOT")
         self.assertNotEqual(ledger.status, "CANCELLED")
+        account.order_ledger.append(ledger)
+        _validate_account_runtime(account)
+
+    def test_blocked_risk_sell_validation_preserves_account_and_rejects_false_completion(self):
+        for event in ("T_PLUS_ONE_BLOCKED", "LIQUIDITY_PROXY_BLOCKED", "RISK_TARGET_UNMET_LOT"):
+            for status, filled in (("OPEN", 0), ("PARTIALLY_FILLED", 100)):
+                with self.subTest(event=event, status=status):
+                    order = AccountOrder(order_id="O000000001", signal_date="2026-07-27",
+                                         submitted_date="2026-07-27", symbol="sz002409", side="SELL",
+                                         target_weight=.1, reason="risk cap", lifecycle="CORE",
+                                         status=status, requested_shares=200, filled_shares=filled,
+                                         remaining_shares=200-filled, last_event=event,
+                                         reduction_policy="RISK_PRIORITY")
+                    account = AccountState(initial_cash=1_000_000, cash=990_000,
+                                           order_ledger=[order])
+                    before = deepcopy(account)
+                    _validate_account_runtime(account)
+                    self.assertEqual(account, before)
+                    for invalid_status in ("SUBMITTED", "FILLED", "CANCELLED"):
+                        order.status = invalid_status
+                        with self.assertRaisesRegex(ValueError, "status/event"):
+                            _validate_account_runtime(account)
+                    order.status = status
+                    order.side = "BUY"
+                    with self.assertRaisesRegex(ValueError, "risk sell event"):
+                        _validate_account_runtime(account)
+                    order.side = "SELL"
+                    if event == "RISK_TARGET_UNMET_LOT":
+                        order.reduction_policy = "FIFO"
+                        with self.assertRaisesRegex(ValueError, "risk sell event"):
+                            _validate_account_runtime(account)
 
 
 if __name__ == "__main__":

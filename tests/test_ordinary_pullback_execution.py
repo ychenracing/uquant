@@ -5,6 +5,7 @@ from copy import deepcopy
 from dataclasses import replace
 
 import pandas as pd
+from _causal_execution_fixtures import set_prior_session_volume
 from test_long_pullback_entry import EPISODES, _native_inputs
 
 from uquant.application.target_attribution import attach_target_attribution
@@ -107,8 +108,7 @@ def test_partial_loses_current_proof_cancels_and_cannot_revive_after_restart(tmp
     policy, account, _, day, panel, leaders, risk = _submitted()
     symbol = next(iter(leaders))
     frame = panel[symbol]
-    frame.loc[day, 'volume'] = 1_000_000.
-    frame.loc[day, 'amount'] = float(frame.loc[day, 'close']) * 1_000_000.
+    set_prior_session_volume(frame, day, 1_000_000.)
     executor = ExecutionPlanner(DEFAULT_CONFIG)
     assert executor.execute_open(date=day, account=account, panel=panel)
     assert account.pending_orders and account.order_ledger[0].status == 'PARTIALLY_FILLED'
@@ -166,8 +166,7 @@ def test_current_partial_permission_keeps_the_original_order_then_really_finishe
     policy, account, _, day, panel, leaders, risk = _submitted()
     symbol = next(iter(leaders))
     frame = panel[symbol]
-    frame.loc[day, 'volume'] = 1_000_000.
-    frame.loc[day, 'amount'] = float(frame.loc[day, 'close']) * 1_000_000.
+    set_prior_session_volume(frame, day, 1_000_000.)
     executor = ExecutionPlanner(DEFAULT_CONFIG)
     first = executor.execute_open(date=day, account=account, panel=panel)
     assert first and account.pending_orders
@@ -186,7 +185,7 @@ def test_current_partial_permission_keeps_the_original_order_then_really_finishe
     assert account.pending_orders[0].event_id == first[0].event_id
     tomorrow = day + pd.offsets.BDay(1)
     frame.loc[tomorrow] = frame.loc[day]
-    frame.loc[tomorrow, 'volume'] = 100_000_000.
+    set_prior_session_volume(frame, tomorrow, 100_000_000.)
     second = executor.execute_open(date=tomorrow, account=account, panel=panel)
     assert second and second[0].order_id == first[0].order_id
     assert account.order_ledger[0].filled_shares == first[0].shares + second[0].shares
@@ -199,8 +198,7 @@ def test_smaller_cap_cancels_remainder_instead_of_replacing_it_with_an_unproven_
     policy, account, _, day, panel, leaders, risk = _submitted()
     symbol = next(iter(leaders))
     frame = panel[symbol]
-    frame.loc[day, 'volume'] = 1_000_000.
-    frame.loc[day, 'amount'] = float(frame.loc[day, 'close']) * 1_000_000.
+    set_prior_session_volume(frame, day, 1_000_000.)
     assert ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=day, account=account, panel=panel)
     assert account.pending_orders
     price = float(frame.loc[day, 'close'])

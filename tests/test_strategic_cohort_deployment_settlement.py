@@ -5,6 +5,7 @@ from dataclasses import asdict, replace
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_shared_core_qualification import _decide
 from test_strategic_grant_observation import _risk
@@ -50,7 +51,7 @@ def _native_full(*, execution="complete"):
     fill_day = dates[index + 1]
     if execution != "pending":
         if execution == "partial":
-            panel[SYMBOLS[-1]].loc[fill_day, "volume"] = 100_000.
+            set_prior_session_volume(panel[SYMBOLS[-1]], fill_day, 100_000.)
         cfg = DEFAULT_CONFIG.override(max_volume_participation=.002) if execution == "partial" else DEFAULT_CONFIG
         fills = ExecutionPlanner(cfg).execute_open(date=fill_day, account=account, panel=panel)
         assert len(fills) == 3 and all(fill.shares > 0 for fill in fills)

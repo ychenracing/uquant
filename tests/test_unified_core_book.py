@@ -589,7 +589,8 @@ def test_partial_core_retry_keeps_one_order_and_event_after_restart(monkeypatch,
     ))
     execution_panel = {"sh688008": pd.DataFrame(
         {"open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0,
-         "volume": [1_000_000.0, 1_000_000.0, 10_000_000.0], "amount": 100_000_000.0},
+         "volume": [1_000_000.0, 100_000_000.0, 100_000_000.0],
+         "amount": [10_000_000.0, 1_000_000_000.0, 1_000_000_000.0]},
         index=dates[-3:],
     )}
     first_fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
@@ -683,8 +684,8 @@ def test_partial_ordinary_restore_survives_restart_without_new_entry_qualificati
     ))
     execution_panel = {symbol: pd.DataFrame(
         {"open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0,
-         "volume": [1_000_000.0, 1_000_000.0, 100_000_000.0],
-         "amount": [100_000_000.0, 100_000_000.0, 1_000_000_000.0]},
+         "volume": [1_000_000.0, 100_000_000.0, 100_000_000.0],
+         "amount": [10_000_000.0, 1_000_000_000.0, 1_000_000_000.0]},
         index=dates[-3:],
     )}
     assert planner.execute_open(date=dates[-2], account=account, panel=execution_panel)

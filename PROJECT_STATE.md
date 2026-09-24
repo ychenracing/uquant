@@ -12,4 +12,5 @@ uquant 使用唯一日频生产决策链，为 A 股 AI 产业链现金多头账
 
 - 工程收敛与当前验收：[交付记录](artifacts/operational-continuity/DELIVERY_REPORT.md)。修复观察事务日期/载体/互斥边界及 Absolute 配置身份投影；停止冻结样本收益搜索。已有完整 Absolute 原件已读取，数值通过声明与配置身份缺陷分别记录；未来正式观察仍为零。
 
-- 代码审计 F01–F14 与完整检查：[初次交付](artifacts/code-audit-fix/DELIVERY_REPORT.md)、[完整验证与集成修复](artifacts/code-audit-fix/full-validation/DELIVERY_REPORT.md)。完整 Absolute 34/34 通过、应用覆盖率 87.43%；原失败记录与生产者身份保留。最新 PR/main 和排队中的完整重验状态见 PR #83，不把未完成 CI 记为通过。
+- 代码审计 F01–F14 的历史交付：[初次交付](artifacts/code-audit-fix/DELIVERY_REPORT.md)、[完整验证与集成修复](artifacts/code-audit-fix/full-validation/DELIVERY_REPORT.md)。PR #83 是当时的状态入口，不代表最新 main 或检查结果。
+- 候选 C 已合并；原正式 Absolute 八片和 final 为 34/34 单元、七组件通过。后续 57 项工程失败、静态检查与 Ownership 口径的逐项收尾见[工程验收收尾记录](artifacts/engineering-acceptance-closure/DELIVERY_REPORT.md)。当前有效冠军财富底线 15×；原 C 生产者和 5.26 GB 的原件身份保留，不能改贴当前 HEAD。实时 PR、检查和 main 仍以 GitHub 为准。

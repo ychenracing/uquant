@@ -6,6 +6,7 @@ from hashlib import sha256
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_lifecycle_and_risk import _leader
 from test_strategic_cash_rearm import _risk
 from test_unified_core_book import _inputs
@@ -176,7 +177,7 @@ def test_partial_ordinary_rearm_keeps_exact_order_and_unfilled_quantity_after_re
     policy, account, dates, panel, leaders, risk = _scenario()
     _decide(policy, account, dates[0], panel, leaders, risk)
     original = account.pending_orders[0]
-    panel[SYMBOL].loc[dates[1], "volume"] = 100_000.
+    set_prior_session_volume(panel[SYMBOL], dates[1], 100_000.)
     fills = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=.002)).execute_open(
         date=dates[1], account=account, panel=panel,
     )
@@ -212,7 +213,7 @@ def test_consumed_ordinary_authority_is_bound_to_actual_order_and_event():
 def test_partial_attempt_losing_current_quality_is_cancelled_without_reopening_capital():
     policy, account, dates, panel, leaders, risk = _scenario()
     _decide(policy, account, dates[0], panel, leaders, risk)
-    panel[SYMBOL].loc[dates[1], "volume"] = 100_000.
+    set_prior_session_volume(panel[SYMBOL], dates[1], 100_000.)
     fills = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=.002)).execute_open(
         date=dates[1], account=account, panel=panel,
     )

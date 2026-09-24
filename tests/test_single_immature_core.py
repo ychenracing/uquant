@@ -1,6 +1,7 @@
 """Native shared qualification and execution for one ordinary early capital slot."""
 from dataclasses import replace
 
+from _causal_execution_fixtures import set_prior_session_volume
 from test_shared_core_qualification import CHALLENGER, WITNESSES, _decide, _held_book
 from test_strategic_probe_holding import OWNER
 from test_strategic_universe_quorum import _risk
@@ -42,8 +43,7 @@ def test_partial_price_drift_and_restart_keep_early_slot_occupied(tmp_path):
     order = next(o for o in account.pending_orders if o.symbol == CHALLENGER)
     frame = panel[CHALLENGER]
     day = dates[2]
-    frame.loc[day, "volume"] = 100_000.
-    frame.loc[day, "amount"] = float(frame.loc[day, "close"]) * 100_000.
+    set_prior_session_volume(frame, day, 100_000.)
     # A real lower opening price changes mark weight, not the inventory identity.
     frame.loc[day, "open"] *= .99
     account.data_hash = sha256("".join(f.to_csv() for f in panel.values()).encode()).hexdigest()

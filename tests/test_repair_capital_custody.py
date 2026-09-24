@@ -2,6 +2,7 @@
 from dataclasses import asdict, replace
 
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_ordinary_trend_budget import _decide, _scenario
 
 from uquant.account.codec import account_from_dict
@@ -79,7 +80,7 @@ def test_current_full_certificate_can_use_free_capital_beside_repair_holding(los
     assert sum(o.target_weight for o in account.pending_orders if o.side=='BUY') <= policy.cfg.core_admission_weight + 1e-12
     restored=account_from_dict(asdict(account))
     if lose_proof:
-        panel[CHALLENGER].loc[dates[5],'volume']=10_000.
+        set_prior_session_volume(panel[CHALLENGER], dates[5], 100_000.)
     fills=ExecutionPlanner(policy.cfg).execute_open(date=dates[5],account=restored,panel=panel)
     assert any(f.symbol==CHALLENGER and f.side=='BUY' for f in fills)
     assert not restored.positions[CHALLENGER].grant_id

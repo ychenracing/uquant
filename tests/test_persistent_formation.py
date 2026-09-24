@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_ordinary_trend_budget import _decide
 from test_strategic_common_core_admission import _qualified
@@ -137,8 +138,7 @@ def test_partial_formation_keeps_fills_and_revokes_invalid_owner_remainder():
     _decide(policy, account, dates[-2], panel, leaders, risk)
     assert len(account.pending_orders) == 3
     for frame in panel.values():
-        frame.loc[dates[-1], "volume"] = 1_000_000.
-        frame.loc[dates[-1], "amount"] = frame.loc[dates[-1], "close"] * 1_000_000.
+        set_prior_session_volume(frame, dates[-1], 1_000_000.)
     from uquant.execution import ExecutionPlanner
 
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[-1], account=account, panel=panel)

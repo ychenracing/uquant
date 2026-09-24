@@ -1,5 +1,6 @@
 """Native pullback holdings retain only their actual continuous execution basis."""
 import pandas as pd
+from _causal_execution_fixtures import set_prior_session_volume
 from test_ordinary_pullback_execution import _submitted
 
 from uquant.application.target_attribution import attach_target_attribution
@@ -65,8 +66,7 @@ def test_fifo_removing_first_fill_keeps_continuous_original_proof_after_restart(
     symbol = next(iter(leaders))
     frame = panel[symbol]
     price = float(frame.loc[day, 'close'])
-    frame.loc[day, 'volume'] = 1_000_000.
-    frame.loc[day, 'amount'] = price * 1_000_000.
+    set_prior_session_volume(frame, day, 1_000_000.)
     executor = ExecutionPlanner(DEFAULT_CONFIG)
     first = executor.execute_open(date=day, account=account, panel=panel)
     assert len(first) == 1 and account.pending_orders

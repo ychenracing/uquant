@@ -226,6 +226,28 @@ def _bounded_buy_shares(
     return shares
 
 
+def _previous_session_capacity(previous_row: pd.Series, cfg: SystemConfig) -> int:
+    """Estimate opening capacity from the last completed session."""
+    volume_shares = float(previous_row.get("volume", 0.0))
+    previous_close = float(previous_row["close"])
+    implied = float(previous_row.get("amount", 0.0)) / max(previous_close, 1e-12)
+    if math.isfinite(implied) and volume_shares > 0 and implied > volume_shares * 50:
+        volume_shares *= 100.0
+    if not math.isfinite(volume_shares) or volume_shares <= 0:
+        return 0
+    return int(math.floor(volume_shares * cfg.max_volume_participation / 100.0) * 100)
+
+
+def _risk_target_shortfall(
+    order: PendingOrder, current: Position, open_price: float, open_equity: float,
+) -> bool:
+    return bool(
+        order.side == Side.SELL.value
+        and order.reduction_policy == "RISK_PRIORITY"
+        and current.shares * open_price > order.target_weight * open_equity + 1e-8
+    )
+
+
 def _size_open_order(
     *,
     cfg: SystemConfig,
@@ -272,17 +294,9 @@ def _size_open_order(
     if registered_remainder is not None:
         requested = min(requested, registered_remainder)
         target_requested = registered_remainder
-    previous_row = cast(pd.Series, panel[order.symbol].loc[:date].iloc[-2])
-    volume_shares = float(previous_row.get("volume", 0.0))
-    # Yesterday's amount and close identify sources reporting volume in hands.
-    previous_close = float(previous_row["close"])
-    implied = float(previous_row.get("amount", 0.0)) / max(previous_close, 1e-12)
-    if math.isfinite(implied) and volume_shares > 0 and implied > volume_shares * 50:
-        volume_shares *= 100.0
+    previous_row = panel[order.symbol].loc[:date].iloc[-2]
     # Previous-session liquidity is a proxy, not a guarantee of opening auction quantity.
-    capacity = (int(math.floor(volume_shares * cfg.max_volume_participation / 100.0) * 100)
-                if math.isfinite(volume_shares) and volume_shares > 0 else 0)
-    shares = min(requested, capacity)
+    shares = min(requested, _previous_session_capacity(previous_row, cfg))
     if order.side == Side.BUY.value:
         projected_positions = sum(position.shares > 0 for position in account.positions.values()) + (
             current.shares == 0
@@ -313,11 +327,7 @@ def _size_open_order(
             )
             retained.append(order)
         else:
-            risk_shortfall = bool(
-                order.side == Side.SELL.value
-                and order.reduction_policy == "RISK_PRIORITY"
-                and current.shares * open_price > order.target_weight * open_equity + 1e-8
-            )
+            risk_shortfall = _risk_target_shortfall(order, current, open_price, open_equity)
             if risk_shortfall:
                 order.attempts += 1
                 account_order.attempts = order.attempts

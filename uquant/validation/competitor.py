@@ -378,8 +378,6 @@ def data_provenance_from_directory(data_dir: str | Path) -> DataProvenance:
             inventory.update(len(path.name).to_bytes(4, "big"))
             inventory.update(path.name.encode("utf-8"))
             inventory.update(hashlib.sha256(raw).digest())
-    except RuntimeError:
-        raise
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"competitor data provenance is unreadable: {root}") from exc
     payload = _object(manifest, label="data manifest")
@@ -491,8 +489,6 @@ def _read_competitor_reference(source: Path) -> tuple[bytes, dict[str, Any]]:
     try:
         raw = source.read_bytes()
         value = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
-    except RuntimeError:
-        raise
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"competitor matrix reference is missing or corrupt: {source}") from exc
     payload = _object(value, label="reference")

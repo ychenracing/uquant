@@ -436,7 +436,7 @@ def _paths_overlap(left: Path, right: Path) -> bool:
 
 
 @contextlib.contextmanager
-def _observation_lock(root: Path, account: Path) -> Iterator[None]:
+def _observation_lock(root: Path) -> Iterator[None]:
     """Serialize transactions sharing the repository holdout prefix and outputs."""
 
     # ponytail: repository lock; split only after shared evidence has separate ownership.
@@ -681,7 +681,7 @@ def run_production_observation(args: argparse.Namespace) -> dict[str, Any]:
     paths = _preflight_run(args)
     root = Path(paths["root"])
     account = Path(paths["account"])
-    with _observation_lock(root, account):
+    with _observation_lock(root):
         # Re-evaluate identities after acquiring the stable transaction lock.
         paths = _preflight_run(args)
         (

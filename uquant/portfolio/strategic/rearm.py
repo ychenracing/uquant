@@ -41,12 +41,12 @@ from .authority import (
     normalize_orphan_strategic_capital_residue,
 )
 from .quorum import route_consistent_owner_quality
-from .rearm_predicates import finite_repair_evidence as _finite_at_least
 from .rearm_predicates import (
     candidate_rearm_predicates,
     flat_book_repair_predicates,
     repair_reference_evidence_complete,
 )
+from .rearm_predicates import finite_repair_evidence as _finite_at_least
 from .rearm_predicates import (
     ordinary_rearm_attempt_pending as _ordinary_rearm_attempt_pending,
 )

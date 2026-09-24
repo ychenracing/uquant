@@ -190,8 +190,6 @@ def _load_and_validate_governance_envelope(
             object_pairs_hook=_reject_config_governance_duplicate_keys,
             parse_constant=_reject_nonstandard_constant,
         )
-    except RuntimeError:
-        raise
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("configuration governance artifact is corrupt") from exc
     payload = _required_mapping(

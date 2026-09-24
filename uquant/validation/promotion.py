@@ -361,8 +361,6 @@ def _load_spec(path: str | Path) -> tuple[bytes, dict[str, Any]]:
             object_pairs_hook=_reject_duplicate_keys,
             parse_constant=_reject_nonstandard_constant,
         )
-    except RuntimeError:
-        raise
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"promotion baseline is missing or corrupt: {path}") from exc
     if not isinstance(payload, dict):

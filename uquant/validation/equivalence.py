@@ -210,8 +210,6 @@ def _baseline_data_provenance(path: Path) -> dict[str, Any]:
             path.read_text(encoding="utf-8"),
             object_pairs_hook=_reject_duplicate_keys,
         )
-    except RuntimeError:
-        raise
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("performance frozen baseline is unreadable") from exc
     provenance = payload.get("provenance") if isinstance(payload, Mapping) else None

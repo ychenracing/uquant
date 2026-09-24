@@ -62,7 +62,7 @@ jobs:
       - name: Sync locked development environment
         run: uv sync --frozen --extra dev
       - name: Restore deterministic ownership evidence cache
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             /tmp/uquant-risk-evidence-v1
@@ -86,7 +86,7 @@ jobs:
           --cache-dir "$RUNNER_TEMP/strategic-ownership-cache"
       - name: Upload compact ownership facts
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: >-
             strategic-ownership-${{ github.run_id }}-attempt-
@@ -106,7 +106,7 @@ jobs:
             export --include-private-logs --output "$RUNNER_TEMP/cloud-execution-originals.zip"
       - name: Preserve controlled CI execution evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cloud-execution-ownership-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
           path: |

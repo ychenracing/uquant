@@ -136,23 +136,26 @@ def create_backup_checkpoint(
         raise FileExistsError(f"backup checkpoint already exists: {checkpoint}") from exc
 
     files: dict[str, dict[str, object]] = {}
-    # Incomplete checkpoints stay on disk for forensic recovery; their run IDs cannot be reused.
-    for name, source in sorted(sources.items()):
-        if Path(name).name != name or name == "manifest.json":
-            raise ValueError(f"backup carrier name is unsafe: {name}")
-        payload = _require_physical_file(Path(source), label="backup source")
-        destination = checkpoint / name
-        observation_cli_seams().atomic_write_bytes(destination, payload)
-        files[name] = {
-            "sha256": _sha256(payload),
-            "size": len(payload),
-            "source": str(Path(source).resolve()),
-        }
-    manifest = _manifest_payload(run_id=run_id, status="PREPARED", files=files)
-    observation_cli_seams().atomic_write_text(
-        checkpoint / "manifest.json",
-        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-    )
+    try:
+        for name, source in sorted(sources.items()):
+            if Path(name).name != name or name == "manifest.json":
+                raise ValueError(f"backup carrier name is unsafe: {name}")
+            payload = _require_physical_file(Path(source), label="backup source")
+            destination = checkpoint / name
+            observation_cli_seams().atomic_write_bytes(destination, payload)
+            files[name] = {
+                "sha256": _sha256(payload),
+                "size": len(payload),
+                "source": str(Path(source).resolve()),
+            }
+        manifest = _manifest_payload(run_id=run_id, status="PREPARED", files=files)
+        observation_cli_seams().atomic_write_text(
+            checkpoint / "manifest.json",
+            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        )
+    except BaseException:
+        # Preserve the incomplete checkpoint for forensic recovery; never reuse its run ID.
+        raise
     return checkpoint, manifest
 
 
@@ -436,7 +439,7 @@ def _paths_overlap(left: Path, right: Path) -> bool:
 
 
 @contextlib.contextmanager
-def _observation_lock(root: Path) -> Iterator[None]:
+def _observation_lock(root: Path, account: Path) -> Iterator[None]:
     """Serialize transactions sharing the repository holdout prefix and outputs."""
 
     # ponytail: repository lock; split only after shared evidence has separate ownership.
@@ -681,7 +684,7 @@ def run_production_observation(args: argparse.Namespace) -> dict[str, Any]:
     paths = _preflight_run(args)
     root = Path(paths["root"])
     account = Path(paths["account"])
-    with _observation_lock(root):
+    with _observation_lock(root, account):
         # Re-evaluate identities after acquiring the stable transaction lock.
         paths = _preflight_run(args)
         (

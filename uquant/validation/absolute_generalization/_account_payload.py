@@ -35,11 +35,15 @@ _ORDER_STATUS_EVENTS = MappingProxyType({
             "LIMIT_BLOCKED",
             "MISSING_OR_SUSPENDED",
             "POSITION_CAP_BLOCKED",
+            "T_PLUS_ONE_BLOCKED",
+            "LIQUIDITY_PROXY_BLOCKED",
+            "RISK_TARGET_UNMET_LOT",
             "WAITING_NEXT_OPEN",
         }
     ),
     "PARTIALLY_FILLED": frozenset(
-        {"BROKER_FILL", "CANCEL_REQUESTED", "FILL", "PARTIAL_REMAINDER_RELEASED"}
+        {"BROKER_FILL", "CANCEL_REQUESTED", "FILL", "PARTIAL_REMAINDER_RELEASED",
+         "T_PLUS_ONE_BLOCKED", "LIQUIDITY_PROXY_BLOCKED", "RISK_TARGET_UNMET_LOT"}
     ),
     "FILLED": frozenset({"BROKER_FILL", "FILL", "FILLED"}),
     "CANCELLED": frozenset(

@@ -246,7 +246,7 @@ def _retain_or_exit_tactical(book: AllocationBook, symbol: str, promotable: bool
     held_sessions = len(book.user_panel[symbol].loc[pd.Timestamp(position.entry_date):book.date])
     expired = (held_sessions >= 30 if promotable else
                pnl >= policy.cfg.tactical_rebound_take_profit or held_sessions >= 12)
-    permitted_exit = (not frozen or (not promotable and pnl >= policy.cfg.tactical_frozen_take_profit))
+    permitted_exit = (not frozen or not promotable)
     exit_due = (expired and permitted_exit and risk.state is not Risk.CRISIS
                 and not (account.protected_weights and risk.shock_state == "RECOVERY"))
     weight = 0.0 if exit_due else book.weights_now[symbol]

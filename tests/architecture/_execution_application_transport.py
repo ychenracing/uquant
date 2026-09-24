@@ -61,6 +61,9 @@ _REVIEWED_SOURCE_CHAINS: Mapping[str, tuple[str, ...]] = {
         _ATTRIBUTION_STAGES,
     ),
     _RISK_TIMELINE_PATH: (_ARCHITECTURE_CLOSURE,),
+    "uquant/execution/market_constraints.py": (
+        "8faa44bd24697b3e5f32317e3268e6259832b96c",
+    ),
     "uquant/execution/open_execution.py": (
         "8e663eea8af0b443344b2bb7044d31b422b0c694",
     ),
@@ -80,6 +83,7 @@ _REVIEWED_SOURCE_CHAINS: Mapping[str, tuple[str, ...]] = {
 }
 ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS = frozenset(
     {
+        ("uquant/execution/market_constraints.py", "_blocked"),
         ("uquant/execution/order_planning.py", "plan_orders"),
         ("uquant/execution/pending.py", "merge_pending_orders"),
         ("uquant/execution/reconciliation.py", "_register_account_order"),
@@ -100,6 +104,7 @@ ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS = frozenset(
         ("uquant/application/metrics.py", "performance_metrics"),
     }
 )
+_REVIEWED_BLOCKED_AST_SHA256 = "3db039a3926e1de3afdc53774a4580659722adb89b7d1db47c8bd8588a9a51fe"
 
 
 def execution_reviewed_source(root: Path, relative: str) -> str:
@@ -239,6 +244,11 @@ def reviewed_execution_debt_definition(
         assert aliases[0].value.id == "attach_target_attribution"
         return copy.deepcopy(frozen)
     assert len(reviewed_matches) == 1
+    if (relative, name) == ("uquant/execution/market_constraints.py", "_blocked"):
+        digest = hashlib.sha256(
+            ast.dump(reviewed_matches[0], include_attributes=False).encode()
+        ).hexdigest()
+        assert digest == _REVIEWED_BLOCKED_AST_SHA256
     if candidate is not None:
         assert ast.dump(candidate, include_attributes=False) == ast.dump(
             reviewed_matches[0],

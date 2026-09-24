@@ -658,7 +658,7 @@ def test_limit_and_suspension_keep_pending():
                 },
                 {
                     "date": "2026-01-07",
-                    "open": 11,
+                    "open": float("nan"),
                     "high": 11,
                     "low": 11,
                     "close": 11,
@@ -820,12 +820,12 @@ def test_large_opening_gap_reprices_target_and_preserves_weight_cap():
                 },
                 {
                     "date": "2026-01-06",
-                    "open": 15,
-                    "high": 15.5,
-                    "low": 10.5,
-                    "close": 14.5,
+                    "open": 10.9,
+                    "high": 11.0,
+                    "low": 10.4,
+                    "close": 10.8,
                     "volume": 1e8,
-                    "amount": 1.45e9,
+                    "amount": 1.08e9,
                 },
             ]
         )

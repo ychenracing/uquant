@@ -171,7 +171,7 @@ def _run_one_execution_stress(spec: ExecutionStressSpec) -> dict[str, Any]:
         if spec.value is None:
             raise ValueError("PARTIAL_FILL_RATIO requires a value")
         requested_capacity = int(10_000 * spec.value)
-        rows[-1] = _row(_NEXT_OPEN, 100.0, requested_capacity / config.max_volume_participation)
+        rows[0] = _row(_SIGNAL_DATE, 100.0, requested_capacity / config.max_volume_participation)
     elif spec.kind == "LIMIT_BLOCKED_BUY":
         rows[-1] = {
             "date": _NEXT_OPEN,
@@ -198,7 +198,7 @@ def _run_one_execution_stress(spec: ExecutionStressSpec) -> dict[str, Any]:
     elif spec.kind == "SUSPENDED":
         rows = [_row(_SIGNAL_DATE, 100.0), _row(_DELAYED_OPEN, 100.0)]
     elif spec.kind == "CAPACITY_UNAVAILABLE":
-        rows[-1] = _row(_NEXT_OPEN, 100.0, 19_999.0)
+        rows[0] = _row(_SIGNAL_DATE, 100.0, 19_999.0)
         rows.append(_row(_DELAYED_OPEN, 100.0))
     else:  # pragma: no cover - specs above are exhaustive
         raise ValueError(f"unsupported execution stress: {spec.kind}")

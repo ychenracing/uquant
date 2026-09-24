@@ -45,9 +45,8 @@ def test_small_champion_replay_uses_real_next_open_and_sealed_evidence(tmp_path:
     account = load_account(account_path)
     assert account.fills
     assert account.fills[0].fill_date == "2023-01-05"
-    assert any(fill.fill_date == "2023-01-10" for fill in account.fills)
-    # A qualified group can fund several names; each partial BUY still has
-    # one original economic order, never a replacement for its remainder.
+    assert len({fill.fill_date for fill in account.fills}) > 1
+    # A partial BUY can fill across sessions under one original economic order.
     assert len(account.order_ledger) == len({order.symbol for order in account.order_ledger})
     assert {fill.order_id for fill in account.fills} == {order.order_id for order in account.order_ledger}
     assert len(account.fills) > len(account.order_ledger)

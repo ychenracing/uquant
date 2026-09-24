@@ -5,6 +5,7 @@ from dataclasses import asdict, replace
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 
 from uquant.account.codec import account_from_dict
 from uquant.account.validation_orders import validate_pending_order_for_account_write
@@ -50,7 +51,7 @@ def _partial_sell(reduction_policy):
         origin_subsystem="RISK" if risk else "LEADER",
         mechanism="RISK_GROSS_CAP" if risk else "LEADER_LIFECYCLE_EXIT", origin_lifecycle="CORE")
     _submit(account, dates[2], exit_target)
-    frame.loc[dates[3], "volume"] = 100_000.
+    set_prior_session_volume(frame, dates[3], 100_000.)
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[3], account=account, panel=panel)
     assert len(fills) == 1 and fills[0].side == "SELL" and fills[0].shares > 0
     assert account.order_ledger[-1].status == "PARTIALLY_FILLED"
@@ -93,7 +94,7 @@ def test_qualified_partial_buy_neighbour_keeps_native_order_and_fill_identity():
     dates = pd.bdate_range("2024-01-02", periods=4)
     frame = pd.DataFrame({"open": 10., "close": 10., "high": 10.1, "low": 9.9,
                           "volume": 100_000_000.}, index=dates)
-    frame.loc[dates[1], "volume"] = 100_000.
+    set_prior_session_volume(frame, dates[1], 100_000.)
     panel = {SYMBOL: frame}
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.code_hash, account.data_hash = "source:native-regression", "data:native-regression"

@@ -3,6 +3,7 @@ import math
 from dataclasses import replace
 
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_shared_core_qualification import CHALLENGER, WITNESSES, _decide, _held_book
 from test_single_immature_core import _early_book
 from test_strategic_probe_holding import OWNER
@@ -94,8 +95,7 @@ def test_existing_ordinary_capital_reserves_weak_market_allowance(execution):
     if execution != "pending":
         if execution == "partial":
             frame = panel[CHALLENGER]
-            frame.loc[dates[2], "volume"] = 100_000.
-            frame.loc[dates[2], "amount"] = float(frame.loc[dates[2], "close"]) * 100_000.
+            set_prior_session_volume(frame, dates[2], 100_000.)
         fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[2], account=account, panel=panel)
         assert any(f.symbol == CHALLENGER and f.shares > 0 for f in fills)
         if execution == "partial":

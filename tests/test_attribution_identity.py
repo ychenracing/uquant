@@ -117,8 +117,8 @@ def _multilot_frame() -> pd.DataFrame:
                 "high": 10.2,
                 "low": 9.8,
                 "close": 10.0,
-                "volume": 3_000_000.0 if date == "2026-01-08" else 100_000_000.0,
-                "amount": 30_000_000.0 if date == "2026-01-08" else 1_000_000_000.0,
+                "volume": 3_000_000.0 if date == "2026-01-07" else 100_000_000.0,
+                "amount": 30_000_000.0 if date == "2026-01-07" else 1_000_000_000.0,
             }
             for date in (
                 "2026-01-05",

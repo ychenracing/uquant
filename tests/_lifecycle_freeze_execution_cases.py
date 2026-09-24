@@ -121,6 +121,13 @@ def test_frozen_strategic_member_preserves_partial_sell_identity_and_cancels_buy
     dates = pd.bdate_range("2025-01-02", periods=150)
     frame = _trend_frame(dates)
     selling, buying = "strategic_sell", "strategic_buy"
+    sell_identity = _identity(
+        signal_date="2026-01-05", symbol=selling, target_weight=0.10,
+        lifecycle=Lifecycle.CORE.value, origin_subsystem=OriginSubsystem.RISK.value,
+        mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
+        reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
+        reason_code="risk_gross_cap", exit_kind="risk",
+    )
     durable_sell = PendingOrder(
         "2026-01-05",
         selling,
@@ -133,6 +140,7 @@ def test_frozen_strategic_member_preserves_partial_sell_identity_and_cancels_buy
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **sell_identity,
     )
     unfinished_buy = PendingOrder(
         "2026-01-05",
@@ -187,6 +195,7 @@ def test_frozen_strategic_member_preserves_partial_sell_identity_and_cancels_buy
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
         reason_code="risk_gross_cap",
         exit_kind="risk",
+        **sell_identity,
     )
     assert by_symbol[buying].weight == pytest.approx(0.20)
     assert by_symbol[buying].reason_code == "risk_freeze_hold"

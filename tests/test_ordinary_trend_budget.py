@@ -4,6 +4,7 @@ from hashlib import sha256
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_universe_quorum import _risk
 
@@ -110,8 +111,7 @@ def test_ordinary_partial_loses_common_permission_and_cannot_revive_after_strict
     policy, account, dates, panel, leaders, risk, _ = _confirmed_open()
     assert len(account.pending_orders) == 2
     for frame in panel.values():
-        frame.loc[dates[5], "volume"] = 1_000_000.
-        frame.loc[dates[5], "amount"] = 1_000_000. * frame.loc[dates[5], "close"]
+        set_prior_session_volume(frame, dates[5], 1_000_000.)
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
     assert len(fills) == 2 and account.pending_orders
     assert all(order.status == "PARTIALLY_FILLED" for order in account.order_ledger)
@@ -171,8 +171,7 @@ def test_real_consumed_repair_partial_cannot_use_mature_common_permission(tmp_pa
     reference = account.strategic_cash_rearm.consumed_order
     assert (reference.order_id, reference.event_id) == (original.order_id, original.event_id)
     frame = panel[SYMBOL]
-    frame.loc[dates[20], "volume"] = 100_000.
-    frame.loc[dates[20], "amount"] = 100_000. * frame.loc[dates[20], "close"]
+    set_prior_session_volume(frame, dates[20], 100_000.)
     account.data_hash = sha256(frame.to_csv().encode()).hexdigest()
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[20], account=account, panel=panel)
     assert len(fills) == 1 and account.pending_orders

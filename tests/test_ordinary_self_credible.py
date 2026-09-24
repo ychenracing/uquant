@@ -1,6 +1,7 @@
 """Ordinary maturity and current execution proof have separate market-witness roles."""
 from dataclasses import replace
 
+from _causal_execution_fixtures import set_prior_session_volume
 from test_ordinary_trend_budget import _decide, _scenario
 
 from uquant.config import DEFAULT_CONFIG
@@ -48,8 +49,7 @@ def test_partial_current_credible_continues_then_score_loss_cancels_without_rest
     policy, account, dates, panel, leaders, risk, _, low = _open_pair(low_score=.84)
     original = next(order for order in account.pending_orders if order.symbol == low)
     frame = panel[low]
-    frame.loc[dates[5], 'volume'] = 1_000_000.
-    frame.loc[dates[5], 'amount'] = frame.loc[dates[5], 'close'] * 1_000_000.
+    set_prior_session_volume(frame, dates[5], 1_000_000.)
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
     assert any(fill.symbol == low and fill.shares > 0 for fill in fills)
     _decide(policy, account, dates[5], panel, leaders, risk)

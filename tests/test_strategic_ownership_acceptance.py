@@ -481,7 +481,7 @@ def test_champion_adapter_retains_rejected_raw(mutation: str) -> None:
     assert result['raw_replay'] == raw
 
 
-def test_champion_adapter_preserves_ownership_absolute_limits() -> None:
+def test_champion_adapter_preserves_current_wealth_floor_and_ownership_drawdown() -> None:
     raw = _historical_champion_raw()
     contract = load_contract()
     contract['champion']['minimum_final_wealth'] = 25.0
@@ -491,10 +491,24 @@ def test_champion_adapter_preserves_ownership_absolute_limits() -> None:
         expected_source=raw['final_account']['code_hash'],
     )
     assert result['status'] == 'FAIL'
-    assert result['violations'] == [
-        'champion preservation wealth differs', 'champion preservation drawdown differs',
-    ]
+    assert result['violations'] == ['champion preservation drawdown differs']
     assert result['raw_replay'] == raw
+
+
+@pytest.mark.parametrize('wealth,accepted', [(14.999, False), (15.0, True), (21.868, True)])
+def test_champion_wealth_boundary_uses_current_principal_floor(monkeypatch, wealth, accepted) -> None:
+    source = 'a' * 64
+    raw = {'synthetic_boundary_fixture': True}
+    # Isolate the ownership comparator without editing a native account or seal.
+    summary = {'acceptance_basis': {'production_source_sha256': source},
+               'metrics': {'final_wealth': wealth, 'max_drawdown': 0.20},
+               'sha256': 'b' * 64, 'violations': []}
+    monkeypatch.setattr(ownership_runner, 'current_candidate_champion_evidence', lambda _: summary)
+    result = ownership_runner._champion_evidence(
+        load_contract(), raw=raw, scenario_id='champion-5', expected_source=source,
+    )
+    assert (result['status'] == 'PASS') is accepted
+    assert ('champion preservation wealth differs' in result['violations']) is not accepted
 
 
 def test_champion_cache_cannot_accept_summary_without_raw(tmp_path: Path) -> None:

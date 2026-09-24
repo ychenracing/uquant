@@ -21,8 +21,10 @@ SCENARIOS = (
 
 def child(output: Path) -> None:
     sys.path.insert(0, str(Path.cwd()))
-    import pandas as pd
     from dataclasses import asdict
+
+    import pandas as pd
+
     from uquant.config import DEFAULT_CONFIG, config_fingerprint
     from uquant.engine import ProductionEngine, code_fingerprint
     from uquant.types import AccountState
@@ -86,7 +88,8 @@ def main() -> None:
     comparisons=[]
     for a,b in zip(base['scenarios'],candidate['scenarios'],strict=True):
         assert a['name']==b['name'] and a['symbols']==b['symbols']
-        left=[projection(row) for row in a['rows']];right=[projection(row) for row in b['rows']]
+        left=[projection(row) for row in a['rows']]
+        right=[projection(row) for row in b['rows']]
         mismatch=next((x['date'] for x,y in zip(left,right,strict=True) if x!=y),None)
         comparisons.append({'scenario':a['name'],'sessions':len(left),'equal':mismatch is None,
                             'first_difference':mismatch,'fills':len(right[-1]['fills']),
@@ -103,7 +106,8 @@ def main() -> None:
         'passed':all(row['equal'] for row in comparisons)}
     (OUT/'RESULT.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report))
-    if not report['passed']: raise SystemExit(1)
+    if not report['passed']:
+        raise SystemExit(1)
 
 if __name__=='__main__':
     child(Path(sys.argv[2])) if len(sys.argv)>1 and sys.argv[1]=='--child' else main()

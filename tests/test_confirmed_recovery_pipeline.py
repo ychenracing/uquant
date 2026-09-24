@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_core_bounded_risk_restoration import _submit
 from test_lifecycle_and_risk import _leader
 from test_ordinary_trend_budget import _decide
@@ -85,8 +86,7 @@ def test_real_partial_recovery_keeps_fills_and_cancels_lost_current_proof(recove
     date = pd.Timestamp("2025-05-09")
     panel = {symbol: engine._raw[symbol].copy(deep=True) for symbol in SYMBOLS}
     for frame in panel.values():
-        frame.loc[date, "volume"] = 100 / DEFAULT_CONFIG.max_volume_participation
-        frame.loc[date, "amount"] = frame.loc[date, "close"] * frame.loc[date, "volume"]
+        set_prior_session_volume(frame, date, 100 / DEFAULT_CONFIG.max_volume_participation)
     fills = engine.execution.execute_open(date=date, account=account, panel=panel)
     assert len(fills) == 1 and account.pending_orders
     assert {fill.symbol for fill in fills} == {"sz300502"}

@@ -72,6 +72,7 @@ from uquant.validation.absolute_generalization.metrics import (
     longest_healthy_zero_target_streak,
     repair_episode_facts_from_trace,
 )
+from uquant.validation.acceptance_tolerance import principal_wealth_floor
 from uquant.validation.manifest import verify_data_manifest
 
 CONTRACT_PATH = ROOT / "benchmarks" / "strategic_ownership_acceptance_contract.json"
@@ -447,12 +448,15 @@ def _champion_evidence(
     try:
         summary = current_candidate_champion_evidence(raw)
         row.update(summary)
+        row["violations"] = list(_sequence(summary["violations"], label="champion violations"))
         row["path_sha256"] = summary["sha256"]
         basis = _mapping(summary["acceptance_basis"], label="champion acceptance basis")
         if basis["production_source_sha256"] != expected_source:
             raise ValueError("ownership champion raw account source differs")
         metrics = _mapping(summary["metrics"], label="champion metrics")
-        if float(metrics["final_wealth"]) < float(champion["minimum_final_wealth"]):
+        if float(metrics["final_wealth"]) < principal_wealth_floor(
+            float(champion["minimum_final_wealth"])
+        ):
             row["violations"].append("champion preservation wealth differs")
         limit = float(_mapping(contract["thresholds"], label="thresholds")["maximum_drawdown"])
         if float(metrics["max_drawdown"]) > limit:

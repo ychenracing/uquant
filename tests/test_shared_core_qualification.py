@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, replace
 
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from policy_inputs import policy_inputs
 from test_lifecycle_and_risk import _leader
 from test_strategic_probe_holding import OWNER, _filled_probe
@@ -143,7 +144,7 @@ def test_partial_common_core_continuation_uses_the_same_current_certificate(qual
         _decide(allocator, account, date, panel, leaders, roles)
     original = next(order for order in account.pending_orders if order.symbol == CHALLENGER and order.side == "BUY")
     fill_day = dates[DEFAULT_CONFIG.strategic_cohort_confirm_days]
-    panel[CHALLENGER].loc[fill_day, "volume"] = 100_000.0
+    set_prior_session_volume(panel[CHALLENGER], fill_day, 100_000.0)
     fills = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=.002)).execute_open(
         date=fill_day, account=account, panel=panel,
     )

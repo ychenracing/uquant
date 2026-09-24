@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, replace
 
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_ordinary_cash_rearm import SYMBOL, _decide, _roles, _scenario
 
 from uquant.account.codec import account_from_dict
@@ -94,7 +95,7 @@ def test_market_confirmation_loss_cancels_native_partial_buy_but_keeps_real_hold
         _decide(policy, account, date, panel, leaders, risk)
     assert len(account.pending_orders) == 1
     original = account.pending_orders[0]
-    panel[SYMBOL].loc[dates[5], "volume"] = 100_000.
+    set_prior_session_volume(panel[SYMBOL], dates[5], 100_000.)
     fills = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=.002)).execute_open(
         date=dates[5], account=account, panel=panel,
     )

@@ -5,6 +5,7 @@ from dataclasses import asdict, replace
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_universe_quorum import _risk
 
@@ -90,7 +91,7 @@ def _filled_probe(*, partial=False):
     fill_date = dates[index + 1]
     cfg = DEFAULT_CONFIG.override(max_volume_participation=.002) if partial else DEFAULT_CONFIG
     if partial:
-        panel[OWNER].loc[fill_date, "volume"] = 100_000.0
+        set_prior_session_volume(panel[OWNER], fill_date, 100_000.0)
     fills = ExecutionPlanner(cfg).execute_open(
         date=fill_date, account=account, panel={OWNER: panel[OWNER]},
     )

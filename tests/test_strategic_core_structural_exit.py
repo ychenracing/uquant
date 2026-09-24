@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, replace
 
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_strategic_probe_holding import OWNER, _decide_and_submit, _entry_deteriorated, _filled_probe
 from test_strategic_universe_quorum import _risk
 
@@ -47,7 +48,7 @@ def test_confirmed_core_structure_exit_keeps_native_identity_until_final_fill(re
     assert original.epoch_id == epoch.epoch_id and original.grant_id == epoch.grant_id
     assert original.event_id and not epoch.terminal
     fill_date = dates[DEFAULT_CONFIG.replacement_confirm_days]
-    panel[OWNER].loc[fill_date, "volume"] = 100_000.0
+    set_prior_session_volume(panel[OWNER], fill_date, 100_000.0)
     fills = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=.002)).execute_open(
         date=fill_date, account=account, panel={OWNER: panel[OWNER]},
     )

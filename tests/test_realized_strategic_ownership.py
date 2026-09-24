@@ -3,6 +3,7 @@ from dataclasses import asdict
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_lifecycle_and_risk import _leader, _strategic_frame
 from test_strategic_probe_holding import OWNER, _allocate, _decide_and_submit, _entry_deteriorated, _submit
 
@@ -56,7 +57,7 @@ def test_first_real_owner_buy_activates_ownership_without_completing_grant(parti
     risk_generation = account.strategic_epoch
     generation_tags = dict(account.candidate_tenure)
     if partial:
-        panel[OWNER].loc[dates[0], "volume"] = 100_000.
+        set_prior_session_volume(panel[OWNER], dates[0], 100_000.)
     cfg = DEFAULT_CONFIG.override(max_volume_participation=.002) if partial else DEFAULT_CONFIG
     fills = ExecutionPlanner(cfg).execute_open(date=dates[0], account=account, panel={OWNER: panel[OWNER]})
     assert len(fills) == 1 and fills[0].shares > 0
@@ -107,7 +108,7 @@ def test_later_native_deployment_advances_risk_generation_only_once():
 
 def test_native_submitted_zero_fill_does_not_activate_ownership():
     _, account, dates, panel, _, _ = _native_order()
-    panel[OWNER].loc[dates[0], "volume"] = 0.
+    set_prior_session_volume(panel[OWNER], dates[0], 0.)
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[0], account=account, panel={OWNER: panel[OWNER]})
     assert not fills
     assert not account.positions
@@ -118,7 +119,7 @@ def test_native_submitted_zero_fill_does_not_activate_ownership():
 
 def test_same_session_partial_receipts_do_not_complete_deployment():
     _, account, dates, panel, _, _ = _native_order()
-    panel[OWNER].loc[dates[0], "volume"] = 100_000.
+    set_prior_session_volume(panel[OWNER], dates[0], 100_000.)
     executor = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=.002))
     first = executor.execute_open(date=dates[0], account=account, panel={OWNER: panel[OWNER]})
     second = executor.execute_open(date=dates[0], account=account, panel={OWNER: panel[OWNER]})

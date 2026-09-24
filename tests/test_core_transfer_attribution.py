@@ -6,6 +6,7 @@ from dataclasses import replace
 
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_core_transfer_feasibility import CHALLENGER, INCUMBENT, WEAK, _scenario
 
 from uquant.application.target_attribution import attach_target_attribution
@@ -108,7 +109,7 @@ def test_unsettled_rotation_cannot_label_a_buy_funded_by_another_sell(monkeypatc
     )
     submit(dates[-3], (other_source,), retain=tuple(account.pending_orders))
     if transfer_state == "open_unfilled":
-        panel[WEAK].loc[dates[-2], "volume"] = 0.0
+        set_prior_session_volume(panel[WEAK], dates[-2], 0.0)
     other_fills = planner.execute_open(date=dates[-2], account=account, panel=panel)
     assert [(fill.symbol, fill.side, fill.mechanism) for fill in other_fills] == [
         (INCUMBENT, "SELL", "LEADER_LIFECYCLE_EXIT"),

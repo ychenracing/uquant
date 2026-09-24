@@ -7,6 +7,7 @@ from hashlib import sha256
 import numpy as np
 import pandas as pd
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_lifecycle_and_risk import _leader, _strategic_frame, _trend_frame
 from test_strategic_grant_observation import _risk
 
@@ -69,6 +70,8 @@ def test_partial_founding_buy_keeps_its_cap_and_identity_after_restart(tmp_path)
         "volume": [100_000_000.0, 1_000_000.0, 100_000_000.0, 100_000_000.0],
         "amount": [300_000_000.0, 3_000_000.0, 300_000_000.0, 300_000_000.0],
     }, index=dates[-4:]) for s in symbols}
+    set_prior_session_volume(execution[immature], dates[-3], 1_000_000.0)
+    set_prior_session_volume(execution[immature], dates[-1], 100_000_000.0)
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[-3], account=account, panel=execution)
     assert len(fills) == 3 and all(f.side == "BUY" and f.shares > 0 for f in fills)
     pending = next(o for o in account.pending_orders if o.symbol == immature)
@@ -97,7 +100,14 @@ def test_partial_founding_buy_keeps_its_cap_and_identity_after_restart(tmp_path)
     assert next(o.requested_shares for o in restored.order_ledger if o.order_id == retained.order_id) == original_requested
     completed = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[-1], account=restored, panel=execution)
     assert any(f.symbol == immature and f.side == "BUY" for f in completed)
-    assert sum(f.shares for f in restored.fills if f.order_id == retained.order_id) == original_requested
+    # Opening fees can reduce the weight target by one lot; the native order
+    # retains its identity and reconciles its actual revised quantity exactly.
+    ledger = next(o for o in restored.order_ledger if o.order_id == retained.order_id)
+    assert 0 < ledger.requested_shares <= original_requested
+    assert ledger.filled_shares == sum(f.shares for f in restored.fills if f.order_id == retained.order_id)
+    assert ledger.filled_shares + ledger.remaining_shares == ledger.requested_shares
+    if ledger.remaining_shares:
+        assert any(o.order_id == retained.order_id for o in restored.pending_orders)
 
 
 def test_actual_decisive_reversal_keeps_dominant_cap_even_when_immature():

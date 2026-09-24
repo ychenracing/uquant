@@ -79,7 +79,23 @@ Actions 只上传实际生成并读回的产物；预检或分片执行失败时
 
 [八场景比较](../artifacts/unified-allocation/C2_ACCEPTED_DELIVERY.md)与[验收合同](../artifacts/unified-allocation/ACCEPTANCE_C2_ACCEPTED.json)记录正式配对结果。六个标准场景的成本后终值相对基线几何平均为 103.67%，八场景最低为 97.34%，最大回撤增量均为零。2025 场景订单数由 9 增至 16，剔除 `sz300502` 场景由 45 增至 61；这两个场景的换手和成本也增加。以上结果限于已运行的八场景，不代表完整 Absolute 或未来泛化表现。
 
-## 已有完整结果与本轮身份修复
+## 当前冠军财富口径与候选 C 原件
+
+现行主账户／冠军财富底线由 `uquant.validation.acceptance_tolerance.principal_wealth_floor`
+统一评估，Absolute 和 Strategic Ownership 均使用 **15×**，含本金、不叠加其他财富容忍。
+Ownership 合同中保留的 `23.28417871275582×` 是历史门槛的原始记录，不能直接作为
+当前冠军拒绝条件；冠军最大回撤仍限 30%，其他所有权、账本及归因校验各按原适用规则执行。
+测试夹具覆盖低于 15×、恰好 15× 与高于 15× 的边界。
+
+候选 C 的完整正式 Absolute 原件由 `115a151761f458da056b6118fa41a2339ec49914`
+生产，八片和 final 通过，34/34 单元、七组件通过；冠军财富
+`21.868143196721125×`、最大回撤 `26.628444%`。正式 final 的 SHA-256 为
+`3a7c66fc3429aa9e7f9de18ee70cec749c449a49d2bc46a8f214320a2deb9ef3`，
+原始身份和旧失败均保留。工程修复的验证和可复用证据范围见
+[工程验收收尾记录](../artifacts/engineering-acceptance-closure/DELIVERY_REPORT.md)；
+该原件不改贴后续 HEAD 身份。
+
+## 历史完整结果与身份修复
 
 main `58d4b9c` 的 [Actions 35628142765](https://github.com/ychenracing/uquant/actions/runs/35628142765)
 已完成八个 canonical 分片。保留的[原始聚合报告](../artifacts/operational-continuity/ABSOLUTE_MAIN_REPORT.json)

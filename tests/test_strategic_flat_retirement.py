@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, replace
 
 import pytest
+from _causal_execution_fixtures import set_prior_session_volume
 from test_lifecycle_and_risk import _leader
 from test_shared_core_qualification import _decide
 from test_strategic_cohort_deployment_settlement import SYMBOLS, _native_full
@@ -243,7 +244,7 @@ def test_retired_restoration_remainder_never_revives_but_real_liability_survives
     assert len(account.pending_orders) == 1
     intent = account.pending_orders[0]
     assert intent.mechanism == "STRATEGIC_RESTORATION" and intent.grant_id
-    panel[intent.symbol].loc[dates[1], "volume"] = 100_000.
+    set_prior_session_volume(panel[intent.symbol], dates[1], 100_000.)
     fills = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=.002)).execute_open(
         date=dates[1], account=account, panel=panel)
     assert len(fills) == 1 and fills[0].side == "BUY" and fills[0].shares > 0

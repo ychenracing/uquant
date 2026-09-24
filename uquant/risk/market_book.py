@@ -138,7 +138,6 @@ def _collect_reference_observations(
     date: pd.Timestamp,
     reference_panel: dict[str, pd.DataFrame],
     leaders: dict[str, LeaderScore],
-    account: AccountState,
     cfg: SystemConfig,
 ) -> _ReferenceObservations:
     result = _ReferenceObservations([], [], [], [], {}, {}, {})
@@ -543,7 +542,6 @@ def assess_market_and_book_evidence(
         date=date,
         reference_panel=reference_panel,
         leaders=leaders,
-        account=account,
         cfg=cfg,
     )
     metrics = _breadth_metrics(observed, cfg)

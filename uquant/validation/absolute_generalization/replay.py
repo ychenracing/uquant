@@ -20,7 +20,6 @@ from uquant.market import ReplayUniverse
 from uquant.models.strategic_universe import (
     StrategicUniverseRoles,
     build_strategic_universe_declaration,
-    build_strategic_universe_roles,
 )
 from uquant.types import AccountOrder, AccountState, Decision, StrategicEpoch
 from uquant.validation.universe import default_ai_universe
@@ -609,30 +608,6 @@ def _point_in_time_symbols(
     return (
         tuple(symbol for symbol in active if symbol != scenario.removed_symbol),
         absent,
-    )
-
-
-def _production_roles(
-    *,
-    engine: ProductionEngine,
-    symbols: tuple[str, ...],
-    session: str,
-    frames: Mapping[str, pd.DataFrame],
-) -> StrategicUniverseRoles:
-    date = pd.Timestamp(session)
-    universe = default_ai_universe()
-    available = tuple(
-        symbol
-        for symbol in (*symbols, *INDEX_SYMBOLS)
-        if symbol in frames and date in frames[symbol].index
-    )
-    return build_strategic_universe_roles(
-        as_of=session,
-        tradable_symbols=symbols,
-        qualification_reference_symbols=symbols,
-        risk_reference_symbols=(*symbols, *INDEX_SYMBOLS),
-        industries={symbol: universe.industry_of(symbol, session) for symbol in symbols},
-        available_symbols=available,
     )
 
 

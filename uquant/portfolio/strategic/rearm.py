@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from copy import deepcopy
 from types import MappingProxyType
 from typing import cast
@@ -47,6 +46,7 @@ from .rearm_predicates import (
     flat_book_repair_predicates,
     repair_reference_evidence_complete,
 )
+from .rearm_predicates import finite_repair_evidence as _finite_at_least
 from .rearm_predicates import (
     ordinary_rearm_attempt_pending as _ordinary_rearm_attempt_pending,
 )
@@ -566,13 +566,6 @@ def consume_strategic_cash_rearm_authorization(
     account.flat_book_capital_repair = consumed_repair
     account.strategic_cash_rearm = consumed
     return consumed
-
-
-def _finite_at_least(value: object, minimum: float) -> bool:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return False
-    converted = float(value)
-    return math.isfinite(converted) and converted >= minimum
 
 
 def _reference_coverage_complete(

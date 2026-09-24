@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -22,6 +21,7 @@ from research.risk_differential_models import (
     validate_registry_checkout,
 )
 from research.risk_replay_runtime import ReplayCell, run_trade_cell, run_uquant_cell
+from uquant.contracts.strict_json import reject_duplicate_json_keys as _reject_duplicate_keys
 from uquant.validation.execution_journal import (
     append_filled,
     append_planned,
@@ -64,15 +64,6 @@ _DIFFERENTIAL_AXIS_FIELDS = (
     "all_agree_axes",
     "trade_and_sentinel_not_base_axes",
 )
-
-
-def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
 
 
 def _parser() -> argparse.ArgumentParser:

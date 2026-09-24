@@ -159,8 +159,6 @@ def _read_generalization_baseline(path: str | Path) -> tuple[bytes, dict[str, An
             object_pairs_hook=_reject_duplicate_keys,
             parse_constant=_reject_nonstandard_constant,
         )
-    except RuntimeError:
-        raise
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"generalization baseline is missing or corrupt: {source}") from exc
     if not isinstance(payload, dict):

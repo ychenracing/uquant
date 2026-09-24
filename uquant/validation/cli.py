@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Iterable
 from pathlib import Path
-from typing import Any
+
+from uquant.contracts.strict_json import reject_duplicate_json_keys as _reject_duplicate_cli_keys
 
 from .ai_era import AI_ERA_WINDOWS
 from .competitor import run_competitor_gate
@@ -14,15 +14,6 @@ from .generalization import run_generalization
 from .generalization_matrix import run_generalization_matrix
 from .manifest import verify_data_manifest
 from .promotion import run_promotion
-
-
-def _reject_duplicate_cli_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
 
 
 def _load_industries(path: str | Path) -> dict[str, str]:

@@ -10,18 +10,11 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
+from uquant.contracts.strict_json import reject_duplicate_json_keys
+
 
 def _encode(value: Any) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-
-
-def _reject_duplicate_cache_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate cache key: {key}")
-        result[key] = value
-    return result
 
 
 def replay_unit(
@@ -40,7 +33,7 @@ def replay_unit(
         raise RuntimeError(f"promotion cache unit must not be a symlink: {path}")
     if path.exists():
         try:
-            record = json.loads(path.read_bytes(), object_pairs_hook=_reject_duplicate_cache_keys)
+            record = json.loads(path.read_bytes(), object_pairs_hook=reject_duplicate_json_keys)
             payload = record["payload"]
             if (
                 set(record) != {"payload", "sha256"}

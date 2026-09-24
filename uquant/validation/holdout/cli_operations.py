@@ -5,11 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import tempfile
-from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
 
+from uquant.contracts.strict_json import reject_duplicate_json_keys as _reject_duplicate_keys
 from uquant.infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from uquant.validation.evidence_source import evidence_root
 from uquant.validation.execution_journal import (
@@ -29,17 +29,6 @@ CANONICAL_JOURNAL_PATH = "future_holdout_execution_journal.jsonl"
 CANONICAL_JOURNAL_CHECKPOINT_PATH = "future_holdout_execution_journal.checkpoint.json"
 CANONICAL_LOCAL_LANE_REPORT_PATH = "future_holdout_lane_report.json"
 CANONICAL_DIFFERENTIAL_JOURNAL_PATH = "risk_differential_observations.jsonl"
-
-
-def _reject_duplicate_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
-
-
 
 
 def build_local_lane_report(args: argparse.Namespace) -> dict[str, Any]:

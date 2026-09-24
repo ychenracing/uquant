@@ -262,6 +262,7 @@ damage guard 或 acute evacuation；策略目标还必须不低于当前总仓�
 | `recovery_member_confirm_days` | 3 |
 | `recovery_substitution_edge` | 0.35 |
 | `recovery_substitution_max_ret20` | 0.30 |
+| `recovery_substitution_shock_window` | 20 |
 | `recovery_winner_mfe_arm` | 0.20 |
 | `recovery_winner_trail` | 0.10 |
 | `challenger_scout_enabled` | true |

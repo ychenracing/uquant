@@ -5,12 +5,13 @@ from __future__ import annotations
 import argparse
 import copy
 import json
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
 from ..config import config_fingerprint
+from ..contracts.strict_json import reject_duplicate_json_keys as _reject_duplicate_keys
 from .ai_era import AI_ERA_WINDOWS, runtime_environment_provenance
 from .generalization import GeneralizationObservation
 from .generalization_contract import (
@@ -50,15 +51,6 @@ _PERFORMANCE_PROVENANCE_FIELDS = frozenset(
         "generated_at",
     }
 )
-
-
-def _reject_duplicate_ci_keys(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
-    payload: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in payload:
-            raise ValueError(f"duplicate JSON key: {key}")
-        payload[key] = value
-    return payload
 
 
 def _load_json_object(path: Path, *, label: str) -> dict[str, Any]:
@@ -634,7 +626,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 _parser = _ci_artifact_parser
-_reject_duplicate_keys = _reject_duplicate_ci_keys
 
 
 if __name__ == "__main__":

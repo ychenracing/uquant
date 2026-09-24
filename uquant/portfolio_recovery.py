@@ -1,3 +1,3 @@
-"""Recovery-anchor substitution policy with bounded causal rotation."""
+"""Stable import path for the current recovery portfolio policy."""
 
 from .portfolio.recovery import RecoveryPortfolioPolicy as RecoveryPortfolioPolicy

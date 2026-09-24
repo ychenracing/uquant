@@ -108,10 +108,7 @@ class RecoveryPolicy:
     recovery_reserve_min_score: ClassVar[float] = 0.58
     recovery_reserve_min_ret60: ClassVar[float] = 0.20
     recovery_reserve_min_ret120: ClassVar[float] = 0.15
-    # A recovery secondary may be replaced only after genuine structural
-    # failure and the same material edge required by ordinary rotation.  This
-    # is not the idle-cash scout and cannot sell a healthy incumbent to fund a
-    # probe.
+    # Retained for historical configuration identity; the substitution generator is retired.
     recovery_substitution_edge: ClassVar[float] = 0.35
     recovery_substitution_max_ret20: ClassVar[float] = 0.30
     recovery_substitution_shock_window: ClassVar[int] = 20

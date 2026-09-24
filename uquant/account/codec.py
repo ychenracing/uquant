@@ -210,8 +210,6 @@ def _decode_account_lifecycle_fields(
 
 def _decode_account_strategy_fields(
     *,
-    capital_peak: Any,
-    operating_peak: Any,
     payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     if "flat_book_capital_repair" not in payload:
@@ -313,8 +311,6 @@ def account_from_dict(
                 payload=payload,
             ),
             **_decode_account_strategy_fields(
-                capital_peak=capital_peak,
-                operating_peak=operating_peak,
                 payload=payload,
             ),
         )

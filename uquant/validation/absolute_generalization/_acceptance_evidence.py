@@ -906,45 +906,6 @@ def validate_terminal_evidence(raw: object) -> Mapping[str, object]:
     return evidence
 
 
-def _evidence_components(nodes: set[str], edges: set[tuple[str, str]]) -> tuple[frozenset[str], ...]:
-    graph: dict[str, set[str]] = {node: set() for node in nodes}
-    reverse: dict[str, set[str]] = {node: set() for node in nodes}
-    for source, target in edges:
-        graph[source].add(target)
-        reverse[target].add(source)
-    visited: set[str] = set()
-    order: list[str] = []
-    for root in sorted(nodes):
-        if root in visited:
-            continue
-        stack: list[tuple[str, bool]] = [(root, False)]
-        while stack:
-            node, closing = stack.pop()
-            if closing:
-                order.append(node)
-            elif node not in visited:
-                visited.add(node)
-                stack.append((node, True))
-                stack.extend((child, False) for child in sorted(graph[node], reverse=True))
-    assigned: set[str] = set()
-    components: list[frozenset[str]] = []
-    for root in reversed(order):
-        if root in assigned:
-            continue
-        component: set[str] = set()
-        reverse_stack = [root]
-        assigned.add(root)
-        while reverse_stack:
-            node = reverse_stack.pop()
-            component.add(node)
-            for parent in reverse[node]:
-                if parent not in assigned:
-                    assigned.add(parent)
-                    reverse_stack.append(parent)
-        components.append(frozenset(component))
-    return tuple(components)
-
-
 def terminal_projection(raw: Mapping[str, object]) -> TerminalProjection:
     """Return the Task 6 projection from strictly rebuilt runtime states."""
 

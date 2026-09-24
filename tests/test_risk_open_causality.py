@@ -65,6 +65,30 @@ class RiskOpenCausalityTest(unittest.TestCase):
         at_limit = pd.Series({"open": 110, "low": 100, "high": 110, "volume": 10_000_000})
         self.assertTrue(market_execution_blocked("sz002409", "BUY", at_limit, 100.0))
 
+    def test_sub_lot_risk_shortfall_is_not_reported_as_satisfied(self):
+        date = pd.Timestamp("2026-07-28")
+        order = PendingOrder(signal_date="2026-07-27", symbol="sz002409", side="SELL",
+                             target_weight=.009995, reason="risk cap", lifecycle="CORE",
+                             reduction_policy="RISK_PRIORITY")
+        ledger = AccountOrder(order_id="O000000001", signal_date=order.signal_date,
+                              submitted_date=order.signal_date, symbol=order.symbol, side=order.side,
+                              target_weight=order.target_weight, reason=order.reason,
+                              lifecycle=order.lifecycle, reduction_policy=order.reduction_policy)
+        account = AccountState(initial_cash=1_000_000, cash=990_000,
+                               positions={order.symbol: Position(symbol=order.symbol, shares=100)})
+        frame = pd.DataFrame([{"date": "2026-07-27", "open": 100., "close": 100.,
+                              "volume": 1_000_000., "amount": 100_000_000.},
+                             {"date": "2026-07-28", "open": 100., "close": 100.,
+                              "volume": 1_000_000., "amount": 100_000_000.}]).set_index("date")
+        frame.index = pd.to_datetime(frame.index)
+        retained = []
+        self.assertIsNone(_size_open_order(cfg=DEFAULT_CONFIG, date=date, order=order,
+                                           account=account, account_order=ledger,
+                                           panel={order.symbol: frame}, row=frame.loc[date], retained=retained))
+        self.assertEqual(retained, [order])
+        self.assertEqual(ledger.last_event, "RISK_TARGET_UNMET_LOT")
+        self.assertNotEqual(ledger.status, "CANCELLED")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -306,13 +306,28 @@ def _size_open_order(
             account_order.attempts = order.attempts
             account_order.status = _active_order_status(account_order)
             account_order.last_update_date = date_str
-            account_order.last_event = "CAPACITY_OR_CASH_BLOCKED"
+            account_order.last_event = (
+                "T_PLUS_ONE_BLOCKED" if order.side == Side.SELL.value and requested == 0
+                else "LIQUIDITY_PROXY_BLOCKED" if order.side == Side.SELL.value
+                else "CAPACITY_OR_CASH_BLOCKED"
+            )
             retained.append(order)
         else:
-            account_order.status = OrderStatus.CANCELLED.value
-            account_order.cancel_reason = "target already satisfied"
+            risk_shortfall = bool(
+                order.side == Side.SELL.value
+                and order.reduction_policy == "RISK_PRIORITY"
+                and current.shares * open_price > order.target_weight * open_equity + 1e-8
+            )
+            if risk_shortfall:
+                order.attempts += 1
+                account_order.attempts = order.attempts
+                account_order.status = _active_order_status(account_order)
+                retained.append(order)
+            else:
+                account_order.status = OrderStatus.CANCELLED.value
+                account_order.cancel_reason = "target already satisfied"
             account_order.last_update_date = date_str
-            account_order.last_event = "ZERO_REQUEST"
+            account_order.last_event = "RISK_TARGET_UNMET_LOT" if risk_shortfall else "ZERO_REQUEST"
         return None
     return _OpenOrderRequest(
         order=order,

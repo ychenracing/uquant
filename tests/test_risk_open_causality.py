@@ -10,6 +10,7 @@ from uquant.execution.open_execution import _size_open_order
 from uquant.execution.order_planning import plan_orders
 from uquant.execution.pending import merge_pending_orders
 from uquant.types import AccountOrder, AccountState, PendingOrder, Position, Target
+from uquant.validation.absolute_generalization._account_payload import _validate_account_runtime
 
 
 class RiskOpenCausalityTest(unittest.TestCase):
@@ -88,6 +89,8 @@ class RiskOpenCausalityTest(unittest.TestCase):
         self.assertEqual(retained, [order])
         self.assertEqual(ledger.last_event, "RISK_TARGET_UNMET_LOT")
         self.assertNotEqual(ledger.status, "CANCELLED")
+        account.order_ledger.append(ledger)
+        _validate_account_runtime(account)
 
 
 if __name__ == "__main__":

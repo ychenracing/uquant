@@ -7,6 +7,7 @@ permissions:
   contents: read
 
 env:
+  PYTHONPYCACHEPREFIX: /tmp/uquant-pycache
   UV_VERSION: "0.11.33"
 
 jobs:
@@ -37,16 +38,24 @@ jobs:
         run: uv sync --frozen --extra dev
       - name: Run exact official-window shard
         run: >-
+          python -m tools.cloud_guard run --name extended-economic --timeout 7100 --
           uv run python -m uquant.validation generalization-matrix
           --data-dir data/frozen
           --window "${{ matrix.window }}"
           --output "artifacts/generalization/ci/${{ matrix.window }}.json"
+      - name: Preserve command originals
+        if: ${{ always() }}
+        run: >-
+          python -m tools.cloud_guard export --include-private-logs
+          --output artifacts/generalization/ci/command-originals.zip
       - name: Upload window evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ai-era-generalization-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.window }}
-          path: artifacts/generalization/ci/${{ matrix.window }}.json
+          path: |
+            artifacts/generalization/ci/${{ matrix.window }}.json
+            artifacts/generalization/ci/command-originals.zip
           if-no-files-found: warn
 
   generalization-acceptance:

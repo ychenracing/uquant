@@ -132,3 +132,30 @@ class RiskOpenCausalityTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_real_auction_rejection_is_valid_only_for_active_orders():
+    from uquant.execution.open_execution import _record_unfilled
+
+    for filled in (0, 100):
+        pending = PendingOrder(signal_date="2026-07-27", symbol="sz002409", side="BUY",
+                               target_weight=.2, reason="entry", lifecycle="CORE")
+        ledger = AccountOrder(order_id="O000000001", signal_date=pending.signal_date,
+                              submitted_date=pending.signal_date, symbol=pending.symbol,
+                              side=pending.side, target_weight=.2, reason="entry", lifecycle="CORE",
+                              filled_shares=filled)
+        retained = []
+        _record_unfilled(order=pending, account_order=ledger,
+                         current=Position(symbol=pending.symbol, shares=filled), retained=retained,
+                         date_str="2026-07-28", open_price=104., open_equity=1_000_000.,
+                         crosses=False, requested=200, target_requested=200,
+                         economic_target_requested=200)
+        assert ledger.last_event == "AUCTION_LIMIT_NOT_REACHED"
+        assert retained == [pending]
+        account = AccountState.empty(1_000_000.)
+        account.order_ledger = [ledger]
+        _validate_account_runtime(account)
+        for status in ("SUBMITTED", "FILLED", "CANCELLED", "REPLACED"):
+            ledger.status = status
+            with unittest.TestCase().assertRaisesRegex(ValueError, "status/event"):
+                _validate_account_runtime(account)

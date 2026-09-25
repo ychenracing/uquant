@@ -34,7 +34,8 @@ def ablated_config(mechanism: str, base: SystemConfig = DEFAULT_CONFIG) -> Syste
         raise ValueError(f"mechanism is not in the frozen ablation batch: {mechanism}")
     ablated = type(f"Without_{mechanism}", (SystemConfig,), {"__slots__": (), mechanism: False})
     config = ablated(**asdict(base))
-    assert isinstance(config, SystemConfig)
+    if not isinstance(config, SystemConfig):
+        raise TypeError("ablation did not produce a SystemConfig")
     return config
 
 

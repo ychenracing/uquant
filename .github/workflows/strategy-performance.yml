@@ -7,6 +7,7 @@ permissions:
   contents: read
 
 env:
+  PYTHONPYCACHEPREFIX: /tmp/uquant-pycache
   UV_VERSION: "0.11.33"
 
 jobs:
@@ -28,9 +29,11 @@ jobs:
       - name: Run full AI-Era blocking gate
         id: performance-gate
         run: >-
+          python -m tools.cloud_guard run --name extended-performance --timeout 3500 --
           uv run python -m uquant.validation promotion
           --data-dir data/frozen
           --profile full
+          --cache-dir artifacts/performance/raw-units
           --output benchmarks/ai_era_performance.json
       - name: Verify exact HEAD and full provenance
         if: ${{ always() }}
@@ -42,6 +45,11 @@ jobs:
           --report-output artifacts/performance/ci/performance-validation.json
           --upstream-result "$UPSTREAM_RESULT"
           --data-dir data/frozen
+      - name: Preserve command originals
+        if: ${{ always() }}
+        run: >-
+          python -m tools.cloud_guard export --include-private-logs
+          --output artifacts/performance/command-originals.zip
       - name: Upload AI-Era performance report
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -50,6 +58,8 @@ jobs:
           path: |
             benchmarks/ai_era_performance.json
             artifacts/performance/ci/performance-validation.json
+            artifacts/performance/raw-units/
+            artifacts/performance/command-originals.zip
 
   current-head-matrix:
     name: Current HEAD matrix readback
@@ -57,6 +67,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12.13"

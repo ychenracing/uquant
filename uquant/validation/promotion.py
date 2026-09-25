@@ -204,6 +204,8 @@ def _validate_metric_payload(value: Any, *, label: str) -> None:
     if not isinstance(value, Mapping) or set(value) != _METRIC_FIELDS:
         raise RuntimeError(f"promotion champion metric payload is malformed: {label}")
     for field in _METRIC_FIELDS - {"account_orders", "acute_return"}:
+        if field == "calmar" and value[field] is None and value["max_drawdown"] <= 1e-12:
+            continue
         _finite_number(value[field], label=f"{label}.{field}")
     orders = value["account_orders"]
     if isinstance(orders, bool) or not isinstance(orders, int) or orders < 0:
@@ -571,18 +573,24 @@ def _acute_return(result: Mapping[str, Any], *, start: str, end: str) -> float:
 
 
 def _compact(result: Mapping[str, Any], *, acute: tuple[str, str] | None) -> dict[str, Any]:
-    metrics = {
+    metrics: dict[str, Any] = {
         name: _finite_number(result.get(name), label=f"result.{name}")
         for name in (
             "final_wealth",
             "cagr",
             "max_drawdown",
             "sharpe",
-            "calmar",
             "annual_turnover",
             "gross_turnover",
         )
     }
+    # The production metric is undefined for a flat/no-drawdown path. Preserve
+    # null rather than inventing a score; every economic floor still applies.
+    metrics["calmar"] = (
+        None if "calmar" in result and result["calmar"] is None
+        and metrics["max_drawdown"] <= 1e-12
+        else _finite_number(result.get("calmar"), label="result.calmar")
+    )
     orders = result.get("account_orders")
     if isinstance(orders, bool) or not isinstance(orders, int) or orders < 0:
         raise RuntimeError("promotion replay returned invalid account_orders")

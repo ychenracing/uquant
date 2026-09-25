@@ -104,3 +104,34 @@ def test_cache_rejects_symlinks(tmp_path: Path, target: str) -> None:
         path.symlink_to(saved)
     with pytest.raises(RuntimeError, match="must not be a symlink"):
         replay_unit(cache, name="A/window", identity={}, replay=lambda: pytest.fail("replayed"))
+
+
+def test_zero_drawdown_keeps_undefined_calmar_and_economic_failures(monkeypatch, tmp_path):
+    class FlatEngine(_PassingEngine):
+        def backtest(self, **kwargs):
+            raw = super().backtest(**kwargs)
+            raw.update(final_wealth=1., cagr=0., max_drawdown=0., calmar=None,
+                       calmar_status="ZERO_DRAWDOWN", account_orders=0,
+                       annual_turnover=0., gross_turnover=0.)
+            for point in raw["equity_curve"]:
+                point["equity"] = 2_000_000.
+            return raw
+
+    spec = _valid_spec()
+    baseline = _write_spec(tmp_path / "baseline.json", spec)
+    _install_runtime(monkeypatch, spec, engine=FlatEngine)
+    report = promotion.run_promotion(data_dir="fixture", baseline=baseline)
+    assert len(report["cells"]) == 30 and len(report["protected"]) == 15
+    assert not report["passed"]
+    assert any("final_wealth" in item for item in report["failures"])
+    for cell in (*report["cells"].values(), *report["protected"].values()):
+        assert cell["calmar"] is None
+        promotion._validate_metric_payload(cell, label="flat")
+        promotion.compact_promotion_payload(cell, acute=None)
+
+
+def test_undefined_calmar_with_actual_drawdown_remains_invalid():
+    raw = _PassingEngine("fixture").backtest(symbols=(), start="2024-01-01", end="2024-06-30")
+    raw["calmar"] = None
+    with pytest.raises(RuntimeError, match="calmar"):
+        promotion.compact_promotion_payload(raw, acute=None)

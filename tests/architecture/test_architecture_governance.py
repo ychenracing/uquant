@@ -790,12 +790,6 @@ def test_architecture_owner_transport_rejects_owner_mutations(
             "ctx = _strategic_lifecycle_context(",
             "ctx = _strategic_lifecycle_context_unknown(",
         ),
-        (
-            "uquant/portfolio/recovery/admission.py",
-            "_recovery_admission_targets",
-            "targets = tactical_admission_targets(",
-            "targets = tactical_admission_targets_unknown(",
-        ),
     ),
 )
 def test_reviewed_owner_transport_rejects_unknown_mutations(

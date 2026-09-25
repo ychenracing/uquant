@@ -18,7 +18,6 @@ _REVIEWED_OWNER_FUNCTIONS = frozenset(
         ("uquant/portfolio/strategic/discovery.py", "_initialize_strategic_cohort"),
         ("uquant/portfolio/strategic/lifecycle.py", "_strategic_cohort_targets"),
         ("uquant/portfolio/recovery/substitution.py", "_recovery_anchor_substitution"),
-        ("uquant/portfolio/recovery/admission.py", "_recovery_admission_targets"),
     }
 )
 

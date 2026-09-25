@@ -12,13 +12,15 @@ import yaml
 import scripts.run_strategic_grant_acceptance as grant_runner
 from scripts.run_strategic_grant_acceptance import (
     GRANT_CASE_IDS,
-    _baseline_views,
     _canonical_sha256,
     run_diagnostic_case,
 )
 from uquant.contracts.strict_json import strict_json_loads
 from uquant.engine import performance_metrics
 from uquant.types import AccountOrder
+from uquant.validation.absolute_generalization._champion_runtime_reconciliation import (
+    project_champion_baseline_views as _baseline_views,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -391,6 +391,9 @@ def test_portfolio_public_mro_pickle_reflection_and_import_modes_are_exact() -> 
     del classes["RecoveryPortfolioPolicy"]["methods"]["_recovery_anchor_substitution"]
     for class_name in ("PortfolioAllocator", "RecoveryPortfolioPolicy"):
         del classes[class_name]["inherited_method_lookup"]["_recovery_anchor_substitution"]
+    classes["RecoveryPortfolioPolicy"]["raw_docstring"] = (
+        "Keep the allocator's public recovery policy class identity."
+    )
     snapshot_method = {
         "descriptor": "instance",
         "module": "uquant.portfolio.strategic.discovery",

@@ -19,7 +19,6 @@ from ._owner_transport import (
     architecture_private_relocation_projection,
     validate_combined_allocator_topology,
 )
-from ._reviewed_owner_transport import expand_reviewed_architecture_owner
 
 _PORTFOLIO_REFERENCE_COMMIT = "4b6bedb03fb7c58914d9d5032a2514c67f41f6ba"
 _PORTFOLIO_REFERENCE_TREE = "d3824f7c5d89521b8284b5de08cc1e82e3ab7ebd"
@@ -160,36 +159,6 @@ def _target_calls(nodes: list[ast.stmt]) -> dict[int, ast.Call]:
     return calls
 
 
-def _delegation(node: ast.AST) -> str | None:
-    value: ast.AST | None = None
-    if isinstance(node, (ast.Assign, ast.Return)):
-        value = node.value
-    if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
-        return value.func.id
-    return None
-
-
-def _assert_delegation_arguments(
-    functions: list[ast.stmt], expected: dict[str, tuple[str, ...]]
-) -> None:
-    observed: dict[str, ast.Call] = {}
-    for statement in functions:
-        for node in ast.walk(statement):
-            name = _delegation(node)
-            if name in expected:
-                value = node.value
-                assert isinstance(value, ast.Call)
-                observed[name] = value
-    assert set(observed) == set(expected)
-    for name, call in observed.items():
-        assert not call.args
-        assert tuple(keyword.arg for keyword in call.keywords) == expected[name]
-        assert all(
-            isinstance(keyword.value, ast.Name) and keyword.value.id == keyword.arg
-            for keyword in call.keywords
-        )
-
-
 def _statements_dump(nodes: list[ast.stmt]) -> str:
     return ast.dump(
         ast.Module(body=nodes, type_ignores=[]), include_attributes=False
@@ -213,15 +182,13 @@ def test_portfolio_recovery_owners_and_thin_facade_are_complete() -> None:
 
 
 
-def test_portfolio_recovery_admission_slice_and_target_builders_are_ast_exact() -> None:
+def test_portfolio_recovery_target_builders_are_ast_exact() -> None:
     immutable_slice = _immutable_admission_slice()
     immutable_targets = _target_calls(immutable_slice)
-    admission = expand_reviewed_architecture_owner(
-        root=ROOT,
-        relative="uquant/portfolio/recovery/admission.py",
-        name="_recovery_admission_targets",
-        candidate=None,
+    admission_source = (ROOT / "uquant/portfolio/recovery/admission.py").read_text(
+        encoding="utf-8"
     )
+    assert "_recovery_admission_targets" not in _function_nodes(admission_source)
     targets = _function_nodes(
         (ROOT / "uquant/portfolio/recovery/targets.py").read_text(encoding="utf-8")
     )
@@ -238,29 +205,6 @@ def test_portfolio_recovery_admission_slice_and_target_builders_are_ast_exact() 
         assert ast.dump(body[0].value, include_attributes=False) == ast.dump(
             immutable_targets[line], include_attributes=False
         )
-    _assert_delegation_arguments(admission.body, _ADMISSION_TARGET_HELPERS)
-
-    class ExpandTargets(ast.NodeTransformer):
-        def visit_Return(self, node: ast.Return) -> ast.Return:
-            name = _delegation(node)
-            if name in target_lines:
-                return ast.Return(
-                    value=copy.deepcopy(immutable_targets[target_lines[name]])
-                )
-            return self.generic_visit(node)
-
-    assert isinstance(admission.body[-1], ast.Return)
-    assert isinstance(admission.body[-1].value, ast.Constant)
-    assert admission.body[-1].value.value is None
-    expanded = ExpandTargets().visit(admission)
-    assert isinstance(expanded, ast.FunctionDef)
-    expanded_body = expanded.body[:-1]
-    assert ast.dump(
-        ast.Module(body=expanded_body, type_ignores=[]), include_attributes=False
-    ) == ast.dump(
-        ast.Module(body=copy.deepcopy(immutable_slice), type_ignores=[]),
-        include_attributes=False,
-    )
 
 
 def test_portfolio_recovery_cannot_short_circuit_the_combined_book() -> None:
@@ -319,28 +263,6 @@ def test_portfolio_recovery_ast_gate_rejects_recovery_rule_mutations() -> None:
     statement_order = copy.deepcopy(immutable_slice)
     statement_order[0], statement_order[1] = statement_order[1], statement_order[0]
     assert _statements_dump(statement_order) != _statements_dump(immutable_slice)
-
-    mutated_admission = expand_reviewed_architecture_owner(
-        root=ROOT,
-        relative="uquant/portfolio/recovery/admission.py",
-        name="_recovery_admission_targets",
-        candidate=None,
-    )
-    helper_call = next(
-        node
-        for node in ast.walk(mutated_admission)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in _ADMISSION_TARGET_HELPERS
-    )
-    helper_call.keywords[0], helper_call.keywords[1] = (
-        helper_call.keywords[1],
-        helper_call.keywords[0],
-    )
-    with pytest.raises(AssertionError):
-        _assert_delegation_arguments(
-            mutated_admission.body, _ADMISSION_TARGET_HELPERS
-        )
 
     relative = "uquant/portfolio/pipeline.py"
     source = (ROOT / relative).read_text(encoding="utf-8")

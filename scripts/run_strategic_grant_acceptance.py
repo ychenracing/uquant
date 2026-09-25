@@ -26,9 +26,6 @@ from uquant.infrastructure.atomic_files import atomic_write_text
 from uquant.provenance.fingerprints import source_surface_fingerprint
 from uquant.provenance.surfaces import load_source_surface_registry
 from uquant.validation.absolute_generalization._acceptance_evidence import current_candidate_champion_evidence
-from uquant.validation.absolute_generalization._champion_runtime_reconciliation import (
-    project_champion_baseline_views as _baseline_views,
-)
 from uquant.validation.manifest import verify_data_manifest
 
 CONTRACT_PATH = ROOT / "benchmarks" / "strategic_grant_acceptance_contract.json"

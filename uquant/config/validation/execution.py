@@ -36,8 +36,11 @@ def validate_execution(config: Any) -> None:
         )
     if config.execution_clock not in {"AUCTION", "DAILY_PROXY"}:
         raise ValueError("execution_clock must be AUCTION or DAILY_PROXY")
-    buffer = config.auction_limit_buffer
-    if isinstance(buffer, bool) or not isinstance(buffer, (int, float)) or not 0 <= buffer <= 0.2:
+    if (
+        isinstance(config.auction_limit_buffer, bool)
+        or not isinstance(config.auction_limit_buffer, (int, float))
+        or not 0 <= config.auction_limit_buffer <= 0.2
+    ):
         raise ValueError("auction_limit_buffer must be in [0, 0.2]")
     if config.min_trade_value < 0:
         raise ValueError("min_trade_value cannot be negative")

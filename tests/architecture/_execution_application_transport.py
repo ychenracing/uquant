@@ -52,6 +52,12 @@ ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS = {
     ),
     "_load": "Load symbols through the market workspace owner.",
     "_price": "Read one point-in-time price through the market workspace owner.",
+    "_drawdown_stats": (
+        "Return end-of-session drawdown depth, duration, and censored recovery.\n\n"
+        "Recovery is measured from the peak preceding the deepest trough. An\n"
+        "unrecovered drawdown reports ``None`` recovery lengths with\n"
+        "``drawdown_recovered = False`` and the observed underwater length."
+    ),
 }
 _REVIEWED_SOURCE_CHAINS: Mapping[str, tuple[str, ...]] = {
     "uquant/application/backtest.py": (_APPLICATION_STAGES,),
@@ -61,6 +67,9 @@ _REVIEWED_SOURCE_CHAINS: Mapping[str, tuple[str, ...]] = {
         _ATTRIBUTION_STAGES,
     ),
     _RISK_TIMELINE_PATH: (_ARCHITECTURE_CLOSURE,),
+    "uquant/execution/fees.py": (
+        "efbcdc559930e37de16360ca0cc14cd917fb7574",
+    ),
     "uquant/execution/market_constraints.py": (
         "8faa44bd24697b3e5f32317e3268e6259832b96c",
     ),
@@ -83,6 +92,7 @@ _REVIEWED_SOURCE_CHAINS: Mapping[str, tuple[str, ...]] = {
 }
 ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS = frozenset(
     {
+        ("uquant/execution/fees.py", "fee_components"),
         ("uquant/execution/market_constraints.py", "_blocked"),
         ("uquant/execution/order_planning.py", "plan_orders"),
         ("uquant/execution/pending.py", "merge_pending_orders"),
@@ -101,10 +111,15 @@ ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS = frozenset(
         ("uquant/application/decision.py", "deterministic_decision"),
         (_RISK_TIMELINE_PATH, "_causal_risk_timeline"),
         ("uquant/application/backtest.py", "backtest"),
+        ("uquant/application/backtest.py", "equity"),
+        ("uquant/application/metrics.py", "_drawdown_stats"),
         ("uquant/application/metrics.py", "performance_metrics"),
     }
 )
-_REVIEWED_BLOCKED_AST_SHA256 = "3db039a3926e1de3afdc53774a4580659722adb89b7d1db47c8bd8588a9a51fe"
+# Board-, date- and status-aware limits with the ex-rights reference.
+_REVIEWED_BLOCKED_AST_SHA256 = "f1ae4c96a393f8534e2054364c1a10d9a2eba3c2ad09f263d8ab9373b79fe0d2"
+# Dated statutory fee schedules: the reviewed fee owner takes the trade date.
+_REVIEWED_FEE_COMPONENTS_AST_SHA256 = "44ed24fccc67874fd856124a28db3cdc7ba0b455bebe16d4dfdca1e6f9b15467"
 
 
 def execution_reviewed_source(root: Path, relative: str) -> str:
@@ -249,6 +264,11 @@ def reviewed_execution_debt_definition(
             ast.dump(reviewed_matches[0], include_attributes=False).encode()
         ).hexdigest()
         assert digest == _REVIEWED_BLOCKED_AST_SHA256
+    if (relative, name) == ("uquant/execution/fees.py", "fee_components"):
+        digest = hashlib.sha256(
+            ast.dump(reviewed_matches[0], include_attributes=False).encode()
+        ).hexdigest()
+        assert digest == _REVIEWED_FEE_COMPONENTS_AST_SHA256
     if candidate is not None:
         assert ast.dump(candidate, include_attributes=False) == ast.dump(
             reviewed_matches[0],
@@ -301,6 +321,15 @@ def validate_engine_descriptor_transport(
         )
         assert projected == expected_signature
         assert observed_annotations.pop("role_absent_symbols") == "tuple[str, ...]"
+        assert observed_annotations == expected_annotations
+        return
+    if name == "_drawdown_stats":
+        # Censored recovery lengths and peak/trough/recovery dates are None or str.
+        assert observed_signature.return_annotation == "dict[str, Any]"
+        assert expected_signature.return_annotation == "dict[str, float | int]"
+        assert observed_signature.parameters == expected_signature.parameters
+        assert observed_annotations.pop("return") == "dict[str, Any]"
+        expected_annotations.pop("return")
         assert observed_annotations == expected_annotations
         return
     read_only_parameter = "strategic_universe_declaration"

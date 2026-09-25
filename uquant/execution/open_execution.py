@@ -334,6 +334,89 @@ def _open_prices(
     return reference, execution, reference * side, open_price >= limit - 1e-9
 
 
+def _retain_blocked(
+    order: PendingOrder, account_order: AccountOrder, date_str: str, event: str, retained: list[PendingOrder],
+) -> None:
+    order.attempts += 1
+    account_order.attempts = order.attempts
+    account_order.status = _active_order_status(account_order)
+    account_order.last_update_date = date_str
+    account_order.last_event = event
+    retained.append(order)
+
+
+def _session_open_equity(
+    account: AccountState, panel: dict[str, pd.DataFrame], date: pd.Timestamp, book: _SessionBook,
+) -> float:
+    """Mark the book for sizing; NaN when a held position has no valid price."""
+    if book.marks is None:
+        return math.nan
+    for symbol, position in account.positions.items():
+        if position.shares > 0 and symbol not in book.marks:
+            fresh = _mark_one(panel.get(symbol), date, auction=book.auction)
+            if fresh is None:
+                raise RuntimeError(f"{symbol} filled without a valid session mark")
+            book.marks[symbol] = fresh
+    return account.cash + receivable_total(account) + sum(
+        float(position.shares) * book.marks[symbol]
+        for symbol, position in account.positions.items()
+        if position.shares > 0
+    )
+
+
+def _target_quantities(
+    *, order: PendingOrder, account: AccountState, account_order: AccountOrder, current: Position,
+    open_equity: float, target_price: float, date_str: str,
+) -> tuple[int, int, int]:
+    """Return (requested, target, economic target) shares before capacity and cash."""
+    if math.isfinite(open_equity):
+        desired_shares = math.floor(order.target_weight * open_equity / target_price)
+        if security_board(order.symbol) != "STAR":
+            desired_shares = desired_shares // 100 * 100
+    else:
+        desired_shares = 0 if order.target_weight == 0 else current.shares
+    requested = desired_shares - current.shares
+    if order.side == Side.SELL.value:
+        target_requested = current.shares if order.target_weight == 0 else max(0, -requested)
+        requested = min(target_requested, current.sellable_shares(date_str))
+    else:
+        requested = max(0, requested)
+        target_requested = requested
+    economic_target_requested = target_requested
+    registered_remainder = _registered_remainder_request(account, account_order)
+    if registered_remainder is not None:
+        requested = min(requested, registered_remainder)
+        target_requested = registered_remainder
+    return requested, target_requested, economic_target_requested
+
+
+def _record_unfilled(
+    *, order: PendingOrder, account_order: AccountOrder, current: Position, retained: list[PendingOrder],
+    date_str: str, open_price: float, open_equity: float, crosses: bool, requested: int,
+    target_requested: int, economic_target_requested: int,
+) -> None:
+    if economic_target_requested > 0:
+        account_order.requested_shares = account_order.filled_shares + target_requested
+        account_order.remaining_shares = target_requested
+        order.remaining_shares = target_requested
+        event = (
+            "AUCTION_LIMIT_NOT_REACHED" if not crosses
+            else "T_PLUS_ONE_BLOCKED" if order.side == Side.SELL.value and requested == 0
+            else "LIQUIDITY_PROXY_BLOCKED" if order.side == Side.SELL.value
+            else "CAPACITY_OR_CASH_BLOCKED"
+        )
+        _retain_blocked(order, account_order, date_str, event, retained)
+        return
+    risk_shortfall = math.isfinite(open_equity) and _risk_target_shortfall(order, current, open_price, open_equity)
+    if risk_shortfall:
+        _retain_blocked(order, account_order, date_str, "RISK_TARGET_UNMET_LOT", retained)
+        return
+    account_order.status = OrderStatus.CANCELLED.value
+    account_order.cancel_reason = "target already satisfied"
+    account_order.last_update_date = date_str
+    account_order.last_event = "ZERO_REQUEST"
+
+
 def _size_open_order(
     *,
     cfg: SystemConfig,
@@ -349,62 +432,22 @@ def _size_open_order(
     date_str = str(date.date())
     open_price = float(row["open"])
     history = panel[order.symbol].loc[:date]
-    previous_row = history.iloc[-2]
     buy = order.side == Side.BUY.value
     sizing_price, execution_price, target_price, crosses = _open_prices(
         cfg=cfg, symbol=order.symbol, date=date, row=row, history=history, buy=buy, auction=book.auction,
     )
-    if book.marks is None:
-        if buy:
-            order.attempts += 1
-            account_order.attempts = order.attempts
-            account_order.status = _active_order_status(account_order)
-            account_order.last_update_date = date_str
-            account_order.last_event = "VALUATION_BLOCKED"
-            retained.append(order)
-            return None
-        open_equity = math.nan
-    else:
-        for symbol, position in account.positions.items():
-            if position.shares > 0 and symbol not in book.marks:
-                fresh = _mark_one(panel.get(symbol), date, auction=book.auction)
-                if fresh is None:
-                    raise RuntimeError(f"{symbol} filled without a valid session mark")
-                book.marks[symbol] = fresh
-        open_equity = account.cash + receivable_total(account) + sum(
-            float(position.shares) * book.marks[symbol]
-            for symbol, position in account.positions.items()
-            if position.shares > 0
-        )
+    if book.marks is None and buy:
+        _retain_blocked(order, account_order, date_str, "VALUATION_BLOCKED", retained)
+        return None
+    open_equity = _session_open_equity(account, panel, date, book)
     current = account.positions.get(order.symbol, Position(symbol=order.symbol))
-    if math.isfinite(open_equity):
-        desired_shares = math.floor(order.target_weight * open_equity / target_price)
-        if security_board(order.symbol) != "STAR":
-            desired_shares = desired_shares // 100 * 100
-    else:
-        desired_shares = 0 if order.target_weight == 0 else current.shares
-    requested = desired_shares - current.shares
-    if order.side == Side.SELL.value:
-        target_requested = max(0, -requested)
-        if order.target_weight == 0:
-            target_requested = current.shares
-        requested = min(
-            target_requested,
-            current.sellable_shares(date_str),
-        )
-    else:
-        requested = max(0, requested)
-        target_requested = requested
-    economic_target_requested = target_requested
-    registered_remainder = _registered_remainder_request(account, account_order)
-    if registered_remainder is not None:
-        requested = min(requested, registered_remainder)
-        target_requested = registered_remainder
+    requested, target_requested, economic_target_requested = _target_quantities(
+        order=order, account=account, account_order=account_order, current=current,
+        open_equity=open_equity, target_price=target_price, date_str=date_str,
+    )
     # Previous-session liquidity is a proxy, not a guarantee of opening auction quantity.
-    capacity = max(0, _previous_session_capacity(previous_row, cfg) - book.capacity_used.get(order.symbol, 0))
-    shares = min(requested, capacity)
-    if not crosses:
-        shares = 0
+    capacity = max(0, _previous_session_capacity(history.iloc[-2], cfg) - book.capacity_used.get(order.symbol, 0))
+    shares = min(requested, capacity) if crosses else 0
     if order.side == Side.SELL.value:
         shares = legal_sell_shares(order.symbol, shares, holding=current.shares)
     else:
@@ -412,58 +455,30 @@ def _size_open_order(
             current.shares == 0
         )
         if projected_positions > cfg.max_positions:
-            order.attempts += 1
-            account_order.attempts = order.attempts
-            account_order.status = _active_order_status(account_order)
-            account_order.last_update_date = date_str
-            account_order.last_event = "POSITION_CAP_BLOCKED"
-            retained.append(order)
+            _retain_blocked(order, account_order, date_str, "POSITION_CAP_BLOCKED", retained)
             return None
         cash = book.buy_cash if book.auction else account.cash
+
+        def payable(quantity: int) -> int:
+            bounded = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
+                open_equity=open_equity, execution_price=sizing_price, shares=quantity,
+                cash=cash, date=date, cap_price=target_price)
+            return bounded if bounded > 0 else quantity
+
         if book.auction:
             # The submitted auction quantity is what the preset limit budget can
             # pay; a trimmed difference was never submitted and is not a remainder.
-            def payable(requested: int) -> int:
-                bounded = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
-                    open_equity=open_equity, execution_price=sizing_price, shares=requested,
-                    cash=cash, date=date, cap_price=target_price)
-                return bounded if bounded > 0 else requested
-
             target_requested = payable(target_requested)
             economic_target_requested = payable(economic_target_requested)
         shares = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
             open_equity=open_equity, execution_price=sizing_price, shares=shares, cash=cash, date=date,
             cap_price=target_price)
     if shares <= 0:
-        if economic_target_requested > 0:
-            order.attempts += 1
-            account_order.requested_shares = account_order.filled_shares + target_requested
-            account_order.remaining_shares = target_requested
-            order.remaining_shares = target_requested
-            account_order.attempts = order.attempts
-            account_order.status = _active_order_status(account_order)
-            account_order.last_update_date = date_str
-            account_order.last_event = (
-                "AUCTION_LIMIT_NOT_REACHED" if not crosses
-                else "T_PLUS_ONE_BLOCKED" if order.side == Side.SELL.value and requested == 0
-                else "LIQUIDITY_PROXY_BLOCKED" if order.side == Side.SELL.value
-                else "CAPACITY_OR_CASH_BLOCKED"
-            )
-            retained.append(order)
-        else:
-            risk_shortfall = math.isfinite(open_equity) and _risk_target_shortfall(
-                order, current, open_price, open_equity,
-            )
-            if risk_shortfall:
-                order.attempts += 1
-                account_order.attempts = order.attempts
-                account_order.status = _active_order_status(account_order)
-                retained.append(order)
-            else:
-                account_order.status = OrderStatus.CANCELLED.value
-                account_order.cancel_reason = "target already satisfied"
-            account_order.last_update_date = date_str
-            account_order.last_event = "RISK_TARGET_UNMET_LOT" if risk_shortfall else "ZERO_REQUEST"
+        _record_unfilled(
+            order=order, account_order=account_order, current=current, retained=retained, date_str=date_str,
+            open_price=open_price, open_equity=open_equity, crosses=crosses, requested=requested,
+            target_requested=target_requested, economic_target_requested=economic_target_requested,
+        )
         return None
     book.capacity_used[order.symbol] = book.capacity_used.get(order.symbol, 0) + shares
     if buy and book.auction:

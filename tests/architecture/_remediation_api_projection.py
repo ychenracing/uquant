@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ._analysis import canonical_sha256
 
-_DELTA_SHA256 = "b865a06609a1bdc83647a824971fe4997803ed91e8789695f700adc245e1391d"
+_DELTA_SHA256 = "d57dfd35e095172762b135366fa9b00471af9b7b30dc0a587a4c8aa302a58acb"
 _NEW_MODULES = frozenset((
     "uquant.account.corporate_actions", "uquant.account.schema_migration", "uquant.account.transaction",
     "uquant.broker_facts", "uquant.data_check", "uquant.data_update", "uquant.market.valuation",

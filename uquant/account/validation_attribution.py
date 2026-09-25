@@ -7,7 +7,7 @@ from datetime import date as date_type
 from types import SimpleNamespace
 from typing import Any
 
-from uquant.contracts.universe import decision_ai_universe
+from uquant.contracts.universe import registered_ai_universe
 
 from ..contracts.universe import (
     CANONICAL_INDUSTRIES,
@@ -64,7 +64,7 @@ def _validate_attribution_industry_and_event_id(
     ) or bool(origin is OriginSubsystem.EXTERNAL_TRADE and mechanism is AttributionMechanism.EXTERNAL_TRADE)
     migrated_inventory_sale = bool(getattr(item, "side", None) == Side.SELL.value)
     if item.industry_at_entry in CANONICAL_INDUSTRIES:
-        if item.industry_manifest_sha256 != decision_ai_universe().sha256:
+        if registered_ai_universe(item.industry_manifest_sha256) is None:
             raise RuntimeError(f"{label} has invalid industry manifest SHA-256")
     elif item.industry_at_entry == _LEGACY_INDUSTRY and (
         legacy_identity or broker_degraded_identity or migrated_inventory_sale
@@ -319,7 +319,10 @@ def validate_order_intent(
             verify_event_derivation=True,
         )
         if order.side == Side.BUY.value:
-            expected_industry = decision_ai_universe().industry_of(order.symbol, signal_date)
+            universe = registered_ai_universe(order.industry_manifest_sha256)
+            if universe is None:
+                raise RuntimeError(f"{label} BUY has an unregistered industry manifest")
+            expected_industry = universe.industry_of(order.symbol, signal_date)
             if expected_industry == "unknown":
                 raise RuntimeError(f"{label} BUY has no point-in-time AI-universe membership")
             if order.industry_at_entry != expected_industry:

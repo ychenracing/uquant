@@ -220,6 +220,33 @@ def _run_daily(args: argparse.Namespace) -> int:
         return _run_daily_locked(args, cfg, transaction, exact_inputs, protected)
 
 
+def _recover_daily_reports(args: argparse.Namespace, protected: dict[str, tuple[Path, ...]]) -> int:
+    """Publish reports staged before an already committed decision; never decide twice."""
+    account_mtime = Path(args.account).stat().st_mtime
+    recovered = []
+    for path in (item for item in (args.output, args.html_output) if item):
+        target = Path(path)
+        ready = sorted(
+            (item for item in target.parent.glob(target.name + ".ready-*") if item.stat().st_mtime <= account_mtime),
+            key=lambda item: item.stat().st_mtime,
+        )
+        if not ready:
+            continue
+        validate_atomic_output_boundary(path, protected_paths=protected[path])
+        atomic_write_text(path, ready[-1].read_text(encoding="utf-8"), protected_paths=protected[path])
+        for item in ready:
+            item.unlink()
+        recovered.append(path)
+    if not recovered:
+        print(
+            f"{args.date} 的决策已提交到账户，且没有待恢复的已渲染报告；不会重复决策。",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"{args.date} 的决策已提交；已恢复报告：{recovered}，未重复决策。", file=sys.stderr)
+    return 0
+
+
 def _run_daily_locked(
     args: argparse.Namespace,
     cfg: SystemConfig,
@@ -229,6 +256,8 @@ def _run_daily_locked(
 ) -> int:
     account = transaction.load()
     _validate_account_config(account, cfg)
+    if account.last_successful_run == args.date:
+        return _recover_daily_reports(args, protected)
     engine = ProductionEngine(args.data_dir, cfg)
     held = [symbol for symbol, position in account.positions.items() if position.shares > 0]
     apply_corporate_actions(
@@ -242,12 +271,17 @@ def _run_daily_locked(
         sync_broker_snapshot(account, snapshot, cfg=cfg)
     decision = engine.decide(symbols=args.symbols, as_of=args.date, account=account)
     account.pending_orders = list(decision.pending_orders)
-    report = render_daily_report(decision, account)
+    equity = None
+    if account.external_cash_flows:
+        import pandas as pd
+
+        equity = engine.equity(account, pd.Timestamp(args.date))
+    report = render_daily_report(decision, account, equity=equity)
     documents = []
     if args.output:
         documents.append((args.output, report))
     if args.html_output:
-        documents.append((args.html_output, render_daily_html(decision, account)))
+        documents.append((args.html_output, render_daily_html(decision, account, equity=equity)))
     staged = []
     try:
         for path, content in documents:
@@ -286,7 +320,7 @@ def _run_daily_locked(
             print(
                 f"账户已保存：{args.account}；报告已发布：{published}；发布失败：{path}：{exc}。"
                 f"未发布的已渲染文件：{[(p, t) for p, t in staged if p not in published]}。"
-                "恢复时将对应 ready 文件移至报告目标路径；不要重新运行 daily 补报告。",
+                "以同一日期重新运行 daily 会发布这些已渲染报告，不会重复决策。",
                 file=sys.stderr,
             )
             return 1

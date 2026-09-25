@@ -158,3 +158,16 @@ def test_corporate_action_keeps_equity_continuous_and_is_idempotent():
         pytest.approx(10.0)
     )
     assert sold[0]["dividend_tax"] == pytest.approx(10.0) and account.dividend_tax_lots == []
+
+
+def test_deposits_and_withdrawals_are_not_investment_returns():
+    from uquant.application.metrics import flow_adjusted_performance
+
+    rows = [("2026-01-05", 1_000.0), ("2026-01-06", 1_100.0), ("2026-01-07", 1_210.0), ("2026-01-08", 1_110.0)]
+    flows = [{"flow_date": "2026-01-06", "amount": 100.0}, {"flow_date": "2026-01-08", "amount": -100.0}]
+    result = flow_adjusted_performance(rows, flows)
+    assert result["net_external_flow"] == 0.0
+    assert result["investment_pnl"] == pytest.approx(110.0)
+    assert result["time_weighted_return"] == pytest.approx(0.1)
+    flat = flow_adjusted_performance(rows[:2], flows[:1])
+    assert flat["investment_pnl"] == 0.0 and flat["time_weighted_return"] == 0.0

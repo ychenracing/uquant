@@ -565,7 +565,7 @@ def test_daily_failure_preserves_account_and_recoverable_rendering(monkeypatch, 
     _state(path)
     before = path.read_bytes()
     if failure == 'render':
-        def fail_render(*args):
+        def fail_render(*args, **kwargs):
             raise ValueError('render failed')
         monkeypatch.setattr(cli, 'render_daily_html', fail_render)
         with pytest.raises(ValueError, match='render failed'):
@@ -593,6 +593,12 @@ def test_daily_failure_preserves_account_and_recoverable_rendering(monkeypatch, 
     assert len(ready) == (2 if failure == 'account_after_replace' else 1)
     assert all('fake-decision' in p.read_text() for p in ready)
     assert 'daily' in capsys.readouterr().err
+    monkeypatch.undo()
+    committed = path.read_bytes()
+    assert main(_daily_args(tmp_path)) == 0
+    assert path.read_bytes() == committed
+    assert 'fake-decision' in (tmp_path / 'daily.html').read_text()
+    assert not list(tmp_path.glob('daily.*.ready-*'))
 
 
 @pytest.mark.parametrize('alias', ['account', 'markdown', 'config', 'data', 'hardlink'])

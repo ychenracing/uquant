@@ -15,6 +15,9 @@ from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 GOVERNANCE_PATH: Final = Path("benchmarks") / "config_parameter_governance.json"
 DEFAULT_GOVERNANCE_PATH: Final = Path(__file__).resolve().parents[1] / GOVERNANCE_PATH
 GOVERNANCE_BASE_COMMIT: Final = "e71c3f6cf42244f71e59458ec15375b92ed4da1f"
+# Execution-clock fields postdate the historical review and are governed only by
+# the current policy inventory.
+POST_REVIEW_FIELDS: Final = frozenset({"execution_clock", "auction_limit_buffer"})
 REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256: Final = (
     "05497092e2f88ae8fe567c92545a5cba7c6c7f7492ebe4badc0bd2f2e7cfc74f"
 )
@@ -298,7 +301,7 @@ def _validate_governed_fields_and_removals(
     entry_names = tuple(item.field for item in entries)
     if len(entry_names) != len(set(entry_names)):
         raise RuntimeError("configuration governance classifies a field more than once")
-    actual_names = set(DEFAULT_CONFIG.to_dict())
+    actual_names = set(DEFAULT_CONFIG.to_dict()) - POST_REVIEW_FIELDS
     retired = set(RETIRED_LEADER_CYCLE_FIELDS) | set(_retired_reversal_fields())
     if actual_names.intersection(retired):
         raise RuntimeError("retired strategic configuration field reintroduced")
@@ -452,7 +455,7 @@ def economic_parameter_names() -> frozenset[str]:
 
 
 CURRENT_GOVERNANCE_PATH: Final = Path(__file__).parent / "contracts/resources/config_policy_governance.json"
-CURRENT_GOVERNANCE_SHA256: Final = "f9463e30ca558fe84c35a319d47fdf28aea32755cbe0b7529ecbda69ff41b0de"
+CURRENT_GOVERNANCE_SHA256: Final = "f02a03e2f200df359c1a141187876eeefeccc5c57944e2e6b256f1b85d388fec"
 
 
 def load_config_governance(path: str | Path | None = None) -> ConfigGovernance:

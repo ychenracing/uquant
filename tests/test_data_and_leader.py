@@ -337,12 +337,12 @@ def test_market_data_rejects_infinite_economic_inputs(column, value):
         DataStore._validate(pd.DataFrame([row]), "sz300308")
 
 
-def test_market_data_rejects_negative_turnover_and_keeps_optional_amount_fallback():
+def test_market_data_rejects_negative_turnover_and_keeps_missing_amount_missing():
     row = dict(date="2026-01-05", open=10., high=11., low=9., close=10., volume=100., amount=-1.)
     with pytest.raises(DataContractError, match="turnover"):
         DataStore._validate(pd.DataFrame([row]), "sz300308")
     del row["amount"]
-    assert DataStore._validate(pd.DataFrame([row]), "sz300308")["amount"].iloc[0] == 1000.
+    assert pd.isna(DataStore._validate(pd.DataFrame([row]), "sz300308")["amount"].iloc[0])
 
 
 def test_data_update_publishes_new_immutable_snapshot_and_refuses_bad_data(tmp_path):
@@ -393,3 +393,26 @@ def test_data_update_publishes_new_immutable_snapshot_and_refuses_bad_data(tmp_p
     assert DataStore(root).root == second and sorted(p.name for p in root.iterdir()) == sorted(
         ["LATEST", first.name, second.name]
     )
+
+
+def test_formal_industry_classification_keeps_recorded_versions_resolvable():
+    from uquant.contracts.universe import (
+        decision_ai_universe,
+        default_ai_universe,
+        load_industry_classification,
+        registered_ai_universe,
+    )
+    from uquant.contracts.universe import _resource_bytes as resource_bytes
+
+    base, formal = default_ai_universe(), decision_ai_universe()
+    assert formal.sha256 != base.sha256
+    assert registered_ai_universe(base.sha256) is base and registered_ai_universe(formal.sha256) is formal
+    assert registered_ai_universe("0" * 64) is None
+    assert formal.industry_of("sh688498", "2023-01-03") == "optical"
+    assert base.industry_of("sh688498", "2023-01-03") == "advanced_packaging"
+    assert formal.industry_of("sz002281", "2022-04-15") == "datacenter"
+    assert formal.industry_of("sz002281", "2024-01-02") == "optical"
+    assert base.industry_of("sz002281", "2024-01-02") == "datacenter"
+    tampered = resource_bytes("industry_classification_v2.json").replace(b'"optical"', b'"compute"', 1)
+    with pytest.raises(ValueError, match="seal"):
+        load_industry_classification(tampered)

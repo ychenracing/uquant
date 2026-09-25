@@ -382,11 +382,73 @@ sha256_bytes = _sha256
 
 
 _RESEARCH_INPUT: ContextVar[AIUniverse | None] = ContextVar("research_industry_input", default=None)
+_CLASSIFICATION_FIELDS = frozenset(
+    {
+        "symbol", "name", "base_industry", "industry", "conclusion", "effective_from", "known_by",
+        "date_basis", "source_url", "basis", "caveat", "business_status", "pit_membership_status",
+    }
+)
+
+
+def load_industry_classification(raw: bytes | None = None) -> AIUniverse:
+    """Load the reviewed dated primary-industry version over the frozen membership."""
+    payload = read_json_bytes(
+        raw if raw is not None else _resource_bytes("industry_classification_v2.json"),
+        label="industry classification",
+    )
+    if payload.get("manifest_id") != "ai-industry-classification-v2" or payload.get("schema_version") != 1:
+        raise ValueError("industry classification identity is malformed")
+    seal = _sha256(payload.get("canonical_sha256"), label="industry classification SHA-256")
+    if seal != canonical_sha256(payload):
+        raise ValueError("industry classification seal differs from its content")
+    base = default_ai_universe()
+    if payload.get("base_manifest_sha256") != base.sha256:
+        raise ValueError("industry classification base manifest differs")
+    members = {member.symbol: member for member in base.members}
+    rows = payload.get("members")
+    if not isinstance(rows, list) or sorted(row.get("symbol") for row in rows) != sorted(members):
+        raise ValueError("industry classification must review every frozen member exactly once")
+    revisions = []
+    for row in rows:
+        if set(row) != _CLASSIFICATION_FIELDS or row["industry"] not in CANONICAL_INDUSTRIES:
+            raise ValueError("industry classification member is malformed")
+        member = members[row["symbol"]]
+        if row["base_industry"] != member.industry or not row["source_url"]:
+            raise ValueError("industry classification member differs from the frozen base or lacks a source")
+        if row["conclusion"] == "confirmed":
+            if row["industry"] != member.industry or row["effective_from"] is not None:
+                raise ValueError("confirmed industry classification cannot change the base label")
+            continue
+        if row["conclusion"] != "revised" or row["industry"] == member.industry:
+            raise ValueError("industry classification revision is malformed")
+        effective = _parse_date(row["effective_from"], label="classification effective_from")
+        known_by = _parse_date(row["known_by"], label="classification known_by")
+        if effective <= known_by or effective < member.effective_from:
+            raise ValueError("industry classification revision cannot precede its evidence or membership")
+        revisions.append((row["symbol"], effective, row["industry"]))
+    return AIUniverse(members=base.members, sha256=seal, industry_revisions=tuple(sorted(revisions)))
+
+
+_PRODUCTION_CLASSIFICATION: Final = load_industry_classification()
+
+
+def production_ai_universe() -> AIUniverse:
+    """Return the current formal classification used by new production decisions."""
+    return _PRODUCTION_CLASSIFICATION
+
+
+def registered_ai_universe(sha256: str) -> AIUniverse | None:
+    """Resolve a recorded industry manifest identity to the version that created it."""
+    active = _RESEARCH_INPUT.get()
+    for universe in (active, _PRODUCTION_CLASSIFICATION, _DEFAULT_UNIVERSE):
+        if universe is not None and universe.sha256 == sha256:
+            return universe
+    return None
 
 
 def decision_ai_universe() -> AIUniverse:
-    """Return the explicitly selected research input, otherwise production."""
-    return _RESEARCH_INPUT.get() or default_ai_universe()
+    """Return the explicitly selected research input, otherwise the formal classification."""
+    return _RESEARCH_INPUT.get() or _PRODUCTION_CLASSIFICATION
 
 
 @contextmanager

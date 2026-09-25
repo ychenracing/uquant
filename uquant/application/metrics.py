@@ -226,6 +226,38 @@ def _order_ledger_rows(groups: list[list[AccountOrder]]) -> list[dict[str, Any]]
     return rows
 
 
+def flow_adjusted_performance(
+    equity_rows: list[tuple[str, float]],
+    cash_flows: list[dict[str, Any]],
+) -> dict[str, float]:
+    """Investment PnL and time-weighted return net of external deposits/withdrawals.
+
+    Rows are end-of-day equity that already includes each flow booked on its
+    ``flow_date``; with only daily data the flow is assumed to arrive at the
+    close, so the sub-period return that day excludes it.
+    """
+
+    if not equity_rows:
+        raise ValueError("flow-adjusted performance requires at least one equity row")
+    flows: dict[str, float] = {}
+    for item in cash_flows:
+        flows[str(item["flow_date"])] = flows.get(str(item["flow_date"]), 0.0) + float(item["amount"])
+    start_date, start_equity = equity_rows[0]
+    in_window = sum(amount for day, amount in flows.items() if start_date < day <= equity_rows[-1][0])
+    growth = 1.0
+    previous = start_equity
+    for day, value in equity_rows[1:]:
+        if previous <= 0:
+            raise ValueError("time-weighted return is undefined after non-positive equity")
+        growth *= (value - flows.get(day, 0.0)) / previous
+        previous = value
+    return {
+        "net_external_flow": in_window,
+        "investment_pnl": equity_rows[-1][1] - start_equity - in_window,
+        "time_weighted_return": growth - 1.0,
+    }
+
+
 def performance_metrics(
     *,
     equity_rows: list[tuple[pd.Timestamp, float]],

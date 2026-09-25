@@ -452,6 +452,18 @@ def decision_ai_universe() -> AIUniverse:
 
 
 @contextmanager
+def historical_industry_classification() -> Iterator[AIUniverse]:
+    """Replay decisions under the frozen v1 classification that older evidence used."""
+    if _RESEARCH_INPUT.get() is not None:
+        raise RuntimeError("research industry contexts cannot be nested")
+    token = _RESEARCH_INPUT.set(_DEFAULT_UNIVERSE)
+    try:
+        yield _DEFAULT_UNIVERSE
+    finally:
+        _RESEARCH_INPUT.reset(token)
+
+
+@contextmanager
 def research_industry_input(path: Path, *, expected_sha256: str) -> Iterator[AIUniverse]:
     """Bind a hash-pinned review for one replay/readback, never change membership.
 

@@ -10,8 +10,10 @@ from test_attribution_identity import (
 
 from uquant import types as domain
 from uquant.account import load_account
+from uquant.contracts.universe import decision_ai_universe
 from uquant.engine import ProductionEngine
-from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
+
+DECISION_UNIVERSE_SHA256 = decision_ai_universe().sha256
 
 
 @pytest.mark.parametrize(
@@ -75,7 +77,7 @@ def test_repeated_production_decisions_include_byte_identical_causal_metadata(
         assert domain.AttributionMechanism(target.mechanism)
         assert target.origin_lifecycle in {item.value for item in domain.Lifecycle}
         assert target.industry_at_entry != ""
-        assert target.industry_manifest_sha256 == REQUIRED_AI_UNIVERSE_SHA256
+        assert target.industry_manifest_sha256 == DECISION_UNIVERSE_SHA256
     by_event = {target.event_id: target for target in first.targets}
     assert len(by_event) == len(first.targets)
     for order in first.pending_orders:

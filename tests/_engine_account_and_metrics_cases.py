@@ -11,6 +11,7 @@ from test_engine_contracts import (
 from uquant import engine as engine_module
 from uquant.account import load_account
 from uquant.config import DEFAULT_CONFIG, config_fingerprint
+from uquant.contracts.universe import decision_ai_universe
 from uquant.engine import (
     ProductionEngine,
 )
@@ -27,7 +28,6 @@ from uquant.types import (
     Fill,
     Position,
 )
-from uquant.validation.universe import default_ai_universe
 
 
 def test_account_root_must_be_a_json_object(tmp_path):
@@ -272,7 +272,7 @@ def test_decision_evaluates_sentinel_from_canonical_point_in_time_universe(
     assert isinstance(sentinel_args, dict)
     industries = sentinel_args["point_in_time_industries"]
     assert isinstance(industries, dict)
-    universe = default_ai_universe()
+    universe = decision_ai_universe()
     assert tuple(sorted(industries)) == universe.symbols_as_of("2026-06-30")
     assert industries == {
         symbol: universe.industry_of(symbol, "2026-06-30")

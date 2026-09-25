@@ -168,7 +168,7 @@ def test_feasible_transfer_funds_challenger_only_after_actual_sell_settlement(mo
         for symbol, weight in ((WEAK, 0.4), (INCUMBENT, 0.56))
     ))
     entry_fills = planner.execute_open(date=dates[-12], account=account, panel=execution_panel)
-    assert {fill.symbol: fill.shares for fill in entry_fills} == {WEAK: 39_971, INCUMBENT: 56_000}
+    assert {fill.symbol: fill.shares for fill in entry_fills} == {WEAK: 39_931, INCUMBENT: 55_944}
     assert not account.pending_orders
     account.protected_weights = {WEAK: 0.4}
     account.replacement_tenure.update({
@@ -181,9 +181,9 @@ def test_feasible_transfer_funds_challenger_only_after_actual_sell_settlement(mo
         f"core_transfer_session:{WEAK}->{CHALLENGER}": dates[-4].toordinal(),
     })
     cash_before_sale = account.cash
-    equity = account.cash + 959_710.0
+    equity = account.cash + 958_750.0
     assert account.cash / equity < DEFAULT_CONFIG.min_trade_weight
-    weak_before_sale = 399_710.0 / equity
+    weak_before_sale = 399_310.0 / equity
 
     targets = policy.allocate(**arguments)
 
@@ -192,19 +192,19 @@ def test_feasible_transfer_funds_challenger_only_after_actual_sell_settlement(mo
     assert CHALLENGER not in observed
     assert account.protected_weights[WEAK] == pytest.approx(weak_before_sale - 0.3)
     assert account.rotation_dates == [str(dates[-3].date())]
-    assert account.cash == cash_before_sale and account.positions[WEAK].shares == 39_971
+    assert account.cash == cash_before_sale and account.positions[WEAK].shares == 39_931
     orders = submit(dates[-3], targets)
     assert [(order.symbol, order.side) for order in orders] == [(WEAK, "SELL")]
     awaiting_settlement = policy.allocate(**arguments)
     assert CHALLENGER not in {target.symbol for target in awaiting_settlement}
     assert account.cash == cash_before_sale
-    assert account.positions[WEAK].shares == 39_971
+    assert account.positions[WEAK].shares == 39_931
     assert len(account.rotation_dates) == 1
 
     sold = planner.execute_open(date=dates[-2], account=account, panel=execution_panel)
     assert len(sold) == 1 and sold[0].symbol == WEAK and sold[0].side == "SELL"
-    assert sold[0].shares == 29_964
-    assert account.positions[WEAK].shares == 10_007
+    assert sold[0].shares == 29_954
+    assert account.positions[WEAK].shares == 9_977
     assert not account.pending_orders and account.cash > cash_before_sale
     arguments["date"] = dates[-2]
     admitted = policy.allocate(**arguments)

@@ -149,7 +149,7 @@ def test_forced_owner_rewrites_point_in_time_industry_identity() -> None:
     )
 
     assert forced.status == "SUCCESS"
-    assert forced.final_account["order_ledger"][0]["industry_at_entry"] == "design"
+    assert forced.final_account["order_ledger"][0]["industry_at_entry"] == "semicap"
     activation = common_activation_date(baseline)
     original_row = next(row for row in baseline.trace if row.date == activation)
     forced_row = next(row for row in forced.trace if row.date == activation)
@@ -165,10 +165,10 @@ def test_forced_owner_rewrites_point_in_time_industry_identity() -> None:
         assert forced_row.orders[0]["order_id"] == original_row.orders[0]["order_id"]
         assert forced_row.orders[0]["event_id"] != original_row.orders[0]["event_id"]
     assert forced_row.targets[0]["weight"] == sum(target["weight"] for target in original_row.targets)
-    assert forced_row.targets[0]["industry_at_entry"] == "design"
+    assert forced_row.targets[0]["industry_at_entry"] == "semicap"
     assert not forced_row.fills
     first_fill = next(fill for row in forced.trace for fill in row.fills)
-    assert first_fill["symbol"] == "sh688037" and first_fill["industry_at_entry"] == "design"
+    assert first_fill["symbol"] == "sh688037" and first_fill["industry_at_entry"] == "semicap"
     assert first_fill["fill_date"] > activation
     assert first_fill["event_id"] == forced_row.orders[0]["event_id"]
 

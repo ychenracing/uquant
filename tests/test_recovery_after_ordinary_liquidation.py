@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
+from uquant.contracts.universe import historical_industry_classification
 from uquant.engine import INDEX_SYMBOLS, ProductionEngine
 from uquant.holding_history import protected_weights_for_current_episode
 from uquant.leader import REFERENCE_UNIVERSE
@@ -40,7 +41,7 @@ def settled_ordinary_account():
     calendar = engine._raw["sh000300"].index
     # Observe the real pre-normalization account without suppressing production
     # cleanup. Settled rights no longer survive until the end of this replay.
-    with pytest.MonkeyPatch.context() as patch:
+    with pytest.MonkeyPatch.context() as patch, historical_industry_classification():
         patch.setattr(rearm, "normalize_orphan_strategic_capital_residue", capture_closed_rights)
         for date in calendar[(calendar >= "2025-01-02") & (calendar <= "2025-04-30")]:
             engine.execution.execute_open(date=date, account=account, panel=panel)

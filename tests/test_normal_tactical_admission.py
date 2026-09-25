@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from uquant.config import DEFAULT_CONFIG
+from uquant.contracts.universe import historical_industry_classification
 from uquant.engine import ProductionEngine
 from uquant.portfolio.pipeline import _caution_probe_book_open
 from uquant.types import AccountState, Risk, RiskAssessment
@@ -15,8 +16,10 @@ def test_native_normal_tactical_signal_submits_and_fills():
 
     root = Path(__file__).resolve().parents[1]
     symbols = json.loads((root / "benchmarks/promotion_baseline.json").read_text())["pools"]["e"]
-    raw = ProductionEngine(root / "data/frozen").backtest(
-        symbols=symbols, start="2023-07-03", end="2023-07-06")
+    # Minimized under the v1 classification; v2 revises this pool's industry evidence.
+    with historical_industry_classification():
+        raw = ProductionEngine(root / "data/frozen").backtest(
+            symbols=symbols, start="2023-07-03", end="2023-07-06")
     orders = raw["final_account"]["order_ledger"]
     assert len(orders) == 1
     order = orders[0]

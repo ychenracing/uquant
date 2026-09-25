@@ -52,14 +52,14 @@ def _holding(history):
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.code_hash, account.data_hash = "code:fixture", "data:fixture"
     first = _fill_target(account, dates, -131, SYMBOL, 0.2)
-    assert first.shares == 40_000
+    assert first.shares == 39_960
     account.last_shock_date = str(dates[-129].date())
     account.protected_weights = {SYMBOL: 0.6}
     if history == "fifo":
         restored = _fill_target(account, dates, -129, SYMBOL, 0.6, "POST_SHOCK_RESTORATION")
         reduced = _fill_target(account, dates, -128, SYMBOL, 0.3, "RISK_OFF")
-        assert (restored.shares, reduced.shares) == (76_359, 56_403)
-        assert account.positions[SYMBOL].shares == 59_956
+        assert (restored.shares, reduced.shares) == (79_889, 59_835)
+        assert account.positions[SYMBOL].shares == 60_014
         assert account.positions[SYMBOL].entry_date > account.last_shock_date
         assert {lot.entry_date for lot in account.positions[SYMBOL].tranches} == {restored.fill_date}
     elif history == "stale_flat":

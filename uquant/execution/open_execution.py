@@ -217,10 +217,15 @@ def _buy_cost(shares: int, price: float, cfg: SystemConfig, date: pd.Timestamp) 
 def _bounded_buy_shares(
     *, cfg: SystemConfig, account: AccountState, order: PendingOrder, current: Position,
     open_equity: float, execution_price: float, shares: int, cash: float, date: pd.Timestamp,
+    cap_price: float | None = None,
 ) -> int:
-    """Fit a buy request within cash and user-selected ceilings at a legal quantity."""
+    """Fit a buy request within cash and user-selected ceilings at a legal quantity.
+
+    ``execution_price`` budgets cash; ``cap_price`` is the price at which the
+    target weight was sized and bounds the symbol weight (default: the same).
+    """
     max_by_weight = math.floor(
-        symbol_weight_cap(cfg, account, order.symbol) * open_equity / execution_price
+        symbol_weight_cap(cfg, account, order.symbol) * open_equity / (cap_price or execution_price)
     ) - current.shares
     shares = min(shares, max(0, max_by_weight))
     if cfg.max_gross < 1.0:
@@ -368,7 +373,8 @@ def _size_open_order(
             if position.shares > 0
         )
     current = account.positions.get(order.symbol, Position(symbol=order.symbol))
-    target_price = reference if book.auction else sizing_price
+    # The auction quantity uses the expected fill price known before the open.
+    target_price = reference * (1.0 + cfg.slippage if buy else 1.0 - cfg.slippage) if book.auction else sizing_price
     if math.isfinite(open_equity):
         desired_shares = math.floor(order.target_weight * open_equity / target_price)
         if security_board(order.symbol) != "STAR":
@@ -418,13 +424,14 @@ def _size_open_order(
             def payable(requested: int) -> int:
                 bounded = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
                     open_equity=open_equity, execution_price=sizing_price, shares=requested,
-                    cash=cash, date=date)
+                    cash=cash, date=date, cap_price=target_price)
                 return bounded if bounded > 0 else requested
 
             target_requested = payable(target_requested)
             economic_target_requested = payable(economic_target_requested)
         shares = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
-            open_equity=open_equity, execution_price=sizing_price, shares=shares, cash=cash, date=date)
+            open_equity=open_equity, execution_price=sizing_price, shares=shares, cash=cash, date=date,
+            cap_price=target_price)
     if shares <= 0:
         if economic_target_requested > 0:
             order.attempts += 1

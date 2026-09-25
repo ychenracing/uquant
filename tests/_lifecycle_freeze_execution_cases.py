@@ -379,9 +379,9 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
     assert first_buy[0].shares == 200
     buy_ledger = buying.order_ledger[0]
     assert (buy_ledger.requested_shares, buy_ledger.filled_shares, buy_ledger.remaining_shares) == (
-        5_819,
+        5_994,
         200,
-        5_619,
+        5_794,
     )
 
     previous_buys = list(buying.pending_orders)
@@ -417,9 +417,9 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
     assert buying.pending_orders == []
     assert buy_ledger.status == "CANCELLED"
     assert (buy_ledger.requested_shares, buy_ledger.filled_shares, buy_ledger.remaining_shares) == (
-        5_819,
+        5_994,
         200,
-        5_619,
+        5_794,
     )
 
 def test_active_strategic_cohort_does_not_start_missing_buys_while_frozen():

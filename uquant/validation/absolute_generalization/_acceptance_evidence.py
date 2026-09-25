@@ -12,8 +12,6 @@ from pathlib import Path
 from typing import Any, cast
 
 from uquant.account import account_from_dict
-from uquant.account.codec import MIGRATABLE_ACCOUNT_SCHEMAS
-from uquant.account.schema_migration import upgraded_account_payload
 from uquant.config import SystemConfig
 from uquant.contracts.strict_json import canonical_json_sha256, strict_json_loads
 from uquant.contracts.universe import default_ai_universe
@@ -170,9 +168,6 @@ def _candidate_metric_violations(*, contract: Mapping[str, Any], claims: Mapping
 def current_candidate_champion_evidence(result: Mapping[str, object]) -> dict[str, object]:
     """Measure a current path from raw accounting; preserve old paths only as comparisons."""
     contract = current_candidate_contract()
-    final_account = result.get("final_account")
-    if isinstance(final_account, Mapping) and final_account.get("schema_version") in MIGRATABLE_ACCOUNT_SCHEMAS:
-        result = {**result, "final_account": upgraded_account_payload(dict(final_account))}
     start, end = contract["windows"]["continuous_ai_era"]
     _validate_champion_session_streams(result, start=start, end=end)
     baseline = cast(Mapping[str, Any], _grant_contract()["baseline"])

@@ -12,6 +12,7 @@ from ._analysis import (
 )
 from ._code_audit_api_projection import code_audit_api_projection, followup_audit_api_projection
 from ._cross_vintage_api_projection import cross_vintage_api_projection
+from ._remediation_api_projection import remediation_api_projection
 
 
 def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_current_contract(
@@ -20,7 +21,9 @@ def test_public_names_signatures_dataclasses_enums_and_runtime_contracts_match_c
     expected = public_api_contract["contract"]
     assert isinstance(expected, Mapping)
     assert public_api_contract["contract_sha256"] == canonical_sha256(expected)
-    expected = followup_audit_api_projection(code_audit_api_projection(cross_vintage_api_projection(expected)))
+    expected = remediation_api_projection(
+        followup_audit_api_projection(code_audit_api_projection(cross_vintage_api_projection(expected)))
+    )
     modules = expected["modules"]
     assert isinstance(modules, Mapping)
     assert set(modules) == set(public_module_names())

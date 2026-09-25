@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import dataclasses
 import hashlib
 import importlib.util
@@ -11,8 +12,11 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from architecture._code_audit_api_projection import code_audit_api_projection, followup_audit_api_projection
 from architecture._cross_vintage_api_projection import cross_vintage_api_projection
+from architecture._remediation_api_projection import remediation_api_projection
 
+from uquant.account.schema_migration import _SCHEMA_9_DEFAULTS
 from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.types import (
     AccountOrder,
@@ -167,11 +171,19 @@ def _sample_models() -> dict[str, object]:
     }
 
 
+def _projected_api() -> dict[str, Any]:
+    contract = copy.deepcopy(PUBLIC_API)
+    contract["modules"].update(_load_json(PUBLIC_API_PATH.with_name("public_api_pr73_delta.json"))["modules"])
+    return remediation_api_projection(
+        followup_audit_api_projection(code_audit_api_projection(cross_vintage_api_projection(contract)))
+    )
+
+
 def test_public_configuration_and_complete_effective_policy_are_separate() -> None:
-    expected_flat = PUBLIC_API["flat_config_serialization"]
+    expected_flat = _projected_api()["flat_config_serialization"]
     payload = DEFAULT_CONFIG.to_dict()
-    assert len(dataclasses.fields(SystemConfig)) == 13
-    assert len(payload) == 267
+    assert len(dataclasses.fields(SystemConfig)) == 15
+    assert len(payload) == 269
     assert dataclasses.asdict(DEFAULT_CONFIG) == expected_flat["values"]
     assert config_fingerprint(DEFAULT_CONFIG) == expected_flat["sha256"]
     for name in set(payload) - {field.name for field in dataclasses.fields(SystemConfig)}:
@@ -295,11 +307,17 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
         "target": "40deb0e6450d7bdb5eaf7da4ff263501ac70c4a970aa1a56695bfe1b104b982d",
     }
 
-    # Project only the reviewed receipt and deployed-exposure peak additions;
-    # preserve every historical model digest below.
-    account_payload = serialized["account"]
-    assert isinstance(account_payload, dict)
-    assert account_payload["schema_version"] == 8
+    # Project only the reviewed receipt, deployed-exposure peak and schema 9
+    # account-fact additions; preserve every historical model digest below.
+    account_payload = dict(serialized["account"])
+    assert account_payload["schema_version"] == 9
+    for field, default in _SCHEMA_9_DEFAULTS.items():
+        assert account_payload.pop(field) == default
+    account_payload["schema_version"] = 8
+    enums = {name: list(values) for name, values in enum_values.items()}
+    for name in ("OriginSubsystem", "AttributionMechanism"):
+        enums[name].remove("EXTERNAL_TRADE")
+    serialized["enums"] = enums
     rearm_payload = dict(account_payload["strategic_cash_rearm"])
     assert rearm_payload.pop("consumed_order") is None
     historical_account = {**account_payload, "strategic_cash_rearm": rearm_payload}
@@ -313,7 +331,7 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
 
 
 def test_model_field_order_defaults_factories_and_flat_account_schema_are_frozen() -> None:
-    projected = cross_vintage_api_projection(PUBLIC_API)
+    projected = _projected_api()
     expected_module = projected["modules"]["uquant.types"]
     expected_schema = projected["account_state_schema"]
     assert isinstance(expected_module, Mapping)
@@ -326,7 +344,7 @@ def test_model_field_order_defaults_factories_and_flat_account_schema_are_frozen
     assert observed_module["dataclasses"] == expected_module["dataclasses"]
     assert observed_module["enums"] == expected_module["enums"]
     assert observed_module["functions"] == expected_module["functions"]
-    assert len(dataclasses.fields(AccountState)) == 85
+    assert len(dataclasses.fields(AccountState)) == 92
     assert [field.name for field in dataclasses.fields(AccountState)] == expected_schema["field_order"]
     assert list(empty.to_dict()) == expected_schema["serialized_key_order"]
     assert empty.to_dict() == expected_schema["empty_state"]

@@ -368,9 +368,7 @@ def _size_open_order(
             if position.shares > 0
         )
     current = account.positions.get(order.symbol, Position(symbol=order.symbol))
-    # An auction buy must be payable at its preset limit; sizing it from the
-    # prior close would leave a remainder that the cap and cash budget never fill.
-    target_price = sizing_price if buy or not book.auction else reference
+    target_price = reference if book.auction else sizing_price
     if math.isfinite(open_equity):
         desired_shares = math.floor(order.target_weight * open_equity / target_price)
         if security_board(order.symbol) != "STAR":
@@ -414,6 +412,15 @@ def _size_open_order(
             retained.append(order)
             return None
         cash = book.buy_cash if book.auction else account.cash
+        if book.auction:
+            # The submitted auction quantity is what the preset limit budget can
+            # pay; a trimmed difference was never submitted and is not a remainder.
+            payable = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
+                open_equity=open_equity, execution_price=sizing_price, shares=target_requested,
+                cash=cash, date=date)
+            if payable > 0:
+                target_requested = min(target_requested, payable)
+                economic_target_requested = min(economic_target_requested, payable)
         shares = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
             open_equity=open_equity, execution_price=sizing_price, shares=shares, cash=cash, date=date)
     if shares <= 0:

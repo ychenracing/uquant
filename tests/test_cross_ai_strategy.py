@@ -10,11 +10,12 @@ import pytest
 
 def test_principal_removal_cases_remove_all_reference_roles() -> None:
     from research.cross_ai_strategy import case_symbols
-    from uquant.contracts.universe import default_ai_universe
+    from uquant.contracts.universe import decision_ai_universe
 
-    universe = default_ai_universe()
+    universe = decision_ai_universe()
     core = {"sz300308", "sz300502", "sz300394"}
-    optical = {member.symbol for member in universe.members if member.industry == "optical"}
+    optical = {symbol for symbol in universe.symbols_as_of("2023-01-03")
+               if universe.industry_of(symbol, "2023-01-03") == "optical"}
     for case, removed in (("remove_all_three", core), ("no_optical", optical)):
         roles = case_symbols(case, "2023-01-03")
         expected = set(universe.symbols_as_of("2023-01-03")) - removed

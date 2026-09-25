@@ -256,9 +256,9 @@ def test_fully_exited_ordinary_restore_rights_require_a_new_core_admission(monke
 
 @pytest.mark.parametrize("quality, volume, filled_shares, decision_price, next_fill_shares", (
     pytest.param("not_mature", 1_000_000.0, 5_000, 10.0, 0, id="rejected_below_target"),
-    pytest.param("not_mature", 7_600_000.0, 38_000, 10.5, 0, id="rejected_after_price_drift"),
-    pytest.param("strict_quality_lost", 7_600_000.0, 38_000, 10.5, 0, id="strict_quality_lost"),
-    pytest.param("ready", 7_600_000.0, 38_000, 10.5, 786, id="ready_after_price_drift"),
+    pytest.param("not_mature", 7_800_000.0, 39_000, 10.5, 0, id="rejected_after_price_drift"),
+    pytest.param("strict_quality_lost", 7_800_000.0, 39_000, 10.5, 0, id="strict_quality_lost"),
+    pytest.param("ready", 7_800_000.0, 39_000, 10.5, 990, id="ready_after_price_drift"),
 ))
 def test_partial_core_quality_controls_pending_orders_after_restart(
     tmp_path, quality, volume, filled_shares, decision_price, next_fill_shares,
@@ -307,7 +307,7 @@ def test_partial_core_quality_controls_pending_orders_after_restart(
     assert len(account.pending_orders) == 1
     original = account.pending_orders[0]
     if decision_price == 10.5:
-        assert original.remaining_shares == 796
+        assert original.remaining_shares == 1_000
     cash_after_fill = account.cash
     held_value = filled_shares * decision_price
     held_weight = held_value / (cash_after_fill + held_value)
@@ -765,7 +765,7 @@ def test_ordinary_restore_keeps_continuous_holding_after_fifo_retires_original_l
         origin_subsystem="LEADER", mechanism="LEADER_SELECTION", origin_lifecycle="CORE",
     ),))
     initial = planner.execute_open(date=dates[-5], account=account, panel=execution_panel)
-    assert len(initial) == 1 and initial[0].shares == 38_796
+    assert len(initial) == 1 and initial[0].shares == 40_000
     assert account.positions[symbol].entry_date == "2025-07-24"
     assert not account.pending_orders
     account.protected_weights[symbol] = 0.6
@@ -777,8 +777,8 @@ def test_ordinary_restore_keeps_continuous_holding_after_fifo_retires_original_l
     assert restored[0].weight == pytest.approx(0.6)
     submit(dates[-4], restored)
     restoration = planner.execute_open(date=dates[-3], account=account, panel=execution_panel)
-    assert len(restoration) == 1 and restoration[0].shares == 77_564
-    assert account.positions[symbol].shares == 116_360
+    assert len(restoration) == 1 and restoration[0].shares == 76_359
+    assert account.positions[symbol].shares == 116_359
     assert not account.pending_orders
 
     reduced = policy.allocate(
@@ -789,13 +789,13 @@ def test_ordinary_restore_keeps_continuous_holding_after_fifo_retires_original_l
     assert reduced[0].weight == pytest.approx(0.3)
     submit(dates[-3], reduced)
     sold = planner.execute_open(date=dates[-2], account=account, panel=execution_panel)
-    assert len(sold) == 1 and sold[0].side == "SELL" and sold[0].shares == 56_404
+    assert len(sold) == 1 and sold[0].side == "SELL" and sold[0].shares == 56_403
     assert not account.pending_orders
     assert account.positions[symbol].shares == 59_956
     assert account.positions[symbol].entry_date == "2025-07-28"
     assert {lot.entry_date for lot in account.positions[symbol].tranches} == {"2025-07-28"}
     assert [(fill.side, fill.shares) for fill in account.fills] == [
-        ("BUY", 38_796), ("BUY", 77_564), ("SELL", 56_404),
+        ("BUY", 40_000), ("BUY", 76_359), ("SELL", 56_403),
     ]
     cash_before_allocation = account.cash
 

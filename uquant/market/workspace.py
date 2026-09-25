@@ -144,7 +144,10 @@ class MarketWorkspace:
         """Return the session field, else the last valid close; never a stale open."""
 
         date = pd.Timestamp(as_of)
-        mark = mark_price(self._raw[symbol], date, field=field)
+        frame = self._raw[symbol]
+        if frame.empty or date < frame.index[0]:
+            raise RuntimeError(f"{symbol} has no mark price at {date.date()}")
+        mark = mark_price(frame, date, field=field)
         if mark is None:
             raise RuntimeError(f"{symbol} has no mark price at {date.date()}")
         return mark.price

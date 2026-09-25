@@ -49,7 +49,7 @@ def _canonical_sha256(payload: dict[str, Any]) -> str:
 def test_governance_classifies_every_system_config_field_once() -> None:
     governance = load_config_governance()
     entries = governance.entries
-    config_fields = set(SystemConfig().to_dict())
+    config_fields = set(SystemConfig().to_dict()) - governance_module.POST_REVIEW_FIELDS
 
     assert {category.value for category in ParameterCategory} == {
         "MARKET_RULE",
@@ -517,7 +517,7 @@ def test_current_inventory_covers_configurable_and_fixed_policy_without_history(
     current = governance_module.load_config_governance()
     assert {entry.field for entry in current.entries} == set(SystemConfig().to_dict())
     assert current.removed_fields == current.strategy_rule_removals == ()
-    assert len(current.entries) == 267
+    assert len(current.entries) == 269
 
 
 def test_current_inventory_rejects_resealed_resource(tmp_path: Path) -> None:

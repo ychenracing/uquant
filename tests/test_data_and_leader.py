@@ -396,13 +396,13 @@ def test_data_update_publishes_new_immutable_snapshot_and_refuses_bad_data(tmp_p
 
 
 def test_formal_industry_classification_keeps_recorded_versions_resolvable():
+    from uquant.contracts.universe import _resource_bytes as resource_bytes
     from uquant.contracts.universe import (
         decision_ai_universe,
         default_ai_universe,
         load_industry_classification,
         registered_ai_universe,
     )
-    from uquant.contracts.universe import _resource_bytes as resource_bytes
 
     base, formal = default_ai_universe(), decision_ai_universe()
     assert formal.sha256 != base.sha256

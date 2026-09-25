@@ -30,7 +30,7 @@
 | 数据完整性 | 冻结文件、清单和 SHA-256 必须互相一致 |
 | Risk Sentinel | `FREEZE_ONLY` 权限、calibration 合同、canonical universe 和生产导入隔离必须有效；只读重复运行工件必须确定 |
 | 文档治理 | 内部链接、示例命令、模块所有权、默认值和权限术语必须与当前仓库一致 |
-| 战略授冠 | 自动运行授冠意图、schema 8 账户校验、执行恢复、身份一致、固定 champion 基线和三个 native eligibility 回放 |
+| 战略授冠 | 自动运行授冠意图、账户 schema 校验、执行恢复、身份一致、固定 champion 基线和三个 native eligibility 回放 |
 | 战略所有权 | 自动运行多 epoch、只读 successor、universe 角色、见证者 quorum、账户资本修复、关键删除、重复授冠与失败 grant 恢复 |
 | 性能经济性 | 手动 `Extended Performance Matrix` 保留 `promotion --profile full` 的全部财富、回撤、订单、换手和急跌收益门槛 |
 | 泛化能力 | 手动 `Extended Economic Matrix` 保留六个固定窗口完整矩阵的 literal 诊断、逐 cell、intrinsic 与 random-tail 有效边界 |
@@ -79,6 +79,25 @@ README 提供快速开始和文档导航；其余文档各自保持单一职责�
 | `RISK_SENTINEL.md` | 生产 `FREEZE_ONLY` 权限、Coverage、Calibration 和只读诊断边界 |
 
 文档应足以指导使用和维护，但避免重复粘贴完整参数表、源码流程或测试实现。
+
+### CI 职责映射
+
+合并或删减任何门禁之前，先按职责和触发条件对照，确认没有职责只由即将移除的检查承担：
+
+| Workflow | 触发 | 职责 | 典型受影响改动 |
+|---|---|---|---|
+| `ci.yml`（Engineering gates） | PR、`main` push、手动 | Ruff、strict mypy、数据清单、holdout lane、Sentinel 合同、编译、分片 pytest、分支覆盖率、Bandit/pip-audit | 任何源码、测试、依赖或数据 |
+| `strategic-grant-acceptance.yml` | PR、`main` push、手动 | 授冠意图、账户校验、执行恢复与固定 champion 基线 | 战略、组合、执行、账户 |
+| `strategic-ownership-acceptance.yml` | PR、`main` push、手动 | 五个确定性所有权 shard 与关键删除场景 | 战略所有权、风险、执行 |
+| `absolute-generalization-acceptance.yml` | PR、`main` push、merge group、手动 | 八 shard/34 场景绝对泛化，重算七组件；绑定运行时、配置与源码身份 | 生产源码、配置、数据、运行时锁 |
+| `cloud-execution-guard.yml` | 相关路径的 PR/push | 云端执行守护与相关 workflow 自身 | `tools/cloud_guard`、`AGENTS.md`、相关 workflow |
+| `release-candidate.yml` | 手动 | 发布候选源码与可重复 wheel 一致 | 发布 |
+| `strategy-performance.yml` | 手动 | 完整 promotion 性能矩阵的经济门槛 | 需要经济验收的候选 |
+| `strategy-generalization.yml` | 手动 | 六窗口完整泛化矩阵 | 需要经济验收的候选 |
+| `strategic-evidence-closure.yml` | 手动、非阻断 | 可恢复的战略证据收口步骤 | 证据补齐 |
+
+默认执行时钟、法定费用时间表或行业分类版本变化会改变有效配置与经济路径，因此同时影响
+绝对泛化、战略授冠/所有权和手动经济矩阵；这些结论需要在新候选上重新取得，不能沿用旧结果。
 
 ### 文档即代码
 

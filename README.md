@@ -121,8 +121,9 @@ uv run uquant account-init \
   --output account_state.json
 ```
 
-账户会绑定当前数据前缀和生产代码指纹。账户文件必须使用 schema 8；其他整数版本由
-`UnsupportedAccountSchemaError` 拒绝，恢复方式见[运行手册](docs/OPERATIONS.md)。
+账户会绑定当前数据前缀和生产代码指纹。账户文件必须使用 schema 9；schema 8 账户用
+`account-schema-migrate` 一次性升级，其他整数版本由 `UnsupportedAccountSchemaError` 拒绝，
+恢复方式见[运行手册](docs/OPERATIONS.md)。
 
 ### 2. 准备当日行情和券商快照
 
@@ -247,7 +248,7 @@ date,open,high,low,close,volume
 | `uquant/market/`、`uquant/risk/` | replay 工作区、Base Risk 评估与状态转换 |
 | `uquant/portfolio/` | 唯一目标组合、硬约束与持仓生命周期 |
 | `uquant/execution/` | 次日开盘订单、市场约束、费用和成交生命周期 |
-| `uquant/account/` | schema 8 编解码、账户校验、经济/代码身份与原子持久化 |
+| `uquant/account/` | schema 9 编解码与迁移、账户锁内事务、公司行动、账户校验、经济/代码身份与原子持久化 |
 | `uquant/risk_sentinel/` | 独立风险证据、Coverage 与 `FREEZE_ONLY` 映射 |
 | `uquant/contracts/` | 共享不可变合同、严格 JSON 与资源身份 |
 | `uquant/broker.py`、`report.py` | 券商对账与只读日报渲染 |

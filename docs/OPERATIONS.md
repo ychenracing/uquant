@@ -5,7 +5,7 @@
 uquant 只用于 2023 年以来 A 股 AI 产业链的现金多头日频决策，适合盘后人工触发。建议固定在数据更新完成、券商成交确认后执行。`daily` 生成下一交易日订单意图并保存账户，不会向券商发送订单；使用者必须人工核对并决定是否下单。
 
 首次部署先完成四项检查：使用 Python 3.12 和 `uv sync --frozen` 建立锁定环境；验证
-`data/frozen` 清单；初始化 schema 8 账户并保存独立备份；确认券商快照能完整提供现金、持仓、
+`data/frozen` 清单；初始化 schema 9 账户并保存独立备份；确认券商快照能完整提供现金、持仓、
 可卖数量和成交。Future Holdout 还必须单独准备数据目录、回放账户、Journal checkpoint
 和备份目录，见[Future Holdout](HOLDOUT.md)。
 
@@ -49,13 +49,29 @@ uquant 只用于 2023 年以来 A 股 AI 产业链的现金多头日频决策，
 date,open,high,low,close,volume
 ```
 
-可选列 `amount`。先验证冻结数据：
+可选列 `amount`。缺失的成交额保持缺失，不用价格乘成交量伪造；流动性检查把它视为不可用。
+旧文件中以“手”记录的成交量，只有当同一行成交额证明单位时才在加载时乘 100。先验证冻结数据：
 
 ```bash
 uv run python -m uquant.validation data-manifest --data-dir data/frozen
+uv run uquant data-check --data-dir data/frozen --as-of 2026-06-30
 ```
 
-刷新股票行情需要 `data` 依赖。刷新只能追加，若数据源改变历史前缀，系统会停止并要求人工核查。
+`data-check` 输出 JSON 报告：没有停牌事实解释的交易日缺口、成交额缺失、成交量为正但成交额
+为零、均价超出高低价区间（单位不一致）、无公司行动解释的除权参考价，以及未到达 `--as-of`
+的文件；存在 error 级问题时 `ok=false` 并返回非零。
+
+行情以原始价格记账；信号使用由公司行动因果推导的连续收盘口径，现金分红、送转和红利税
+进入账户事件链（除权日股数与应收股利，派息日入账）。刷新生成新的不可变快照，而不是改写旧目录：
+
+```bash
+pip install baostock  # data-update 的数据源，不属于生产依赖
+uv run uquant data-update --output-root data/snapshots --base-dir data/snapshots/<当前快照> \
+  --symbols sz300308 sz300502 --end 2026-07-20
+```
+
+新快照完整通过校验后才写入并把 `LATEST` 指向它；校验失败不发布，旧快照及其摘要保持不变。
+`--data-dir` 指向含 `LATEST` 的根目录时读取其指向的快照。配股暂不支持，遇到时应人工处理。
 
 ## 账户初始化
 
@@ -70,10 +86,21 @@ uv run uquant account-init \
 
 未提供 `--date` 时使用所有必需证券的最新共同日期。账户同时记录数据摘要和当前生产代码指纹。
 
-账户文件必须是 schema 8，并包含当前 `AccountState` 的必需字段。整数
-`schema_version` 不是 8 时，读取和保存都会抛出 `UnsupportedAccountSchemaError`，错误消息给出
-收到的版本和期望版本。应恢复已核验的 schema 8 备份或用 `account-init` 新建账户；不要手工
-修改 `schema_version` 或 `code_hash`。
+账户文件必须是 schema 9，并包含当前 `AccountState` 的必需字段。整数
+`schema_version` 不是 9 时，读取和保存都会抛出 `UnsupportedAccountSchemaError`，错误消息给出
+收到的版本、期望版本和迁移命令。schema 8 账户先保存独立备份，再一次性升级：
+
+```bash
+uv run uquant account-schema-migrate --account account_state.json
+```
+
+迁移在账户锁内只补齐 schema 9 新增的空字段（修订号、券商绑定、快照登记、外部资金流、
+公司行动、应收股利和红利税批次），不改动现金、持仓、订单或成交，并在
+`account_migrations` 记录迁移前后的经济状态摘要。其他版本应恢复已核验备份或用
+`account-init` 新建账户；不要手工修改 `schema_version` 或 `code_hash`。
+
+所有写账户的命令（`daily`、`account-sync`、迁移）都在同一把账户文件锁内完成读取、修改和保存，
+并用 `account_revision` 做比较交换；另一个进程已经更新账户时本次写入失败关闭，不会覆盖对方。
 
 `capital_peak` 是终身权益高水位，不因修复清零；`operating_peak` 可在确认修复时重新定基；
 `deployed_peak` 跟踪连续实际持仓，仅在真正空仓时重新定基。旧 schema 8 文件缺少
@@ -106,6 +133,10 @@ uv run uquant account-sync \
 | `positions` | 持仓、成本和当日可卖数量 |
 | `fills` | 已发生的真实成交 |
 | `orders` | 可选；券商确认已取消订单（`order_id`、`status=CANCELLED`、`remaining_shares=0`） |
+| `broker_account` | 可选；首次出现后账户绑定该券商账号，之后每份快照都必须声明且一致 |
+| `snapshot_id`、`sequence` | 可选；同一 `snapshot_id` 必须内容相同，同一日期的更新快照需要更大的 `sequence` |
+| `external_trades` | 可选；人工或其他系统的成交（`trade_id`、`source` 为 `MANUAL`/`OTHER_SYSTEM`、`symbol`、`side`、`shares`、`price`、`trade_date`），登记为非策略外部订单，不获得策略买入权限 |
+| `cash_flows` | 可选；存取款（`flow_id`、`amount` 入金为正、`flow_date`），同步调整高水位，不计为收益或回撤 |
 
 最小完整示例：
 
@@ -183,6 +214,10 @@ uv run uquant daily \
 终端与 `--output` 使用同一份中文 Markdown。加 `--html-output daily_report.html` 同时生成
 单文件离线 HTML，两种格式来自同一次决策。报告路径不能覆盖账户、配置、行情、券商快照，
 两种输出也不能相互覆盖。已有执行受阻记录显示原检查日期和余量，不预测下一开盘能否成交。
+
+决策先写入账户，再原子发布报告。若报告发布失败，账户已提交但报告留在同目录的
+`<输出>.ready-*` 文件；对同一日期重新运行 `daily` 会发布这些已渲染报告，不会重复决策。
+账户有存取款记录时，结论部分另列外部资金净流入和“投资损益 = 净值 − 初始资金 − 净流入”。
 
 
 `ORDINARY_MARKET_EVIDENCE_UNAVAILABLE` 表示两个指数的 120 日收益证据不完整或非有限。
@@ -360,6 +395,27 @@ uv run uquant backtest \
 
 数据目录可以保留 2023 年以前的行情，但这些行只用于形成指标 warm-up；上市前证券不可见。初始权益、订单、成交、换手和绩效统计都从 2023+ 回放起点开始。回放执行模型和每日决策共用同一引擎。
 
+默认执行时钟为 `AUCTION`：数量和限价在开盘前按前收盘确定，买单必须在预设限价
+（前收盘上浮 `auction_limit_buffer`，不超过涨停价）和最不利费用下可支付，同次竞价的卖出回款
+不能提前用于买入；被预算削减的部分不是遗留挂单。`DAILY_PROXY` 保留旧的开盘价定量代理，
+只用于标明口径的研究对比。
+
+回放输出带有 `universe_selection_status=retrospective_fixed`、
+`evidence_scope=conditional_historical_replay`、`historical_membership_evidence=unresolved`：
+固定股票池是事后冻结的研究输入，结果回答“在这组股票内规则如何表现”，不证明当时能事先选出它们。
+
+同条件相对诊断（不改变任何验收门槛）：
+
+```bash
+uv run python -m research.relative_evidence --start 2023-01-03 --end 2026-06-30 \
+  --symbols sz300308 sz300502 sz300394 --stress base cost_stress fill_stress
+```
+
+它给出 REF0a（等额买入持有）、REF0b（月度等权再平衡）、REF1（沪深300指数分析参照，
+不可直接交易）、REF3（固定 k=3、60 日动量的月度轮动），以及冻结的成本压力（滑点 0.4%）
+和成交压力（参与率 0.125%）场景下的财富、回撤、费用和未成交比例；`--start-dates` 给出
+多个起点的固定长度窗口，这些窗口相互重叠，不是独立样本。
+
 ## Future Holdout
 
 真实未来数据、Lane、确定性回放、人工执行 Journal、checkpoint、Risk Differential 观察和
@@ -501,8 +557,9 @@ Base Risk 继续负责账户风险状态、总仓压缩、资本损伤修复和�
 | 现象 | 含义 | 处理 |
 |---|---|---|
 | `data hash differs` | 已使用历史数据发生变化 | 恢复可信文件并重新验证 |
-| `production code hash differs` | 账户绑定的代码与当前运行代码不同 | 备份 schema 8 账户，执行 `account-code-migrate` 并核对经济状态摘要 |
-| `UnsupportedAccountSchemaError` | 账户的整数 `schema_version` 不是 8 | 恢复已核验的 schema 8 备份，或用 `account-init` 新建账户 |
+| `production code hash differs` | 账户绑定的代码与当前运行代码不同 | 备份 schema 9 账户，执行 `account-code-migrate` 并核对经济状态摘要 |
+| `UnsupportedAccountSchemaError` | 账户的整数 `schema_version` 不是 9 | schema 8 先备份再运行 `account-schema-migrate`；其他版本恢复已核验备份或用 `account-init` 新建 |
+| `AccountConflictError` | 另一个进程在本次读取后已更新账户 | 重新运行命令，不要合并两份账户文件 |
 | `unknown order_id` | 券商成交无法对应系统订单 | 修正快照或人工调查 |
 | `duplicate fill_id` | 重复成交经济字段不一致 | 修正导出来源，禁止覆盖 |
 | `insufficient common history` | 必需证券共同历史不足 | 补齐数据或调整开始日期 |

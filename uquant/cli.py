@@ -24,6 +24,7 @@ from .broker import sync_broker_snapshot
 from .broker_contract import load_broker_snapshot
 from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from .config.input import load_public_config
+from .contracts.universe import EVIDENCE_SCOPE
 from .engine import ProductionEngine, code_fingerprint
 from .infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from .leader import REFERENCE_UNIVERSE
@@ -357,7 +358,7 @@ def _run_backtest(args: argparse.Namespace) -> int:
             protected_roots=(args.data_dir,),
         )
     engine = ProductionEngine(args.data_dir, cfg)
-    result = engine.backtest(symbols=args.symbols, start=args.start, end=args.end)
+    result = {**EVIDENCE_SCOPE, **engine.backtest(symbols=args.symbols, start=args.start, end=args.end)}
     payload = json.dumps(result, ensure_ascii=False, indent=2)
     if args.output:
         atomic_write_text(args.output, payload, protected_paths=backtest_protected)

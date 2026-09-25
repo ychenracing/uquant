@@ -446,6 +446,15 @@ def registered_ai_universe(sha256: str) -> AIUniverse | None:
     return None
 
 
+# The fixed 34-name pool was chosen after the fact; replays over it are
+# conditional on that choice and prove nothing about ex-ante selection.
+EVIDENCE_SCOPE: Final[Mapping[str, str]] = {
+    "universe_selection_status": "retrospective_fixed",
+    "evidence_scope": "conditional_historical_replay",
+    "historical_membership_evidence": "unresolved",
+}
+
+
 def decision_ai_universe() -> AIUniverse:
     """Return the explicitly selected research input, otherwise the formal classification."""
     return _RESEARCH_INPUT.get() or _PRODUCTION_CLASSIFICATION

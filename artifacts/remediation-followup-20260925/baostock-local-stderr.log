@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspace/scratch/1adbcc9c7025/uquant/uquant/__main__.py", line 5, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspace/scratch/1adbcc9c7025/uquant/uquant/cli.py", line 452, in main
+    published = update_snapshot(
+                ^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/1adbcc9c7025/uquant/uquant/data_update.py", line 157, in update_snapshot
+    source = provider or BaostockProvider()
+                         ^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/1adbcc9c7025/uquant/uquant/data_update.py", line 61, in __init__
+    raise RuntimeError("baostock login failed")
+RuntimeError: baostock login failed

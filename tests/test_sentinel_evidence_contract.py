@@ -248,6 +248,12 @@ def test_evidence_closure_seal_matches_historical_analyzer(
     )
     del current_without_identity["provenance"]["code_sha256"]
     del historical_without_identity["provenance"]["code_sha256"]
+    # The loader now repairs legacy lot volumes, so the loaded-data identity
+    # differs while every regenerated evidence value must still match.
+    assert (
+        current_without_identity["provenance"].pop("data_sha256")
+        != historical_without_identity["provenance"].pop("data_sha256")
+    )
     assert (
         current_without_identity["provenance"]["config_sha256"]
         == _CURRENT_CONFIG_SHA256

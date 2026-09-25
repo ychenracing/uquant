@@ -233,7 +233,7 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
         "2026-01-05",
         symbol,
         "SELL",
-        0.30,
+        0.301,
         "portfolio risk gross cap",
         Lifecycle.CORE.value,
         reduction_policy=ReductionPolicy.RISK_PRIORITY.value,
@@ -242,7 +242,7 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
         **_identity(
             signal_date="2026-01-05",
             symbol=symbol,
-            target_weight=0.30,
+            target_weight=0.301,
             lifecycle=Lifecycle.CORE.value,
             origin_subsystem=OriginSubsystem.RISK.value,
             mechanism=AttributionMechanism.RISK_GROSS_CAP.value,
@@ -379,9 +379,9 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
     assert first_buy[0].shares == 200
     buy_ledger = buying.order_ledger[0]
     assert (buy_ledger.requested_shares, buy_ledger.filled_shares, buy_ledger.remaining_shares) == (
-        5_900,
+        5_819,
         200,
-        5_700,
+        5_619,
     )
 
     previous_buys = list(buying.pending_orders)
@@ -417,9 +417,9 @@ def test_partial_fill_direction_survives_real_daily_execute_replan_cycle():
     assert buying.pending_orders == []
     assert buy_ledger.status == "CANCELLED"
     assert (buy_ledger.requested_shares, buy_ledger.filled_shares, buy_ledger.remaining_shares) == (
-        5_900,
+        5_819,
         200,
-        5_700,
+        5_619,
     )
 
 def test_active_strategic_cohort_does_not_start_missing_buys_while_frozen():

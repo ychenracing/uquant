@@ -415,12 +415,14 @@ def _size_open_order(
         if book.auction:
             # The submitted auction quantity is what the preset limit budget can
             # pay; a trimmed difference was never submitted and is not a remainder.
-            payable = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
-                open_equity=open_equity, execution_price=sizing_price, shares=target_requested,
-                cash=cash, date=date)
-            if payable > 0:
-                target_requested = min(target_requested, payable)
-                economic_target_requested = min(economic_target_requested, payable)
+            def payable(requested: int) -> int:
+                bounded = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
+                    open_equity=open_equity, execution_price=sizing_price, shares=requested,
+                    cash=cash, date=date)
+                return bounded if bounded > 0 else requested
+
+            target_requested = payable(target_requested)
+            economic_target_requested = payable(economic_target_requested)
         shares = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
             open_equity=open_equity, execution_price=sizing_price, shares=shares, cash=cash, date=date)
     if shares <= 0:

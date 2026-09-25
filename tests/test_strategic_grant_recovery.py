@@ -183,9 +183,11 @@ def test_partial_fill_retains_only_the_unfilled_quantity_on_the_same_order() -> 
         account=account, previous=list(account.pending_orders),
         current=tuple(account.pending_orders), submitted_date="2026-01-06",
     ))
+    retry = _tradable_rows("2026-01-05", "2026-01-06", "2026-01-07")
+    # Fees shave equity just below the exact 10,000-share lot boundary at 10.00.
+    retry.loc["2026-01-06", "close"] = 9.99
     fills = planner.execute_open(
-        date=pd.Timestamp("2026-01-07"), account=account,
-        panel={"sz300308": _tradable_rows("2026-01-05", "2026-01-06", "2026-01-07")},
+        date=pd.Timestamp("2026-01-07"), account=account, panel={"sz300308": retry},
     )
     assert len(fills) == 1 and fills[0].shares == remaining
     assert len(account.order_ledger) == 1
@@ -618,14 +620,11 @@ def test_late_fill_is_rejected_after_the_retry_completed_the_economic_order() ->
             submitted_date="2026-01-06",
         )
     )
+    retry = _tradable_rows("2026-01-05", "2026-01-06", "2026-01-07", volume=10_000_000.0)
+    # Fees shave equity just below the exact 10,000-share lot boundary at 10.00.
+    retry.loc["2026-01-06", "close"] = 9.99
     planner.execute_open(
-        date=pd.Timestamp("2026-01-07"),
-        account=account,
-        panel={
-            "sz300308": _tradable_rows(
-                "2026-01-05", "2026-01-06", "2026-01-07", volume=10_000_000.0
-            )
-        },
+        date=pd.Timestamp("2026-01-07"), account=account, panel={"sz300308": retry},
     )
     position = account.positions["sz300308"]
 

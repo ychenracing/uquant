@@ -146,7 +146,7 @@ def test_oldest_initial_lot_can_disappear_without_retiring_survivor():
 
 def _reentered_member():
 
-    policy, account, dates, panel, leaders, roles = _compress(_deployed(mixed=True), .60)
+    policy, account, dates, panel, leaders, roles = _compress(_deployed(mixed=True), .55)
     retired = set(SYMBOLS) - set(account.positions)
     assert len(retired) == 1
     symbol = next(iter(retired))

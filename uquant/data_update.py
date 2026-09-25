@@ -120,7 +120,7 @@ class BaostockProvider:
 def tencent_index_daily(symbol: str, start: str, end: str) -> pd.DataFrame:
     """Raw index levels from the Tencent kline endpoint (rows: date, open, close, high, low, volume)."""
     url = TENCENT_KLINE.format(code=symbol, start=start, end=end, count=2000)
-    with urllib.request.urlopen(url, timeout=30) as response:
+    with urllib.request.urlopen(url, timeout=30) as response:  # nosec B310: fixed HTTPS host; inputs only fill query values
         payload = json.loads(response.read().decode("utf-8"))
     rows = payload["data"][symbol]["day"]
     frame = pd.DataFrame([row[:6] for row in rows], columns=["date", "open", "close", "high", "low", "volume"])

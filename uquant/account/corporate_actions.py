@@ -17,7 +17,7 @@ from typing import Any
 import pandas as pd
 
 from ..data import ex_reference_price
-from ..types import AccountState
+from ..types import AccountState, Tranche
 
 DIVIDEND_TAX_SHORT_DAYS = 30
 DIVIDEND_TAX_LONG_DAYS = 365
@@ -41,6 +41,42 @@ def _ex_prices(event: Mapping[str, Any], frame: pd.DataFrame | None) -> tuple[fl
             )
             return reference / previous_close, previous_close
     raise ValueError(f"corporate action {event['event_id']} has no previous close for its ex-date ratio")
+
+
+def _adjust_entitled_lots(
+    account: AccountState,
+    event: Mapping[str, Any],
+    entitled: list[Tranche],
+    *,
+    target_total: int,
+    ratio: float,
+    share_ratio: float,
+    cash_per_share: float,
+) -> list[dict[str, Any]]:
+    """Grow each entitled lot, keep exact-cash cost basis and register its dividend tax lot."""
+    added: list[dict[str, Any]] = [
+        {"tranche": tranche, "old": tranche.shares, "new": math.floor(tranche.shares * (1.0 + share_ratio) + 1e-9)}
+        for tranche in entitled
+    ]
+    added[0]["new"] += target_total - sum(item["new"] for item in added)
+    for item in added:
+        tranche, old, new = item["tranche"], item["old"], item["new"]
+        tranche.avg_cost = old * (tranche.avg_cost - cash_per_share) / new
+        tranche.highest_close *= ratio
+        tranche.lowest_close *= ratio
+        tranche.shares = new
+        if cash_per_share > 0:
+            account.dividend_tax_lots.append(
+                {
+                    "event_id": event["event_id"],
+                    "symbol": event["symbol"],
+                    "tranche_id": tranche.tranche_id,
+                    "entry_date": tranche.entry_date,
+                    "dividend_per_share": old * cash_per_share / new,
+                    "shares": new,
+                }
+            )
+    return added
 
 
 def apply_corporate_actions(
@@ -73,30 +109,10 @@ def apply_corporate_actions(
         cash_per_share = float(event.get("cash_per_share", 0.0))
         entitled_shares = sum(tranche.shares for tranche in entitled)
         target_total = math.floor(entitled_shares * (1.0 + share_ratio) + 1e-9)
-        added: list[dict[str, Any]] = []
-        for tranche in entitled:
-            old = tranche.shares
-            new = math.floor(old * (1.0 + share_ratio) + 1e-9)
-            added.append({"tranche": tranche, "old": old, "new": new})
-        shortfall = target_total - sum(item["new"] for item in added)
-        added[0]["new"] += shortfall
-        for item in added:
-            tranche, old, new = item["tranche"], item["old"], item["new"]
-            tranche.avg_cost = old * (tranche.avg_cost - cash_per_share) / new
-            tranche.highest_close *= ratio
-            tranche.lowest_close *= ratio
-            tranche.shares = new
-            if cash_per_share > 0:
-                account.dividend_tax_lots.append(
-                    {
-                        "event_id": event["event_id"],
-                        "symbol": event["symbol"],
-                        "tranche_id": tranche.tranche_id,
-                        "entry_date": tranche.entry_date,
-                        "dividend_per_share": old * cash_per_share / new,
-                        "shares": new,
-                    }
-                )
+        added = _adjust_entitled_lots(
+            account, event, entitled, target_total=target_total, ratio=ratio,
+            share_ratio=share_ratio, cash_per_share=cash_per_share,
+        )
         position.shares = sum(tranche.shares for tranche in position.tranches)
         position.avg_cost = sum(t.shares * t.avg_cost for t in position.tranches) / position.shares
         position.highest_close *= ratio

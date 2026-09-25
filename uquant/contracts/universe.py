@@ -409,25 +409,31 @@ def load_industry_classification(raw: bytes | None = None) -> AIUniverse:
     rows = payload.get("members")
     if not isinstance(rows, list) or sorted(row.get("symbol") for row in rows) != sorted(members):
         raise ValueError("industry classification must review every frozen member exactly once")
-    revisions = []
-    for row in rows:
-        if set(row) != _CLASSIFICATION_FIELDS or row["industry"] not in CANONICAL_INDUSTRIES:
-            raise ValueError("industry classification member is malformed")
-        member = members[row["symbol"]]
-        if row["base_industry"] != member.industry or not row["source_url"]:
-            raise ValueError("industry classification member differs from the frozen base or lacks a source")
-        if row["conclusion"] == "confirmed":
-            if row["industry"] != member.industry or row["effective_from"] is not None:
-                raise ValueError("confirmed industry classification cannot change the base label")
-            continue
-        if row["conclusion"] != "revised" or row["industry"] == member.industry:
-            raise ValueError("industry classification revision is malformed")
-        effective = _parse_date(row["effective_from"], label="classification effective_from")
-        known_by = _parse_date(row["known_by"], label="classification known_by")
-        if effective <= known_by or effective < member.effective_from:
-            raise ValueError("industry classification revision cannot precede its evidence or membership")
-        revisions.append((row["symbol"], effective, row["industry"]))
+    revisions = [
+        revision for row in rows
+        for revision in (_classification_revision(row, members[row["symbol"]]),)
+        if revision is not None
+    ]
     return AIUniverse(members=base.members, sha256=seal, industry_revisions=tuple(sorted(revisions)))
+
+
+def _classification_revision(row: Mapping[str, Any], member: UniverseMember) -> tuple[str, date, str] | None:
+    """Validate one reviewed member; return its dated revision, or None when confirmed."""
+    if set(row) != _CLASSIFICATION_FIELDS or row["industry"] not in CANONICAL_INDUSTRIES:
+        raise ValueError("industry classification member is malformed")
+    if row["base_industry"] != member.industry or not row["source_url"]:
+        raise ValueError("industry classification member differs from the frozen base or lacks a source")
+    if row["conclusion"] == "confirmed":
+        if row["industry"] != member.industry or row["effective_from"] is not None:
+            raise ValueError("confirmed industry classification cannot change the base label")
+        return None
+    if row["conclusion"] != "revised" or row["industry"] == member.industry:
+        raise ValueError("industry classification revision is malformed")
+    effective = _parse_date(row["effective_from"], label="classification effective_from")
+    known_by = _parse_date(row["known_by"], label="classification known_by")
+    if effective <= known_by or effective < member.effective_from:
+        raise ValueError("industry classification revision cannot precede its evidence or membership")
+    return row["symbol"], effective, row["industry"]
 
 
 _PRODUCTION_CLASSIFICATION: Final = load_industry_classification()

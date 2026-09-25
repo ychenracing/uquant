@@ -1,0 +1,125 @@
+{
+  "universe_selection_status": "retrospective_fixed",
+  "evidence_scope": "conditional_historical_replay",
+  "historical_membership_evidence": "unresolved",
+  "window": {
+    "start": "2023-01-03",
+    "end": "2026-06-30"
+  },
+  "references": [
+    {
+      "reference": "REF0a",
+      "tradable": true,
+      "pool_size": 3,
+      "final_wealth_multiple": 62.1014600877444,
+      "total_return": 61.1014600877444,
+      "max_drawdown": 0.5603558721516404,
+      "drawdown_recovered": true,
+      "sessions": 843,
+      "fills": 8,
+      "unfilled_orders": 6,
+      "fees": 523.8295112
+    },
+    {
+      "reference": "REF0b",
+      "tradable": true,
+      "pool_size": 3,
+      "final_wealth_multiple": 63.096554136027095,
+      "total_return": 62.096554136027095,
+      "max_drawdown": 0.549676168417564,
+      "drawdown_recovered": true,
+      "sessions": 843,
+      "fills": 123,
+      "unfilled_orders": 6,
+      "fees": 44373.520045813
+    },
+    {
+      "reference": "REF1",
+      "tradable": false,
+      "index": "sh000300",
+      "final_wealth_multiple": 1.2807505337071428,
+      "total_return": 0.28075053370714276,
+      "max_drawdown": 0.2480393206945387,
+      "drawdown_recovered": true,
+      "sessions": 843
+    },
+    {
+      "reference": "REF3",
+      "tradable": true,
+      "pool_size": 3,
+      "final_wealth_multiple": 63.096554136027095,
+      "total_return": 62.096554136027095,
+      "max_drawdown": 0.549676168417564,
+      "drawdown_recovered": true,
+      "sessions": 843,
+      "fills": 123,
+      "unfilled_orders": 6,
+      "fees": 44373.520045813
+    }
+  ],
+  "stress": [
+    {
+      "scenario": "base",
+      "overrides": {},
+      "final_wealth_multiple": 26.75857270985413,
+      "max_drawdown": 0.26666761991682997,
+      "fees": 52109.593391736,
+      "slippage_cost": 70688.88689999672,
+      "unfilled_submission_ratio": 0.034482758620689655
+    },
+    {
+      "scenario": "cost_stress",
+      "overrides": {
+        "slippage": 0.004
+      },
+      "final_wealth_multiple": 26.42196304396333,
+      "max_drawdown": 0.26855284723517525,
+      "fees": 51503.32127333599,
+      "slippage_cost": 280084.6907999977,
+      "unfilled_submission_ratio": 0.125
+    },
+    {
+      "scenario": "fill_stress",
+      "overrides": {
+        "max_volume_participation": 0.00125
+      },
+      "final_wealth_multiple": 25.215286877029648,
+      "max_drawdown": 0.34143572695634017,
+      "fees": 49608.916440709996,
+      "slippage_cost": 66883.82949999615,
+      "unfilled_submission_ratio": 0.13636363636363635
+    }
+  ],
+  "start_dates": [
+    {
+      "start": "2023-01-03",
+      "end": "2024-01-02",
+      "final_wealth_multiple": 4.10309552525171,
+      "max_drawdown": 0.26666761991682997
+    },
+    {
+      "start": "2023-07-03",
+      "end": "2024-07-02",
+      "final_wealth_multiple": 1.4840966081446176,
+      "max_drawdown": 0.14786790727199506
+    },
+    {
+      "start": "2024-01-02",
+      "end": "2025-01-01",
+      "final_wealth_multiple": 1.0912521437724159,
+      "max_drawdown": 0.12288484492678131
+    },
+    {
+      "start": "2024-07-01",
+      "end": "2025-06-30",
+      "final_wealth_multiple": 1.6525802014235789,
+      "max_drawdown": 0.06333531011989435
+    },
+    {
+      "start": "2025-01-02",
+      "end": "2026-01-01",
+      "final_wealth_multiple": 5.398157795593696,
+      "max_drawdown": 0.15172069248457565
+    }
+  ]
+}

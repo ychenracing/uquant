@@ -15,7 +15,8 @@ import pytest
 from uquant.validation.evidence_source import evidence_root
 
 ROOT = Path(__file__).parents[1]
-DIAGNOSTICS = (evidence_root() / 'artifacts') / "phase1" / "diagnostics"
+EVIDENCE_ROOT = evidence_root()
+DIAGNOSTICS = (EVIDENCE_ROOT / 'artifacts') / "phase1" / "diagnostics"
 SHA256 = re.compile(r"[0-9a-f]{64}")
 COMMIT = re.compile(r"[0-9a-f]{40}")
 METRICS = {
@@ -71,7 +72,7 @@ def _assert_common_contract(payload: dict[str, Any]) -> None:
     assert method["runner"] == "scripts/run_phase1_diagnostic.py"
     assert method["runner_commit"] == RUNNER_COMMIT
     assert method["runner_source_sha256"] == RUNNER_SOURCE_SHA256
-    assert method["history_bundle"] == str(HISTORY_BUNDLE.relative_to(evidence_root()))
+    assert method["history_bundle"] == str(HISTORY_BUNDLE.relative_to(EVIDENCE_ROOT))
     assert method["history_bundle_sha256"] == HISTORY_BUNDLE_SHA256
     assert method["replay_exit_code"] == 0
 
@@ -90,7 +91,7 @@ def _assert_replay_closure(commands: list[str], *, trace_count: int) -> None:
     assert parsed[0] == [
         "git",
         "fetch",
-        str(HISTORY_BUNDLE.relative_to(evidence_root())),
+        str(HISTORY_BUNDLE.relative_to(EVIDENCE_ROOT)),
         "HEAD:refs/remotes/phase1-evidence/head",
     ]
     assert any(

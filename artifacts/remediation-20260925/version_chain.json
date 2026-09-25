@@ -1,0 +1,144 @@
+{
+ "case": {
+  "symbols": [
+   "sz300308",
+   "sz300502",
+   "sz300394"
+  ],
+  "start": "2023-01-03",
+  "end": "2026-06-30",
+  "data": "data/frozen (QFQ stocks, no corporate-action events)",
+  "config": "DEFAULT_CONFIG of each source"
+ },
+ "stages": [
+  {
+   "stage": "B0",
+   "source": "efbcdc5~1 (efbcdc5 parent)",
+   "change": "pre-remediation",
+   "metrics": {
+    "total_return": 20.868143196721125,
+    "final_wealth_multiple": 21.868143196721125,
+    "max_drawdown": 0.26628444457956535,
+    "account_orders": 25,
+    "physical_orders": null,
+    "fill_count": null,
+    "fees": 41892.321457752,
+    "slippage_cost": 61703.58509999691,
+    "unfilled_account_submissions": 3
+   },
+   "fill_count": 27
+  },
+  {
+   "stage": "E1",
+   "source": "efbcdc5",
+   "change": "legal quantities, last-close valuation, dated fees, board limits, auction clock",
+   "metrics": {
+    "final_wealth_multiple": 21.92439239123916,
+    "max_drawdown": 0.2664823169696604,
+    "account_orders": 29,
+    "physical_orders": 29,
+    "fill_count": 31,
+    "fees": 44728.570521681,
+    "slippage_cost": 61101.04699999691,
+    "unfilled_account_submissions": 0
+   },
+   "fill_count": 31,
+   "first_divergence_vs_previous": {
+    "index": 2,
+    "previous": [
+     "2023-01-09",
+     "sz300308",
+     "BUY",
+     33300
+    ],
+    "current": [
+     "2023-01-09",
+     "sz300308",
+     "BUY",
+     30500
+    ]
+   }
+  },
+  {
+   "stage": "D1",
+   "source": "7e99446",
+   "change": "E1 + account transactions/schema 9 + raw-price snapshots and corporate actions",
+   "metrics": {
+    "final_wealth_multiple": 21.92439239123916,
+    "max_drawdown": 0.2664823169696604,
+    "account_orders": 29,
+    "physical_orders": 29,
+    "fill_count": 31,
+    "fees": 44728.570521681,
+    "slippage_cost": 61101.04699999691,
+    "unfilled_account_submissions": 0
+   },
+   "fill_count": 31,
+   "first_divergence_vs_previous": null
+  },
+  {
+   "stage": "S1_v1",
+   "source": "2626035 under historical_industry_classification()",
+   "change": "D1 + final auction sizing, v1 industries",
+   "metrics": {
+    "total_return": 21.30564088424377,
+    "final_wealth_multiple": 22.30564088424377,
+    "max_drawdown": 0.26666761991682997,
+    "account_orders": 30,
+    "physical_orders": 30,
+    "fill_count": 32,
+    "fees": 45563.24311246,
+    "slippage_cost": 62208.98839999686,
+    "unfilled_account_submissions": 0
+   },
+   "fill_count": 32,
+   "first_divergence_vs_previous": {
+    "index": 2,
+    "previous": [
+     "2023-01-09",
+     "sz300308",
+     "BUY",
+     30500
+    ],
+    "current": [
+     "2023-01-09",
+     "sz300308",
+     "BUY",
+     33100
+    ]
+   }
+  },
+  {
+   "stage": "T1",
+   "source": "2626035",
+   "change": "S1 + formal industry classification v2",
+   "metrics": {
+    "final_wealth_multiple": 26.75857270985413,
+    "max_drawdown": 0.26666761991682997,
+    "account_orders": 28,
+    "physical_orders": 29,
+    "fill_count": 30,
+    "fees": 52109.593391736,
+    "slippage_cost": 70688.88689999672,
+    "unfilled_account_submissions": 1
+   },
+   "fill_count": 30,
+   "first_divergence_vs_previous": {
+    "index": 23,
+    "previous": [
+     "2024-08-06",
+     "sz300308",
+     "SELL",
+     26800
+    ],
+    "current": [
+     "2024-07-26",
+     "sz300308",
+     "SELL",
+     23400
+    ]
+   }
+  }
+ ],
+ "note": "Wealth deltas are path dependent and are not additive across stages."
+}

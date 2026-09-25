@@ -73,14 +73,8 @@ def non_strategy_identity(
     }
 
 
-def register_broker_snapshot(account: AccountState, payload: dict[str, Any], *, as_of: str) -> bool:
-    """Bind the broker account and order snapshots; return True for an exact replay.
-
-    Snapshots carrying the same identity must carry the same content.  A
-    different same-date snapshot must prove it is newer with a larger
-    ``sequence``; a date-only export cannot silently replace another one.
-    """
-
+def _snapshot_identity(payload: dict[str, Any]) -> tuple[str, str, int | None, str | None]:
+    """Return (content SHA-256, snapshot_id, sequence, broker_account) of one complete snapshot."""
     if payload.get("complete", True) is not True:
         raise ValueError("broker snapshot must be a complete cash/positions snapshot")
     content_sha256 = canonical_json_sha256(
@@ -96,6 +90,18 @@ def register_broker_snapshot(account: AccountState, payload: dict[str, Any], *, 
     broker_account = payload.get("broker_account")
     if broker_account is not None and (not isinstance(broker_account, str) or not broker_account.strip()):
         raise ValueError("broker_account must be a nonempty string")
+    return content_sha256, snapshot_id, sequence, broker_account
+
+
+def register_broker_snapshot(account: AccountState, payload: dict[str, Any], *, as_of: str) -> bool:
+    """Bind the broker account and order snapshots; return True for an exact replay.
+
+    Snapshots carrying the same identity must carry the same content.  A
+    different same-date snapshot must prove it is newer with a larger
+    ``sequence``; a date-only export cannot silently replace another one.
+    """
+
+    content_sha256, snapshot_id, sequence, broker_account = _snapshot_identity(payload)
     if account.broker_binding:
         if broker_account is None:
             raise ValueError("account is bound to a broker account; snapshot must declare broker_account")

@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
+from ...features import signal_close
 from ...portfolio_core import effective_n
 from ...types import (
     AccountState,
@@ -234,8 +235,8 @@ def _correlations(
     date: pd.Timestamp,
 ) -> pd.DataFrame:
     returns = {
-        symbol: user_panel[symbol]
-        .loc[:date, "close"]
+        symbol: signal_close(user_panel[symbol])
+        .loc[:date]
         .pct_change(fill_method=None)
         .tail(self.cfg.correlation_window)
         for symbol in symbols

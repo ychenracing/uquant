@@ -10,6 +10,7 @@ from typing import Any, cast
 
 import pandas as pd
 
+from ..account.corporate_actions import dividend_tax_on_sale, receivable_total
 from ..config import SystemConfig
 from ..market.valuation import mark_price
 from ..models.strategic_epoch import record_account_strategic_epoch_fill
@@ -361,7 +362,7 @@ def _size_open_order(
                 if fresh is None:
                     raise RuntimeError(f"{symbol} filled without a valid session mark")
                 book.marks[symbol] = fresh
-        open_equity = account.cash + sum(
+        open_equity = account.cash + receivable_total(account) + sum(
             float(position.shares) * book.marks[symbol]
             for symbol, position in account.positions.items()
             if position.shares > 0
@@ -554,6 +555,7 @@ def _apply_sell_fill(
         transfer_fee=transfer,
         slippage_cost=slippage_cost,
     )
+    dividend_tax_on_sale(account, symbol=request.order.symbol, sold_tranches=sold_tranches, sale_date=date_str)
     _rebuild_position_from_tranches(request.current)
     if request.current.shares <= 0:
         account.positions.pop(request.order.symbol, None)

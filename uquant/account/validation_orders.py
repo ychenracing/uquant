@@ -147,6 +147,7 @@ def _validate_sold_lot_cost_fields(allocation: dict[str, Any]) -> int:
         "stamp_duty",
         "transfer_fee",
         "slippage_cost",
+        "dividend_tax",
         "fees",
         "transaction_costs",
     )

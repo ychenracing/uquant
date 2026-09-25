@@ -343,3 +343,53 @@ def test_market_data_rejects_negative_turnover_and_keeps_optional_amount_fallbac
         DataStore._validate(pd.DataFrame([row]), "sz300308")
     del row["amount"]
     assert DataStore._validate(pd.DataFrame([row]), "sz300308")["amount"].iloc[0] == 1000.
+
+
+def test_data_update_publishes_new_immutable_snapshot_and_refuses_bad_data(tmp_path):
+    import pandas as pd
+
+    from uquant.data import DataStore
+    from uquant.data_update import update_snapshot
+
+    dates = [str(item.date()) for item in pd.bdate_range("2026-01-05", periods=5)]
+    base = tmp_path / "base"
+    base.mkdir()
+    for index in ("sh000300", "sh000682"):
+        pd.DataFrame(
+            {"date": dates, "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0, "volume": 1.0}
+        ).to_csv(base / f"{index}.csv", index=False)
+
+    class Provider:
+        name = "fake"
+
+        def __init__(self, close: float, amount: float) -> None:
+            self.close, self.amount = close, amount
+
+        def stock_daily(self, symbol, start, end):
+            frame = pd.DataFrame({
+                "date": dates, "open": self.close, "high": self.close, "low": self.close,
+                "close": self.close, "preclose": self.close, "volume": 100.0,
+                "amount": self.amount, "volume_unit": "shares", "special_treatment": 0,
+            })
+            return frame, []
+
+        def dividends(self, symbol, start, end):
+            return []
+
+        def index_daily(self, symbol, start, end):
+            return pd.read_csv(base / f"{symbol}.csv", dtype={"date": str})
+
+    root = tmp_path / "snapshots"
+    kwargs = {"output_root": root, "base_dir": base, "symbols": ["sz300308"], "start": dates[0], "end": dates[-1]}
+    first = update_snapshot(provider=Provider(10.0, 1_000.0), **kwargs)
+    old_digest = DataStore(root).manifest(["sz300308"]).digest
+    second = update_snapshot(provider=Provider(11.0, 1_100.0), **kwargs)
+    assert first != second and (first / "sz300308.csv").is_file()
+    assert DataStore(root).root == second
+    assert DataStore(root).manifest(["sz300308"]).digest != old_digest
+    assert DataStore(first).manifest(["sz300308"]).digest == old_digest
+    with pytest.raises(RuntimeError, match="not published"):
+        update_snapshot(provider=Provider(12.0, 0.0), **kwargs)
+    assert DataStore(root).root == second and sorted(p.name for p in root.iterdir()) == sorted(
+        ["LATEST", first.name, second.name]
+    )

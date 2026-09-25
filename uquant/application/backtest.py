@@ -9,6 +9,7 @@ from typing import Any, Protocol
 
 import pandas as pd
 
+from ..account.corporate_actions import apply_corporate_actions, receivable_total
 from ..attribution import (
     build_daily_ledger_row,
     build_daily_replay_evidence_row,
@@ -59,7 +60,7 @@ def equity(
                      if position.shares > 0 and symbol not in self._raw)
     if missing:
         raise RuntimeError(f"held positions have no loaded market data: {', '.join(missing)}")
-    return account.cash + sum(
+    return account.cash + receivable_total(account) + sum(
         (
             position.shares * self._price(symbol, date, field)
             for symbol, position in account.positions.items()
@@ -177,7 +178,10 @@ def backtest(
     daily_replay_evidence: list[dict[str, Any]] = []
     previous_equity = account.initial_cash
     raw_user_panel = {symbol: self._raw[symbol] for symbol in user_symbols}
+    corporate_events = [event for symbol in user_symbols for event in self.workspace.data.corporate_actions(symbol)]
     for date in sessions:
+        if corporate_events:
+            apply_corporate_actions(account, corporate_events, through=str(date.date()), frames=raw_user_panel)
         self.execution.execute_open(date=date, account=account, panel=raw_user_panel)
         equity = self.equity(account, date)
         equity_rows.append((date, equity))

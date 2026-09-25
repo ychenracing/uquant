@@ -12,7 +12,7 @@ import pandas as pd
 
 from .config import SystemConfig
 from .contracts.universe import decision_ai_universe
-from .features import scalar
+from .features import scalar, signal_close
 from .industry import IndustrySignal, compute_industry_signals, decision_industries, production_industries
 from .reference import production_reference_symbols
 from .types import AccountState, LeaderScore, Opportunity
@@ -143,14 +143,14 @@ def _inferred_industries(
 ) -> dict[str, tuple[str, float]]:
     """Infer unknown groups from stable 60/120-day residual correlations."""
     industries = decision_industries(str(as_of.date()))
-    tech_returns = tech.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
+    tech_returns = signal_close(tech).loc[:as_of].astype(float).tail(121).pct_change(fill_method=None).dropna()
     group_returns: dict[str, list[pd.Series]] = {}
     for symbol in STABLE_REFERENCE_UNIVERSE:
         industry = industries.get(symbol)
         frame = panel.get(symbol)
         if industry is None or frame is None:
             continue
-        series = frame.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
+        series = signal_close(frame).loc[:as_of].astype(float).tail(121).pct_change(fill_method=None).dropna()
         if len(series) >= 60:
             group_returns.setdefault(industry, []).append(series)
     baskets = {
@@ -165,7 +165,7 @@ def _inferred_industries(
         if symbol in industries:
             inferred[symbol] = (industries[symbol], 1.0)
             continue
-        series = frame.loc[:as_of, "close"].astype(float).tail(121).pct_change(fill_method=None).dropna()
+        series = signal_close(frame).loc[:as_of].astype(float).tail(121).pct_change(fill_method=None).dropna()
         residual = _residual_returns(series, tech_returns)
         window_rankings: list[list[tuple[float, str]]] = []
         for window in (60, 120):

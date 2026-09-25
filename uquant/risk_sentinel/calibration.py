@@ -13,6 +13,7 @@ from typing import Any, Final, cast
 
 import pandas as pd
 
+from uquant.features import signal_close
 from uquant.provenance.surfaces import read_source_surface_bytes
 
 DEFAULT_CONTRACT_PATH: Final = (
@@ -130,7 +131,7 @@ def _validated_market(
         raise ValueError("calibration market requires DatetimeIndex and close")
     end = pd.Timestamp(evaluation_end).normalize()
     visible = pd.to_numeric(
-        market_frame.loc[:end, "close"],
+        signal_close(market_frame).loc[:end],
         errors="coerce",
     ).dropna()
     if (

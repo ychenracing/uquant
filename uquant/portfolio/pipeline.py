@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 import pandas as pd
 
 from ..config import config_fingerprint
-from ..features import scalar
+from ..features import scalar, signal_close
 from ..holding_history import holding_spans_date
 from ..models.ordinary_entry import REASON as PULLBACK_REASON
 from ..models.ordinary_entry import holding_pullback_entry, pullback_graduated, pullback_order_entry
@@ -74,11 +74,11 @@ def _held_repair_evidence_complete(book: AllocationBook) -> bool:
         frame = book.user_panel.get(symbol)
         if frame is None or book.date not in frame.index or "close" not in frame:
             return False
-        history = frame.loc[: book.date, "close"]
+        history = signal_close(frame).loc[: book.date]
         row = frame.loc[book.date]
         if len(history) < 2:
             return False
-        prices = (scalar(row, "close"), float(history.iloc[-2]))
+        prices = (float(history.iloc[-1]), float(history.iloc[-2]))
         if not all(math.isfinite(value) and value > 0 for value in prices) or prices[0] <= prices[1]:
             return False
         if not all(

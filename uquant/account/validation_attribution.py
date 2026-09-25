@@ -193,6 +193,11 @@ def validate_lot_origin_chains(state: AccountState) -> None:
         buy_fills.setdefault(key, []).append(fill)
         acquired_shares[key] = acquired_shares.get(key, 0) + fill.shares
 
+    for action in state.corporate_actions:
+        for addition in action.get("lot_share_additions", []):
+            key = (addition["symbol"], addition["lot_event_id"])
+            acquired_shares[key] = acquired_shares.get(key, 0) + int(addition["added_shares"])
+
     attributed_lot_shares: dict[tuple[str, str], int] = {}
 
     def validate_lot(

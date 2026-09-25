@@ -74,7 +74,8 @@ def _realized_lot_rows(account: AccountState, session_set: set[str]) -> list[dic
                 label="sold-lot cost basis",
                 minimum=0.0,
             )
-            pnl = proceeds - cash_fees - cost_basis
+            dividend_tax = _finite(allocation.get("dividend_tax", 0.0), label="sold-lot dividend tax", minimum=0.0)
+            pnl = proceeds - cash_fees - cost_basis - dividend_tax
             lots.append(
                 {
                     "economic_status": "REALIZED",
@@ -180,13 +181,19 @@ def _allocate_entry_fill_economics(account: AccountState, lots: list[dict[str, A
         rows_by_buy.setdefault(key, []).append(lot)
     if set(rows_by_buy) != set(buy_fills):
         raise ValueError("economic lots do not exactly cover originating BUY fills")
+    added_shares: dict[tuple[str, str], int] = {}
+    for action in account.corporate_actions:
+        for addition in action.get("lot_share_additions", ()):
+            lot_key = (str(addition["symbol"]), str(addition["lot_event_id"]))
+            added_shares[lot_key] = added_shares.get(lot_key, 0) + int(addition["added_shares"])
     for key, fill in sorted(buy_fills.items()):
-        _allocate_one_entry_fill(fill, rows_by_buy[key])
+        _allocate_one_entry_fill(fill, rows_by_buy[key], added_shares.get((key[0], key[1]), 0))
 
 
-def _allocate_one_entry_fill(fill: Any, raw_rows: list[dict[str, Any]]) -> None:
+def _allocate_one_entry_fill(fill: Any, raw_rows: list[dict[str, Any]], added_shares: int = 0) -> None:
     rows = sorted(raw_rows, key=lambda item: (str(item["tranche_id"]), str(item["economic_status"])))
-    if sum(int(row["shares"]) for row in rows) != fill.shares:
+    entitled_shares = fill.shares + added_shares
+    if sum(int(row["shares"]) for row in rows) != entitled_shares:
         raise ValueError("economic lot shares do not reconcile to originating BUY fill")
     entry_components = {
         "entry_gross_value": "gross_value",
@@ -198,7 +205,7 @@ def _allocate_one_entry_fill(fill: Any, raw_rows: list[dict[str, Any]]) -> None:
     allocated = {name: 0.0 for name in entry_components}
     for index, row in enumerate(rows):
         final_row = index == len(rows) - 1
-        ratio = int(row["shares"]) / fill.shares
+        ratio = int(row["shares"]) / entitled_shares
         entry_costs: dict[str, float] = {}
         for output_name, fill_name in entry_components.items():
             total = float(getattr(fill, fill_name))

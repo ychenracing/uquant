@@ -9,6 +9,7 @@ from datetime import date as date_type
 from datetime import timedelta
 from typing import Any
 
+from .account.corporate_actions import settle_receivables
 from .account.validation_attribution import validate_lot_origin_chains as _validate_lot_origin_chains
 from .account.validation_orders import validate_order_state as _validate_order_state
 from .account.validation_positions import validate_position_state as _validate_position_state
@@ -217,6 +218,7 @@ def _prepare_broker_sync(account: AccountState, payload: dict[str, Any]) -> _Bro
 
     working = copy.deepcopy(account)
     register_broker_snapshot(working, payload, as_of=as_of)
+    settle_receivables(working, through=as_of, into_cash=False)
     raw_fills = [*raw_fills, *external_trade_fills(working, payload, as_of=as_of)]
     apply_external_cash_flows(working, payload, as_of=as_of)
     _validate_order_state(

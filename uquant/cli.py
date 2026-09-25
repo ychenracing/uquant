@@ -18,6 +18,7 @@ from .account import (
     migrate_account_schema,
     migrate_code_identity,
 )
+from .account.corporate_actions import apply_corporate_actions
 from .account.transaction import AccountConflictError, AccountTransaction
 from .broker import sync_broker_snapshot
 from .broker_contract import load_broker_snapshot
@@ -77,6 +78,16 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="confirm code-identity rebinding with no economic-state changes",
     )
+    data_check = sub.add_parser("data-check")
+    data_check.add_argument("--data-dir", required=True)
+    data_check.add_argument("--symbols", nargs="*", default=None)
+    data_check.add_argument("--as-of", default=None, help="require every file to reach this session")
+    data_update = sub.add_parser("data-update")
+    data_update.add_argument("--output-root", required=True, help="parent directory of published snapshots")
+    data_update.add_argument("--base-dir", required=True, help="snapshot whose index levels are extended")
+    data_update.add_argument("--symbols", nargs="+", required=True)
+    data_update.add_argument("--start", default="2014-01-01")
+    data_update.add_argument("--end", required=True)
     backtest = sub.add_parser("backtest")
     backtest.add_argument("--symbols", nargs="+", required=True)
     backtest.add_argument("--start", required=True)
@@ -219,6 +230,13 @@ def _run_daily_locked(
     account = transaction.load()
     _validate_account_config(account, cfg)
     engine = ProductionEngine(args.data_dir, cfg)
+    held = [symbol for symbol, position in account.positions.items() if position.shares > 0]
+    apply_corporate_actions(
+        account,
+        [event for symbol in held for event in engine.data.corporate_actions(symbol)],
+        through=args.date,
+        frames={symbol: engine.data.load(symbol, as_of=args.date) for symbol in held},
+    )
     if args.broker_snapshot:
         snapshot = load_broker_snapshot(args.broker_snapshot)
         sync_broker_snapshot(account, snapshot, cfg=cfg)
@@ -387,6 +405,24 @@ def main(argv: list[str] | None = None) -> int:
         return _run_account_code_migration(args)
     if args.command == "backtest":
         return _run_backtest(args)
+    if args.command == "data-check":
+        from .data_check import check_snapshot
+
+        report = check_snapshot(args.data_dir, symbols=args.symbols, as_of=args.as_of)
+        print(json.dumps(report, ensure_ascii=False, indent=1))
+        return 0 if report["ok"] else 1
+    if args.command == "data-update":
+        from .data_update import update_snapshot
+
+        published = update_snapshot(
+            output_root=args.output_root,
+            base_dir=args.base_dir,
+            symbols=args.symbols,
+            start=args.start,
+            end=args.end,
+        )
+        print(published)
+        return 0
     if args.command == "holdout-manifest":
         from .validation.holdout import generate_future_holdout_manifest
 

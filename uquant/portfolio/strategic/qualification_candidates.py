@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 import pandas as pd
 
 from ...config import SystemConfig
+from ...features import signal_close
 from ...models.strategic_universe import StrategicUniverseRoles, build_strategic_universe_roles
 from ...types import AccountState, LeaderScore, RiskAssessment
 
@@ -628,7 +629,7 @@ def strategic_qualification_snapshots(
     for symbol, frame in user_panel.items():
         if date not in frame.index:
             continue
-        history = frame.loc[:date, "close"].dropna()
+        history = signal_close(frame).loc[:date].dropna()
         if len(history) < 121 or "amount" not in frame.columns or not self._liquidity_confirmed(frame, date):
             continue
         rolling240 = history / history.shift(240) - 1.0

@@ -16,6 +16,7 @@ from uquant.contracts.universe import AIUniverse
 from uquant.features import scalar
 from uquant.market_risk import build_base_market_family_snapshot
 
+from ..features import signal_close
 from .coverage import assess_coverage, build_coverage_health
 from .evidence import NameMarketEvidence, build_market_evidence_from_observations
 from .history_cache import decode_risk_evidence_timeline, encode_risk_evidence_timeline
@@ -46,7 +47,7 @@ def _normalized_timestamp(value: object) -> pd.Timestamp:
 
 
 def _valid_close(frame: pd.DataFrame) -> pd.Series:
-    values = pd.to_numeric(frame["close"], errors="coerce")
+    values = pd.to_numeric(signal_close(frame), errors="coerce")
     return values[values > 0.0].astype(float)
 
 
@@ -392,7 +393,7 @@ def _base_covariance_inputs(
         reference_returns.loc[:session].tail(_MARKET_LOOKBACK)
         if reference_returns is not None
         else pd.DataFrame(
-            {symbol: frame["close"].pct_change(fill_method=None) for symbol, frame in reference_panel.items()}
+            {symbol: signal_close(frame).pct_change(fill_method=None) for symbol, frame in reference_panel.items()}
         )
     )
     correlation = float("nan")
@@ -405,7 +406,7 @@ def _base_covariance_inputs(
         )
         if not values.empty:
             correlation = float(values.median())
-    tech_returns = tech_frame.loc[:session, "close"].pct_change(fill_method=None)
+    tech_returns = signal_close(tech_frame).loc[:session].pct_change(fill_method=None)
     recent_vol = float(tech_returns.tail(10).std(ddof=0))
     normal_vol = float(tech_returns.tail(60).std(ddof=0))
     volatility_ratio = recent_vol / normal_vol if normal_vol > 1e-12 else 1.0

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uquant.contracts.universe import decision_ai_universe
 
+from ..account.corporate_actions import receivable_total
 from ..config import SystemConfig
 from ..portfolio_core import restoration_trade_weight
 from ..types import (
@@ -248,7 +249,7 @@ def plan_orders(
     to close-price drift.
     """
     market = sum(position.shares * prices.get(symbol, 0.0) for symbol, position in account.positions.items())
-    equity = account.cash + market
+    equity = account.cash + receivable_total(account) + market
     planned: list[PendingOrder] = []
     cancel_pending_buy_symbols = {
         order.symbol

@@ -39,9 +39,8 @@ def test_stale_account_copy_cannot_overwrite_newer_state(tmp_path):
         with pytest.raises(AccountConflictError):
             first.save(stale)
     assert load_account(path).cash == 10_100.0
-    with pytest.raises(FileExistsError):
-        with account_transaction(path, create=True):
-            pass
+    with pytest.raises(FileExistsError), account_transaction(path, create=True):
+        pass
 
 
 def test_snapshot_identity_ordering_and_account_binding():
@@ -117,3 +116,45 @@ def test_schema_8_account_requires_explicit_migration(tmp_path):
     migrated = migrate_account_schema(path, code_hash="new-code")
     assert load_account(path).to_dict() == migrated.to_dict()
     assert migrated.account_migrations[-1]["migration_type"] == "schema_upgrade"
+
+
+def test_corporate_action_keeps_equity_continuous_and_is_idempotent():
+    import pandas as pd
+
+    from uquant.account.corporate_actions import (
+        apply_corporate_actions,
+        dividend_tax_on_sale,
+        receivable_total,
+    )
+
+    account = _account()
+    buy = {
+        "trade_id": "T1", "source": "MANUAL", "side": "BUY", "symbol": "sz300308",
+        "shares": 100, "price": 10.0, "trade_date": "2026-01-06", "commission": 0.0,
+    }
+    sync_broker_snapshot(account, _snapshot(
+        "2026-01-06", 9_000.0,
+        positions=[{"symbol": "sz300308", "shares": 100, "sellable_shares": 0, "avg_cost": 10.0}],
+        external_trades=[buy],
+    ))
+    event = {
+        "event_id": "sz300308:2026-01-08:distribution", "symbol": "sz300308",
+        "ex_date": "2026-01-08", "pay_date": "2026-01-12", "cash_per_share": 0.5, "share_ratio": 0.3,
+    }
+    frame = pd.DataFrame({"close": [10.0]}, index=pd.to_datetime(["2026-01-07"]))
+    position = account.positions["sz300308"]
+    cost_before = position.shares * position.avg_cost
+    for _ in range(2):
+        apply_corporate_actions(account, [event], through="2026-01-08", frames={"sz300308": frame})
+    reference = (10.0 - 0.5) / 1.3
+    assert position.shares == 130 and receivable_total(account) == pytest.approx(50.0)
+    assert position.shares * reference + receivable_total(account) == pytest.approx(1_000.0)
+    assert position.shares * position.avg_cost == pytest.approx(cost_before - 50.0)
+    assert account.cash == 9_000.0
+    apply_corporate_actions(account, [event], through="2026-01-12", frames={"sz300308": frame})
+    assert account.receivables == [] and account.cash == pytest.approx(9_050.0)
+    sold = [{"tranche_id": position.tranches[0].tranche_id, "shares": 130}]
+    assert dividend_tax_on_sale(account, symbol="sz300308", sold_tranches=sold, sale_date="2026-01-20") == (
+        pytest.approx(10.0)
+    )
+    assert sold[0]["dividend_tax"] == pytest.approx(10.0) and account.dividend_tax_lots == []

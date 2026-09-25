@@ -9,7 +9,7 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..data import DataManifest, DataStore, normalize_symbol
-from ..features import compute_features
+from ..features import compute_features, signal_close
 from .replay import ReplayUniverse
 from .valuation import mark_price
 
@@ -115,7 +115,7 @@ class MarketWorkspace:
         ):
             self._reference_returns = pd.DataFrame(
                 {
-                    symbol: self._raw[symbol]["close"].pct_change(fill_method=None)
+                    symbol: signal_close(self._raw[symbol]).pct_change(fill_method=None)
                     for symbol in references
                 }
             )

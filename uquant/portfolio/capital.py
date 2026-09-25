@@ -8,6 +8,7 @@ from typing import Any, cast
 import pandas as pd
 
 from ..config import SystemConfig
+from ..features import signal_close
 from ..portfolio_core import current_weights
 from ..types import AccountState, LeaderScore
 
@@ -63,7 +64,7 @@ def _correlation_room(
     names = [*active, symbol]
     returns = pd.DataFrame(
         {
-            s: user_panel[s].loc[:date, "close"].pct_change(fill_method=None).tail(cfg.correlation_window)
+            s: signal_close(user_panel[s]).loc[:date].pct_change(fill_method=None).tail(cfg.correlation_window)
             for s in names
         }
     )

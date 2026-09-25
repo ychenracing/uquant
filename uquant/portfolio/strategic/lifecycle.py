@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 
+from ...account.corporate_actions import receivable_total
 from ...features import scalar
 from ...models.strategic_epoch import (
     bind_account_strategic_ownership,
@@ -578,7 +579,7 @@ def _strategic_restore_complete(
 ) -> bool:
     self = ctx.policy
     account = ctx.account
-    equity = account.cash + sum(
+    equity = account.cash + receivable_total(account) + sum(
         position.shares * ctx.prices.get(symbol, 0.0) for symbol, position in account.positions.items()
     )
     minimum_value_weight = self.cfg.min_trade_value / equity if equity > 1e-12 else math.inf

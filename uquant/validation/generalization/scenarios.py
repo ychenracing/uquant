@@ -17,6 +17,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 
 import pandas as pd
 
+from ...features import signal_close
 from .models import GeneralizationScenario, PreWindowEvidence
 
 
@@ -90,7 +91,7 @@ def compute_pre_window_evidence(
         if isinstance(raw, pd.DataFrame):
             if "close" not in raw:
                 raise ValueError(f"pre-window price frame has no close column: {symbol}")
-            series = raw["close"]
+            series = signal_close(raw)
         else:
             series = raw
         normalized = pd.Series(

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Protocol, cast
 
 import pandas as pd
 
-from ...features import scalar
+from ...features import scalar, signal_close
 from ...types import AccountState, LeaderScore, Risk, RiskAssessment, Target
 from .targets import (
     awaiting_recovery_cohort_targets,
@@ -64,7 +64,7 @@ def scan_recovery_evidence(
             self.cfg.recovery_add_window_days
             if account.anchor_weights and symbol not in account.anchor_weights else 1
         )
-        recent = frame["close"].tail(10 + signal_days)
+        recent = signal_close(frame).tail(10 + signal_days)
         breakouts = recent.ge(recent.shift().rolling(10).max()).tail(signal_days)
         if (
             math.isfinite(close)

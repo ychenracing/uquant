@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import SystemConfig
-from ..features import cross_section_returns, scalar
+from ..features import cross_section_returns, scalar, signal_close
 from ..industry import decision_industries
 from ..leader import REFERENCE_UNIVERSE
 from ..market_risk import (
@@ -468,7 +468,7 @@ def _held_book_state(
         ma20 = scalar(row, f"ma{cfg.trend_fast}")
         ret5 = scalar(row, "ret5", 0.0)
         returns.append(ret5)
-        ret1 = float(frame.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
+        ret1 = float(signal_close(frame).loc[:date].pct_change(fill_method=None).iloc[-1])
         damage.append(math.isfinite(close) and math.isfinite(ma20) and close < ma20 and ret5 <= -0.05)
         loss.append(math.isfinite(close) and close < position.avg_cost)
         repair.append(math.isfinite(ret1) and ret1 > 0)
@@ -552,8 +552,8 @@ def assess_market_and_book_evidence(
         cfg=cfg,
     )
     metrics, correlation = _reference_context_metrics(metrics, correlation, reference_context)
-    recent_vol = float(tech.loc[:date, "close"].pct_change(fill_method=None).tail(10).std(ddof=0))
-    normal_vol = float(tech.loc[:date, "close"].pct_change(fill_method=None).tail(60).std(ddof=0))
+    recent_vol = float(signal_close(tech).loc[:date].pct_change(fill_method=None).tail(10).std(ddof=0))
+    normal_vol = float(signal_close(tech).loc[:date].pct_change(fill_method=None).tail(60).std(ddof=0))
     vol_ratio = recent_vol / normal_vol if normal_vol > 1e-12 else 1.0
     operating_dd, capital_dd = portfolio_drawdowns(account, equity)
     deployed_dd = deployed_drawdown(account, equity)

@@ -341,6 +341,7 @@ def test_broker_accepts_cent_level_gross_rounding_and_rejects_fill_id_reuse():
     changed = copy.deepcopy(snapshot)
     changed["fills"][0]["price"] = 10.01
     changed["fills"][0]["gross_value"] = 1_001.0
+    changed["sequence"] = 2
     with pytest.raises(ValueError, match="fill_id was reused"):
         sync_broker_snapshot(account, changed)
 
@@ -562,6 +563,7 @@ def test_broker_rejects_new_fill_for_terminal_order_and_requested_overfill():
 
     terminal = copy.deepcopy(snapshot)
     terminal["fills"][0]["fill_id"] = "broker-fill-2"
+    terminal["sequence"] = 2
     with pytest.raises(ValueError, match="terminal account order"):
         sync_broker_snapshot(account, terminal)
 

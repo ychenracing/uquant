@@ -54,6 +54,7 @@ _ATTRIBUTION_COMPATIBILITY: Mapping[
             OriginSubsystem.BROKER_RECONCILIATION,
             AttributionMechanism.BROKER_RECONCILIATION,
         ): frozenset({Side.SELL}),
+        (OriginSubsystem.EXTERNAL_TRADE, AttributionMechanism.EXTERNAL_TRADE): frozenset(Side),
         (OriginSubsystem.LEGACY_MIGRATION, AttributionMechanism.LEGACY_MIGRATION): frozenset({Side.SELL}),
         (
             OriginSubsystem.UNATTRIBUTED_LEGACY,

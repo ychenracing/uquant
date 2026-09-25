@@ -574,11 +574,12 @@ def test_daily_failure_preserves_account_and_recoverable_rendering(monkeypatch, 
         assert not (tmp_path / 'daily.md').exists()
         return
     if failure == 'account_after_replace':
-        original_save = cli.save_account
+        import uquant.account.transaction as transaction
+        original_save = transaction.save_account
         def uncertain_save(account, destination):
             original_save(account, destination)
             raise OSError('directory sync failed after replace')
-        monkeypatch.setattr(cli, 'save_account', uncertain_save)
+        monkeypatch.setattr(transaction, 'save_account', uncertain_save)
     else:
         original_write = cli.atomic_write_text
         def fail_publish(destination, content, **kwargs):

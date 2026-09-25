@@ -16,6 +16,7 @@ def economic_state_sha256(state: AccountState) -> str:
     payload = state.to_dict()
     payload.pop("code_hash", None)
     payload.pop("account_migrations", None)
+    payload.pop("account_revision", None)
     encoded = json.dumps(
         payload,
         allow_nan=False,

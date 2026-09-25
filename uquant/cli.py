@@ -13,11 +13,12 @@ import tempfile
 from pathlib import Path
 
 from .account import (
+    account_transaction,
     economic_state_sha256,
-    load_account,
+    migrate_account_schema,
     migrate_code_identity,
-    save_account,
 )
+from .account.transaction import AccountConflictError, AccountTransaction
 from .broker import sync_broker_snapshot
 from .broker_contract import load_broker_snapshot
 from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
@@ -62,6 +63,8 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
     sync = sub.add_parser("account-sync")
     sync.add_argument("--account", required=True)
     sync.add_argument("--snapshot", required=True)
+    schema_migrate = sub.add_parser("account-schema-migrate")
+    schema_migrate.add_argument("--account", required=True)
     code_migrate = sub.add_parser("account-code-migrate")
     code_migrate.add_argument("--account", required=True)
     code_migrate.add_argument(
@@ -153,7 +156,8 @@ def _run_account_init(args: argparse.Namespace) -> int:
     state.data_hash_as_of = snapshot_date
     state.data_hash_symbols = list(manifest.symbols)
     state.code_hash = code_fingerprint()
-    save_account(state, args.output)
+    with account_transaction(args.output, create=True) as transaction:
+        transaction.save(state)
     print(args.output)
     return 0
 
@@ -201,7 +205,18 @@ def _validate_account_config(account: AccountState, cfg: SystemConfig) -> None:
 def _run_daily(args: argparse.Namespace) -> int:
     cfg = load_public_config(args.config)
     exact_inputs, protected = _daily_output_boundary(args)
-    account = load_account(args.account)
+    with account_transaction(args.account) as transaction:
+        return _run_daily_locked(args, cfg, transaction, exact_inputs, protected)
+
+
+def _run_daily_locked(
+    args: argparse.Namespace,
+    cfg: SystemConfig,
+    transaction: AccountTransaction,
+    exact_inputs: list[str],
+    protected: dict[str, tuple[Path, ...]],
+) -> int:
+    account = transaction.load()
     _validate_account_config(account, cfg)
     engine = ProductionEngine(args.data_dir, cfg)
     if args.broker_snapshot:
@@ -227,7 +242,12 @@ def _run_daily(args: argparse.Namespace) -> int:
             Path(temporary).unlink(missing_ok=True)
         raise
     try:
-        save_account(account, args.account)
+        transaction.save(account)
+    except AccountConflictError as exc:
+        for _, temporary in staged:
+            Path(temporary).unlink(missing_ok=True)
+        print(f"账户未保存：{exc}。请基于最新账户重新运行 daily。", file=sys.stderr)
+        return 1
     except Exception as exc:
         print(
             f"账户保存未能确认完成：{args.account}：{exc}。账户文件可能已替换，请先只读核对。"
@@ -258,12 +278,13 @@ def _run_daily(args: argparse.Namespace) -> int:
 
 def _run_account_code_migration(args: argparse.Namespace) -> int:
     destination = args.output or args.account
-    state = migrate_code_identity(
-        args.account,
-        destination,
-        new_code_hash=code_fingerprint(),
-        acknowledge_code_change=args.acknowledge_code_change,
-    )
+    with account_transaction(destination, create=destination != args.account):
+        state = migrate_code_identity(
+            args.account,
+            destination,
+            new_code_hash=code_fingerprint(),
+            acknowledge_code_change=args.acknowledge_code_change,
+        )
     payload = {
         "account": destination,
         "schema_version": state.schema_version,
@@ -349,13 +370,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "daily":
         return _run_daily(args)
     if args.command == "account-sync":
-        account = load_account(args.account)
         cfg = load_public_config(args.config)
-        _validate_account_config(account, cfg)
         snapshot = load_broker_snapshot(args.snapshot)
-        summary = sync_broker_snapshot(account, snapshot, cfg=cfg)
-        save_account(account, args.account)
+        with account_transaction(args.account) as transaction:
+            account = transaction.load()
+            _validate_account_config(account, cfg)
+            summary = sync_broker_snapshot(account, snapshot, cfg=cfg)
+            transaction.save(account)
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "account-schema-migrate":
+        state = migrate_account_schema(args.account, code_hash=code_fingerprint())
+        print(json.dumps({"account": args.account, "schema_version": state.schema_version}, sort_keys=True))
         return 0
     if args.command == "account-code-migrate":
         return _run_account_code_migration(args)

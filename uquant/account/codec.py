@@ -39,6 +39,8 @@ from .validation_positions import (
 )
 from .validation_strategy import validate_strategy_risk_state as _validate_strategy_risk_state
 
+MIGRATABLE_ACCOUNT_SCHEMAS = frozenset({8})
+
 
 class UnsupportedAccountSchemaError(RuntimeError):
     """Raised when an account payload does not use the current schema."""
@@ -115,8 +117,13 @@ def _resolve_account_schema_context(
     schema_version: Any,
 ) -> tuple[Any, Any, Any]:
     if schema_version != ACCOUNT_SCHEMA_VERSION:
+        hint = (
+            "; run `uquant account-schema-migrate --account <path>`"
+            if schema_version in MIGRATABLE_ACCOUNT_SCHEMAS
+            else ""
+        )
         raise UnsupportedAccountSchemaError(
-            f"unsupported account schema {schema_version}; expected {ACCOUNT_SCHEMA_VERSION}"
+            f"unsupported account schema {schema_version}; expected {ACCOUNT_SCHEMA_VERSION}{hint}"
         )
     sequence_was_explicit = "next_order_sequence" in payload
     if not sequence_was_explicit:
@@ -281,6 +288,13 @@ def _decode_account_strategy_fields(
         "data_hash_as_of": payload.get("data_hash_as_of", ""),
         "data_hash_symbols": payload.get("data_hash_symbols", []),
         "code_hash": payload.get("code_hash", ""),
+        "account_revision": payload["account_revision"],
+        "broker_binding": payload["broker_binding"],
+        "broker_snapshots": [dict(item) for item in payload["broker_snapshots"]],
+        "external_cash_flows": [dict(item) for item in payload["external_cash_flows"]],
+        "corporate_actions": [dict(item) for item in payload["corporate_actions"]],
+        "receivables": [dict(item) for item in payload["receivables"]],
+        "dividend_tax_lots": [dict(item) for item in payload["dividend_tax_lots"]],
     }
 
 

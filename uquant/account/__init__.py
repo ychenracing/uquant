@@ -5,19 +5,27 @@ from __future__ import annotations
 from .code_identity import migrate_code_identity
 from .codec import UnsupportedAccountSchemaError, account_from_dict, load_account
 from .economic_identity import economic_state_sha256
+from .schema_migration import migrate_account_schema
 from .store import save_account
+from .transaction import AccountConflictError, account_transaction
 
 __all__ = (
+    "AccountConflictError",
     "UnsupportedAccountSchemaError",
     "account_from_dict",
+    "account_transaction",
     "economic_state_sha256",
     "load_account",
+    "migrate_account_schema",
     "migrate_code_identity",
     "save_account",
 )
 
 for _exported in (
+    AccountConflictError,
     UnsupportedAccountSchemaError,
+    account_transaction,
+    migrate_account_schema,
     account_from_dict,
     economic_state_sha256,
     load_account,

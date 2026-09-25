@@ -16,6 +16,7 @@ from ..types import (
     Lifecycle,
     Opportunity,
     OrderStatus,
+    OriginSubsystem,
     PendingOrder,
     ReductionPolicy,
     Side,
@@ -316,7 +317,7 @@ def _validate_fill_order_and_costs(
             order.submitted_date,
             field="account order submitted_date",
         )
-        if fill_date <= submitted_date:
+        if fill_date < submitted_date or (fill_date == submitted_date and not _external(order)):
             raise RuntimeError("fill date must be after its order submission date")
 
     if not isinstance(fill.sold_tranches, list):
@@ -347,7 +348,7 @@ def _validate_fill(
 
     signal_date = _required_iso_date(fill.signal_date, field="fill signal_date")
     fill_date = _required_iso_date(fill.fill_date, field="fill fill_date")
-    if fill_date <= signal_date:
+    if fill_date < signal_date or (fill_date == signal_date and not _external(fill)):
         raise RuntimeError("fill date must be after its signal date")
     _required_text(fill.symbol, field="fill symbol")
     if not isinstance(fill.side, str) or fill.side not in {item.value for item in Side}:
@@ -382,6 +383,11 @@ def _validate_fill(
     )
     if fill.side == Side.BUY.value and attributed_shares:
         raise RuntimeError("buy fill cannot contain sold-lot attribution")
+
+
+def _external(item: Fill | AccountOrder) -> bool:
+    """External trade facts record the actual trade date as their own intent date."""
+    return item.origin_subsystem == OriginSubsystem.EXTERNAL_TRADE.value
 
 
 def _order_sequence(order_id: str) -> int:

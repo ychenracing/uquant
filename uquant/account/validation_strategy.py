@@ -80,6 +80,7 @@ def _validate_reconciliation_events(
         "sell_lot_attribution_incomplete",
         "broker_share_deficit_reconciled",
         "economic_lot_degraded",
+        "position_cap_exceeded",
     }
     for event in _validate_event_array(
         state.reconciliation_events,

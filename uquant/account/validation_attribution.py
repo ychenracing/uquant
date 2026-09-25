@@ -61,7 +61,7 @@ def _validate_attribution_industry_and_event_id(
     broker_degraded_identity = bool(
         origin is OriginSubsystem.BROKER_RECONCILIATION
         and mechanism is AttributionMechanism.BROKER_RECONCILIATION
-    )
+    ) or bool(origin is OriginSubsystem.EXTERNAL_TRADE and mechanism is AttributionMechanism.EXTERNAL_TRADE)
     migrated_inventory_sale = bool(getattr(item, "side", None) == Side.SELL.value)
     if item.industry_at_entry in CANONICAL_INDUSTRIES:
         if item.industry_manifest_sha256 != decision_ai_universe().sha256:

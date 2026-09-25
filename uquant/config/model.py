@@ -51,12 +51,17 @@ class SystemConfig(PortfolioPolicy, FeaturesPolicy, LeaderSelectionPolicy, Recov
     max_positions: int = 6
     commission_rate: float = 0.00025
     min_commission: float = 5.0
-    stamp_duty: float = 0.0005
-    transfer_fee: float = 0.00001
+    # None resolves the dated statutory schedule; a number is a fixed-rate assumption.
+    stamp_duty: float | None = None
+    transfer_fee: float | None = None
     slippage: float = 0.001
     max_volume_participation: float = 0.005
     minimum_median_amount: float = 20_000_000.0
     min_trade_value: float = 20_000.0
+    # AUCTION fixes quantity and limit before the open and cannot spend same-auction
+    # sale proceeds; DAILY_PROXY is the labelled legacy research proxy.
+    execution_clock: Literal["AUCTION", "DAILY_PROXY"] = "AUCTION"
+    auction_limit_buffer: float = 0.03
     risk_sentinel_mode: Literal[
         "SHADOW",
         "FREEZE_ONLY",

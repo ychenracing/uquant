@@ -11,6 +11,7 @@ from ..config import SystemConfig
 from ..data import DataManifest, DataStore, normalize_symbol
 from ..features import compute_features
 from .replay import ReplayUniverse
+from .valuation import mark_price
 
 
 class MarketWorkspace:
@@ -140,14 +141,13 @@ class MarketWorkspace:
         as_of: str | pd.Timestamp,
         field: str = "close",
     ) -> float:
-        """Return the latest visible field using the historical failure contract."""
+        """Return the session field, else the last valid close; never a stale open."""
 
-        frame = self._raw[symbol]
         date = pd.Timestamp(as_of)
-        visible = frame.loc[:date]
-        if visible.empty:
+        mark = mark_price(self._raw[symbol], date, field=field)
+        if mark is None:
             raise RuntimeError(f"{symbol} has no mark price at {date.date()}")
-        return float(visible.iloc[-1][field])
+        return mark.price
 
     def common_sessions(self, left: str, right: str) -> pd.DatetimeIndex:
         """Return the ordered intersection of two already loaded frames."""

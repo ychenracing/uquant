@@ -11,7 +11,13 @@ import pandas as pd
 from ..types import AccountOrder, Fill
 
 
-def _drawdown_stats(equity: pd.Series) -> dict[str, float | int]:
+def _drawdown_stats(equity: pd.Series) -> dict[str, Any]:
+    """Return end-of-session drawdown depth, duration, and censored recovery.
+
+    Recovery is measured from the peak preceding the deepest trough. An
+    unrecovered drawdown reports ``None`` recovery lengths with
+    ``drawdown_recovered = False`` and the observed underwater length.
+    """
     peak = equity.cummax()
     drawdown = equity / peak - 1.0
     underwater = drawdown < 0
@@ -19,19 +25,45 @@ def _drawdown_stats(equity: pd.Series) -> dict[str, float | int]:
     for flag in underwater:
         current = current + 1 if flag else 0
         duration = max(duration, current)
-    trough = int(drawdown.to_numpy(dtype=float).argmin())
-    recovery = 0
-    peak_value = float(peak.iloc[trough])
-    for value in equity.iloc[trough + 1 :]:
-        recovery += 1
-        if value >= peak_value:
-            break
+    values = drawdown.to_numpy(dtype=float)
+    trough = int(values.argmin()) if len(values) else 0
+    peak_value = float(peak.iloc[trough]) if len(values) else 0.0
+    peak_location = int(np.flatnonzero(equity.to_numpy(dtype=float)[: trough + 1] >= peak_value)[-1]) if len(values) else 0
+    recovery_location = next(
+        (trough + offset for offset, value in enumerate(equity.iloc[trough + 1 :], start=1) if value >= peak_value),
+        None,
+    )
+    recovered = recovery_location is not None or not len(values) or values[trough] >= 0
+    if not len(values) or values[trough] >= 0:
+        recovery_location = trough
+
+    def _date(location: int | None) -> str | None:
+        return None if location is None or not len(values) else str(equity.index[location])[:10]
+
     return {
-        "max_drawdown": float(-drawdown.min()),
-        "rolling_drawdown_p95": float((-drawdown).quantile(0.95)),
+        "max_drawdown": float(-drawdown.min()) + 0.0,
+        "pointwise_drawdown_p95": float((-drawdown).quantile(0.95)) + 0.0,
         "max_drawdown_duration": duration,
-        "peak_to_recovery_days": recovery,
+        "drawdown_recovered": bool(recovered),
+        "peak_to_recovery_days": None if recovery_location is None else recovery_location - peak_location,
+        "trough_to_recovery_days": None if recovery_location is None else recovery_location - trough,
+        "observed_underwater_sessions": (len(values) - 1 - peak_location) if recovery_location is None else 0,
+        "drawdown_peak_date": _date(peak_location),
+        "drawdown_trough_date": _date(trough),
+        "drawdown_recovery_date": _date(recovery_location),
     }
+
+
+def _calmar(cagr: float, max_drawdown: float, equity: pd.Series) -> tuple[float | None, str]:
+    """Return Calmar with an explicit state; special states do not rank as zero."""
+
+    if len(equity) < 20:
+        return None, "SHORT_WINDOW"
+    if float(equity.min()) <= 0:
+        return None, "NONPOSITIVE_EQUITY"
+    if max_drawdown <= 1e-12:
+        return None, "ZERO_DRAWDOWN"
+    return cagr / max_drawdown, "OK"
 
 
 def _first_risk_reduction(
@@ -235,19 +267,26 @@ def performance_metrics(
         default=None,
     )
     drawdown = 1.0 - equity / equity.cummax()
+    calmar, calmar_status = _calmar(cagr, max_dd, equity)
 
     return {
         "total_return": total_return,
+        "final_wealth_multiple": 1.0 + total_return,
         "cagr": cagr,
         "benchmark_total_return": benchmark_total_return,
+        "benchmark_final_wealth_multiple": 1.0 + benchmark_total_return,
         "excess_return": total_return - benchmark_total_return,
         "sharpe": sharpe,
-        "calmar": cagr / max_dd if max_dd > 1e-12 else 0.0,
+        "calmar": calmar,
+        "calmar_status": calmar_status,
         **dd,
         "worst_20d": float(rolling20.min()) if rolling20.notna().any() else 0.0,
         "worst_60d": float(rolling60.min()) if rolling60.notna().any() else 0.0,
         "account_orders": len(broker_order_groups),
         "submitted_account_orders": len(order_groups),
+        "physical_orders": len(orders),
+        "physical_orders_filled": sum(item.filled_shares > 0 for item in orders),
+        "fill_count": len(fills),
         "unfilled_account_submissions": sum(
             sum(item.filled_shares for item in group) == 0 for group in order_groups
         ),

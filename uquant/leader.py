@@ -248,10 +248,7 @@ def _raw_leader_features(
             "above20": float(math.isfinite(ma20) and close > ma20),
             "above60": float(math.isfinite(ma60) and close > ma60),
             "history": float(history),
-            "liquidity": min(
-                1.0,
-                float(frame.loc[:as_of, "amount"].tail(20).median()) / max(cfg.minimum_median_amount, 1.0),
-            ),
+            "liquidity": _liquidity_score(frame.loc[:as_of, "amount"].tail(20), cfg.minimum_median_amount),
         }
     return raw
 
@@ -684,3 +681,12 @@ def _apply_tenure(
             components=base.components,
         )
     return results
+
+
+def _liquidity_score(amounts: pd.Series, minimum_median_amount: float) -> float:
+    """Score observed positive turnover; missing or zero amounts are not liquidity."""
+
+    positive = amounts[amounts > 0]
+    if len(positive) < 10:
+        return 0.0
+    return min(1.0, float(positive.median()) / max(minimum_median_amount, 1.0))

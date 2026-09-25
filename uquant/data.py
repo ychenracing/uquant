@@ -70,6 +70,22 @@ class DataManifest:
         }
 
 
+def _repair_legacy_lot_volume(frame: pd.DataFrame) -> pd.DataFrame:
+    """Convert legacy rows whose volume was stored in 100-share lots.
+
+    Legacy frozen files carry no unit column. A row is converted only when
+    its own turnover proves the unit: amount / close exceeds 50x the volume.
+    Rows without a turnover are never guessed. Typed snapshots declare
+    ``volume_unit`` and bypass this repair.
+    """
+
+    implied = frame["amount"] / frame["close"]
+    lots = (frame["volume"] > 0) & np.isfinite(implied) & (implied > frame["volume"] * 50)
+    out = frame.copy()
+    out.loc[lots, "volume"] = out.loc[lots, "volume"] * 100.0
+    return out
+
+
 class DataStore:
     """Load, validate, bound, hash, and optionally refresh daily OHLCV data."""
 
@@ -126,13 +142,12 @@ class DataStore:
         )
         if invalid.any():
             raise DataContractError(f"{symbol} contains {int(invalid.sum())} invalid OHLCV rows")
-        if "amount" not in out:
-            out["amount"] = out["close"] * out["volume"]
-        else:
-            out["amount"] = pd.to_numeric(out["amount"], errors="coerce")
-            out["amount"] = out["amount"].fillna(out["close"] * out["volume"])
-        if (~np.isfinite(out["amount"]) | (out["amount"] < 0)).any():
+        # A missing turnover stays missing: price x volume is not a traded amount.
+        out["amount"] = pd.to_numeric(out["amount"], errors="coerce") if "amount" in out else np.nan
+        if (np.isinf(out["amount"]) | (out["amount"] < 0)).any():
             raise DataContractError(f"{symbol} contains invalid turnover amounts")
+        if "volume_unit" not in out:
+            out = _repair_legacy_lot_volume(out)
         return out.set_index("date", drop=True)
 
     def common_sessions(self, symbols: Iterable[str], start: str, end: str) -> pd.DatetimeIndex:

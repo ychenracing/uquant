@@ -54,12 +54,15 @@ def equity(
     date: pd.Timestamp,
     field: str = "close",
 ) -> float:
-    """Mark current positions at the latest visible field and add cash."""
+    """Mark every held position at the shared valuation rule and add cash."""
+    missing = sorted(symbol for symbol, position in account.positions.items()
+                     if position.shares > 0 and symbol not in self._raw)
+    if missing:
+        raise RuntimeError(f"held positions have no loaded market data: {', '.join(missing)}")
     return account.cash + sum(
         (
             position.shares * self._price(symbol, date, field)
             for symbol, position in account.positions.items()
-            if symbol in self._raw
         )
     )
 

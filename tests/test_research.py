@@ -470,6 +470,10 @@ def test_walk_forward_folds_are_deterministic_and_purged() -> None:
     assert first[0].train == tuple(range(12))
     assert first[0].test == tuple(range(14, 18))
     assert all(max(fold.train) + 2 < min(fold.test) for fold in first)
+    assert first[1].train[0] == 4
+    assert walk_forward_folds(30, train_size=12, test_size=4, step=4, expanding=True)[1].train[0] == 0
+    with pytest.raises(ValueError, match="non-overlapping"):
+        walk_forward_folds(30, train_size=10, test_size=8, step=2, non_overlapping_test=True)
 
 
 def test_probability_of_backtest_overfitting_detects_unstable_winners() -> None:
@@ -488,23 +492,32 @@ def test_probability_of_backtest_overfitting_detects_unstable_winners() -> None:
     unstable[:12, 0], unstable[12:, 0] = 0.10, -0.10
     unstable[:12, 1], unstable[12:, 1] = -0.10, 0.10
 
-    assert probability_of_backtest_overfitting(stable, slices=6).probability <= 0.5
-    assert probability_of_backtest_overfitting(unstable, slices=6).probability >= 0.5
+    stable_pbo = probability_of_backtest_overfitting(stable, slices=6).probability
+    unstable_pbo = probability_of_backtest_overfitting(unstable, slices=6).probability
+    assert stable_pbo is not None and stable_pbo <= 0.5
+    assert unstable_pbo is not None and unstable_pbo >= 0.5
+    identical = np.column_stack([np.sin(np.arange(32.0))] * 3)
+    assert probability_of_backtest_overfitting(identical).status == "NOT_ESTIMABLE"
+    tied = np.column_stack([stable[:, 0], stable[:, 0], stable[:, 2]])
+    assert (probability_of_backtest_overfitting(tied, slices=6).probability
+            == probability_of_backtest_overfitting(tied[:, ::-1], slices=6).probability)
 
 
 def test_deflated_sharpe_is_bounded_and_rejects_insufficient_samples() -> None:
     from research.statistics import deflated_sharpe_ratio
 
     result = deflated_sharpe_ratio(
-        observed_sharpe=1.5,
+        observed_sharpe=0.1,
         trials=20,
         sample_count=252,
         skew=0.0,
         kurtosis=3.0,
+        trial_sharpe_variance=0.0025,
     )
 
     assert 0.0 <= result.probability <= 1.0
-    assert result.expected_max_sharpe > 0.0
+    # sqrt(V) * [(1-g) z(1-1/N) + g z(1-1/(N e))] with V = 0.05^2, N = 20.
+    assert result.expected_max_sharpe == pytest.approx(0.05 * 1.9007, abs=2e-4)
     with pytest.raises(ValueError, match="sample_count"):
         deflated_sharpe_ratio(
             observed_sharpe=1.0,
@@ -512,4 +525,5 @@ def test_deflated_sharpe_is_bounded_and_rejects_insufficient_samples() -> None:
             sample_count=2,
             skew=0.0,
             kurtosis=3.0,
+            trial_sharpe_variance=0.0,
         )

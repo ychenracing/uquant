@@ -834,7 +834,7 @@ def test_large_opening_gap_reprices_target_and_preserves_weight_cap():
     account.pending_orders = [
         _canonical_pending("2026-01-05", "sh603986", "BUY", 0.60, "entry")
     ]
-    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+    fills = ExecutionPlanner(DEFAULT_CONFIG.override(execution_clock="DAILY_PROXY")).execute_open(
         date=pd.Timestamp("2026-01-06"), account=account, panel=panel
     )
     assert len(fills) == 1

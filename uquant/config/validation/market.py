@@ -47,6 +47,8 @@ def validate_public_inputs(config: Any) -> None:
         "slippage", "max_volume_participation", "minimum_median_amount", "min_trade_value",
     ):
         value = getattr(config, name)
+        if value is None and name in {"stamp_duty", "transfer_fee"}:
+            continue
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             raise ValueError(f"{name} must be a finite number")
         if name == "max_positions" and type(value) is not int:

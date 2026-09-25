@@ -16,7 +16,7 @@ from architecture._code_audit_api_projection import code_audit_api_projection, f
 from architecture._cross_vintage_api_projection import cross_vintage_api_projection
 from architecture._remediation_api_projection import remediation_api_projection
 
-from uquant.account.schema_migration import _SCHEMA_9_DEFAULTS
+from uquant.account.schema_migration import SCHEMA_9_DEFAULTS
 from uquant.config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from uquant.types import (
     AccountOrder,
@@ -311,7 +311,7 @@ def test_enum_literals_and_representative_model_bytes_are_frozen() -> None:
     # account-fact additions; preserve every historical model digest below.
     account_payload = dict(serialized["account"])
     assert account_payload["schema_version"] == 9
-    for field, default in _SCHEMA_9_DEFAULTS.items():
+    for field, default in SCHEMA_9_DEFAULTS.items():
         assert account_payload.pop(field) == default
     account_payload["schema_version"] = 8
     enums = {name: list(values) for name, values in enum_values.items()}

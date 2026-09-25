@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from importlib import resources
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Final
 
 FROZEN_CHAMPION_COMMIT: Final = "cf8fecff76564fd4ed87faa0da336a06d433fd93"
@@ -448,11 +449,11 @@ def registered_ai_universe(sha256: str) -> AIUniverse | None:
 
 # The fixed 34-name pool was chosen after the fact; replays over it are
 # conditional on that choice and prove nothing about ex-ante selection.
-EVIDENCE_SCOPE: Final[Mapping[str, str]] = {
+EVIDENCE_SCOPE: Final[Mapping[str, str]] = MappingProxyType({
     "universe_selection_status": "retrospective_fixed",
     "evidence_scope": "conditional_historical_replay",
     "historical_membership_evidence": "unresolved",
-}
+})
 
 
 def decision_ai_universe() -> AIUniverse:

@@ -308,6 +308,32 @@ def _mark_one(frame: pd.DataFrame | None, date: pd.Timestamp, *, auction: bool) 
     return None if mark is None else mark.price
 
 
+def _open_prices(
+    *, cfg: SystemConfig, symbol: str, date: pd.Timestamp, row: pd.Series, history: pd.DataFrame,
+    buy: bool, auction: bool,
+) -> tuple[float, float, float, bool]:
+    """Return (budget price, execution price, quantity price, crosses) for one order.
+
+    At the auction the quantity and limit are fixed before the open from the
+    prior close; the open only decides whether the fixed order trades.
+    """
+    open_price = float(row["open"])
+    side = 1.0 + cfg.slippage if buy else 1.0 - cfg.slippage
+    if not auction:
+        return open_price * side, open_price * side, open_price * side, True
+    reference = float(history.iloc[-2]["close"])
+    lower, upper = price_limits(
+        symbol, date, _limit_reference(history), special_treatment=bool(row.get("special_treatment", False)),
+    )
+    if buy:
+        limit = float(min(upper, round_price(reference * (1.0 + cfg.auction_limit_buffer))))
+        budget = limit * (1.0 + cfg.slippage)
+        return budget, min(open_price * side, budget), reference * side, open_price <= limit + 1e-9
+    limit = float(max(lower, round_price(reference * (1.0 - cfg.auction_limit_buffer))))
+    execution = max(open_price * side, limit * (1.0 - cfg.slippage))
+    return reference, execution, reference * side, open_price >= limit - 1e-9
+
+
 def _size_open_order(
     *,
     cfg: SystemConfig,
@@ -325,31 +351,9 @@ def _size_open_order(
     history = panel[order.symbol].loc[:date]
     previous_row = history.iloc[-2]
     buy = order.side == Side.BUY.value
-    if book.auction:
-        # Quantity and limit price are fixed before the auction from the prior
-        # close; the open only decides whether the fixed order trades.
-        reference = float(previous_row["close"])
-        lower, upper = price_limits(
-            order.symbol, date, _limit_reference(history),
-            special_treatment=bool(row.get("special_treatment", False)),
-        )
-        buffer = cfg.auction_limit_buffer
-        if buy:
-            limit = float(min(upper, round_price(reference * (1.0 + buffer))))
-            sizing_price = limit * (1.0 + cfg.slippage)
-            execution_price = min(open_price * (1.0 + cfg.slippage), sizing_price)
-            crosses = open_price <= limit + 1e-9
-        else:
-            limit = float(max(lower, round_price(reference * (1.0 - buffer))))
-            sizing_price = reference
-            execution_price = max(open_price * (1.0 - cfg.slippage), limit * (1.0 - cfg.slippage))
-            crosses = open_price >= limit - 1e-9
-    else:
-        sizing_price = execution_price = open_price * (
-            1.0 + cfg.slippage if buy else 1.0 - cfg.slippage
-        )
-        reference = open_price
-        crosses = True
+    sizing_price, execution_price, target_price, crosses = _open_prices(
+        cfg=cfg, symbol=order.symbol, date=date, row=row, history=history, buy=buy, auction=book.auction,
+    )
     if book.marks is None:
         if buy:
             order.attempts += 1
@@ -373,8 +377,6 @@ def _size_open_order(
             if position.shares > 0
         )
     current = account.positions.get(order.symbol, Position(symbol=order.symbol))
-    # The auction quantity uses the expected fill price known before the open.
-    target_price = reference * (1.0 + cfg.slippage if buy else 1.0 - cfg.slippage) if book.auction else sizing_price
     if math.isfinite(open_equity):
         desired_shares = math.floor(order.target_weight * open_equity / target_price)
         if security_board(order.symbol) != "STAR":

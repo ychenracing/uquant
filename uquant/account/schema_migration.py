@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import copy
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
+from types import MappingProxyType
 
 from ..types import ACCOUNT_SCHEMA_VERSION, AccountState
 from .codec import MIGRATABLE_ACCOUNT_SCHEMAS, account_from_dict, read_account_payload
 from .economic_identity import economic_state_sha256
 from .transaction import account_transaction
 
-_SCHEMA_9_DEFAULTS: dict[str, object] = {
+SCHEMA_9_DEFAULTS: Mapping[str, object] = MappingProxyType({
     "account_revision": 0,
     "broker_binding": "",
     "broker_snapshots": [],
@@ -18,7 +21,7 @@ _SCHEMA_9_DEFAULTS: dict[str, object] = {
     "corporate_actions": [],
     "receivables": [],
     "dividend_tax_lots": [],
-}
+})
 
 
 def upgraded_account_payload(payload: dict[str, object]) -> dict[str, object]:
@@ -27,7 +30,7 @@ def upgraded_account_payload(payload: dict[str, object]) -> dict[str, object]:
     source_schema = payload.get("schema_version")
     if source_schema not in MIGRATABLE_ACCOUNT_SCHEMAS:
         raise RuntimeError(f"no migration from account schema {source_schema!r}")
-    upgraded = {**payload, **{k: v for k, v in _SCHEMA_9_DEFAULTS.items() if k not in payload}}
+    upgraded = {**payload, **{k: copy.deepcopy(v) for k, v in SCHEMA_9_DEFAULTS.items() if k not in payload}}
     upgraded["schema_version"] = ACCOUNT_SCHEMA_VERSION
     return upgraded
 

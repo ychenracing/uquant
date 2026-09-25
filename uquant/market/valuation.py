@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import numbers
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import cast
@@ -27,10 +28,9 @@ class ValuationError(RuntimeError):
 
 
 def _finite_positive(value: object) -> bool:
-    try:
-        number = float(value)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
+    if isinstance(value, bool) or not isinstance(value, numbers.Real):
         return False
+    number = float(value)
     return math.isfinite(number) and number > 0
 
 

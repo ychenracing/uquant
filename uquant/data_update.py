@@ -143,10 +143,6 @@ def _chain_index(base: pd.DataFrame, extension: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([base, tail], ignore_index=True)
 
 
-def _file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def update_snapshot(
     *,
     output_root: str | Path,
@@ -183,7 +179,7 @@ def update_snapshot(
             json.dumps(sorted(actions, key=lambda item: item["event_id"]), ensure_ascii=False, indent=1) + "\n",
             encoding="utf-8",
         )
-        files = {path.name: _file_sha256(path) for path in sorted(staging.iterdir())}
+        files = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(staging.iterdir())}
         content = hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
         snapshot_id = f"raw-{end}-{content[:12]}"
         manifest = {

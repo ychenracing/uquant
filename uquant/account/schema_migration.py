@@ -21,6 +21,17 @@ _SCHEMA_9_DEFAULTS: dict[str, object] = {
 }
 
 
+def upgraded_account_payload(payload: dict[str, object]) -> dict[str, object]:
+    """Return a migratable payload with the additive current-schema fields filled in."""
+
+    source_schema = payload.get("schema_version")
+    if source_schema not in MIGRATABLE_ACCOUNT_SCHEMAS:
+        raise RuntimeError(f"no migration from account schema {source_schema!r}")
+    upgraded = {**payload, **{k: v for k, v in _SCHEMA_9_DEFAULTS.items() if k not in payload}}
+    upgraded["schema_version"] = ACCOUNT_SCHEMA_VERSION
+    return upgraded
+
+
 def migrate_account_schema(path: str | Path, *, code_hash: str) -> AccountState:
     """Upgrade one account file in place to the current schema under the account lock."""
 
@@ -29,11 +40,7 @@ def migrate_account_schema(path: str | Path, *, code_hash: str) -> AccountState:
         source_schema = payload.get("schema_version")
         if source_schema == ACCOUNT_SCHEMA_VERSION:
             raise RuntimeError("account already uses the current schema")
-        if source_schema not in MIGRATABLE_ACCOUNT_SCHEMAS:
-            raise RuntimeError(f"no migration from account schema {source_schema!r}")
-        payload = {**payload, **{k: v for k, v in _SCHEMA_9_DEFAULTS.items() if k not in payload}}
-        payload["schema_version"] = ACCOUNT_SCHEMA_VERSION
-        state = account_from_dict(payload)
+        state = account_from_dict(upgraded_account_payload(payload))
         state.account_migrations.append(
             {
                 "migration_type": "schema_upgrade",

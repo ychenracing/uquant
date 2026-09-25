@@ -368,7 +368,9 @@ def _size_open_order(
             if position.shares > 0
         )
     current = account.positions.get(order.symbol, Position(symbol=order.symbol))
-    target_price = reference if book.auction else sizing_price
+    # An auction buy must be payable at its preset limit; sizing it from the
+    # prior close would leave a remainder that the cap and cash budget never fill.
+    target_price = sizing_price if buy or not book.auction else reference
     if math.isfinite(open_equity):
         desired_shares = math.floor(order.target_weight * open_equity / target_price)
         if security_board(order.symbol) != "STAR":

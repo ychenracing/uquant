@@ -37,16 +37,16 @@ def test_effective_diversification_is_scale_invariant_and_bounded(weights: list[
 @settings(max_examples=120, deadline=None)
 def test_fees_are_nonnegative_monotone_and_side_specific(first: float, increment: float) -> None:
     second = first + increment
-    buy_first = fee_components(Side.BUY.value, first, DEFAULT_CONFIG)
-    buy_second = fee_components(Side.BUY.value, second, DEFAULT_CONFIG)
-    sell_second = fee_components(Side.SELL.value, second, DEFAULT_CONFIG)
+    buy_first = fee_components(Side.BUY.value, first, DEFAULT_CONFIG, "2026-01-05")
+    buy_second = fee_components(Side.BUY.value, second, DEFAULT_CONFIG, "2026-01-05")
+    sell_second = fee_components(Side.SELL.value, second, DEFAULT_CONFIG, "2026-01-05")
 
     assert all(value >= 0.0 for value in (*buy_first, *buy_second, *sell_second))
     assert all(later + 1e-12 >= earlier for earlier, later in zip(buy_first, buy_second, strict=True))
     assert buy_second[1] == 0.0
     assert math.isclose(
         sell_second[1],
-        second * DEFAULT_CONFIG.stamp_duty,
+        second * 0.0005,
         rel_tol=1e-10,
         abs_tol=1e-10,
     )

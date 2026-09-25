@@ -94,9 +94,12 @@ def test_one_filled_member_cannot_exit_before_full_deployment_settles():
 
     policy, account, dates, panel, leaders, _ = _native_full(execution="partial")
     symbol = SYMBOLS[1]
+    others = [order for order in account.pending_orders if order.symbol != symbol]
+    account.pending_orders = [order for order in account.pending_orders if order.symbol == symbol]
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
-        date=dates[1], account=account, panel={symbol: panel[symbol]},
+        date=dates[1], account=account, panel=panel,
     )
+    account.pending_orders.extend(others)
     assert fills and all(fill.symbol == symbol for fill in fills)
     members = set(account.strategic_cohort_targets)
     assert completed_strategic_cohort_entry(account, {symbol})

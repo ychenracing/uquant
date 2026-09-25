@@ -41,7 +41,7 @@ def _band_sale(*, broker=False, split=False):
             # A second real availability reconciliation may split an already
             # split economic lot; both suffix generations retain BUY origin.
             sync_broker_snapshot(account, {
-                "as_of": str(dates[0].date()), "cash": account.cash, "fills": [],
+                "as_of": str(dates[0].date()), "sequence": 2, "cash": account.cash, "fills": [],
                 "positions": [{"symbol": OWNER, "shares": total,
                                "sellable_shares": 25000, "avg_cost": price}],
             }, cfg=DEFAULT_CONFIG)

@@ -36,10 +36,10 @@ def _fill_target(account, dates, signal_index, symbol, weight, mechanism="LEADER
     account.pending_orders = list(reconcile_account_orders(
         account=account, previous=account.pending_orders, current=orders, submitted_date=signal,
     ))
-    panel = {symbol: pd.DataFrame(
+    panel = {name: pd.DataFrame(
         {"open": 10.0, "high": 10.1, "low": 9.9, "close": 10.0,
          "volume": 100_000_000.0, "amount": 1_000_000_000.0}, index=dates,
-    )}
+    ) for name in {*account.positions, symbol}}
     fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
         date=dates[signal_index + 1], account=account, panel=panel,
     )
@@ -52,14 +52,14 @@ def _holding(history):
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.code_hash, account.data_hash = "code:fixture", "data:fixture"
     first = _fill_target(account, dates, -131, SYMBOL, 0.2)
-    assert first.shares == 39_900
+    assert first.shares == 38_796
     account.last_shock_date = str(dates[-129].date())
     account.protected_weights = {SYMBOL: 0.6}
     if history == "fifo":
         restored = _fill_target(account, dates, -129, SYMBOL, 0.6, "POST_SHOCK_RESTORATION")
         reduced = _fill_target(account, dates, -128, SYMBOL, 0.3, "RISK_OFF")
-        assert (restored.shares, reduced.shares) == (79_900, 59_800)
-        assert account.positions[SYMBOL].shares == 60_000
+        assert (restored.shares, reduced.shares) == (77_564, 56_404)
+        assert account.positions[SYMBOL].shares == 59_956
         assert account.positions[SYMBOL].entry_date > account.last_shock_date
         assert {lot.entry_date for lot in account.positions[SYMBOL].tranches} == {restored.fill_date}
     elif history == "stale_flat":

@@ -7,11 +7,16 @@ import pandas as pd
 
 from uquant.config import DEFAULT_CONFIG
 from uquant.execution.market_constraints import market_execution_blocked
-from uquant.execution.open_execution import _size_open_order
+from uquant.execution.open_execution import _session_marks, _SessionBook, _size_open_order
 from uquant.execution.order_planning import plan_orders
 from uquant.execution.pending import merge_pending_orders
 from uquant.types import AccountOrder, AccountState, PendingOrder, Position, Target
 from uquant.validation.absolute_generalization._account_payload import _validate_account_runtime
+
+
+def _book(account, panel, date):
+    return _SessionBook(auction=True, buy_cash=account.cash, capacity_used={},
+                        marks=_session_marks(account, panel, date, auction=True))
 
 
 class RiskOpenCausalityTest(unittest.TestCase):
@@ -58,7 +63,8 @@ class RiskOpenCausalityTest(unittest.TestCase):
             self.assertFalse(market_execution_blocked(order.symbol, order.side, row, 100.0))
             request = _size_open_order(cfg=DEFAULT_CONFIG, date=date, order=order,
                                        account=account, account_order=ledger,
-                                       panel={order.symbol: frame}, row=row, retained=[])
+                                       panel={order.symbol: frame}, row=row, retained=[],
+                                       book=_book(account, {order.symbol: frame}, date))
             self.assertIsNotNone(request)
             return request.shares
 
@@ -78,7 +84,7 @@ class RiskOpenCausalityTest(unittest.TestCase):
                               lifecycle=order.lifecycle, reduction_policy=order.reduction_policy)
         account = AccountState(initial_cash=1_000_000, cash=990_000,
                                positions={order.symbol: Position(symbol=order.symbol, shares=100)})
-        frame = pd.DataFrame([{"date": "2026-07-27", "open": 100., "close": 100.,
+        frame = pd.DataFrame([{"date": "2026-07-27", "open": 100., "close": 99.9,
                               "volume": 1_000_000., "amount": 100_000_000.},
                              {"date": "2026-07-28", "open": 100., "close": 100.,
                               "volume": 1_000_000., "amount": 100_000_000.}]).set_index("date")
@@ -86,7 +92,8 @@ class RiskOpenCausalityTest(unittest.TestCase):
         retained = []
         self.assertIsNone(_size_open_order(cfg=DEFAULT_CONFIG, date=date, order=order,
                                            account=account, account_order=ledger,
-                                           panel={order.symbol: frame}, row=frame.loc[date], retained=retained))
+                                           panel={order.symbol: frame}, row=frame.loc[date], retained=retained,
+                                           book=_book(account, {order.symbol: frame}, date)))
         self.assertEqual(retained, [order])
         self.assertEqual(ledger.last_event, "RISK_TARGET_UNMET_LOT")
         self.assertNotEqual(ledger.status, "CANCELLED")

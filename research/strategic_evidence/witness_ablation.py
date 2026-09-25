@@ -111,20 +111,20 @@ def decode_historical_evidence_account(
         field="historical evidence account economic seal",
     )
     schema_version = raw.get("schema_version")
-    if schema_version == 5:
+    if schema_version in (5, 8):
         current_payload = {
             **AccountState.empty(1.0).to_dict(),
             **raw,
             "schema_version": ACCOUNT_SCHEMA_VERSION,
         }
         decoded = account_from_dict(current_payload, require_hashes=False)
-        decoded.schema_version = 5
+        decoded.schema_version = schema_version
     elif schema_version == ACCOUNT_SCHEMA_VERSION:
         decoded = account_from_dict(raw, require_hashes=False)
     else:
         raise ValueError(
             f"historical evidence account schema {schema_version}; "
-            f"expected 5 or {ACCOUNT_SCHEMA_VERSION}"
+            f"expected 5, 8 or {ACCOUNT_SCHEMA_VERSION}"
         )
     decoded_payload = decoded.to_dict()
     if decoded.schema_version == ACCOUNT_SCHEMA_VERSION:

@@ -72,7 +72,7 @@ def _assert_historical_evidence_account_decoder_contract() -> None:
     assert decoded.schema_version == 5
     assert decoded.initial_cash == account["initial_cash"]
     assert decoded.cash == account["cash"]
-    with pytest.raises(RuntimeError, match="unsupported account schema 5; expected 8"):
+    with pytest.raises(RuntimeError, match="unsupported account schema 5; expected 9"):
         account_from_dict(account, require_hashes=False)
 
     injected_envelope_seal = {**account, "payload_sha256": "0" * 64}
@@ -120,7 +120,7 @@ def _assert_historical_evidence_account_decoder_contract() -> None:
     changed_schema = {**account, "schema_version": 4}
     with pytest.raises(
         ValueError,
-        match="historical evidence account schema 4; expected 5 or 8",
+        match="historical evidence account schema 4; expected 5, 8 or 9",
     ):
         decoder(
             changed_schema,
@@ -139,7 +139,7 @@ def _assert_historical_evidence_account_decoder_contract() -> None:
     future = {**current_payload, "schema_version": ACCOUNT_SCHEMA_VERSION + 1}
     with pytest.raises(
         ValueError,
-        match="historical evidence account schema 9; expected 5 or 8",
+        match="historical evidence account schema 10; expected 5, 8 or 9",
     ):
         decoder(
             future,

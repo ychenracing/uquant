@@ -6,6 +6,7 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import time
 from contextlib import suppress
 from pathlib import Path
@@ -43,6 +44,7 @@ def command(args):
     interrupted = []
     old_handlers = {}
     started = time.monotonic()
+    next_progress = 0.0
     for signum in (signal.SIGTERM, signal.SIGINT):
         old_handlers[signum] = signal.signal(signum, lambda sig, frame: interrupted.append(sig))
     try:
@@ -73,6 +75,16 @@ def command(args):
                         stop_child(child)
                         break
                     emit(directory, state, "heartbeat")
+                    if elapsed >= next_progress:
+                        # Keep stdout machine-readable and private child output private.
+                        print(json.dumps({
+                            "event": "process_alive", "operation_id": directory.name,
+                            "elapsed_seconds": round(elapsed, 1), "log_bytes": size,
+                            "disk_free_bytes": sample["disk_free_bytes"],
+                            "memory_current_bytes": sample["memory_current_bytes"],
+                            "memory_scope": sample["memory_scope"],
+                        }), file=sys.stderr, flush=True)
+                        next_progress = elapsed + 60.0
                     time.sleep(min(args.heartbeat, max(0.01, args.timeout - elapsed)))
                 state.update(status="EXITED", returncode=child.wait(), elapsed_seconds=round(time.monotonic()-started, 3))
             out.flush()

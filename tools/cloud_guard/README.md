@@ -19,6 +19,14 @@ normal or controlled-error exit it automatically builds and byte-verifies
 `<operation>/checkpoint.zip` with the original journal and logs. It preserves
 incomplete journals on unexpected failures; no exception is silently passed.
 
+While a child is alive, stderr receives a flushed `process_alive` JSON summary
+immediately and at most once per minute thereafter (subject to the polling
+interval). It includes elapsed time, log byte count, free disk and cgroup memory;
+it never streams private child output, command arguments or environment values.
+Stdout remains the single final JSON result. These summaries show supervisor and
+child liveness, not completed replay work or freedom from deadlock. Cgroup memory
+may include other processes. The existing timeout bounds unresponsive commands.
+
 A per-name lock is inherited by the child. A concurrent duplicate command or an
 unreconciled write with the same name is refused. This is not a lock on the entire
 repository; retain the existing single-writer discipline for shared resources.

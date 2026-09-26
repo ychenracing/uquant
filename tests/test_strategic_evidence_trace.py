@@ -162,7 +162,12 @@ def test_official_loop_matches_production_and_forcing_respects_activation_kind()
     assert baseline.metrics["max_drawdown"] == production["max_drawdown"]
     validate_replay_accounting(baseline)
     validate_replay_accounting(forced)
-    assert activation_date == "2023-01-04"
+    assert activation_date == "2023-01-05"
+    for row in baseline.trace:
+        if row.date < activation_date:
+            assert row.risk["broad_ret20"] < 0 and row.risk["tech_ret20"] < 0
+            assert not row.targets and not row.orders and not row.fills
+    assert native_activation.risk["broad_ret20"] >= 0
     assert target_gross == sum(target["weight"] for target in native_activation.targets)
     divergence = first_divergence(
         strip_intervention_provenance(baseline.trace), strip_intervention_provenance(forced.trace),
@@ -200,5 +205,12 @@ def test_alternate_owner_survives_activation_and_reaches_next_open_execution() -
             owner="sz300502", target_gross=common_activation_target_gross(baseline)
         ),
     )
-    assert forced.trace[1].targets[0]["symbol"] == "sz300502"
-    assert forced.trace[2].fills[0]["symbol"] == "sz300502"
+    activation_date = common_activation_date(baseline)
+    index = next(i for i, row in enumerate(forced.trace) if row.date == activation_date)
+    assert forced.trace[index].targets[0]["symbol"] == "sz300502"
+    assert not forced.trace[index].fills
+    next_open = forced.trace[index + 1]
+    assert next_open.fills[0]["symbol"] == "sz300502"
+    assert next_open.fills[0]["signal_date"] == activation_date
+    assert next_open.fills[0]["fill_date"] == next_open.date
+    validate_replay_accounting(forced)

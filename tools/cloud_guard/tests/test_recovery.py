@@ -8,10 +8,46 @@ import time
 from contextlib import suppress
 
 from tools.cloud_guard import journal as guard
+from tools.cloud_guard.admission import operation_lock
 from tools.cloud_guard.tests.base import Base
 
 
 class GuardTests(Base):
+    def test_reconcile_old_local_retains_history_and_allows_same_name(self):
+        directory, state = guard.create(self.root, "resume-local", "local")
+        state.update(status="RUNNING", runtime_id="old-runtime")
+        guard.emit(directory, state, "synthetic-interruption")
+        original = (directory / "events.jsonl").read_bytes()
+        receipt = self.root / "reconciliation.json"
+        receipt.write_text('{"synthetic":true}')
+        self.cli("run", "--name", "resume-local", "--timeout", "2", "--",
+                 sys.executable, "-c", "pass", expected=2)
+        with operation_lock(self.root, "resume-local"):
+            self.cli("reconcile-local", "--id", state["operation_id"],
+                     "--receipt", receipt, expected=2)
+        result = self.cli("reconcile-local", "--id", state["operation_id"], "--receipt", receipt)
+        self.assertEqual(result["finding"], "LOCAL_INTERRUPTION_RECONCILED")
+        self.assertFalse(result["automatic_retry"])
+        saved = guard.load(directory)
+        self.assertEqual(saved["status_before_reconciliation"], "RUNNING")
+        self.assertEqual(saved["runtime_id"], "old-runtime")
+        self.assertNotIn("returncode", saved)
+        self.assertTrue((directory / "events.jsonl").read_bytes().startswith(original))
+        self.cli("reconcile-local", "--id", state["operation_id"], "--receipt", receipt, expected=2)
+        self.cli("run", "--name", "resume-local", "--timeout", "2", "--",
+                 sys.executable, "-c", "pass")
+
+    def test_reconcile_refuses_current_runtime_and_nonlocal_operations(self):
+        receipt = self.root / "reconciliation.json"
+        receipt.write_text('{"synthetic":true}')
+        for kind in ("local", "read", "write", "external_read", "external_write", "phase"):
+            directory, state = guard.create(self.root, "blocked-" + kind, kind)
+            if kind != "local":
+                state["runtime_id"] = "old-runtime"
+                guard.emit(directory, state, "synthetic-interruption")
+            self.cli("reconcile-local", "--id", state["operation_id"], "--receipt", receipt, expected=2)
+            self.assertEqual(guard.load(directory)["status"], "STARTED")
+
     def test_journal_wins_over_stale_latest(self):
         directory, state = guard.create(self.root, "atomic-boundary", "phase")
         old = (directory / "latest.json").read_bytes()

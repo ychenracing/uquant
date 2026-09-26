@@ -108,6 +108,14 @@ resume only missing work. COMMAND_NONZERO_EXIT, SUPERVISOR_TIMEOUT and PROCESS_S
 are distinct from model errors. Memory events are cgroup correlation, not proof
 that this child was OOM-killed. All reports keep platform_root_cause=NOT_OBSERVED.
 
+After checking an unfinished **local** command from a changed runtime and saving
+the cache/process reconciliation receipt, use `reconcile-local --id <operation-id>
+--receipt <existing-file>`. It takes the same operation lock and refuses an active
+lock, unchanged runtime, terminal record, or any external/write operation. It
+appends `LOCAL_INTERRUPTION_RECONCILED` while retaining the old status, runtime,
+logs and missing exit code; this is not a successful execution. Then explicitly
+rerun the original operation name using validated caches. It never starts a retry.
+
 ## Platform boundary
 
 Account/project instructions can request this default, but cannot install a

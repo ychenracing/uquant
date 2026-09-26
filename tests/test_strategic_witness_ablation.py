@@ -670,13 +670,14 @@ def test_real_mid_replay_error_retains_completed_prefix_intervention_and_account
             symbols=symbols,
             start="2023-01-03",
             end="2023-01-06",
-            intervention_date="2023-01-05",
+            # Native close activation is Jan 5; inject after its next open fill.
+            intervention_date="2023-01-06",
         ),
         intervention=_FailAfterAppliedIntervention(owner="sz300308", target_gross=0.95),
     )
 
     assert result.status == "REPLAY_ERROR"
-    assert tuple(row.date for row in result.trace) == ("2023-01-03", "2023-01-04")
+    assert tuple(row.date for row in result.trace) == ("2023-01-03", "2023-01-04", "2023-01-05")
     assert result.intervention_provenance is not None
     assert result.intervention_provenance["applied"] is True
     orders = result.final_account["order_ledger"]

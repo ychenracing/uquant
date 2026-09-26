@@ -1,0 +1,27 @@
+{
+  "library_file_id": "libfile_17d6ffdcb6688191b0ea1e47656abfc8",
+  "version": 5,
+  "downloaded_path": "/workspace/scratch/56fefbc06d91/remote-readback-v5/UQUANT_PR92_SECOND_PASS_EXPANSION_20260926_V5.zip",
+  "bytes": 292267516,
+  "sha256": "7684cfaa286cc0aad2776572cc82ffa11ccb1378bdb34a2d61ab664a6c781169",
+  "verified_entries": 1655,
+  "actual_remote_readback": true,
+  "complete_native_counts": {
+    "c6": 272,
+    "c18": 18,
+    "c19": 12,
+    "c20": 14,
+    "c21": 10,
+    "c22": 16
+  },
+  "known_invalid_version": 3,
+  "file_id": "file_0000000062b881f58f5195a7743329cd",
+  "final_report": {
+    "library_file_id": "libfile_37f82d468a4c819183d96973dffd7b14",
+    "version": 0,
+    "file_id": "file_00000000839c81f58a4f38fb3db6afc8",
+    "bytes": 36622,
+    "sha256": "2e226f93c926e8bbc4e29bf7bdb8d2842d194eb5c5b99b0f2672e26ddf0a8d09",
+    "actual_remote_readback": true
+  }
+}

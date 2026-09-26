@@ -1,0 +1,489 @@
+diff --git a/tests/test_cross_vintage_capital_repair.py b/tests/test_cross_vintage_capital_repair.py
+index 1e17396..45b4d05 100644
+--- a/tests/test_cross_vintage_capital_repair.py
++++ b/tests/test_cross_vintage_capital_repair.py
+@@ -132,6 +132,25 @@ def test_accumulated_loss_reduces_budget_only_with_independent_damage(capital_dd
+     ) == expected
+ 
+ 
++@pytest.mark.parametrize('deployed_dd,held_damage,transition,expected', [
++    (.25, 1.0, .6, 4),
++    (.19, 1.0, .6, 2),
++    (0.0, 1.0, .6, 2),
++    (.25, 0.0, .6, 1),
++    (.25, 1.0, .3, 1),
++])
++def test_live_capital_crisis_does_not_require_unrelated_sector_collapse(
++    deployed_dd, held_damage, transition, expected
++):
++    account = AccountState.empty(100)
++    result = observe_capital_budget(account=account, cfg=DEFAULT_CONFIG,
++        sector_guard=SectorGuardTransition(False, False, False, False, 0, 0, None),
++        reference_anchor_break=False, held_damage_ratio=held_damage,
++        transition_damage=transition, votes=2, capital_dd=.25,
++        deployed_dd=deployed_dd, sector_stress=.125, strategic_active=False)
++    assert result.observed_budget_level == expected
++
++
+ @pytest.mark.parametrize('deployment_peak,expected_cap', [(73., .5), (79., .5), (81., 1.), (100., 1.)])
+ def test_repaired_admission_retains_inherited_crisis_budget_without_freezing_cash(deployment_peak, expected_cap):
+     account = AccountState.empty(100.)
+diff --git a/tests/test_ordinary_capital_snapshot.py b/tests/test_ordinary_capital_snapshot.py
+new file mode 100644
+index 0000000..496723d
+--- /dev/null
++++ b/tests/test_ordinary_capital_snapshot.py
+@@ -0,0 +1,72 @@
++"""A capital cut preserves only physically held ordinary repair claims."""
++from types import SimpleNamespace
++
++import pandas as pd
++import pytest
++from test_account_schema_v3_integrity import SYMBOL, _position_state
++
++from uquant.account.codec import account_from_dict
++from uquant.config import DEFAULT_CONFIG
++from uquant.risk.assessment import _base_capital_stages
++from uquant.risk_sector import SectorGuardTransition
++
++
++def _case():
++    account = _position_state()
++    account.initial_cash, account.cash = 2000, 1000
++    account.capital_peak, account.operating_peak, account.deployed_peak = 3000, 2600, 2800
++    account.last_shock_date = '2023-04-27'
++    date = pd.Timestamp('2026-01-07')
++    panel = {SYMBOL: pd.DataFrame({'close': [10., 9.8]}, index=[date, date+pd.Timedelta(days=1)])}
++    market = SimpleNamespace(sector_guard=SectorGuardTransition(False,False,False,False,0,0,None),
++        held_damage_ratio=1, transition_damage=.8, votes=4, capital_dd=.3,
++        deployed_dd=.25, sector_stress=.5, operating_dd=.2)
++    recovery = SimpleNamespace(breaks=SimpleNamespace(strategic_active=False),
++                               anchor=SimpleNamespace(reference_break=False))
++    return account, date, panel, market, recovery
++
++
++def _assess(account, date, panel, market, recovery):
++    return _base_capital_stages(account=account, date=date, user_panel=panel,
++        equity=2000, cfg=DEFAULT_CONFIG, market=market, recovery=recovery)
++
++
++def test_new_capital_snapshot_survives_restart_without_rewriting_the_episode():
++    account, date, panel, market, recovery = _case()
++    peaks = account.capital_peak, account.operating_peak, account.deployed_peak
++    result = _assess(account, date, panel, market, recovery)
++    assert result.overlays.overlay_cap == pytest.approx(.255)
++    assert account.protected_weights == {SYMBOL: .5}
++    assert account.last_shock_date == account.shock_start_date == '2026-01-07'
++    assert account.positions[SYMBOL].shares == 100 and account.cash == 1000
++    assert (account.capital_peak, account.operating_peak, account.deployed_peak) == peaks
++    restored = account_from_dict(account.to_dict(), require_hashes=False)
++    _assess(restored, date+pd.Timedelta(days=1), panel, market, recovery)
++    assert restored.last_shock_date == '2026-01-07'
++    assert restored.protected_weights == {SYMBOL: .5}
++
++
++@pytest.mark.parametrize('condition', ['strategic', 'mixed', 'unreconciled', 'flat',
++    'no-current-row', 'small-exposure', 'no-current-crisis', 'existing-rights'])
++def test_capital_snapshot_does_not_invent_or_overwrite_rights(condition):
++    account, date, panel, market, recovery = _case()
++    if condition == 'strategic':
++        account.active_strategic_epoch_id = 'current'
++    elif condition == 'mixed':
++        account.positions[SYMBOL].tranches[0].epoch_id = 'old'
++    elif condition == 'unreconciled':
++        account.positions[SYMBOL].tranches[0].shares = 50
++    elif condition == 'flat':
++        account.positions.clear()
++    elif condition == 'no-current-row':
++        panel[SYMBOL] = panel[SYMBOL].iloc[1:]
++    elif condition == 'small-exposure':
++        panel[SYMBOL]['close'] = 2.
++    elif condition == 'no-current-crisis':
++        market.held_damage_ratio, market.transition_damage, market.votes = 0., .1, 0
++    else:
++        account.protected_weights = {'other': .3}
++    before = dict(account.protected_weights)
++    _assess(account, date, panel, market, recovery)
++    assert account.protected_weights == before
++    assert account.last_shock_date == '2023-04-27'
+diff --git a/tests/test_paired_strategic_crisis_cut.py b/tests/test_paired_strategic_crisis_cut.py
+new file mode 100644
+index 0000000..583312e
+--- /dev/null
++++ b/tests/test_paired_strategic_crisis_cut.py
+@@ -0,0 +1,34 @@
++"""The additional trim is limited to the physically owned restoration cohort."""
++import pytest
++
++from uquant.config import DEFAULT_CONFIG
++from uquant.risk.capital import apply_capital_overlays
++from uquant.types import AccountState, Position, Tranche
++
++
++@pytest.mark.parametrize('active,lot_epoch,owned_shares,observed,expected', [
++    ('current', 'current', 100, 4, .255),
++    ('current', 'current', 50, 4, .5),
++    ('current', 'old', 100, 4, .5),
++    ('', '', 100, 4, .5),
++    ('current', 'current', 100, 3, .5),
++])
++def test_additional_cut_requires_actual_current_epoch_lots(
++    active, lot_epoch, owned_shares, observed, expected
++):
++    account = AccountState.empty(1000)
++    account.active_strategic_epoch_id = active
++    account.capital_budget_level = 4
++    position = Position('arbitrary', shares=100, avg_cost=5)
++    position.tranches = [Tranche('held', 'CORE', owned_shares, 5, '2024-01-02',
++                                '2024-01-03', 5, epoch_id=lot_epoch)]
++    if owned_shares < 100:
++        position.tranches.append(Tranche('ordinary', 'CORE', 100-owned_shares, 5,
++                                        '2024-01-02', '2024-01-03', 5))
++    account.positions[position.symbol] = position
++    result = apply_capital_overlays(account=account, cfg=DEFAULT_CONFIG,
++        observed_budget_level=observed, transition_damage=.8, votes=4,
++        held_damage_ratio=1, deployed_dd=.25, strategic_damage_guard=False)
++    assert result.overlay_cap == pytest.approx(expected)
++    assert result.freeze_new_risk
++    assert account.positions[position.symbol].shares == 100
+diff --git a/tests/test_strategic_crisis_restoration.py b/tests/test_strategic_crisis_restoration.py
+new file mode 100644
+index 0000000..82f6956
+--- /dev/null
++++ b/tests/test_strategic_crisis_restoration.py
+@@ -0,0 +1,117 @@
++"""Crisis repair uses existing filled rights and settles within today's risk cap."""
++from dataclasses import asdict, replace
++
++import pytest
++from _causal_execution_fixtures import set_prior_session_volume
++from test_strategic_probe_holding import OWNER, _allocate, _filled_probe, _submit
++
++from uquant.account.codec import account_from_dict
++from uquant.config import DEFAULT_CONFIG
++from uquant.execution import ExecutionPlanner
++from uquant.types import Risk, RiskAssessment
++
++SYMBOLS = (OWNER,)
++
++
++def _decide(policy, account, date, panel, leaders, roles, *, risk=None):
++    previous = list(account.pending_orders)
++    targets = _allocate(policy, account, date, panel, leaders, roles, risk=risk)
++    _submit(account, targets, date, panel, previous=previous)
++    return targets
++
++
++def _compressed_cohort():
++    policy, account, dates, panel, leaders, roles = _filled_probe()
++    _decide(policy, account, dates[0], panel, leaders, roles)
++    ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[1], account=account, panel=panel)
++    _decide(policy, account, dates[1], panel, leaders, roles)
++    assert account.candidate_tenure["strategic_cohort_started"] == 1
++    hard = RiskAssessment(Risk.RISK_OFF, .255, 4, {}, ("fixture crisis",), "SHOCK",
++                          freeze_new_risk=True, reduction_level=2)
++    _decide(policy, account, dates[2], panel, leaders, roles, risk=hard)
++    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[3], account=account, panel=panel)
++    assert fills and all(fill.side == "SELL" for fill in fills)
++    assert account.strategic_restore_weights and all(p.shares > 0 for p in account.positions.values())
++    account.capital_budget_level = 3
++    repair = RiskAssessment(
++        Risk.CAUTION, .5, 1,
++        {"freeze_new_risk": True, "held_damage_ratio": 0., "transition_damage": .1,
++         "broad_ret20": .01, "tech_ret20": -.01},
++        ("portfolio capital damage",), "RECOVERY", freeze_new_risk=True,
++    )
++    return policy, account, dates[4:], panel, leaders, roles, repair
++
++
++@pytest.mark.parametrize("partial", (False, True))
++def test_crisis_repair_survives_restart_and_real_next_open_fills(partial):
++    policy, account, dates, panel, leaders, roles, risk = _compressed_cohort()
++    epochs = [e.epoch_id for e in account.strategic_epochs]
++    before = {s: p.shares for s, p in account.positions.items()}
++    targets = _decide(policy, account, dates[0], panel, leaders, roles, risk=risk)
++    assert sum(t.weight for t in targets) <= risk.target_gross_cap + 1e-12
++    assert any(o.side == "BUY" for o in account.pending_orders)
++    assert {s: p.shares for s, p in account.positions.items()} == before
++    restored = account_from_dict(asdict(account))
++    if partial:
++        for symbol in SYMBOLS:
++            set_prior_session_volume(panel[symbol], dates[1], 100_000.)
++    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[1], account=restored, panel=panel)
++    assert fills and all(fill.side == "BUY" and fill.shares > 0 for fill in fills)
++    assert [e.epoch_id for e in restored.strategic_epochs] == epochs
++    assert restored.cash >= 0
++    if partial:
++        assert any(o.remaining_shares > 0 for o in restored.pending_orders)
++        assert restored.strategic_restore_weights
++    restored = account_from_dict(asdict(restored))
++    frozen = replace(risk, evidence={**risk.evidence, "sentinel_freeze_new_risk": True})
++    _decide(policy, restored, dates[2], panel, leaders, roles, risk=frozen)
++    assert not any(o.side == "BUY" for o in restored.pending_orders)
++
++
++@pytest.mark.parametrize("missing", (
++    "date", "panel", "saved-right", "started", "held", "membership", "structure",
++    "sentinel", "sector", "held-health", "transition", "votes", "other-reason", "risk-off",
++))
++def test_crisis_repair_requires_current_health_and_existing_authority(missing):
++    policy, account, dates, panel, _, _, risk = _compressed_cohort()
++    date = dates[0]
++    if missing == "date":
++        date = None
++    elif missing == "panel":
++        panel = None
++    elif missing == "saved-right":
++        account.strategic_restore_weights.clear()
++    elif missing == "started":
++        account.candidate_tenure["strategic_cohort_started"] = 0
++    elif missing == "held":
++        account.positions.pop(SYMBOLS[0])
++    elif missing == "membership":
++        account.strategic_cohort_targets.pop(SYMBOLS[0])
++    elif missing == "structure":
++        panel[SYMBOLS[0]].loc[date, "ma60"] = 10000.
++    elif missing == "sentinel":
++        risk = replace(risk, evidence={**risk.evidence, "sentinel_freeze_new_risk": True})
++    elif missing == "sector":
++        account.sector_guard_active = True
++    elif missing == "held-health":
++        risk = replace(risk, evidence={**risk.evidence, "held_damage_ratio": .5})
++    elif missing == "transition":
++        risk = replace(risk, evidence={**risk.evidence, "transition_damage": 1.})
++    elif missing == "votes":
++        risk = replace(risk, votes=2)
++    elif missing == "other-reason":
++        risk = replace(risk, reasons=("independent current damage",))
++    else:
++        risk = replace(risk, state=Risk.RISK_OFF)
++    assert not policy._bounded_strategic_restore_risk_open(
++        risk=risk, account=account, date=date, user_panel=panel,
++    )
++
++
++@pytest.mark.parametrize('broad,tech,permitted', [(-.01,-.02,False), (0.,-.02,True),
++    (-.02,.01,True), (None,.01,False), (float('nan'),.01,False), (True,.01,False)])
++def test_new_current_cohort_repair_exception_needs_independent_market(broad, tech, permitted):
++    policy, account, dates, panel, _, _, risk = _compressed_cohort()
++    risk.evidence.update(broad_ret20=broad, tech_ret20=tech)
++    assert policy._bounded_strategic_restore_risk_open(
++        risk=risk, account=account, date=dates[0], user_panel=panel) is permitted
+diff --git a/uquant/portfolio/pipeline.py b/uquant/portfolio/pipeline.py
+index cbf5590..b6db08e 100644
+--- a/uquant/portfolio/pipeline.py
++++ b/uquant/portfolio/pipeline.py
+@@ -1322,7 +1322,7 @@ def _allocate_strategy(
+         cash_room,
+     )
+     bounded_restore = self._bounded_strategic_restore_risk_open(
+-        risk=risk, account=account
++        risk=risk, account=account, date=date, user_panel=user_panel,
+     ) or strategic_cash_rearm_grant_open(account=account, risk=risk, cfg=self.cfg)
+     liabilities = assess_strategic_capital_authority(account).late_fill_order_ids
+     _fund_strategic_owners(book, frozen=frozen, bounded_restore=bounded_restore, unresolved=bool(liabilities))
+diff --git a/uquant/portfolio/strategic/discovery.py b/uquant/portfolio/strategic/discovery.py
+index 1aabe37..d559b58 100644
+--- a/uquant/portfolio/strategic/discovery.py
++++ b/uquant/portfolio/strategic/discovery.py
+@@ -73,10 +73,15 @@ from .rearm import (
+ class StrategicPortfolioPolicy(PortfolioCore):
+     """Discover, protect, trail, and retire a causal strategic cohort."""
+ 
+-    def _bounded_strategic_restore_risk_open(self, *, risk: RiskAssessment, account: AccountState) -> bool:
++    def _bounded_strategic_restore_risk_open(
++        self, *, risk: RiskAssessment, account: AccountState,
++        date: pd.Timestamp | None = None, user_panel: dict[str, pd.DataFrame] | None = None,
++    ) -> bool:
+         from .lifecycle import bounded_strategic_restore_risk_open
+ 
+-        return bounded_strategic_restore_risk_open(self, risk=risk, account=account)
++        return bounded_strategic_restore_risk_open(
++            self, risk=risk, account=account, date=date, user_panel=user_panel,
++        )
+ 
+     @staticmethod
+     def _retire_strategic_member(account: AccountState, symbol: str) -> None:
+diff --git a/uquant/portfolio/strategic/lifecycle.py b/uquant/portfolio/strategic/lifecycle.py
+index 635872d..8690c95 100644
+--- a/uquant/portfolio/strategic/lifecycle.py
++++ b/uquant/portfolio/strategic/lifecycle.py
+@@ -72,6 +72,8 @@ def _bounded_strategic_restore_risk_open(
+     *,
+     risk: RiskAssessment,
+     account: AccountState,
++    date: pd.Timestamp | None = None,
++    user_panel: dict[str, pd.DataFrame] | None = None,
+ ) -> bool:
+     """Permit only a saved cohort repair inside the explicit risk cap."""
+ 
+@@ -102,7 +104,31 @@ def _bounded_strategic_restore_risk_open(
+         and risk.votes <= 1
+         and (transition_damage <= self.cfg.transition_damage_repair or live_book_recovered)
+     )
+-    return reason_clean_level2 or repaired_caution
++    market = [risk.evidence.get(key) for key in ("broad_ret20", "tech_ret20")]
++    market_repaired = bool(
++        all(isinstance(value, (int, float)) and not isinstance(value, bool)
++            and math.isfinite(value) for value in market)
++        and max(market) >= self.cfg.strategic_transition_impulse_min_market_ret20
++    )
++    current_cohort_repair = bool(
++        date is not None and user_panel is not None
++        and market_repaired
++        and risk.state.value in {"NORMAL", "CAUTION"}
++        and set(risk.reasons) <= {"portfolio capital damage"}
++        and risk.votes <= 1 and account.chronic_level == 0
++        and account.capital_budget_level >= 2
++        and not account.sector_guard_active
++        and not risk.evidence.get("sector_guard_active", False)
++        and risk.evidence.get("held_damage_ratio") == 0.0
++        and transition_damage <= self.cfg.transition_damage_repair
++        and all(
++            symbol in account.strategic_cohort_targets
++            and symbol in account.positions and account.positions[symbol].shares > 0
++            and symbol in user_panel and self._structure_ok(user_panel[symbol], date)
++            for symbol in account.strategic_restore_weights
++        )
++    )
++    return reason_clean_level2 or repaired_caution or current_cohort_repair
+ 
+ 
+ def _retire_strategic_member(account: AccountState, symbol: str) -> None:
+@@ -538,7 +564,9 @@ def _strategic_restore_confirmed(ctx: _StrategicLifecycleContext) -> tuple[bool,
+             and not risk.evidence.get("freeze_new_risk", False)
+         )
+     )
+-    bounded = self._bounded_strategic_restore_risk_open(risk=risk, account=ctx.account)
++    bounded = self._bounded_strategic_restore_risk_open(
++        risk=risk, account=ctx.account, date=ctx.date, user_panel=ctx.user_panel,
++    )
+     guard_repaired = bool(
+         not (ctx.damage_guard_active or ctx.damage_trim_active)
+         or bounded
+diff --git a/uquant/risk/assessment.py b/uquant/risk/assessment.py
+index 7731d44..e0575b5 100644
+--- a/uquant/risk/assessment.py
++++ b/uquant/risk/assessment.py
+@@ -31,8 +31,10 @@ from .market_book import MarketBookEvidence, assess_market_and_book_evidence
+ from .protected_recovery import (
+     assess_protected_recovery as _assess_protected_recovery,
+ )
++from .protected_recovery import capture_protected_holdings
+ from .pullback import authorize_pullback_entry
+ from .recovery_state import assess_recovery_state as _assess_recovery_state
++from .recovery_state import reset_recovery_owner_rearm
+ from .strategic_guard import update_strategic_damage_guard as _update_strategic_damage_guard
+ from .transition_resolution import resolve_risk_transition as _resolve_risk_transition
+ from .transitions import (
+@@ -180,6 +182,9 @@ def _base_capital_stages(
+     cfg: SystemConfig,
+     market: MarketBookEvidence,
+     recovery: _BaseRecoveryStages,
++    date: pd.Timestamp,
++    user_panel: dict[str, pd.DataFrame],
++    equity: float,
+ ) -> _BaseCapitalStages:
+     breaks = recovery.breaks
+     observation = _observe_capital_budget(
+@@ -202,6 +207,27 @@ def _base_capital_stages(
+         votes=market.votes,
+         cfg=cfg,
+     )
++    held = [p for p in account.positions.values() if p.shares > 0]
++    ordinary = bool(
++        observation.observed_budget_level >= 4
++        and not account.active_strategic_epoch_id and len(held) == 1
++        and not held[0].epoch_id and not held[0].grant_id
++        and sum(t.shares for t in held[0].tranches if not t.epoch_id and not t.grant_id) == held[0].shares
++    )
++    if ordinary and not account.protected_weights:
++        symbol = held[0].symbol
++        frame = user_panel.get(symbol)
++        # Snapshot only physical exposure which this confirmed capital cut
++        # would reduce. Existing recovery gates still own any later addition.
++        if (frame is not None and date in frame.index and equity > 0
++                and held[0].shares * float(frame.loc[date, "close"]) / equity > cfg.concentrated_crisis_gross):
++            reset_recovery_owner_rearm(account)
++            capture_protected_holdings(
++                account=account, date=date, user_panel=user_panel, equity=equity, use_anchors=False,
++            )
++            account.shock_start_date = str(date.date())
++            account.last_shock_date = str(date.date())
++            account.candidate_tenure["last_shock_incomplete_universe"] = 0
+     overlays = _apply_capital_overlays(
+         account=account,
+         cfg=cfg,
+@@ -520,7 +546,10 @@ def _assess_base_risk(
+         cfg=cfg,
+         market=market,
+     )
+-    capital = _base_capital_stages(account=account, cfg=cfg, market=market, recovery=recovery)
++    capital = _base_capital_stages(
++        account=account, cfg=cfg, market=market, recovery=recovery,
++        date=date, user_panel=user_panel, equity=equity,
++    )
+     continuous = _continuous_risk_evidence(
+         account=account,
+         market=market,
+diff --git a/uquant/risk/capital.py b/uquant/risk/capital.py
+index 06ef4ee..c6531d3 100644
+--- a/uquant/risk/capital.py
++++ b/uquant/risk/capital.py
+@@ -5,6 +5,7 @@ from __future__ import annotations
+ from dataclasses import dataclass
+ 
+ from ..config import SystemConfig
++from ..holding_history import holding_spans_date
+ from ..risk_sector import SectorGuardTransition
+ from ..types import AccountState
+ from .strategic_guard import (
+@@ -151,11 +152,19 @@ def _observed_capital_budget_level(
+     cfg: SystemConfig,
+ ) -> int:
+     if (
+-        capital_dd >= cfg.capital_dd_crisis
+-        and worsening_damage
+-        and votes >= 4
+-        and sector_stress >= 0.50
+-        and transition_damage >= 0.68
++        worsening_damage
++        and (
++            # Confirmed damage to continuous deployed capital owns its risk
++            # budget even when unrelated industries remain healthy. Historical
++            # cash losses alone still require the existing systemic evidence.
++            deployed_dd >= cfg.capital_dd_crisis
++            or (
++                capital_dd >= cfg.capital_dd_crisis
++                and votes >= 4
++                and sector_stress >= 0.50
++                and transition_damage >= 0.68
++            )
++        )
+     ):
+         return 4
+     if (
+@@ -304,6 +313,23 @@ def _apply_capital_overlays(
+     )
+     if account.capital_budget_level >= 4:
+         overlay_cap = min(overlay_cap, cfg.market_crisis_gross)
++        held = [position for position in account.positions.values() if position.shares > 0]
++        ordinary_repair_paired = bool(
++            not account.active_strategic_epoch_id and len(held) == 1
++            and not held[0].epoch_id and not held[0].grant_id
++            and sum(t.shares for t in held[0].tranches if not t.epoch_id and not t.grant_id) == held[0].shares
++            and account.protected_weights.get(held[0].symbol, 0) > 0
++            and holding_spans_date(account, held[0].symbol, account.last_shock_date)
++        )
++        # The additional cut is paired with the existing strategic-cohort
++        # restoration. Ordinary holdings need a saved physical protection
++        # episode; this overlay does not create those repair claims.
++        if (observed_budget_level >= 4 and len(held) == 1
++                and (ordinary_repair_paired or (
++                    account.active_strategic_epoch_id
++                    and sum(t.shares for t in held[0].tranches
++                            if t.epoch_id == account.active_strategic_epoch_id) == held[0].shares))):
++            overlay_cap = min(overlay_cap, cfg.concentrated_crisis_gross)
+     elif account.capital_budget_level >= 3:
+         overlay_cap = min(overlay_cap, cfg.capital_budget_level3_cap)
+     elif account.capital_budget_level >= 2:

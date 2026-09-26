@@ -1,0 +1,113 @@
+diff --git a/tests/test_strategic_crisis_restoration.py b/tests/test_strategic_crisis_restoration.py
+new file mode 100644
+index 0000000..b5e0ff7
+--- /dev/null
++++ b/tests/test_strategic_crisis_restoration.py
+@@ -0,0 +1,107 @@
++"""Crisis repair uses existing filled rights and settles within today's risk cap."""
++from dataclasses import asdict, replace
++
++import pytest
++from _causal_execution_fixtures import set_prior_session_volume
++from test_strategic_probe_holding import OWNER, _allocate, _filled_probe, _submit
++
++from uquant.account.codec import account_from_dict
++from uquant.config import DEFAULT_CONFIG
++from uquant.execution import ExecutionPlanner
++from uquant.types import Risk, RiskAssessment
++
++SYMBOLS = (OWNER,)
++
++
++def _decide(policy, account, date, panel, leaders, roles, *, risk=None):
++    previous = list(account.pending_orders)
++    targets = _allocate(policy, account, date, panel, leaders, roles, risk=risk)
++    _submit(account, targets, date, panel, previous=previous)
++    return targets
++
++
++def _compressed_cohort():
++    policy, account, dates, panel, leaders, roles = _filled_probe()
++    _decide(policy, account, dates[0], panel, leaders, roles)
++    ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[1], account=account, panel=panel)
++    _decide(policy, account, dates[1], panel, leaders, roles)
++    assert account.candidate_tenure["strategic_cohort_started"] == 1
++    hard = RiskAssessment(Risk.RISK_OFF, .255, 4, {}, ("fixture crisis",), "SHOCK",
++                          freeze_new_risk=True, reduction_level=2)
++    _decide(policy, account, dates[2], panel, leaders, roles, risk=hard)
++    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[3], account=account, panel=panel)
++    assert fills and all(fill.side == "SELL" for fill in fills)
++    assert account.strategic_restore_weights and all(p.shares > 0 for p in account.positions.values())
++    account.capital_budget_level = 3
++    repair = RiskAssessment(
++        Risk.CAUTION, .5, 1,
++        {"freeze_new_risk": True, "held_damage_ratio": 0., "transition_damage": .1},
++        ("portfolio capital damage",), "RECOVERY", freeze_new_risk=True,
++    )
++    return policy, account, dates[4:], panel, leaders, roles, repair
++
++
++@pytest.mark.parametrize("partial", (False, True))
++def test_crisis_repair_survives_restart_and_real_next_open_fills(partial):
++    policy, account, dates, panel, leaders, roles, risk = _compressed_cohort()
++    epochs = [e.epoch_id for e in account.strategic_epochs]
++    before = {s: p.shares for s, p in account.positions.items()}
++    targets = _decide(policy, account, dates[0], panel, leaders, roles, risk=risk)
++    assert sum(t.weight for t in targets) <= risk.target_gross_cap + 1e-12
++    assert any(o.side == "BUY" for o in account.pending_orders)
++    assert {s: p.shares for s, p in account.positions.items()} == before
++    restored = account_from_dict(asdict(account))
++    if partial:
++        for symbol in SYMBOLS:
++            set_prior_session_volume(panel[symbol], dates[1], 100_000.)
++    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[1], account=restored, panel=panel)
++    assert fills and all(fill.side == "BUY" and fill.shares > 0 for fill in fills)
++    assert [e.epoch_id for e in restored.strategic_epochs] == epochs
++    assert restored.cash >= 0
++    if partial:
++        assert any(o.remaining_shares > 0 for o in restored.pending_orders)
++        assert restored.strategic_restore_weights
++    restored = account_from_dict(asdict(restored))
++    frozen = replace(risk, evidence={**risk.evidence, "sentinel_freeze_new_risk": True})
++    _decide(policy, restored, dates[2], panel, leaders, roles, risk=frozen)
++    assert not any(o.side == "BUY" for o in restored.pending_orders)
++
++
++@pytest.mark.parametrize("missing", (
++    "date", "panel", "saved-right", "started", "held", "membership", "structure",
++    "sentinel", "sector", "held-health", "transition", "votes", "other-reason", "risk-off",
++))
++def test_crisis_repair_requires_current_health_and_existing_authority(missing):
++    policy, account, dates, panel, _, _, risk = _compressed_cohort()
++    date = dates[0]
++    if missing == "date":
++        date = None
++    elif missing == "panel":
++        panel = None
++    elif missing == "saved-right":
++        account.strategic_restore_weights.clear()
++    elif missing == "started":
++        account.candidate_tenure["strategic_cohort_started"] = 0
++    elif missing == "held":
++        account.positions.pop(SYMBOLS[0])
++    elif missing == "membership":
++        account.strategic_cohort_targets.pop(SYMBOLS[0])
++    elif missing == "structure":
++        panel[SYMBOLS[0]].loc[date, "ma60"] = 10000.
++    elif missing == "sentinel":
++        risk = replace(risk, evidence={**risk.evidence, "sentinel_freeze_new_risk": True})
++    elif missing == "sector":
++        account.sector_guard_active = True
++    elif missing == "held-health":
++        risk = replace(risk, evidence={**risk.evidence, "held_damage_ratio": .5})
++    elif missing == "transition":
++        risk = replace(risk, evidence={**risk.evidence, "transition_damage": 1.})
++    elif missing == "votes":
++        risk = replace(risk, votes=2)
++    elif missing == "other-reason":
++        risk = replace(risk, reasons=("independent current damage",))
++    else:
++        risk = replace(risk, state=Risk.RISK_OFF)
++    assert not policy._bounded_strategic_restore_risk_open(
++        risk=risk, account=account, date=date, user_panel=panel,
++    )

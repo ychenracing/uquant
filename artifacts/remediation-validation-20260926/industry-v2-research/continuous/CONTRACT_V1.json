@@ -1,0 +1,315 @@
+{
+  "contract_id": "pr92-v2-continuous-20260926-v1",
+  "base_head": "a69e3c4f08950106750f92dd3c85261c1351e341",
+  "authorization_sha256": "d5749c45c4f721428e36fb82a0acf19a2752c3fa86c38571e7b660feb22cd055",
+  "anchor": "C3 fixed; never reset after candidate promotion",
+  "anchor_economic_source_sha256": "d3920c53d8db0f6c21d4dd181582b723ced13ff73308f1d93644929e0706c50a",
+  "anchor_effective_config_sha256": "ea21dfa8f41b97d86d467a871650c577c69cced7787748b02738a90297b0830d",
+  "baseline_v2": "0e7f49e89ef27b02db0be6cefc6f582a69ebf469",
+  "main_migration_baseline": "93d1ebfe2e879cfff9ad9c15a043e7b92b0c598c",
+  "limits": {
+    "per_account_wealth_ratio_min": 0.95,
+    "per_account_drawdown_increase_max": 0.01,
+    "weighted_geometric_wealth_ratio_min": 0.98,
+    "weighted_mean_drawdown_increase_max": 0.0,
+    "pure_degradation_weight_max": 0.2
+  },
+  "equality": {
+    "wealth_absolute_tolerance": 1e-12,
+    "drawdown_absolute_tolerance": 1e-12,
+    "source": "restored/compare_pr92_full_matrices.py; material improvement additionally needs event evidence; absolute gates retain their own precision"
+  },
+  "classification": {
+    "unchanged": "both differences within tolerance",
+    "improvement": "wealth nondecreasing and drawdown nonincreasing, at least one exceeds tolerance; causal evidence required",
+    "pure_degradation": "wealth nonincreasing and drawdown nondecreasing, at least one exceeds tolerance",
+    "controlled_exchange": "opposite material directions; preregistered economic purpose required; never counted unchanged or unconditionally improved"
+  },
+  "weighting": {
+    "families": [
+      "full_removal",
+      "random",
+      "tradable_subset",
+      "stress",
+      "short_start",
+      "full"
+    ],
+    "deduplication": "canonical request_id across all suites, before outcome; identical request with differing baseline metrics is an error",
+    "family_priority": [
+      "full_removal",
+      "random",
+      "tradable_subset",
+      "stress",
+      "short_start",
+      "full"
+    ],
+    "within_family": "equal unique request weights",
+    "between_families": "equal over six preregistered families",
+    "unsupported_family_or_missing_request": "incomplete; no final pass",
+    "duplicate_aliases": "all remain visible and retain their suite-specific hard gates"
+  },
+  "coverage": {
+    "registered_account_aliases": 240,
+    "registered_unique_requests": 240,
+    "family_counts": {
+      "random": 120,
+      "tradable_subset": 66,
+      "short_start": 39,
+      "stress": 6,
+      "full": 6,
+      "full_removal": 3
+    },
+    "additional_required": "All 34 Absolute LOO requests and all native Ownership stress/recovery requests retain their frozen membership; add source-bound C3 metrics before final aggregation, never select by candidate outcome. This initial panel cannot issue final acceptance."
+  },
+  "opportunity_audit": {
+    "source": "unchanged C3 current_core_qualification and ordinary_core_entry plus recorded candidate certificates",
+    "opportunity": "independently qualified eligible tradable challenger, distinct from owner, causal evidence known on decision day; record permissions/funds/settlement separately from qualification",
+    "healthy_owner": "do not force rotation",
+    "missing_full_trace": "unknown, never proof of no opportunity",
+    "change_rule": "retain opportunity list under C3 and report revised qualification separately"
+  },
+  "relative_replacements": [
+    {
+      "old": "Economic per-cell wealth/DD/orders/turnover vs cf8fecff; Performance champion-relative wealth/DD/acute vs 9bb58420",
+      "new": "fixed C3 request-level budgets plus six-family aggregate; preserve old verdict separately",
+      "hard_risk_tail_capacity": "unchanged"
+    }
+  ],
+  "configuration_migration": {
+    "rule": "exact recorded from/to full effective config, exact delta, explicit authorization, unknown changes fail closed",
+    "behavior_equivalent": false,
+    "legacy_champion_identity": "never overwrite or relabel",
+    "activated": false
+  },
+  "implementation_status": "Preregistered contract and C3 reference. Existing production acceptance is unchanged until shared policy wiring and its independent checks are completed; this file alone does not make CI pass.",
+  "reference_files": [
+    {
+      "path": "requests-00.json",
+      "bytes": 26353,
+      "sha256": "0f3553967c4d0cadba943589320dc71496cefa01fb2ee1aa410545828c9fce77",
+      "items": 12
+    },
+    {
+      "path": "requests-01.json",
+      "bytes": 25984,
+      "sha256": "53fe0fd891a1e13d757e16618837524e78bc272ed6375f13a07c5877194fd7be",
+      "items": 12
+    },
+    {
+      "path": "requests-02.json",
+      "bytes": 26343,
+      "sha256": "5e2b97b778acd8fc16a3211916a2c555ce71a44264be34300f167d9ec073ca05",
+      "items": 12
+    },
+    {
+      "path": "requests-03.json",
+      "bytes": 27152,
+      "sha256": "2faa17a6c5d8b7bd5452f3869b50157e4fe777c1ffb6c083f4ce5968d30249aa",
+      "items": 12
+    },
+    {
+      "path": "requests-04.json",
+      "bytes": 26189,
+      "sha256": "c9ad13ff049e511cf09320a7853293fad02508fc414466bfd2174b4b927750f0",
+      "items": 12
+    },
+    {
+      "path": "requests-05.json",
+      "bytes": 26111,
+      "sha256": "0b5516ca1ecfb93b096d5b0902e484ac961d946d34e92530ee09c9e6304877af",
+      "items": 12
+    },
+    {
+      "path": "requests-06.json",
+      "bytes": 25435,
+      "sha256": "e7705ba691aded74f2b0b912ceb29a407f30853533bf360dc1da7092878d9b42",
+      "items": 12
+    },
+    {
+      "path": "requests-07.json",
+      "bytes": 26813,
+      "sha256": "6d8153374112cfff36155f7b19e6262dc27dd346c3cda4d837c0c4a70af18403",
+      "items": 12
+    },
+    {
+      "path": "requests-08.json",
+      "bytes": 26348,
+      "sha256": "a737cd03e8cfe43a53161056993bd310d446d9ed5e14d21c198759d5d5a8c1b9",
+      "items": 12
+    },
+    {
+      "path": "requests-09.json",
+      "bytes": 26714,
+      "sha256": "4c15716b5fc5b2445d0607a71081fe487afcfe35c643677cc49ca49ecf0aa094",
+      "items": 12
+    },
+    {
+      "path": "requests-10.json",
+      "bytes": 26053,
+      "sha256": "19e228c266acf682e8ea414f679375f7312b7fd57d405957bb47511bd4879a98",
+      "items": 12
+    },
+    {
+      "path": "requests-11.json",
+      "bytes": 26749,
+      "sha256": "803617352e376c655dc47af7292add8a768e09b2f23dc3f2bf9a2dd929fa66b6",
+      "items": 12
+    },
+    {
+      "path": "requests-12.json",
+      "bytes": 26861,
+      "sha256": "48a649b4f69d860f21e494887222bebbd2f6a8aa65aab06c75e7e888a9a2e201",
+      "items": 12
+    },
+    {
+      "path": "requests-13.json",
+      "bytes": 26328,
+      "sha256": "72c24f3504430d6cbccfc7ea8da50313ee50ee204064a60a9c24c5b1ae7ed64e",
+      "items": 12
+    },
+    {
+      "path": "requests-14.json",
+      "bytes": 25923,
+      "sha256": "aa138ee28b365fc887874f54683859d1164d50f84ac27bde35c234b7cc7f7992",
+      "items": 12
+    },
+    {
+      "path": "requests-15.json",
+      "bytes": 25895,
+      "sha256": "51c5c2b58e474f69f0bc395688ab81e1c3cf3b7a38c4d0f8862d06614db3d890",
+      "items": 12
+    },
+    {
+      "path": "requests-16.json",
+      "bytes": 25538,
+      "sha256": "822a644eec12687aa7cebd067b16d38726bb18d3b27b7c7fda166ddda2d7494b",
+      "items": 12
+    },
+    {
+      "path": "requests-17.json",
+      "bytes": 26114,
+      "sha256": "1b4d9d5e6a539d596265c7bcd320390b7d3c1f7529b34abc19e7e3ddfeb8756c",
+      "items": 12
+    },
+    {
+      "path": "requests-18.json",
+      "bytes": 26077,
+      "sha256": "5396c23da9c147af259ef491913d0089542fd719763b4dee32119b9c01bae09e",
+      "items": 12
+    },
+    {
+      "path": "requests-19.json",
+      "bytes": 27111,
+      "sha256": "ae0ba36b0362baa8b025bd028f3c3a323d5c24a9c9c1aeeb3b1df301a1420766",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-00.json",
+      "bytes": 2266,
+      "sha256": "8c8fb3503b9ec040acbefbeb16fbccb6961c8bcfba23d1c8a037ba7400e86965",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-01.json",
+      "bytes": 2320,
+      "sha256": "68d331c77e21cf775477c5c8ea5b580fed24309c427e5691f64e7ed8cc7ac5d8",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-02.json",
+      "bytes": 2355,
+      "sha256": "5e410d91544069553fb01a66bf4359fe8dbdcb900a1a0d933be5456f90148857",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-03.json",
+      "bytes": 2267,
+      "sha256": "5066875a7910e6daeec5bf6d00d9840a9f388ebec326c4976fb075a2e12b8a57",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-04.json",
+      "bytes": 2273,
+      "sha256": "879c2a3467e3238a4eb2d6148686b9662d6d245ce1100681e7afcfa4c4fd638d",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-05.json",
+      "bytes": 2386,
+      "sha256": "87d5486c682b9817df52b811f2169666be96fe21a70cdeac12d32109439786e6",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-06.json",
+      "bytes": 2288,
+      "sha256": "45f1f575b3365eedad2d85ff6891bd250e4dd4998672c3a4835f757e3405339a",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-07.json",
+      "bytes": 2271,
+      "sha256": "0478b6d47bf9fa835a401850a8ff6155628b79b0aa2a8827ee8b8a803ec40181",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-08.json",
+      "bytes": 2365,
+      "sha256": "49ce3866f203b2dda5314d4c7dbaa9cdd704b0a5e7a2fe4e732f4b21bd2b8951",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-09.json",
+      "bytes": 2311,
+      "sha256": "e85d822696cdd61f7a037e4b1831abffe6a4aca9aa353de9d255c3b25c976ef8",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-10.json",
+      "bytes": 2266,
+      "sha256": "50dee781b90b551713433083a3b75096ccd152ae9bf49ea3e7f5b6cfb35dcb0a",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-11.json",
+      "bytes": 2320,
+      "sha256": "6d9c152c3c176fbedf1fd64a813488f233982a377bb88db1eb009e9d8a956454",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-12.json",
+      "bytes": 2355,
+      "sha256": "8fcaeed824abf017bf3b514270137d505a9175450c6700d514d7ca73996a1e93",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-13.json",
+      "bytes": 2272,
+      "sha256": "f18e63173b5e5271cc4642b3b8129a8f58e267c3b40c52feec5be57f7fbcbf48",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-14.json",
+      "bytes": 2270,
+      "sha256": "c401ddb7279b7b87874cd5b4c16611685b1180551b77ebf70a2403e09b7b5dcf",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-15.json",
+      "bytes": 2387,
+      "sha256": "5758acbb74c32c0b8bb399393713cbb4fb4c364c0ad77147d98b0ca1ef3a27fa",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-16.json",
+      "bytes": 3853,
+      "sha256": "e9c611105ed2afcdcab6d4af8b2c999e17f360ebed367c714085a23f06f8acf6",
+      "items": 12
+    },
+    {
+      "path": "hard-rules-17.json",
+      "bytes": 1030,
+      "sha256": "bb3f708c960cd88ad47328f2150d1d9244e659f2e504e04011995300e7f98e2c",
+      "items": 1
+    }
+  ]
+}

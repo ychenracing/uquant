@@ -55,6 +55,7 @@ _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
         "uquant.validation.production_observation",
         "uquant.validation.production_observation_contract",
         "uquant.validation.promotion_contract",
+        "uquant.validation.pr92_tradeoffs",
         "uquant.validation.parameter_policy",
     }
 )

@@ -184,6 +184,7 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/validation/production_observation.py",
         "uquant/validation/production_observation_contract.py",
         "uquant/validation/promotion_contract.py",
+        "uquant/validation/pr92_tradeoffs.py",
         "uquant/validation/statistics.py",
     }
 )
@@ -278,16 +279,26 @@ _CURRENT_RESOURCE_PATHS = {
     ),
 }
 
+_PR92_REFERENCE_ROOT = "artifacts/remediation-validation-20260926/industry-v2-research/continuous"
+_PR92_REFERENCE_RESOURCES = frozenset({
+    f"{_PR92_REFERENCE_ROOT}/CONTRACT_V1.json",
+    f"{_PR92_REFERENCE_ROOT}/C3_NATIVE_REQUESTS.json",
+    f"{_PR92_REFERENCE_ROOT}/C3_OPPORTUNITY_AUDIT.json",
+    *(f"{_PR92_REFERENCE_ROOT}/hard-rules-{index:02d}.json" for index in range(18)),
+    *(f"{_PR92_REFERENCE_ROOT}/requests-{index:02d}.json" for index in range(20)),
+})
+
 _RESOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
-    "economic_decision_v1": frozenset(),
+    "economic_decision_v1": frozenset({"benchmarks/pr92_v2_config_migration.json"}),
     "execution_account_v1": frozenset(),
     "sentinel_v1": frozenset(),
     "validation_runner_v1": frozenset(
         {
             "benchmarks/absolute_generalization_acceptance_contract.json",
             "benchmarks/cross_ai_ownership_participation_overlay.json",
+            "benchmarks/pr92_v2_config_migration.json",
         }
-    ),
+    ) | _PR92_REFERENCE_RESOURCES,
     "full_package_v1": frozenset(),
 }
 

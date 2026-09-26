@@ -808,8 +808,10 @@ def _evaluation_report(
         "replay_error_cells": state.replay_errors,
         "intrinsic_results": state.intrinsic_results,
         "random_tail_results": state.tail_results,
-        "relative_policy": acceptance_basis() if state.c3_reference is not None else None,
-        "fixed_c3_comparisons": state.c3_comparisons,
-        "legacy_relative_failures": state.legacy_relative_failures,
+        **({
+            "relative_policy": acceptance_basis(),
+            "fixed_c3_comparisons": state.c3_comparisons,
+            "legacy_relative_failures": state.legacy_relative_failures,
+        } if state.c3_reference is not None else {}),
         "failures": state.failures,
     }

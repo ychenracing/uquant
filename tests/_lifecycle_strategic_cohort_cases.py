@@ -199,6 +199,8 @@ def test_synchronized_reversal_is_tagged_as_emerging_secular() -> None:
         1,
         {
             "tech_ret120": -0.10,
+            "broad_ret20": 0.01,
+            "tech_ret20": -0.01,
             "risk_anchor_symbols": [],
             "risk_anchor_group_count": 0,
         },
@@ -281,6 +283,8 @@ def test_decisive_synchronized_reversal_concentrates_one_dominant_owner(
         1,
         {
             "tech_ret120": -0.10,
+            "broad_ret20": 0.01,
+            "tech_ret20": -0.01,
             "risk_anchor_symbols": [],
             "risk_anchor_group_count": 0,
             "configured_user_universe_size": configured_universe_size,
@@ -362,7 +366,8 @@ def test_ordinary_factor_cohort_still_waits_for_dynamic_anchors_to_arm() -> None
     assert account.strategic_epoch == 0
     assert account.candidate_tenure["strategic_cohort_qualification"] == 0
 
-def test_weak_regime_can_admit_the_dynamic_persistent_industry_route() -> None:
+@pytest.mark.parametrize("broad_ret20", (-0.08, 0.0))
+def test_weak_regime_can_admit_the_dynamic_persistent_industry_route(broad_ret20: float) -> None:
     dates = pd.bdate_range("2023-01-02", periods=246)
     frame = _strategic_frame(dates)
     symbols = ("weak_sync_a", "weak_sync_b", "weak_sync_c")
@@ -377,7 +382,7 @@ def test_weak_regime_can_admit_the_dynamic_persistent_industry_route() -> None:
         1,
         {
             "breadth20": 0.40,
-            "broad_ret20": -0.08,
+            "broad_ret20": broad_ret20,
             "tech_ret20": -0.10,
             "broad_ret120": -0.15,
             "tech_ret120": -0.18,
@@ -402,6 +407,11 @@ def test_weak_regime_can_admit_the_dynamic_persistent_industry_route() -> None:
             prices={symbol: float(frame.loc[date, "close"]) for symbol in symbols},
         )
 
+    if broad_ret20 < 0:
+        assert not account.strategic_qualification.qualification_ready
+        assert not account.strategic_grant and not account.strategic_epochs
+        assert not targets and not account.pending_orders and not account.positions
+        return
     _assert_unfilled_strategic_probe(account)
     assert {target.symbol for target in targets if target.weight > 0} == set(symbols)
     assert account.strategic_candidate_signature.startswith(

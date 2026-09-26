@@ -45,7 +45,8 @@ def test_small_champion_replay_uses_real_next_open_and_sealed_evidence(tmp_path:
     assert hashlib.sha256(account_path.read_bytes()).hexdigest() == result["final_account_sha256"]
     account = load_account(account_path)
     assert account.fills
-    assert account.fills[0].fill_date == "2023-01-05"
+    assert account.fills[0].signal_date == "2023-01-05"
+    assert account.fills[0].fill_date == "2023-01-06"
     assert len({fill.fill_date for fill in account.fills}) > 1
     # A partial BUY can fill across sessions under one original economic order.
     assert len(account.order_ledger) == len({order.symbol for order in account.order_ledger})

@@ -10,9 +10,10 @@ from collections.abc import Iterable, Mapping, Sequence, Set
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
-from typing import cast
+from typing import Any, cast
 
 from uquant.contracts.strict_json import canonical_json_sha256
+from uquant.validation.pr92_tradeoffs import compare_c3_subset
 
 from ._acceptance_evidence import (
     validate_champion_evidence,
@@ -882,10 +883,60 @@ def aggregate_acceptance(
     return report
 
 
+def aggregate_c3_acceptance(
+    shard_manifests: Iterable[Mapping[str, object]],
+    contract: AbsoluteGeneralizationContract,
+    *,
+    upstream_success: bool = True,
+    upstream_failure_codes: Sequence[str] = (),
+) -> AcceptanceReport:
+    """Native final gate: retain seven absolute components and add C3 budgets.
+
+    The literal-policy evaluator remains usable for historical re-evaluation.
+    This entrypoint first authenticates every native raw account, then binds
+    the new per-account decisions into the existing complete-metrics component.
+    Whole-matrix six-family acceptance is an additional cross-suite obligation.
+    """
+    accounts: dict[str, Mapping[str, Any]] = {}
+
+    def observe() -> Iterable[Mapping[str, object]]:
+        for manifest in shard_manifests:
+            # Retain scalars only; six full LOO shards cannot coexist in memory.
+            accounts.update(
+                (f"absolute:{raw['cell_id']}", {
+                    key: raw["metrics"][key] for key in ("final_wealth", "max_drawdown")})
+                for raw in cast(Sequence[Mapping[str, Any]], manifest.get("cells", ()))
+                if isinstance(raw.get("metrics"), Mapping)
+            )
+            champion = manifest.get("champion")
+            if isinstance(champion, Mapping):
+                accounts["ownership:champion-5"] = {
+                    key: champion["metrics"][key] for key in ("final_wealth", "max_drawdown")}
+            yield manifest
+            del manifest
+
+    report = aggregate_acceptance(observe(), contract, upstream_success=upstream_success,
+                                  upstream_failure_codes=upstream_failure_codes)
+    if not report.runner_success:
+        return report
+    comparisons = compare_c3_subset(accounts)
+    components = list(report.components)
+    old = components[-1]
+    evidence = cast(dict[str, object], _thaw(old.evidence))
+    evidence["fixed_c3_comparisons"] = comparisons
+    failures = (*old.failures, *(reason for row in comparisons for reason in row["failures"]))
+    components[-1] = replace(old, passed=not failures, failures=failures, evidence=evidence,
+                             evidence_sha256=canonical_json_sha256(evidence))
+    capability = all(component.passed for component in components)
+    return replace(report, components=tuple(components), capability_pass=capability,
+                   passed=report.runner_success and capability, canonical_sha256="")
+
+
 __all__ = (
     "AcceptanceReport",
     "ShardManifest",
     "aggregate_acceptance",
+    "aggregate_c3_acceptance",
     "build_error_shard_manifest",
     "seal_shard_manifest",
     "validate_shard_manifest",

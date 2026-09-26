@@ -18,6 +18,7 @@ from uquant.config import DEFAULT_CONFIG
 
 from ._analysis import ROOT
 from ._compatibility_baseline import (
+    ADDED_VALIDATION_CLAUSE_COUNT,
     BASELINE_COMMIT,
     ISOLATED_VALIDATION_CASE_COUNT,
     METHOD_IDS,
@@ -283,12 +284,14 @@ def test_split_validators_preserve_retained_baseline_clauses_in_exact_ast_order(
     }
     for index, field in RETIRED_VALIDATION_CLAUSES.items():
         assert f"attr='{field}'" in baseline[index]
-    assert len(candidate) == 150
+    assert len(candidate) == 152
     assert candidate == projected_baseline_validation_clause_dumps()
     retained_indices = [i for i in range(len(baseline)) if i not in RETIRED_VALIDATION_CLAUSES]
-    changed = {i for i, current in zip(retained_indices, candidate, strict=True) if current != baseline[i]}
-    assert changed == PUBLIC_BUDGET_VALIDATION_CLAUSES
-    assert len(changed) == 13
+    clock_start = retained_indices.index(8) + 1
+    retained = (*candidate[:clock_start], *candidate[clock_start + ADDED_VALIDATION_CLAUSE_COUNT:])
+    changed = {i for i, current in zip(retained_indices, retained, strict=True) if current != baseline[i]}
+    assert changed == PUBLIC_BUDGET_VALIDATION_CLAUSES | {6}
+    assert len(changed) == 14
     assert all(left != right for left, right in pairwise(candidate))
 
 
@@ -324,7 +327,7 @@ def test_semantic_gate_rejects_an_additional_validation_clause_deletion() -> Non
     )
     del function.body[-1]
 
-    with pytest.raises(AssertionError, match="candidate validation clause count changed: 149"):
+    with pytest.raises(AssertionError, match="candidate validation clause count changed: 151"):
         candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
 
 
@@ -352,10 +355,10 @@ def test_semantic_gate_rejects_retired_field_and_clause_reintroduction(field: st
     function.body.append(
         ast.parse(f"if config.{field} < 1:\n    raise ValueError('reintroduced')").body[0]
     )
-    with pytest.raises(AssertionError, match="candidate validation clause count changed: 151"):
+    with pytest.raises(AssertionError, match="candidate validation clause count changed: 153"):
         candidate_validation_clause_dumps({relative_path: ast.unparse(tree)})
 
-    # A compensating deletion must not hide reintroduction behind the 150 count.
+    # A compensating deletion must not hide reintroduction behind the 152 count.
     del function.body[-2]
     assert candidate_validation_clause_dumps({relative_path: ast.unparse(tree)}) != (
         projected_baseline_validation_clause_dumps()

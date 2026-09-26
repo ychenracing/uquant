@@ -42,7 +42,7 @@ EVIDENCE_RECOVERY_CHANGED_PATHS = {
 }
 EVIDENCE_CLOSURE_DELIVERY_COMMIT = "0ae54c0a6d2d4ca3dfe9814c75fbe82ae5591ac4"
 _CURRENT_CONFIG_SHA256 = (
-    "4d9c3495556d78e24f629355bb2bedbd4f3e823a53cf30499c9f18e04d53fda6"
+    "ea21dfa8f41b97d86d467a871650c577c69cced7787748b02738a90297b0830d"
 )
 _HISTORICAL_CONFIG_SHA256 = (
     "dae4d79fdd813832c6ab152611437c13be1d38227c7280691874d3a9267d93d5"
@@ -248,6 +248,12 @@ def test_evidence_closure_seal_matches_historical_analyzer(
     )
     del current_without_identity["provenance"]["code_sha256"]
     del historical_without_identity["provenance"]["code_sha256"]
+    # The loader now repairs legacy lot volumes, so the loaded-data identity
+    # differs while every regenerated evidence value must still match.
+    assert (
+        current_without_identity["provenance"].pop("data_sha256")
+        != historical_without_identity["provenance"].pop("data_sha256")
+    )
     assert (
         current_without_identity["provenance"]["config_sha256"]
         == _CURRENT_CONFIG_SHA256

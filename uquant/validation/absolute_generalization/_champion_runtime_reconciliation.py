@@ -8,6 +8,8 @@ from collections.abc import Mapping, Sequence
 from typing import cast
 
 from uquant.account import account_from_dict, economic_state_sha256
+from uquant.account.codec import MIGRATABLE_ACCOUNT_SCHEMAS
+from uquant.account.schema_migration import upgraded_account_payload
 from uquant.attribution import (
     build_daily_ledger_row,
     build_economic_attribution,
@@ -107,6 +109,8 @@ def decode_champion_account(raw: Mapping[str, object]) -> dict[str, object]:
         ):
             raise ValueError("champion runtime repair predicate fields differ")
         predicate["passed"] = predicate.pop("satisfied")
+    if decoded.get("schema_version") in MIGRATABLE_ACCOUNT_SCHEMAS:
+        decoded = upgraded_account_payload(decoded)
     return decoded
 
 

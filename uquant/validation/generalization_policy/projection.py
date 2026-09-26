@@ -66,7 +66,8 @@ def _apply_raw_config_migration(
         projected.get("effective_config_sha256") != config_migration.candidate_config_sha256
     ):
         raise ValueError("raw evidence differs from governed config migration carrier")
-    projected["effective_config_sha256"] = config_migration.champion_config_sha256
+    if config_migration.behavior_equivalent:
+        projected["effective_config_sha256"] = config_migration.champion_config_sha256
 
 
 def _strip_additive_identity(record: dict[str, Any]) -> None:
@@ -168,7 +169,8 @@ def _v2_economic_projection(
             provenance.get("effective_config_sha256") != config_migration.candidate_config_sha256
         ):
             raise ValueError("artifact differs from governed config migration carrier")
-        provenance["effective_config_sha256"] = config_migration.champion_config_sha256
+        if config_migration.behavior_equivalent:
+            provenance["effective_config_sha256"] = config_migration.champion_config_sha256
     cells = projected.get("cells")
     if not isinstance(cells, list):
         raise ValueError("generalization candidate cell collection is malformed")

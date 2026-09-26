@@ -57,22 +57,23 @@ _DAILY_TRACE = ROOT / "benchmarks" / "daily_portfolio_behavior_reference.json"
 _TRACE_RUNNER = ROOT / "tests" / "architecture" / "_portfolio_trace.py"
 # Instance bytes contain only the 13 public settings. Class identity, MRO,
 # descriptors and roundtrip behavior remain bound to the immutable inventory.
+# Instance pickles embed SystemConfig state, which gained the execution-clock settings.
 _CURRENT_PORTFOLIO_INSTANCE_PICKLES = {
     "LeaderPortfolioPolicy": (
-        "74cbb4565cdbb4499373b0432b8b643eb1ceb0132538e2023b733c5872334077",
-        234,
-    ),
-    "PortfolioAllocator": (
-        "16f9f50a99a3eedf8ad5130cff5bc9565d6b3375c1f434c5ab609b95693b301f",
-        223,
-    ),
-    "RecoveryPortfolioPolicy": (
-        "555d3c7bade94e12d1bdc2b90aa7b3a5132a027a0ea2741258d03b70b14b7659",
+        "eb700380240988f9076c24dab44cf233f84fdef6c95acb6f2483f3b548c4b8bf",
         237,
     ),
+    "PortfolioAllocator": (
+        "a7444bc8cb13ab55d1cf5eabf6678ce7ada56f182245b2973252aaa907b6ee9a",
+        226,
+    ),
+    "RecoveryPortfolioPolicy": (
+        "06128f7e34a75240b449226ffc16440b83a8ed40bacfda1d7eb54eb0131b0f4b",
+        240,
+    ),
     "StrategicPortfolioPolicy": (
-        "be9904b37c4c0eccc7eb3b7606a9c6b93285b4fe14058a9f52078cb54d984614",
-        239,
+        "1cdc6babb15f81fd6a98d4cd39bf650a5d6ce809c6734023fda94f683c7a25ad",
+        242,
     ),
 }
 _IMPLEMENTATION_IDENTITIES = {
@@ -227,6 +228,14 @@ def _normalized_method(node: ast.FunctionDef) -> str:
     ):
         normalized.body[0].value.value = inspect.cleandoc(normalized.body[0].value.value)
     return ast.dump(normalized, include_attributes=False)
+
+
+def _project_causal_signal_close(node: ast.FunctionDef) -> ast.FunctionDef:
+    """Project the reviewed causal signal series back to the frozen close column."""
+    source = ast.unparse(node)
+    reviewed = "signal_close(user_panel[symbol]).loc[:date]"
+    assert source.count(reviewed) == 1
+    return cast(ast.FunctionDef, ast.parse(source.replace(reviewed, "user_panel[symbol].loc[:date, 'close']")).body[0])
 
 
 def _project_causal_lifecycle_exit(node: ast.FunctionDef) -> ast.FunctionDef:
@@ -942,6 +951,8 @@ def test_portfolio_leaders_moved_leader_methods_are_immutable_ast_exact() -> Non
                 )
             if name == "_leader_lifecycle_exit_confirmed":
                 candidate_node = _project_causal_lifecycle_exit(candidate_node)
+            if name == "_correlations":
+                candidate_node = _project_causal_signal_close(candidate_node)
             candidate_node.name = name
             assert _normalized_method(candidate_node) == _normalized_method(immutable[name])
     assert observed == set(immutable)

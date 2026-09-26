@@ -30,6 +30,19 @@ from uquant.validation.absolute_generalization import (
 from uquant.validation.absolute_generalization.policy import evaluate_witness_resilience
 
 
+def test_native_absolute_budget_cannot_turn_a_literal_fixture_into_economic_success():
+    from uquant.validation.absolute_generalization.aggregation import aggregate_c3_acceptance
+
+    # The module's explicit recorded-champion fixture authenticates codec data.
+    # Its 1.1x LOO accounts meet literal gates but fail the separate C3 budget.
+    report = aggregate_c3_acceptance(iter(successful_manifests()), load_absolute_generalization_contract())
+    assert report.runner_success
+    assert not report.passed
+    compared = report.components[-1].evidence["fixed_c3_comparisons"]
+    assert len(compared) == 35
+    assert any("fixed C3" in reason for reason in report.components[-1].failures)
+
+
 def test_complete_static_manifests_recompute_one_exact_green_conjunction() -> None:
     contract = load_absolute_generalization_contract()
     report = aggregate_acceptance(successful_manifests(), contract)

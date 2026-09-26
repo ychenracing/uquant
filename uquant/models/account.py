@@ -11,7 +11,7 @@ from .strategic_grant import StrategicGrantIntent, StrategicQualificationObserva
 from .strategic_rearm import FlatBookCapitalRepairState, StrategicCashRearmState
 from .trading import AccountOrder, Fill, PendingOrder, Position
 
-ACCOUNT_SCHEMA_VERSION = 8
+ACCOUNT_SCHEMA_VERSION = 9
 
 
 @dataclass(slots=True)
@@ -111,6 +111,13 @@ class AccountState:
     data_hash_as_of: str = ""
     data_hash_symbols: list[str] = field(default_factory=list)
     code_hash: str = ""
+    account_revision: int = 0
+    broker_binding: str = ""
+    broker_snapshots: list[dict[str, Any]] = field(default_factory=list)
+    external_cash_flows: list[dict[str, Any]] = field(default_factory=list)
+    corporate_actions: list[dict[str, Any]] = field(default_factory=list)
+    receivables: list[dict[str, Any]] = field(default_factory=list)
+    dividend_tax_lots: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def empty(cls, cash: float) -> AccountState:

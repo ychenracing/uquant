@@ -9,8 +9,7 @@ from datetime import date as date_type
 from datetime import timedelta
 from typing import Any
 
-from uquant.contracts.universe import decision_ai_universe
-
+from .account.corporate_actions import settle_receivables
 from .account.validation_attribution import validate_lot_origin_chains as _validate_lot_origin_chains
 from .account.validation_orders import validate_order_state as _validate_order_state
 from .account.validation_positions import validate_position_state as _validate_position_state
@@ -21,6 +20,13 @@ from .broker_contract import broker_identity as _broker_identity
 from .broker_contract import broker_integer as _broker_integer
 from .broker_contract import broker_nonnegative as _nonnegative
 from .broker_contract import ordered_broker_fills as _ordered_broker_fills
+from .broker_facts import (
+    apply_external_cash_flows,
+    external_trade_fills,
+    is_external_order,
+    register_broker_snapshot,
+)
+from .broker_facts import non_strategy_identity as _broker_reconciliation_identity
 from .config import DEFAULT_CONFIG, SystemConfig
 from .data import normalize_symbol
 from .execution import allocate_sell_costs as _allocate_sell_costs
@@ -36,64 +42,15 @@ from .types import (
     ORDER_INTENT_IMMUTABLE_FIELDS,
     AccountOrder,
     AccountState,
-    AttributionIdentity,
-    AttributionMechanism,
     Fill,
     Lifecycle,
     OrderStatus,
-    OriginSubsystem,
     Position,
     ReductionPolicy,
     Side,
     Tranche,
-    derive_attribution_event_id,
     order_intent_metadata,
 )
-
-
-def _broker_reconciliation_identity(
-    *,
-    symbol: str,
-    signal_date: str,
-    lifecycle: str,
-    token: str,
-) -> AttributionIdentity:
-    """Create explicit identity for inventory not backed by a planned order."""
-
-    industry = decision_ai_universe().industry_of(symbol, signal_date)
-    if industry == "unknown":
-        industry = "legacy_unmapped"
-        manifest = "0" * 64
-    else:
-        manifest = decision_ai_universe().sha256
-    origin = OriginSubsystem.BROKER_RECONCILIATION.value
-    mechanism = AttributionMechanism.BROKER_RECONCILIATION.value
-    reason_code = f"broker_reconciliation:{token}"
-    return {
-        "event_id": derive_attribution_event_id(
-            signal_date=signal_date,
-            symbol=symbol,
-            target_weight=0.0,
-            lifecycle=lifecycle,
-            origin_lifecycle=lifecycle,
-            origin_subsystem=origin,
-            mechanism=mechanism,
-            replaces_symbol=None,
-            industry_at_entry=industry,
-            industry_manifest_sha256=manifest,
-            reduction_policy=ReductionPolicy.FIFO.value,
-            reason_code=reason_code,
-            exit_kind="broker_reconciliation",
-        ),
-        "origin_subsystem": origin,
-        "mechanism": mechanism,
-        "origin_lifecycle": lifecycle,
-        "replaces_symbol": None,
-        "industry_at_entry": industry,
-        "industry_manifest_sha256": manifest,
-        "grant_id": "",
-        "epoch_id": "",
-    }
 
 
 def _allocate_broker_sale(
@@ -260,6 +217,10 @@ def _prepare_broker_sync(account: AccountState, payload: dict[str, Any]) -> _Bro
         raise ValueError("broker positions, fills, and orders must be arrays")
 
     working = copy.deepcopy(account)
+    register_broker_snapshot(working, payload, as_of=as_of)
+    settle_receivables(working, through=as_of, into_cash=False)
+    raw_fills = [*raw_fills, *external_trade_fills(working, payload, as_of=as_of)]
+    apply_external_cash_flows(working, payload, as_of=as_of)
     _validate_order_state(
         working,
         sequence_was_explicit=False,
@@ -403,7 +364,9 @@ def _validated_broker_fill(state: _BrokerSyncState, raw: dict[str, Any]) -> _Bro
     fill_date = parsed_fill_date.isoformat()
     signal_date = _broker_date(order.signal_date, field="order signal_date")
     submitted_date = _broker_date(order.submitted_date, field="order submitted_date")
-    if parsed_fill_date <= max(signal_date, submitted_date):
+    if parsed_fill_date < max(signal_date, submitted_date) or (
+        parsed_fill_date == max(signal_date, submitted_date) and not is_external_order(order)
+    ):
         raise ValueError("broker fill date must be after order signal/submission")
     if parsed_fill_date > state.snapshot_date:
         raise ValueError("broker fill date is after snapshot as_of")
@@ -810,7 +773,15 @@ def _reconcile_broker_positions(
         )
         reconciled_positions[symbol] = position
     if len(reconciled_positions) > cfg.max_positions:
-        raise ValueError("broker snapshot exceeds the production position cap")
+        state.account.reconciliation_events.append(
+            {
+                "date": state.as_of,
+                "symbol": ",".join(sorted(reconciled_positions)),
+                "event": "position_cap_exceeded",
+                "positions": len(reconciled_positions),
+                "max_positions": cfg.max_positions,
+            }
+        )
     return reconciled_positions
 
 

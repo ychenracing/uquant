@@ -28,6 +28,7 @@ _ORDER_STATUS_EVENTS = MappingProxyType({
     ),
     "OPEN": frozenset(
         {
+            "AUCTION_LIMIT_NOT_REACHED",
             "AWAITING_HANDOFF_SELL",
             "CANCEL_REQUESTED",
             "CAPACITY_OR_CASH_BLOCKED",
@@ -42,7 +43,7 @@ _ORDER_STATUS_EVENTS = MappingProxyType({
         }
     ),
     "PARTIALLY_FILLED": frozenset(
-        {"BROKER_FILL", "CANCEL_REQUESTED", "FILL", "PARTIAL_REMAINDER_RELEASED",
+        {"AUCTION_LIMIT_NOT_REACHED", "BROKER_FILL", "CANCEL_REQUESTED", "FILL", "PARTIAL_REMAINDER_RELEASED",
          "T_PLUS_ONE_BLOCKED", "LIQUIDITY_PROXY_BLOCKED", "RISK_TARGET_UNMET_LOT"}
     ),
     "FILLED": frozenset({"BROKER_FILL", "FILL", "FILLED"}),

@@ -184,9 +184,36 @@ _VALIDATION_ADDITIONS = frozenset(
         "uquant/validation/production_observation.py",
         "uquant/validation/production_observation_contract.py",
         "uquant/validation/promotion_contract.py",
+        "uquant/validation/pr92_tradeoffs.py",
         "uquant/validation/statistics.py",
     }
 )
+# Account transactions, schema 9 migration, corporate actions, valuation and
+# broker facts reached from the reviewed remediation; research diagnostics.
+_REMEDIATION_ACCOUNT_SOURCES = frozenset({
+    "uquant/account/corporate_actions.py",
+    "uquant/account/schema_migration.py",
+    "uquant/account/transaction.py",
+})
+_REMEDIATION_ADDITIONS: Mapping[str, frozenset[str]] = {
+    "economic_decision_v1": _REMEDIATION_ACCOUNT_SOURCES | {
+        "uquant/infrastructure/file_lock.py", "uquant/market/valuation.py",
+    },
+    "execution_account_v1": _REMEDIATION_ACCOUNT_SOURCES | {
+        "uquant/broker_facts.py", "uquant/contracts/strict_json.py", "uquant/market/valuation.py",
+    },
+    "sentinel_v1": frozenset({
+        "uquant/account/schema_migration.py", "uquant/account/transaction.py", "uquant/infrastructure/file_lock.py",
+    }),
+    "validation_runner_v1": frozenset(),
+    "full_package_v1": _REMEDIATION_ACCOUNT_SOURCES | {
+        "uquant/broker_facts.py", "uquant/data_check.py", "uquant/data_update.py", "uquant/market/valuation.py",
+        "research/mechanism_ablation.py", "research/relative_evidence.py",
+        "research/rule_inventory.py", "research/trial_index.py",
+    },
+}
+_REMEDIATION_RESOURCES = frozenset({"uquant/contracts/resources/industry_classification_v2.json"})
+
 ARCHITECTURE_SOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
     "economic_decision_v1": _ECONOMIC_ADDITIONS,
     "execution_account_v1": _EXECUTION_ADDITIONS,
@@ -252,16 +279,26 @@ _CURRENT_RESOURCE_PATHS = {
     ),
 }
 
+_PR92_REFERENCE_ROOT = "artifacts/remediation-validation-20260926/industry-v2-research/continuous"
+_PR92_REFERENCE_RESOURCES = frozenset({
+    f"{_PR92_REFERENCE_ROOT}/CONTRACT_V1.json",
+    f"{_PR92_REFERENCE_ROOT}/C3_NATIVE_REQUESTS.json",
+    f"{_PR92_REFERENCE_ROOT}/C3_OPPORTUNITY_AUDIT.json",
+    *(f"{_PR92_REFERENCE_ROOT}/hard-rules-{index:02d}.json" for index in range(18)),
+    *(f"{_PR92_REFERENCE_ROOT}/requests-{index:02d}.json" for index in range(20)),
+})
+
 _RESOURCE_SURFACE_ADDITIONS: Mapping[str, frozenset[str]] = {
-    "economic_decision_v1": frozenset(),
+    "economic_decision_v1": frozenset({"benchmarks/pr92_v2_config_migration.json"}),
     "execution_account_v1": frozenset(),
     "sentinel_v1": frozenset(),
     "validation_runner_v1": frozenset(
         {
             "benchmarks/absolute_generalization_acceptance_contract.json",
             "benchmarks/cross_ai_ownership_participation_overlay.json",
+            "benchmarks/pr92_v2_config_migration.json",
         }
-    ),
+    ) | _PR92_REFERENCE_RESOURCES,
     "full_package_v1": frozenset(),
 }
 
@@ -283,7 +320,7 @@ def architecture_source_surface_projection(identifier: str, historical: Set[str]
         projected.add("uquant/application/market_observations.py")
     if "uquant/config/model.py" in projected:
         projected.add("uquant/config/policies.py")
-    return (projected | set(additions)) - RETIRED_ALLOCATION_SOURCES - {
+    return (projected | set(additions) | _REMEDIATION_ADDITIONS[identifier]) - RETIRED_ALLOCATION_SOURCES - {
         "uquant/atomic_io.py", "uquant/infrastructure/atomic_io.py", "uquant/config/views.py",
         "research/generalization_ablation_cli.py", "research/ablation_registry.py",
         "scripts/run_generalization_ablation.py",
@@ -301,6 +338,8 @@ def architecture_resource_surface_projection(
     projected = {_CURRENT_RESOURCE_PATHS.get(path, path) for path in historical}
     if identifier in {"economic_decision_v1", "execution_account_v1", "sentinel_v1", "full_package_v1"}:
         projected.add("uquant/contracts/resources/config_policy_governance.json")
+    if "uquant/contracts/resources/ai_universe_manifest.json" in projected:
+        projected |= _REMEDIATION_RESOURCES
     return sorted((projected | _RESOURCE_SURFACE_ADDITIONS[identifier]) - {
         "benchmarks/current_heads_competitor_matrix.json",
     })

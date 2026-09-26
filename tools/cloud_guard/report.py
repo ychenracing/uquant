@@ -14,7 +14,8 @@ def summarize(state):
         result.update(finding=finding, returncode=code, signal=(-code if code < 0 else None))
     elif status == "SPAWN_ERROR":
         result.update(finding=status, error_type=state.get("error_type"), errno=state.get("errno"))
-    elif status in {"SUCCESS_REPORTED", "ERROR_REPORTED", "REMOTE_VERIFICATION_RECORDED", "OUTCOME_UNKNOWN"}:
+    elif status in {"SUCCESS_REPORTED", "ERROR_REPORTED", "REMOTE_VERIFICATION_RECORDED", "OUTCOME_UNKNOWN",
+                    "LOCAL_INTERRUPTION_RECONCILED"}:
         result.update(finding=status, reported_code=state.get("reported_code"))
     elif kind in {"external_read", "external_write", "phase"}:
         result["finding"] = "EXTERNAL_RESULT_UNKNOWN"  # Not proof of provider failure or dispatch.

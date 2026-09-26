@@ -745,11 +745,20 @@ def test_execution_complexity_debt_relocations_are_exact_and_do_not_create_an_ex
     assert "uquant.execution.tranches:unreviewed_mutable" in mutable_ids
 
 
+# The prefix-only limit table became the date-, board- and status-aware limit_rate.
+_RETIRED_EXECUTION_DEFINITIONS = {("uquant/execution/market_constraints.py", "_limit_rate"): "limit_rate"}
+
+
 def test_execution_moved_definitions_are_mechanically_bound_to_immutable_source() -> None:
     execution_tree = ast.parse(_git_source("uquant/execution.py"))
     immutable_execution = _top_level_definitions(execution_tree)
     assert set(immutable_execution) == set(_EXECUTION_OWNERS)
     for name, relative in _EXECUTION_OWNERS.items():
+        replacement = _RETIRED_EXECUTION_DEFINITIONS.get((relative, name))
+        if replacement is not None:
+            assert name not in _top_level_definitions(ast.parse((ROOT / relative).read_bytes()))
+            assert replacement in _top_level_definitions(ast.parse((ROOT / relative).read_bytes()))
+            continue
         if (relative, name) in ARCHITECTURE_EXECUTION_REVIEWED_DEFINITIONS:
             candidate = reviewed_execution_debt_definition(
                 root=ROOT,
@@ -929,7 +938,9 @@ def test_execution_engine_method_reflection_and_descriptors_match_immutable_sour
             observed=observed,
             expected=expected,
         )
-        if name in {"_canonical_json", "_risk_timeline_disk_path", "performance_metrics", "_drawdown_stats"}:
+        if name in {"_canonical_json", "_risk_timeline_disk_path", "performance_metrics", "_drawdown_stats"} - set(
+            ARCHITECTURE_CURRENT_ENGINE_DOCSTRINGS
+        ):
             assert inspect.cleandoc(observed.__doc__ or "") == inspect.cleandoc(expected.__doc__ or "")
     assert engine_module.REFERENCE_UNIVERSE is namespace["REFERENCE_UNIVERSE"]
 

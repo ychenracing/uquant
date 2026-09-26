@@ -34,6 +34,7 @@ from .generalization_reference import (
     candidate_contract_sha256 as _candidate_contract_sha256,
 )
 from .manifest import verify_data_manifest
+from .pr92_tradeoffs import evaluate_c3_matrix
 from .promotion import artifact_binding as _artifact_binding
 from .promotion import runtime_provenance as _runtime_provenance
 from .promotion import validate_promotion_artifact
@@ -600,6 +601,9 @@ def _ci_artifact_parser() -> argparse.ArgumentParser:
     generalization.add_argument("--merged-output", required=True)
     generalization.add_argument("--upstream-result", required=True)
     generalization.add_argument("--data-dir", default="data/frozen")
+    budget = subparsers.add_parser("c3-budget", help="Aggregate native-validated account exports")
+    budget.add_argument("--accounts", required=True)
+    budget.add_argument("--report-output", required=True)
     return parser
 
 
@@ -613,6 +617,16 @@ def main(argv: list[str] | None = None) -> int:
             upstream_result=args.upstream_result,
             data_dir=args.data_dir,
         )
+    elif args.command == "c3-budget":
+        # This calculator deliberately makes no native validity or final merge
+        # claim. The native suites own raw-account/provenance validation.
+        document = _load_json_object(Path(args.accounts), label="C3 account exports")
+        if set(document) != {"accounts"} or not isinstance(document["accounts"], list):
+            raise ValueError("C3 account exports must contain one accounts list")
+        report = evaluate_c3_matrix(document["accounts"])
+        report["native_evidence_validation"] = "REQUIRED_SEPARATELY"
+        _write_json(Path(args.report_output), report)
+        return 0 if report["relative_budget_passed"] else 1
     else:
         report = run_generalization_validation(
             shard_root=args.shard_root,

@@ -1,0 +1,981 @@
+{
+ "root": "data/frozen",
+ "adjustment": "QFQ stocks; raw indices",
+ "ok": false,
+ "stock_rows": 62744,
+ "coverage": {
+  "sh000300": {
+   "kind": "index",
+   "rows": 3060,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sh000682": {
+   "kind": "index",
+   "rows": 3060,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sh600487": {
+   "kind": "stock",
+   "rows": 2952,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sh601869": {
+   "kind": "stock",
+   "rows": 1951,
+   "start": "2018-07-20",
+   "end": "2026-08-05"
+  },
+  "sh603688": {
+   "kind": "stock",
+   "rows": 1891,
+   "start": "2018-10-22",
+   "end": "2026-08-05"
+  },
+  "sh603986": {
+   "kind": "stock",
+   "rows": 2212,
+   "start": "2016-08-18",
+   "end": "2026-08-05"
+  },
+  "sh688008": {
+   "kind": "stock",
+   "rows": 1708,
+   "start": "2019-07-22",
+   "end": "2026-08-05"
+  },
+  "sh688012": {
+   "kind": "stock",
+   "rows": 1699,
+   "start": "2019-07-22",
+   "end": "2026-08-05"
+  },
+  "sh688019": {
+   "kind": "stock",
+   "rows": 1708,
+   "start": "2019-07-22",
+   "end": "2026-08-05"
+  },
+  "sh688037": {
+   "kind": "stock",
+   "rows": 1606,
+   "start": "2019-12-16",
+   "end": "2026-08-05"
+  },
+  "sh688041": {
+   "kind": "stock",
+   "rows": 954,
+   "start": "2022-08-12",
+   "end": "2026-08-05"
+  },
+  "sh688072": {
+   "kind": "stock",
+   "rows": 1032,
+   "start": "2022-04-20",
+   "end": "2026-08-05"
+  },
+  "sh688082": {
+   "kind": "stock",
+   "rows": 1143,
+   "start": "2021-11-18",
+   "end": "2026-08-05"
+  },
+  "sh688110": {
+   "kind": "stock",
+   "rows": 1124,
+   "start": "2021-12-10",
+   "end": "2026-08-05"
+  },
+  "sh688120": {
+   "kind": "stock",
+   "rows": 1011,
+   "start": "2022-06-08",
+   "end": "2026-08-05"
+  },
+  "sh688146": {
+   "kind": "stock",
+   "rows": 794,
+   "start": "2023-04-21",
+   "end": "2026-08-05"
+  },
+  "sh688200": {
+   "kind": "stock",
+   "rows": 1570,
+   "start": "2020-02-18",
+   "end": "2026-08-05"
+  },
+  "sh688233": {
+   "kind": "stock",
+   "rows": 1567,
+   "start": "2020-02-21",
+   "end": "2026-08-05"
+  },
+  "sh688256": {
+   "kind": "stock",
+   "rows": 1467,
+   "start": "2020-07-20",
+   "end": "2026-08-05"
+  },
+  "sh688268": {
+   "kind": "stock",
+   "rows": 1601,
+   "start": "2019-12-26",
+   "end": "2026-08-05"
+  },
+  "sh688300": {
+   "kind": "stock",
+   "rows": 1630,
+   "start": "2019-11-15",
+   "end": "2026-08-05"
+  },
+  "sh688347": {
+   "kind": "stock",
+   "rows": 617,
+   "start": "2024-01-02",
+   "end": "2026-08-05"
+  },
+  "sh688361": {
+   "kind": "stock",
+   "rows": 780,
+   "start": "2023-05-19",
+   "end": "2026-08-05"
+  },
+  "sh688498": {
+   "kind": "stock",
+   "rows": 877,
+   "start": "2022-12-21",
+   "end": "2026-08-05"
+  },
+  "sh688766": {
+   "kind": "stock",
+   "rows": 1189,
+   "start": "2021-08-23",
+   "end": "2026-08-05"
+  },
+  "sz000636": {
+   "kind": "stock",
+   "rows": 2413,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sz002281": {
+   "kind": "stock",
+   "rows": 3053,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sz002371": {
+   "kind": "stock",
+   "rows": 2990,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sz002409": {
+   "kind": "stock",
+   "rows": 2763,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sz300054": {
+   "kind": "stock",
+   "rows": 2957,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sz300223": {
+   "kind": "stock",
+   "rows": 2839,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sz300308": {
+   "kind": "stock",
+   "rows": 2892,
+   "start": "2014-01-02",
+   "end": "2026-08-05"
+  },
+  "sz300394": {
+   "kind": "stock",
+   "rows": 2772,
+   "start": "2015-02-25",
+   "end": "2026-08-05"
+  },
+  "sz300502": {
+   "kind": "stock",
+   "rows": 2532,
+   "start": "2016-03-03",
+   "end": "2026-08-05"
+  },
+  "sz300604": {
+   "kind": "stock",
+   "rows": 2250,
+   "start": "2017-04-17",
+   "end": "2026-08-05"
+  },
+  "sz300666": {
+   "kind": "stock",
+   "rows": 2200,
+   "start": "2017-06-15",
+   "end": "2026-08-05"
+  }
+ },
+ "issues": [
+  {
+   "symbol": "sh600487",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 109,
+   "sample": [
+    "2014-04-17",
+    "2014-04-18",
+    "2014-10-30",
+    "2014-10-31",
+    "2014-11-03"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh600487",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1847,
+   "sample": [
+    "2014-01-02",
+    "2014-01-03",
+    "2014-01-06",
+    "2014-01-07",
+    "2014-01-08"
+   ]
+  },
+  {
+   "symbol": "sh601869",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 846,
+   "sample": [
+    "2018-07-20",
+    "2018-07-23",
+    "2018-07-24",
+    "2018-07-25",
+    "2018-07-26"
+   ]
+  },
+  {
+   "symbol": "sh603688",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 786,
+   "sample": [
+    "2018-10-22",
+    "2018-10-23",
+    "2018-10-24",
+    "2018-10-25",
+    "2018-10-26"
+   ]
+  },
+  {
+   "symbol": "sh603986",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 206,
+   "sample": [
+    "2016-09-19",
+    "2016-09-20",
+    "2016-09-21",
+    "2016-09-22",
+    "2016-09-23"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh603986",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1107,
+   "sample": [
+    "2016-08-18",
+    "2016-08-19",
+    "2016-08-22",
+    "2016-08-23",
+    "2016-08-24"
+   ]
+  },
+  {
+   "symbol": "sh688008",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 603,
+   "sample": [
+    "2019-07-22",
+    "2019-07-23",
+    "2019-07-24",
+    "2019-07-25",
+    "2019-07-26"
+   ]
+  },
+  {
+   "symbol": "sh688012",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 9,
+   "sample": [
+    "2025-12-19",
+    "2025-12-22",
+    "2025-12-23",
+    "2025-12-24",
+    "2025-12-25"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh688012",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 603,
+   "sample": [
+    "2019-07-22",
+    "2019-07-23",
+    "2019-07-24",
+    "2019-07-25",
+    "2019-07-26"
+   ]
+  },
+  {
+   "symbol": "sh688019",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 603,
+   "sample": [
+    "2019-07-22",
+    "2019-07-23",
+    "2019-07-24",
+    "2019-07-25",
+    "2019-07-26"
+   ]
+  },
+  {
+   "symbol": "sh688037",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 3,
+   "sample": [
+    "2025-03-06",
+    "2025-03-07",
+    "2025-03-10"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh688037",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 504,
+   "sample": [
+    "2019-12-16",
+    "2019-12-17",
+    "2019-12-18",
+    "2019-12-19",
+    "2019-12-20"
+   ]
+  },
+  {
+   "symbol": "sh688041",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 10,
+   "sample": [
+    "2025-05-26",
+    "2025-05-27",
+    "2025-05-28",
+    "2025-05-29",
+    "2025-05-30"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh688041",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 6,
+   "sample": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03",
+    "2026-08-04"
+   ]
+  },
+  {
+   "symbol": "sh688072",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 10,
+   "sample": [
+    "2026-06-29",
+    "2026-06-30",
+    "2026-07-01",
+    "2026-07-02",
+    "2026-07-03"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh688072",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 6,
+   "sample": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03",
+    "2026-08-04"
+   ]
+  },
+  {
+   "symbol": "sh688082",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 38,
+   "sample": [
+    "2021-11-18",
+    "2021-11-19",
+    "2021-11-22",
+    "2021-11-23",
+    "2021-11-24"
+   ]
+  },
+  {
+   "symbol": "sh688110",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 3,
+   "sample": [
+    "2025-08-29",
+    "2025-09-01",
+    "2025-09-02"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh688110",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 22,
+   "sample": [
+    "2021-12-10",
+    "2021-12-13",
+    "2021-12-14",
+    "2021-12-15",
+    "2021-12-16"
+   ]
+  },
+  {
+   "symbol": "sh688120",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 7,
+   "sample": [
+    "2026-07-28",
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03"
+   ]
+  },
+  {
+   "symbol": "sh688146",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 3,
+   "sample": [
+    "2026-06-23",
+    "2026-06-24",
+    "2026-06-25"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh688146",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 6,
+   "sample": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03",
+    "2026-08-04"
+   ]
+  },
+  {
+   "symbol": "sh688200",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 465,
+   "sample": [
+    "2020-02-18",
+    "2020-02-19",
+    "2020-02-20",
+    "2020-02-21",
+    "2020-02-24"
+   ]
+  },
+  {
+   "symbol": "sh688233",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 462,
+   "sample": [
+    "2020-02-21",
+    "2020-02-24",
+    "2020-02-25",
+    "2020-02-26",
+    "2020-02-27"
+   ]
+  },
+  {
+   "symbol": "sh688256",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 363,
+   "sample": [
+    "2020-07-20",
+    "2020-07-21",
+    "2020-07-22",
+    "2020-07-23",
+    "2020-07-24"
+   ]
+  },
+  {
+   "symbol": "sh688268",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 496,
+   "sample": [
+    "2019-12-26",
+    "2019-12-27",
+    "2019-12-30",
+    "2019-12-31",
+    "2020-01-02"
+   ]
+  },
+  {
+   "symbol": "sh688300",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 525,
+   "sample": [
+    "2019-11-15",
+    "2019-11-18",
+    "2019-11-19",
+    "2019-11-20",
+    "2019-11-21"
+   ]
+  },
+  {
+   "symbol": "sh688347",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 10,
+   "sample": [
+    "2025-08-18",
+    "2025-08-19",
+    "2025-08-20",
+    "2025-08-21",
+    "2025-08-22"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh688347",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 6,
+   "sample": [
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03",
+    "2026-08-04"
+   ]
+  },
+  {
+   "symbol": "sh688347",
+   "check": "zero_amount_positive_volume",
+   "severity": "error",
+   "count": 611,
+   "sample": [
+    "2024-01-02",
+    "2024-01-03",
+    "2024-01-04",
+    "2024-01-05",
+    "2024-01-08"
+   ],
+   "detail": "suspected missing turnover"
+  },
+  {
+   "symbol": "sh688361",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 7,
+   "sample": [
+    "2026-07-28",
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03"
+   ]
+  },
+  {
+   "symbol": "sh688498",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 7,
+   "sample": [
+    "2026-07-28",
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03"
+   ]
+  },
+  {
+   "symbol": "sh688766",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 10,
+   "sample": [
+    "2025-11-25",
+    "2025-11-26",
+    "2025-11-27",
+    "2025-11-28",
+    "2025-12-01"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sh688766",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 94,
+   "sample": [
+    "2021-08-23",
+    "2021-08-24",
+    "2021-08-25",
+    "2021-08-26",
+    "2021-08-27"
+   ]
+  },
+  {
+   "symbol": "sz000636",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 647,
+   "sample": [
+    "2014-03-27",
+    "2014-03-28",
+    "2014-03-31",
+    "2014-04-01",
+    "2014-04-02"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz000636",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1792,
+   "sample": [
+    "2014-01-02",
+    "2014-01-03",
+    "2014-01-06",
+    "2014-01-07",
+    "2014-01-08"
+   ]
+  },
+  {
+   "symbol": "sz000636",
+   "check": "zero_amount_positive_volume",
+   "severity": "error",
+   "count": 621,
+   "sample": [
+    "2024-01-02",
+    "2024-01-03",
+    "2024-01-04",
+    "2024-01-05",
+    "2024-01-08"
+   ],
+   "detail": "suspected missing turnover"
+  },
+  {
+   "symbol": "sz002281",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 8,
+   "sample": [
+    "2014-11-05",
+    "2014-11-06",
+    "2014-11-07",
+    "2014-11-10",
+    "2014-11-11"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz002281",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1948,
+   "sample": [
+    "2014-01-02",
+    "2014-01-03",
+    "2014-01-06",
+    "2014-01-07",
+    "2014-01-08"
+   ]
+  },
+  {
+   "symbol": "sz002371",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 71,
+   "sample": [
+    "2015-10-08",
+    "2015-10-09",
+    "2015-10-12",
+    "2015-10-13",
+    "2015-10-14"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz002371",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1885,
+   "sample": [
+    "2014-01-02",
+    "2014-01-03",
+    "2014-01-06",
+    "2014-01-07",
+    "2014-01-08"
+   ]
+  },
+  {
+   "symbol": "sz002409",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 298,
+   "sample": [
+    "2015-07-08",
+    "2015-07-09",
+    "2015-07-10",
+    "2015-07-13",
+    "2015-07-14"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz002409",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1658,
+   "sample": [
+    "2014-01-02",
+    "2014-01-03",
+    "2014-01-06",
+    "2014-01-07",
+    "2014-01-08"
+   ]
+  },
+  {
+   "symbol": "sz300054",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 104,
+   "sample": [
+    "2014-11-17",
+    "2014-11-18",
+    "2014-11-19",
+    "2014-11-20",
+    "2014-11-21"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz300054",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1852,
+   "sample": [
+    "2014-01-02",
+    "2014-01-03",
+    "2014-01-06",
+    "2014-01-07",
+    "2014-01-08"
+   ]
+  },
+  {
+   "symbol": "sz300223",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 222,
+   "sample": [
+    "2016-06-03",
+    "2016-06-06",
+    "2016-06-07",
+    "2016-06-08",
+    "2016-06-13"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz300223",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1734,
+   "sample": [
+    "2014-01-02",
+    "2014-01-03",
+    "2014-01-06",
+    "2014-01-07",
+    "2014-01-08"
+   ]
+  },
+  {
+   "symbol": "sz300308",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 168,
+   "sample": [
+    "2014-11-10",
+    "2014-11-11",
+    "2014-11-12",
+    "2014-11-13",
+    "2014-11-14"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz300308",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1787,
+   "sample": [
+    "2014-01-02",
+    "2014-01-03",
+    "2014-01-06",
+    "2014-01-07",
+    "2014-01-08"
+   ]
+  },
+  {
+   "symbol": "sz300394",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 12,
+   "sample": [
+    "2017-01-16",
+    "2017-01-17",
+    "2017-01-18",
+    "2017-01-19",
+    "2017-01-20"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz300394",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1667,
+   "sample": [
+    "2015-02-25",
+    "2015-02-26",
+    "2015-02-27",
+    "2015-03-02",
+    "2015-03-03"
+   ]
+  },
+  {
+   "symbol": "sz300502",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 2,
+   "sample": [
+    "2016-06-30",
+    "2016-07-01"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz300502",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1427,
+   "sample": [
+    "2016-03-03",
+    "2016-03-04",
+    "2016-03-07",
+    "2016-03-08",
+    "2016-03-09"
+   ]
+  },
+  {
+   "symbol": "sz300604",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 11,
+   "sample": [
+    "2019-04-03",
+    "2022-01-10",
+    "2022-01-11",
+    "2022-01-12",
+    "2022-01-13"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz300604",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1155,
+   "sample": [
+    "2017-04-17",
+    "2017-04-18",
+    "2017-04-19",
+    "2017-04-20",
+    "2017-04-21"
+   ]
+  },
+  {
+   "symbol": "sz300666",
+   "check": "calendar_gap",
+   "severity": "warning",
+   "count": 21,
+   "sample": [
+    "2017-11-15",
+    "2017-11-16",
+    "2017-11-17",
+    "2017-11-20",
+    "2017-11-21"
+   ],
+   "detail": "missing sessions without a suspension fact"
+  },
+  {
+   "symbol": "sz300666",
+   "check": "missing_amount",
+   "severity": "warning",
+   "count": 1100,
+   "sample": [
+    "2017-06-15",
+    "2017-06-16",
+    "2017-06-19",
+    "2017-06-20",
+    "2017-06-21"
+   ]
+  }
+ ]
+}

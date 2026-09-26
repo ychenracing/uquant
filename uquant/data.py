@@ -1,21 +1,22 @@
-"""Point-in-time data loading, validation, hashing, and optional online refresh."""
+"""Point-in-time data loading, validation and hashing of immutable snapshots."""
 
 from __future__ import annotations
 
 import hashlib
-import importlib
 import json
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 REQUIRED_COLUMNS = ("date", "open", "high", "low", "close", "volume")
+LEGACY_ADJUSTMENT = "QFQ stocks; raw indices"
+RAW_ADJUSTMENT = "RAW stocks with causal preclose adjustment; raw indices"
 
 
 class DataContractError(RuntimeError):
@@ -70,15 +71,93 @@ class DataManifest:
         }
 
 
+def _repair_legacy_lot_volume(frame: pd.DataFrame) -> pd.DataFrame:
+    """Convert legacy rows whose volume was stored in 100-share lots.
+
+    Legacy frozen files carry no unit column. A row is converted only when
+    its own turnover proves the unit: amount / close exceeds 50x the volume.
+    Rows without a turnover are never guessed. Typed snapshots declare
+    ``volume_unit`` and bypass this repair.
+    """
+
+    implied = frame["amount"] / frame["close"]
+    lots = (frame["volume"] > 0) & np.isfinite(implied) & (implied > frame["volume"] * 50)
+    out = frame.copy()
+    out.loc[lots, "volume"] = out.loc[lots, "volume"] * 100.0
+    return out
+
+
+def ex_reference_price(previous_close: float, *, cash_per_share: float, share_ratio: float) -> float:
+    """Exchange ex-rights reference price for a cash and bonus/transfer distribution."""
+    return (previous_close - cash_per_share) / (1.0 + share_ratio)
+
+
+def causal_adjustment_factor(
+    close: pd.Series,
+    preclose: pd.Series,
+    events: list[dict[str, Any]] | None = None,
+) -> pd.Series:
+    """Cumulative back-adjustment factor from ex-rights reference prices.
+
+    On an ex-date the reference price is below the previous raw close and
+    ``prev_close / reference`` is the event ratio. Recorded distributions use
+    the exchange formula; other dates fall back to the vendor ``preclose``.
+    The factor starts at 1 and only uses rows up to each date, so appending
+    data never rewrites history.
+    """
+
+    previous = close.shift(1)
+    overrides: dict[pd.Timestamp, float] = {}
+    for event in events or []:
+        date = pd.Timestamp(event["ex_date"])
+        if date in preclose.index and np.isfinite(previous.get(date, np.nan)):
+            overrides[date] = ex_reference_price(
+                float(previous[date]),
+                cash_per_share=float(event.get("cash_per_share", 0.0)),
+                share_ratio=float(event.get("share_ratio", 0.0)),
+            )
+    reference = preclose.astype(float).copy()
+    reference.update(pd.Series(overrides, dtype=float))
+    ratio = (previous / reference).where(reference > 0)
+    ratio = ratio.where(np.isfinite(ratio) & ((ratio - 1.0).abs() > 1e-9), 1.0)
+    return ratio.cumprod()
+
+
 class DataStore:
-    """Load, validate, bound, hash, and optionally refresh daily OHLCV data."""
+    """Load, validate, bound and hash one immutable daily OHLCV snapshot.
+
+    A snapshot directory is never refreshed in place: a data update publishes
+    a new directory, and callers switch to it with a new ``DataStore``.
+    """
 
     def __init__(self, root: str | Path) -> None:
         self.root = Path(root)
         if not self.root.is_dir():
             raise DataContractError(f"data directory does not exist: {self.root}")
+        pointer = self.root / "LATEST"
+        if pointer.is_file() and not any(self.root.glob("*.csv")):
+            self.root = self.root / pointer.read_text(encoding="utf-8").strip()
+            if not self.root.is_dir():
+                raise DataContractError(f"LATEST points to a missing snapshot: {self.root}")
         self._cache: dict[str, pd.DataFrame] = {}
         self._prefix_hash_cache: dict[str, tuple[pd.DatetimeIndex, tuple[str, ...]]] = {}
+        manifest_path = self.root / "DATA_MANIFEST.json"
+        self.snapshot_manifest: dict[str, Any] = (
+            json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+        )
+        self.adjustment = (
+            RAW_ADJUSTMENT if self.snapshot_manifest.get("price_basis") == "raw" else LEGACY_ADJUSTMENT
+        )
+        actions_path = self.root / "CORPORATE_ACTIONS.json"
+        self._corporate_actions: list[dict[str, Any]] = (
+            json.loads(actions_path.read_text(encoding="utf-8")) if actions_path.is_file() else []
+        )
+
+    def corporate_actions(self, symbol: str) -> list[dict[str, Any]]:
+        """Return the snapshot's recorded dividend/bonus events for one symbol."""
+
+        normalized = normalize_symbol(symbol)
+        return [dict(item) for item in self._corporate_actions if item["symbol"] == normalized]
 
     def path_for(self, symbol: str) -> Path:
         """Resolve a normalized symbol to an existing CSV path."""
@@ -97,7 +176,7 @@ class DataStore:
         if normalized not in self._cache:
             path = self.path_for(normalized)
             frame = pd.read_csv(path)
-            self._cache[normalized] = self._validate(frame, normalized)
+            self._cache[normalized] = self._validate(frame, normalized, self.corporate_actions(normalized))
         frame = self._cache[normalized]
         if as_of is None:
             return frame.copy()
@@ -107,7 +186,9 @@ class DataStore:
         return bounded
 
     @staticmethod
-    def _validate(frame: pd.DataFrame, symbol: str) -> pd.DataFrame:
+    def _validate(
+        frame: pd.DataFrame, symbol: str, events: list[dict[str, Any]] | None = None
+    ) -> pd.DataFrame:
         missing = set(REQUIRED_COLUMNS) - set(frame.columns)
         if missing:
             raise DataContractError(f"{symbol} missing columns: {sorted(missing)}")
@@ -126,14 +207,17 @@ class DataStore:
         )
         if invalid.any():
             raise DataContractError(f"{symbol} contains {int(invalid.sum())} invalid OHLCV rows")
-        if "amount" not in out:
-            out["amount"] = out["close"] * out["volume"]
-        else:
-            out["amount"] = pd.to_numeric(out["amount"], errors="coerce")
-            out["amount"] = out["amount"].fillna(out["close"] * out["volume"])
-        if (~np.isfinite(out["amount"]) | (out["amount"] < 0)).any():
+        # A missing turnover stays missing: price x volume is not a traded amount.
+        out["amount"] = pd.to_numeric(out["amount"], errors="coerce") if "amount" in out else np.nan
+        if (np.isinf(out["amount"]) | (out["amount"] < 0)).any():
             raise DataContractError(f"{symbol} contains invalid turnover amounts")
-        return out.set_index("date", drop=True)
+        if "volume_unit" not in out:
+            out = _repair_legacy_lot_volume(out)
+        out = out.set_index("date", drop=True)
+        if "preclose" in out:
+            out["preclose"] = pd.to_numeric(out["preclose"], errors="coerce")
+            out["adj_close"] = out["close"] * causal_adjustment_factor(out["close"], out["preclose"], events)
+        return out
 
     def common_sessions(self, symbols: Iterable[str], start: str, end: str) -> pd.DatetimeIndex:
         """Return at least two sessions shared by every requested symbol."""
@@ -204,48 +288,10 @@ class DataStore:
         return DataManifest(
             generated_at=datetime.now(UTC).isoformat(),
             source=source,
-            adjustment="QFQ stocks; raw indices",
+            adjustment=self.adjustment,
             files=files,
             symbols=normalized,
             start=max(starts),
             end=min(ends),
             digest=hashlib.sha256(payload).hexdigest(),
         )
-
-    @staticmethod
-    def _from_akshare_stock(raw: pd.DataFrame, symbol: str) -> pd.DataFrame:
-        """Convert stock_zh_a_hist volume from hands to canonical shares."""
-
-        mapping = {
-            "日期": "date",
-            "开盘": "open",
-            "最高": "high",
-            "最低": "low",
-            "收盘": "close",
-            "成交量": "volume",
-            "成交额": "amount",
-        }
-        frame = raw.rename(columns=mapping)[list(mapping.values())].copy()
-        frame["volume"] = pd.to_numeric(frame["volume"], errors="raise") * 100
-        return DataStore._validate(frame, symbol)
-
-    def refresh_akshare(self, symbols: Iterable[str], *, end: str) -> None:
-        """Refresh stock QFQ files through `end`, rejecting unsupported indices."""
-
-        try:
-            ak = cast(Any, importlib.import_module("akshare"))
-        except ImportError as exc:
-            raise RuntimeError("install uquant[data] for online refresh") from exc
-        for symbol in sorted({normalize_symbol(item) for item in symbols}):
-            if symbol in {"sh000300", "sh000682"}:
-                raise RuntimeError("index refresh requires a raw-index adapter; refusing QFQ fallback")
-            raw = ak.stock_zh_a_hist(
-                symbol=symbol[2:],
-                period="daily",
-                start_date="20000101",
-                end_date=end.replace("-", ""),
-                adjust="qfq",
-            )
-            validated = self._from_akshare_stock(raw, symbol).reset_index()
-            validated.to_csv(self.root / f"{symbol}.csv", index=False)
-            self._cache.pop(symbol, None)

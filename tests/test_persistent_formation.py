@@ -20,7 +20,7 @@ from uquant.portfolio.strategic.discovery import (
     current_core_qualification,
 )
 from uquant.portfolio.strategic.qualification_candidates import candidate_entry
-from uquant.types import AccountState
+from uquant.types import AccountState, Opportunity
 
 SYMBOLS = ("sz300308", "sz300394", "sz300502")
 
@@ -38,12 +38,16 @@ def _january_prefix(symbols=SYMBOLS):
 
 
 def test_confirmed_full_persistent_formation_buys_before_ordinary_maturity():
-    engine, account, panel, decision = _january_prefix()
+    # A supported market is an explicit fixture input; the January 2024
+    # historical market no longer satisfies early-admission evidence.
+    policy, account, dates, panel, leaders, risk, _, _ = _formation_fixture()
+    _decide(policy, account, dates[-2], panel, leaders, risk)
     observed = account.strategic_qualification
     assert observed.qualification_ready and observed.qualification_route == "persistent_industry"
     assert observed.qualification_quorum == "FULL_COHORT"
-    assert all(account.leader_tenure[symbol] == 0 for symbol in SYMBOLS)
-    ordinary = decision.risk_summary["core_allocation"]["symbols"]
+    assert all(not leaders[symbol].mature for symbol in SYMBOLS)
+    assert all(account.leader_tenure.get(symbol, 0) == 0 for symbol in SYMBOLS)
+    ordinary = risk.evidence["core_allocation"]["symbols"]
     assert ordinary["sz300394"]["entry"]["block"] == "STRUCTURE_NOT_REPAIRED"
     assert {order.symbol for order in account.pending_orders} == set(SYMBOLS)
     assert [order.target_weight for order in account.pending_orders] == pytest.approx([1 / 3] * 3)
@@ -51,17 +55,36 @@ def test_confirmed_full_persistent_formation_buys_before_ordinary_maturity():
     assert grant is not None
     assert all(order.epoch_id == grant.epoch_id for order in account.pending_orders)
     assert {order.symbol: order.grant_id for order in account.pending_orders} == {
-        "sz300308": "", "sz300394": grant.grant_id, "sz300502": "",
+        symbol: grant.grant_id if symbol == grant.candidate_symbol else "" for symbol in SYMBOLS
     }
-    fills = engine.execution.execute_open(date=pd.Timestamp("2024-01-04"), account=account, panel=panel)
+    from uquant.execution import ExecutionPlanner
+
+    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[-1], account=account, panel=panel)
     assert len(fills) == 3 and all(fill.side == "BUY" and fill.shares > 0 for fill in fills)
     assert all(position.epoch_id == grant.epoch_id for position in account.positions.values())
-    assert account.positions["sz300394"].grant_id == grant.grant_id
+    assert account.positions[grant.candidate_symbol].grant_id == grant.grant_id
     assert account.cash >= 0
 
 
+def test_historical_persistent_formation_waits_for_external_market_support():
+    _, account, _, decision = _january_prefix()
+    assert decision.risk_summary["broad_ret20"] < 0
+    assert decision.risk_summary["tech_ret20"] < 0
+    assert not account.strategic_qualification.qualification_ready
+    assert account.strategic_grant is None
+    assert not account.pending_orders and not account.positions
+
+
 def test_reference_only_third_member_cannot_supply_full_formation_capital():
-    _, account, _, _ = _january_prefix(SYMBOLS[:2])
+    policy, account, dates, panel, leaders, risk, _, _ = _formation_fixture()
+    tradable = {symbol: panel[symbol] for symbol in SYMBOLS[:2]}
+    targets = policy.allocate(
+        date=dates[-2], opportunity=Opportunity.TREND, risk=risk,
+        user_panel=tradable, leaders={symbol: leaders[symbol] for symbol in tradable},
+        qualification_panel=panel, qualification_leaders=leaders, account=account,
+        prices={symbol: float(frame.loc[dates[-2], "close"]) for symbol, frame in tradable.items()},
+    )
+    assert not targets
     assert account.strategic_grant is None and not account.pending_orders
     assert not account.positions
 

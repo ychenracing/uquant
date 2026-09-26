@@ -122,6 +122,7 @@ def test_actual_decisive_reversal_keeps_dominant_cap_even_when_immature():
                for s, score in (("dominant", .70), ("runner", .60), ("reserve", .20))}
     leaders["runner"].components["trend_persistence"] = 1 / 3
     risk = RiskAssessment(Risk.NORMAL, 1., 1, {"tech_ret120": -.10, "risk_anchor_symbols": [],
+                          "broad_ret20": .01, "tech_ret20": -.01,
                           "risk_anchor_group_count": 0, "configured_user_universe_size": 3}, (), "NONE")
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.account_identity, account.code_hash = "account:fixture", "code:fixture"

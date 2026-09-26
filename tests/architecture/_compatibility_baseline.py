@@ -40,6 +40,10 @@ TOTAL_VALIDATION_CASE_COUNT = UNKNOWN_KEYWORD_CASE_INDEX + 1
 
 VALIDATION_CLAUSE_COUNT = 159
 
+# The public numeric precheck is candidate-only; it also admits None for the
+# dated statutory fee schedule.
+PUBLIC_INPUT_CLAUSE_SHA256 = "74cd91752f15bc9c311b4ad21f6ee9b77b1c99b0dae6f5f249f9a8b21f7d8df2"
+
 # Candidate-only retirement; the frozen baseline and stimulus manifest stay intact.
 RETIRED_VALIDATION_CLAUSES: Mapping[int, str] = types.MappingProxyType(
     {
@@ -452,13 +456,50 @@ def _project_public_budget_clause(index: int, clause: str) -> str:
     return clause
 
 
+# Dated statutory fees make stamp duty and transfer fee optional (None selects
+# the schedule), and the auction execution clock adds two bounded settings.
+_REVIEWED_FEE_CLAUSE_INDEX = 6
+_EXECUTION_CLOCK_INSERT_AFTER = 8
+_REVIEWED_FEE_CLAUSE_SOURCE = """
+for name in (
+    "commission_rate", "min_commission", "stamp_duty", "transfer_fee", "slippage", "max_volume_participation",
+):
+    value = getattr(self, name)
+    if value is None and name in {"stamp_duty", "transfer_fee"}:
+        continue
+    if value < 0:
+        raise ValueError(f"{name} cannot be negative")
+"""
+_EXECUTION_CLOCK_CLAUSE_SOURCE = """
+if self.execution_clock not in {"AUCTION", "DAILY_PROXY"}:
+    raise ValueError("execution_clock must be AUCTION or DAILY_PROXY")
+if (
+    isinstance(self.auction_limit_buffer, bool)
+    or not isinstance(self.auction_limit_buffer, (int, float))
+    or not 0 <= self.auction_limit_buffer <= 0.2
+):
+    raise ValueError("auction_limit_buffer must be in [0, 0.2]")
+"""
+ADDED_VALIDATION_CLAUSE_COUNT = 2
+
+
+def _reviewed_dumps(source: str) -> tuple[str, ...]:
+    return tuple(_normalized_clause_dump(statement, "self") for statement in ast.parse(source).body)
+
+
 def projected_baseline_validation_clause_dumps() -> tuple[str, ...]:
-    """Apply only reviewed retirements and exact public-budget decouplings."""
-    return tuple(
-        _project_public_budget_clause(index, clause)
-        for index, clause in enumerate(baseline_validation_clause_dumps())
-        if index not in RETIRED_VALIDATION_CLAUSES
-    )
+    """Apply only reviewed retirements, public-budget decouplings and fee/clock changes."""
+    (fee_clause,) = _reviewed_dumps(_REVIEWED_FEE_CLAUSE_SOURCE)
+    clock_clauses = _reviewed_dumps(_EXECUTION_CLOCK_CLAUSE_SOURCE)
+    assert len(clock_clauses) == ADDED_VALIDATION_CLAUSE_COUNT
+    projected: list[str] = []
+    for index, clause in enumerate(baseline_validation_clause_dumps()):
+        if index in RETIRED_VALIDATION_CLAUSES:
+            continue
+        projected.append(fee_clause if index == _REVIEWED_FEE_CLAUSE_INDEX else _project_public_budget_clause(index, clause))
+        if index == _EXECUTION_CLOCK_INSERT_AFTER:
+            projected.extend(clock_clauses)
+    return tuple(projected)
 
 def _top_level_helper_call(statement: ast.stmt) -> ast.Call | None:
     if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
@@ -925,10 +966,10 @@ def candidate_validation_clause_dumps(
     clauses = tuple(flatten(CANDIDATE_CONFIG_MODEL_PATH, root, ()))
     # The public numeric precheck is new; all 150 retained economic validation
     # clauses below must still equal their independent immutable reference.
-    if hashlib.sha256(clauses[0].encode()).hexdigest() != "3333e7cbe6fa0357fc8fd01672f5c5aee8701a97c603153da0c83cd30adc9914":
+    if hashlib.sha256(clauses[0].encode()).hexdigest() != PUBLIC_INPUT_CLAUSE_SHA256:
         raise AssertionError("public configuration input validation changed")
     clauses = clauses[1:]
-    if len(clauses) != VALIDATION_CLAUSE_COUNT - len(RETIRED_VALIDATION_CLAUSES):
+    if len(clauses) != VALIDATION_CLAUSE_COUNT - len(RETIRED_VALIDATION_CLAUSES) + ADDED_VALIDATION_CLAUSE_COUNT:
         raise AssertionError(
             f"candidate validation clause count changed: {len(clauses)}"
         )

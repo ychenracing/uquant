@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import SystemConfig
-from ..features import scalar
+from ..features import scalar, signal_close
 from ..holding_history import protected_weights_for_current_episode
 from ..risk_sector import SectorGuardTransition
 from ..types import AccountState, LeaderScore, Risk, RiskAssessment
@@ -283,7 +283,7 @@ def _protected_repair_ratios(ctx: _ProtectedRecoveryContext) -> tuple[float, flo
             swing_repairs.append(False)
             continue
         row = frame.loc[ctx.date]
-        returns1 = frame.loc[: ctx.date, "close"].pct_change(fill_method=None)
+        returns1 = signal_close(frame).loc[: ctx.date].pct_change(fill_method=None)
         fast_repairs.append(
             bool(len(returns1)) and math.isfinite(float(returns1.iloc[-1])) and float(returns1.iloc[-1]) > 0
         )
@@ -421,7 +421,7 @@ def _protected_daily_repair_ratio(ctx: _ProtectedRecoveryContext) -> float:
         if frame is None or ctx.date not in frame.index:
             repairs.append(False)
             continue
-        ret1 = float(frame.loc[: ctx.date, "close"].pct_change(fill_method=None).iloc[-1])
+        ret1 = float(signal_close(frame).loc[: ctx.date].pct_change(fill_method=None).iloc[-1])
         repairs.append(math.isfinite(ret1) and ret1 > 0)
     return float(np.mean(repairs)) if repairs else 0.0
 

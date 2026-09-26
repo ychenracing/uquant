@@ -16,7 +16,10 @@ def validate_execution(config: Any) -> None:
         "slippage",
         "max_volume_participation",
     ):
-        if getattr(config, name) < 0:
+        value = getattr(config, name)
+        if value is None and name in {"stamp_duty", "transfer_fee"}:
+            continue
+        if value < 0:
             raise ValueError(f"{name} cannot be negative")
     if not 0 <= config.max_volume_participation <= 1:
         raise ValueError("max_volume_participation must be in [0, 1]")
@@ -31,6 +34,14 @@ def validate_execution(config: Any) -> None:
             "protected_restore_min_trade_weight/restoration_min_trade_weight must be "
             "positive, ordered, and no greater than min_trade_weight"
         )
+    if config.execution_clock not in {"AUCTION", "DAILY_PROXY"}:
+        raise ValueError("execution_clock must be AUCTION or DAILY_PROXY")
+    if (
+        isinstance(config.auction_limit_buffer, bool)
+        or not isinstance(config.auction_limit_buffer, (int, float))
+        or not 0 <= config.auction_limit_buffer <= 0.2
+    ):
+        raise ValueError("auction_limit_buffer must be in [0, 0.2]")
     if config.min_trade_value < 0:
         raise ValueError("min_trade_value cannot be negative")
 

@@ -11,11 +11,13 @@ from typing import Any
 from ...attribution import validate_attribution_against_engine_result
 from ...config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from ...config_governance import (
+    CONTROLLED_V2_AUTHORIZATION,
     GovernedConfigMigration,
     validate_governed_config_migration,
 )
 from ...engine import code_fingerprint
 from ..control_plane import validate_engine_control_plane
+from ..pr92_tradeoffs import acceptance_basis, compare_c3_account, load_fixed_c3
 from ..replay_evidence import VerifiedMarketData
 from . import projection, schema
 from .cell_policy import (
@@ -46,6 +48,9 @@ class _EvaluationState:
     raw_cells: list[Any] = field(default_factory=list)
     provenance: Mapping[str, Any] = field(default_factory=dict)
     config_migration: GovernedConfigMigration | None = None
+    c3_reference: Mapping[str, Mapping[str, Any]] | None = None
+    c3_comparisons: list[dict[str, Any]] = field(default_factory=list)
+    legacy_relative_failures: list[str] = field(default_factory=list)
     market: VerifiedMarketData | None = None
     trusted_config: SystemConfig | None = None
     observed: dict[str, Mapping[str, Any]] = field(default_factory=dict)
@@ -91,6 +96,7 @@ def evaluate_policy_stages(
         expected_cell_fields=(
             schema.CELL_FIELDS_V2 if schema_version == 2 else schema.CELL_FIELDS_V1
         ),
+        c3_reference=load_fixed_c3() if schema_version == 2 and not require_exact_equality else None,
     )
     _validate_artifact_identity(state)
     _validate_provenance(state)
@@ -217,7 +223,12 @@ def _identify_config_migration(state: _EvaluationState) -> None:
     try:
         candidate_migration = validate_governed_config_migration(state.expected_config)
     except (RuntimeError, ValueError):
-        return
+        try:
+            candidate_migration = validate_governed_config_migration(
+                state.expected_config, authorization_id=CONTROLLED_V2_AUTHORIZATION,
+            )
+        except (RuntimeError, ValueError):
+            return
     if candidate_migration.champion_config_sha256 == state.baseline.provenance.get(
         "effective_config_sha256"
     ):
@@ -611,12 +622,21 @@ def _record_valid_economics(
 ) -> None:
     state.economic_valid += 1
     if reference.metrics is not None:
-        state.failures.extend(
+        historical = [
             f"cell non-regression failed: {identifier}: {reason}"
             for reason in evaluate_relative_cell_non_regression(
                 candidate_metrics, reference.metrics, policy=state.policy
             )
-        )
+        ]
+        state.legacy_relative_failures.extend(historical)
+        if state.c3_reference is None:
+            state.failures.extend(historical)
+        else:
+            comparison = compare_c3_account(
+                f"economic:{identifier}", candidate_metrics, reference=state.c3_reference,
+            )
+            state.c3_comparisons.append(comparison)
+            state.failures.extend(comparison["failures"])
         if dict(candidate_metrics) != dict(reference.metrics):
             state.equality_differences.append(f"metrics {identifier}")
     else:
@@ -777,6 +797,10 @@ def _evaluation_report(
                 "removed_fields": list(migration.removed_fields),
                 "governance_sha256": migration.governance_sha256,
                 "carrier_sha256": migration.carrier_sha256,
+                "authorization_id": migration.authorization_id,
+                "changed_fields": list(migration.changed_fields),
+                "added_fields": list(migration.added_fields),
+                "behavior_equivalent": migration.behavior_equivalent,
             }
         ),
         "economic_cells_expected": expected_economic,
@@ -784,5 +808,10 @@ def _evaluation_report(
         "replay_error_cells": state.replay_errors,
         "intrinsic_results": state.intrinsic_results,
         "random_tail_results": state.tail_results,
+        **({
+            "relative_policy": acceptance_basis(),
+            "fixed_c3_comparisons": state.c3_comparisons,
+            "legacy_relative_failures": state.legacy_relative_failures,
+        } if state.c3_reference is not None else {}),
         "failures": state.failures,
     }

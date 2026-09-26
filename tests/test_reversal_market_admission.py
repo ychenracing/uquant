@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 from test_lifecycle_and_risk import _leader, _trend_frame
 
 from uquant.config import DEFAULT_CONFIG
@@ -11,7 +12,8 @@ from uquant.portfolio_core import strategic_dominant_symbol
 from uquant.types import AccountState, Opportunity, Risk, RiskAssessment
 
 
-def _native_reversal(*, decisive: bool, opportunity: Opportunity):
+def _native_reversal(*, decisive: bool, opportunity: Opportunity,
+                     market_returns=(.01, -.01), expected_ready=True):
     # Reuse the native decisive-opening price construction; changing relative
     # evidence creates a real nondecisive quorum, never an injected certificate.
     dates = pd.bdate_range("2023-01-02", periods=251)
@@ -29,6 +31,8 @@ def _native_reversal(*, decisive: bool, opportunity: Opportunity):
         "tech_ret120": -.10, "risk_anchor_symbols": [],
         "risk_anchor_group_count": 0, "configured_user_universe_size": 3,
     }, (), "NONE")
+    if market_returns is not None:
+        risk.evidence.update(broad_ret20=market_returns[0], tech_ret20=market_returns[1])
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.account_identity, account.code_hash = "account:reversal-native", "code:reversal-native"
     policy = PortfolioAllocator(DEFAULT_CONFIG)
@@ -40,10 +44,22 @@ def _native_reversal(*, decisive: bool, opportunity: Opportunity):
             prices={s: float(panel[s].loc[date, "close"]) for s in panel},
         )
     observed = account.strategic_qualification
-    assert observed.qualification_ready
-    assert observed.qualification_route == "reversal_industry"
-    assert observed.qualification_quorum == "FULL_COHORT"
+    assert observed.qualification_ready is expected_ready
+    if expected_ready:
+        assert observed.qualification_route == "reversal_industry"
+        assert observed.qualification_quorum == "FULL_COHORT"
     return policy, account, dates, panel, leaders, risk, targets
+
+
+@pytest.mark.parametrize("market_returns", [(-.01, -.02), None, (float("nan"), .02)])
+def test_early_correlated_reversal_needs_observable_market_support(market_returns):
+    _, account, _, _, _, _, targets = _native_reversal(
+        decisive=True, opportunity=Opportunity.CHOPPY,
+        market_returns=market_returns, expected_ready=False,
+    )
+    assert account.strategic_grant is None
+    assert not account.strategic_epochs
+    assert not any(target.weight > 0 and target.epoch_id for target in targets)
 
 
 def test_nondecisive_synchronized_full_does_not_create_grant_in_choppy():

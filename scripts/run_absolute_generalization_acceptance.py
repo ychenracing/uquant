@@ -33,7 +33,6 @@ from uquant.validation.absolute_generalization import (
     AbsoluteGeneralizationScenario,
     AcceptanceReport,
     CellArtifact,
-    aggregate_acceptance,
     build_error_shard_manifest,
     build_leave_one_out_scenarios,
     load_absolute_generalization_contract,
@@ -45,6 +44,9 @@ from uquant.validation.absolute_generalization import (
     validate_shard_manifest,
 )
 from uquant.validation.absolute_generalization._acceptance_evidence import relative_policy_reference
+from uquant.validation.absolute_generalization.aggregation import (
+    aggregate_c3_acceptance as aggregate_acceptance,
+)
 from uquant.validation.absolute_generalization.contract import runtime_identity, verify_run_checkout
 from uquant.validation.manifest import verify_data_manifest
 

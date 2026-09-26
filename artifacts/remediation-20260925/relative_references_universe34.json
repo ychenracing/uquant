@@ -1,0 +1,62 @@
+{
+  "universe_selection_status": "retrospective_fixed",
+  "evidence_scope": "conditional_historical_replay",
+  "historical_membership_evidence": "unresolved",
+  "window": {
+    "start": "2023-01-03",
+    "end": "2026-06-30"
+  },
+  "references": [
+    {
+      "reference": "REF0a",
+      "tradable": true,
+      "pool_size": 34,
+      "final_wealth_multiple": 14.436805624692973,
+      "total_return": 13.436805624692973,
+      "max_drawdown": 0.4205007521559101,
+      "drawdown_recovered": true,
+      "sessions": 843,
+      "fills": 30,
+      "unfilled_orders": 0,
+      "fees": 511.46040405459996
+    },
+    {
+      "reference": "REF0b",
+      "tradable": true,
+      "pool_size": 34,
+      "final_wealth_multiple": 11.216985071043482,
+      "total_return": 10.216985071043482,
+      "max_drawdown": 0.43070865276839476,
+      "drawdown_recovered": true,
+      "sessions": 843,
+      "fills": 677,
+      "unfilled_orders": 549,
+      "fees": 10516.76469703439
+    },
+    {
+      "reference": "REF1",
+      "tradable": false,
+      "index": "sh000300",
+      "final_wealth_multiple": 1.2807505337071428,
+      "total_return": 0.28075053370714276,
+      "max_drawdown": 0.2480393206945387,
+      "drawdown_recovered": true,
+      "sessions": 843
+    },
+    {
+      "reference": "REF3",
+      "tradable": true,
+      "pool_size": 34,
+      "final_wealth_multiple": 31.245844089505127,
+      "total_return": 30.245844089505127,
+      "max_drawdown": 0.5213446868792111,
+      "drawdown_recovered": true,
+      "sessions": 843,
+      "fills": 194,
+      "unfilled_orders": 64,
+      "fees": 221073.38533776323
+    }
+  ],
+  "stress": [],
+  "start_dates": []
+}

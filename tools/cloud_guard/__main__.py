@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from uuid import uuid4
 
-from .admission import admission
+from .admission import admission, reconcile_local
 from .export import export_bundle, inspect_root
 from .journal import NAME, atomic, checkpoint, create, emit, load, packed, resources, runtime_id
 from .report import summarize
@@ -39,6 +39,9 @@ def main():
     finish.add_argument("--outcome", choices=("success", "error", "unknown", "verified"), required=True)
     finish.add_argument("--code", default="UNSPECIFIED")
     finish.add_argument("--receipt")
+    reconcile = subs.add_parser("reconcile-local")
+    reconcile.add_argument("--id", required=True)
+    reconcile.add_argument("--receipt", required=True)
     subs.add_parser("inspect")
     subs.add_parser("snapshot")
     export = subs.add_parser("export")
@@ -79,6 +82,8 @@ def main():
         # Receipt integrity is recorded, not semantic proof of a provider's state.
         emit(directory, state, "external_result_recorded")
         print(json.dumps(summarize(state)))
+    elif args.action == "reconcile-local":
+        print(json.dumps(reconcile_local(root, args.id, args.receipt)))
     elif args.action == "snapshot":
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
         value = {"scope": "current runtime, not historical failure telemetry",

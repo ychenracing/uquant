@@ -66,14 +66,28 @@ def _performance_payload(candidate: Mapping[str, Any]) -> dict[str, Any]:
     baseline_bytes = (ROOT / "benchmarks/promotion_baseline.json").read_bytes()
     baseline = json.loads(baseline_bytes)
     champion = baseline["champion"]
+    from uquant.validation.pr92_tradeoffs import compare_c3_subset, load_fixed_c3
+
+    # Synthetic provenance fixture, sized to satisfy both retained hard gates
+    # and the newly authorized fixed C3 account budgets.
+    reference = load_fixed_c3()
+    cells, protected = copy.deepcopy(champion["cells"]), copy.deepcopy(champion["protected"])
+    for name, metrics in {**cells, **protected}.items():
+        anchor = reference[f"performance:{name}"]["metrics"]
+        metrics["final_wealth"] = max(metrics["final_wealth"], anchor["final_wealth_multiple"])
+        metrics["max_drawdown"] = min(metrics["max_drawdown"], anchor["max_drawdown"])
+    comparisons = compare_c3_subset({f"performance:{name}": metrics
+                                     for name, metrics in {**cells, **protected}.items()})
     return {
         "schema_version": 4,
         "profile": "full",
         "acceptance_basis": current_promotion_acceptance_basis(),
         "passed": True,
         "failures": [],
-        "cells": copy.deepcopy(champion["cells"]),
-        "protected": copy.deepcopy(champion["protected"]),
+        "cells": cells,
+        "protected": protected,
+        "legacy_champion_failures": [],
+        "fixed_c3_comparisons": comparisons,
         "summary": {},
         "provenance": {
             "candidate": copy.deepcopy(candidate),

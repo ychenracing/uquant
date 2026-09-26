@@ -10,6 +10,7 @@ from uquant.contracts.universe import (
     decision_ai_universe,
     default_ai_universe,
     load_ai_universe,
+    production_ai_universe,
     research_industry_input,
 )
 from uquant.industry import decision_industries
@@ -32,8 +33,9 @@ def test_research_taxonomy_is_causal_and_does_not_change_membership_or_default()
             assert revised.symbols_as_of(day) == frozen.symbols_as_of(day)
         with pytest.raises(RuntimeError, match="nested"), research_industry_input(REVIEW, expected_sha256=REVIEW_SHA):
             pass
-    assert decision_ai_universe() is frozen
-    assert decision_industries("2023-01-03")["sz002371"] == "pcb"
+    # Outside a research context decisions use the formal classification v2.
+    assert decision_ai_universe() is production_ai_universe()
+    assert decision_industries("2023-01-03")["sz002371"] == "equipment"
 
 
 @pytest.mark.parametrize("mutation", ["hash", "duplicate", "foreign", "date", "industry"])
@@ -52,7 +54,7 @@ def test_research_input_rejects_unpinned_or_invalid_review(tmp_path: Path, mutat
     digest = "0" * 64 if mutation == "hash" else hashlib.sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError), research_industry_input(path, expected_sha256=digest):
         pass
-    assert decision_ai_universe() is default_ai_universe()
+    assert decision_ai_universe() is production_ai_universe()
 
 
 def test_research_native_account_readback_requires_exact_input(tmp_path: Path) -> None:
@@ -98,7 +100,7 @@ def test_shared_score_cache_separates_inputs_and_restores_production(data_dir: P
         new = compute_structural_leaders(engine._features, **kwargs)
         assert new is not old
         assert new["sz002371"].industry == "equipment"
-        assert old["sz002371"].industry == "pcb"
+        assert old["sz002371"].industry == "equipment"
     assert compute_structural_leaders(engine._features, **kwargs) is old
 
 

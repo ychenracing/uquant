@@ -38,7 +38,7 @@ def _registered_exit(*, grant_id=""):
     ))
     retained = account.pending_orders[0]
     assert retained.side == "SELL" and retained.epoch_id == epoch
-    assert retained.event_id == "evt_04bd5552806003cd8cf50189195909ebea5e8ea15d452d3404cbbcd0f682efcd"
+    assert retained.event_id == "evt_d61e095a791b090459d3fef6a97d816fc491a50664c9a8d00e1ebd33ab589531"
     return account, original, prices
 
 

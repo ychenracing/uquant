@@ -9,8 +9,9 @@ import pandas as pd
 
 from ..config import SystemConfig
 from ..data import DataManifest, DataStore, normalize_symbol
-from ..features import compute_features
+from ..features import compute_features, signal_close
 from .replay import ReplayUniverse
+from .valuation import mark_price
 
 
 class MarketWorkspace:
@@ -114,7 +115,7 @@ class MarketWorkspace:
         ):
             self._reference_returns = pd.DataFrame(
                 {
-                    symbol: self._raw[symbol]["close"].pct_change(fill_method=None)
+                    symbol: signal_close(self._raw[symbol]).pct_change(fill_method=None)
                     for symbol in references
                 }
             )
@@ -140,14 +141,16 @@ class MarketWorkspace:
         as_of: str | pd.Timestamp,
         field: str = "close",
     ) -> float:
-        """Return the latest visible field using the historical failure contract."""
+        """Return the session field, else the last valid close; never a stale open."""
 
-        frame = self._raw[symbol]
         date = pd.Timestamp(as_of)
-        visible = frame.loc[:date]
-        if visible.empty:
+        frame = self._raw[symbol]
+        if frame.empty or date < frame.index[0]:
             raise RuntimeError(f"{symbol} has no mark price at {date.date()}")
-        return float(visible.iloc[-1][field])
+        mark = mark_price(frame, date, field=field)
+        if mark is None:
+            raise RuntimeError(f"{symbol} has no mark price at {date.date()}")
+        return mark.price
 
     def common_sessions(self, left: str, right: str) -> pd.DatetimeIndex:
         """Return the ordered intersection of two already loaded frames."""

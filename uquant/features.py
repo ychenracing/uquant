@@ -14,12 +14,30 @@ def _wilder(values: pd.Series, window: int) -> pd.Series:
     return values.ewm(alpha=1.0 / window, adjust=False, min_periods=window).mean()
 
 
+LEVEL_FEATURES = ("atr", "hhv")
+
+
+def signal_close(frame: pd.DataFrame) -> pd.Series:
+    """Return the continuous close used for returns and price histories.
+
+    Raw snapshots carry ``adj_close`` so that ex-dates never look like real
+    price moves; legacy snapshots have one price coordinate only.
+    """
+    return frame["adj_close"] if "adj_close" in frame else frame["close"]
+
+
 def compute_features(frame: pd.DataFrame, cfg: SystemConfig) -> pd.DataFrame:
-    """Build lagged trend, momentum, volatility, breakout, and breadth inputs."""
+    """Build lagged trend, momentum, volatility, breakout, and breadth inputs.
+
+    Features are computed on the continuous series. Price-level features are
+    then expressed in the raw coordinate of their own row so that they compare
+    directly with the raw ``close`` and with account price anchors.
+    """
     out = frame.copy()
-    close = out["close"].astype(float)
-    high = out["high"].astype(float)
-    low = out["low"].astype(float)
+    factor = (signal_close(out) / out["close"]).astype(float)
+    close = signal_close(out).astype(float)
+    high = out["high"].astype(float) * factor
+    low = out["low"].astype(float) * factor
     previous = close.shift(1)
     true_range = pd.concat([(high - low).abs(), (high - previous).abs(), (low - previous).abs()], axis=1).max(
         axis=1
@@ -73,6 +91,9 @@ def compute_features(frame: pd.DataFrame, cfg: SystemConfig) -> pd.DataFrame:
         dtype=float,
     )
     out["trend_r2_120"] = log_close.rolling(120, min_periods=80).corr(time).pow(2)
+    if "adj_close" in out:
+        for name in (*LEVEL_FEATURES, *(f"ma{w}" for w in (cfg.trend_fast, cfg.trend_medium, cfg.trend_slow))):
+            out[name] = out[name] / factor
     return out.replace([np.inf, -np.inf], np.nan)
 
 
@@ -104,7 +125,7 @@ def cross_section_returns(panel: dict[str, pd.DataFrame], date: pd.Timestamp) ->
     """Return the recent point-in-time return panel used for correlations."""
     series: dict[str, pd.Series] = {}
     for symbol, frame in panel.items():
-        bounded = frame.loc[:date, "close"].tail(61).pct_change(fill_method=None).dropna()
+        bounded = signal_close(frame).loc[:date].tail(61).pct_change(fill_method=None).dropna()
         if len(bounded) >= 20:
             series[symbol] = bounded
     return pd.DataFrame(series).dropna(how="all")

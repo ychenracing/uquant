@@ -19,7 +19,9 @@
           "slippage",
           "max_volume_participation",
           "minimum_median_amount",
-          "min_trade_value"
+          "min_trade_value",
+          "execution_clock",
+          "auction_limit_buffer"
         ]
       }
     ],

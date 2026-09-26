@@ -7,7 +7,7 @@ from datetime import date as date_type
 from types import SimpleNamespace
 from typing import Any
 
-from uquant.contracts.universe import decision_ai_universe
+from uquant.contracts.universe import registered_ai_universe
 
 from ..contracts.universe import (
     CANONICAL_INDUSTRIES,
@@ -61,10 +61,10 @@ def _validate_attribution_industry_and_event_id(
     broker_degraded_identity = bool(
         origin is OriginSubsystem.BROKER_RECONCILIATION
         and mechanism is AttributionMechanism.BROKER_RECONCILIATION
-    )
+    ) or bool(origin is OriginSubsystem.EXTERNAL_TRADE and mechanism is AttributionMechanism.EXTERNAL_TRADE)
     migrated_inventory_sale = bool(getattr(item, "side", None) == Side.SELL.value)
     if item.industry_at_entry in CANONICAL_INDUSTRIES:
-        if item.industry_manifest_sha256 != decision_ai_universe().sha256:
+        if registered_ai_universe(item.industry_manifest_sha256) is None:
             raise RuntimeError(f"{label} has invalid industry manifest SHA-256")
     elif item.industry_at_entry == _LEGACY_INDUSTRY and (
         legacy_identity or broker_degraded_identity or migrated_inventory_sale
@@ -153,6 +153,16 @@ def validate_attribution_identity(
     )
 
 
+def _corporate_action_lot_additions(state: AccountState) -> dict[tuple[str, str], int]:
+    """Bonus/transfer shares each originating BUY lot received on its ex-dates."""
+    additions: dict[tuple[str, str], int] = {}
+    for action in state.corporate_actions:
+        for addition in action.get("lot_share_additions", []):
+            key = (addition["symbol"], addition["lot_event_id"])
+            additions[key] = additions.get(key, 0) + int(addition["added_shares"])
+    return additions
+
+
 def validate_lot_origin_chains(state: AccountState) -> None:
     """Bind every native live/sold lot to a validated originating BUY."""
 
@@ -192,6 +202,9 @@ def validate_lot_origin_chains(state: AccountState) -> None:
         key = (fill.symbol, fill.event_id)
         buy_fills.setdefault(key, []).append(fill)
         acquired_shares[key] = acquired_shares.get(key, 0) + fill.shares
+
+    for key, added in _corporate_action_lot_additions(state).items():
+        acquired_shares[key] = acquired_shares.get(key, 0) + added
 
     attributed_lot_shares: dict[tuple[str, str], int] = {}
 
@@ -314,7 +327,10 @@ def validate_order_intent(
             verify_event_derivation=True,
         )
         if order.side == Side.BUY.value:
-            expected_industry = decision_ai_universe().industry_of(order.symbol, signal_date)
+            universe = registered_ai_universe(order.industry_manifest_sha256)
+            if universe is None:
+                raise RuntimeError(f"{label} BUY has an unregistered industry manifest")
+            expected_industry = universe.industry_of(order.symbol, signal_date)
             if expected_industry == "unknown":
                 raise RuntimeError(f"{label} BUY has no point-in-time AI-universe membership")
             if order.industry_at_entry != expected_industry:

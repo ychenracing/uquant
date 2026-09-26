@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from importlib import resources
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Final
 
 FROZEN_CHAMPION_COMMIT: Final = "cf8fecff76564fd4ed87faa0da336a06d433fd93"
@@ -382,11 +383,100 @@ sha256_bytes = _sha256
 
 
 _RESEARCH_INPUT: ContextVar[AIUniverse | None] = ContextVar("research_industry_input", default=None)
+_CLASSIFICATION_FIELDS = frozenset(
+    {
+        "symbol", "name", "base_industry", "industry", "conclusion", "effective_from", "known_by",
+        "date_basis", "source_url", "basis", "caveat", "business_status", "pit_membership_status",
+    }
+)
+
+
+def load_industry_classification(raw: bytes | None = None) -> AIUniverse:
+    """Load the reviewed dated primary-industry version over the frozen membership."""
+    payload = read_json_bytes(
+        raw if raw is not None else _resource_bytes("industry_classification_v2.json"),
+        label="industry classification",
+    )
+    if payload.get("manifest_id") != "ai-industry-classification-v2" or payload.get("schema_version") != 1:
+        raise ValueError("industry classification identity is malformed")
+    seal = _sha256(payload.get("canonical_sha256"), label="industry classification SHA-256")
+    if seal != canonical_sha256(payload):
+        raise ValueError("industry classification seal differs from its content")
+    base = default_ai_universe()
+    if payload.get("base_manifest_sha256") != base.sha256:
+        raise ValueError("industry classification base manifest differs")
+    members = {member.symbol: member for member in base.members}
+    rows = payload.get("members")
+    if not isinstance(rows, list) or sorted(row.get("symbol") for row in rows) != sorted(members):
+        raise ValueError("industry classification must review every frozen member exactly once")
+    revisions = [
+        revision for row in rows
+        for revision in (_classification_revision(row, members[row["symbol"]]),)
+        if revision is not None
+    ]
+    return AIUniverse(members=base.members, sha256=seal, industry_revisions=tuple(sorted(revisions)))
+
+
+def _classification_revision(row: Mapping[str, Any], member: UniverseMember) -> tuple[str, date, str] | None:
+    """Validate one reviewed member; return its dated revision, or None when confirmed."""
+    if set(row) != _CLASSIFICATION_FIELDS or row["industry"] not in CANONICAL_INDUSTRIES:
+        raise ValueError("industry classification member is malformed")
+    if row["base_industry"] != member.industry or not row["source_url"]:
+        raise ValueError("industry classification member differs from the frozen base or lacks a source")
+    if row["conclusion"] == "confirmed":
+        if row["industry"] != member.industry or row["effective_from"] is not None:
+            raise ValueError("confirmed industry classification cannot change the base label")
+        return None
+    if row["conclusion"] != "revised" or row["industry"] == member.industry:
+        raise ValueError("industry classification revision is malformed")
+    effective = _parse_date(row["effective_from"], label="classification effective_from")
+    known_by = _parse_date(row["known_by"], label="classification known_by")
+    if effective <= known_by or effective < member.effective_from:
+        raise ValueError("industry classification revision cannot precede its evidence or membership")
+    return row["symbol"], effective, row["industry"]
+
+
+_PRODUCTION_CLASSIFICATION: Final = load_industry_classification()
+
+
+def production_ai_universe() -> AIUniverse:
+    """Return the current formal classification used by new production decisions."""
+    return _PRODUCTION_CLASSIFICATION
+
+
+def registered_ai_universe(sha256: str) -> AIUniverse | None:
+    """Resolve a recorded industry manifest identity to the version that created it."""
+    active = _RESEARCH_INPUT.get()
+    for universe in (active, _PRODUCTION_CLASSIFICATION, _DEFAULT_UNIVERSE):
+        if universe is not None and universe.sha256 == sha256:
+            return universe
+    return None
+
+
+# The fixed 34-name pool was chosen after the fact; replays over it are
+# conditional on that choice and prove nothing about ex-ante selection.
+EVIDENCE_SCOPE: Final[Mapping[str, str]] = MappingProxyType({
+    "universe_selection_status": "retrospective_fixed",
+    "evidence_scope": "conditional_historical_replay",
+    "historical_membership_evidence": "unresolved",
+})
 
 
 def decision_ai_universe() -> AIUniverse:
-    """Return the explicitly selected research input, otherwise production."""
-    return _RESEARCH_INPUT.get() or default_ai_universe()
+    """Return the explicitly selected research input, otherwise the formal classification."""
+    return _RESEARCH_INPUT.get() or _PRODUCTION_CLASSIFICATION
+
+
+@contextmanager
+def historical_industry_classification() -> Iterator[AIUniverse]:
+    """Replay decisions under the frozen v1 classification that older evidence used."""
+    if _RESEARCH_INPUT.get() is not None:
+        raise RuntimeError("research industry contexts cannot be nested")
+    token = _RESEARCH_INPUT.set(_DEFAULT_UNIVERSE)
+    try:
+        yield _DEFAULT_UNIVERSE
+    finally:
+        _RESEARCH_INPUT.reset(token)
 
 
 @contextmanager

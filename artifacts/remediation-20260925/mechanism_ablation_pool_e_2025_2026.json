@@ -1,0 +1,45 @@
+{
+  "window": {
+    "start": "2025-01-02",
+    "end": "2026-06-30"
+  },
+  "base_metrics": {
+    "final_wealth_multiple": 7.348923985982617,
+    "max_drawdown": 0.25410708054517717
+  },
+  "cases": [
+    {
+      "mechanism": "confidence_sizing_enabled",
+      "expected_role": "scale entry weight by signal confidence",
+      "delta": {
+        "final_wealth_multiple": 0.0,
+        "max_drawdown": 0.0,
+        "account_orders": 0,
+        "fees": 0.0
+      },
+      "first_divergent_fill": null
+    },
+    {
+      "mechanism": "industry_rotation_enabled",
+      "expected_role": "rotate the core book toward the leading industry",
+      "delta": {
+        "final_wealth_multiple": 0.0,
+        "max_drawdown": 0.0,
+        "account_orders": 0,
+        "fees": 0.0
+      },
+      "first_divergent_fill": null
+    },
+    {
+      "mechanism": "regime_factor_blend_enabled",
+      "expected_role": "blend leader factors by market regime",
+      "delta": {
+        "final_wealth_multiple": 0.0,
+        "max_drawdown": 0.0,
+        "account_orders": 0,
+        "fees": 0.0
+      },
+      "first_divergent_fill": null
+    }
+  ]
+}

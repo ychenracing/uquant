@@ -579,10 +579,11 @@ def test_final_cli_reads_exact_eight_manifests_and_returns_report_conjunction(
     code = run(parse_cli(_final_args(root, output)))
     report = json.loads(output.read_text(encoding="utf-8"))
 
-    assert code == 0
+    assert code == 1
     assert report["runner_success"] is True
-    assert report["capability_pass"] is True
-    assert report["passed"] is True
+    assert report["capability_pass"] is False
+    assert report["passed"] is False
+    assert any("fixed C3" in reason for reason in report["components"][-1]["failures"])
     assert report["canonical_sha256"]
     manifests = {
         shard: json.loads(
@@ -708,7 +709,7 @@ def _fixture_cli_entry(arguments: list[str], monkeypatch: pytest.MonkeyPatch) ->
     return exited.value.code
 
 
-@pytest.mark.parametrize(("upstream", "expected"), (("success", 0), ("failure", 1)))
+@pytest.mark.parametrize(("upstream", "expected"), (("success", 1), ("failure", 1)))
 def test_final_fixture_cli_entry_preserves_blocking_exit_and_sealed_report(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, upstream: str, expected: int
 ) -> None:
@@ -721,7 +722,10 @@ def test_final_fixture_cli_entry_preserves_blocking_exit_and_sealed_report(
 
     assert code == expected
     report = json.loads(output.read_text(encoding="utf-8"))
-    assert report["passed"] is (upstream == "success")
+    assert report["passed"] is False
+    assert report["runner_success"] is (upstream == "success")
+    if upstream == "success":
+        assert any("fixed C3" in reason for reason in report["components"][-1]["failures"])
     assert report["canonical_sha256"]
 
 

@@ -1,0 +1,182 @@
+[
+  {
+    "window": "continuous_ai_era",
+    "scenario": "full",
+    "v1": {
+      "final_wealth_multiple": 23.66381901769428,
+      "max_drawdown": 0.2667922023271293,
+      "account_orders": 35,
+      "annual_turnover": 11.03851776031748,
+      "fees": 55019.50408044145,
+      "slippage_cost": 79322.08953099877
+    },
+    "v2": {
+      "final_wealth_multiple": 26.235445318773277,
+      "max_drawdown": 0.26642981310634495,
+      "account_orders": 42,
+      "annual_turnover": 13.916873111667469,
+      "fees": 66852.8423634468,
+      "slippage_cost": 99999.09008999492
+    }
+  },
+  {
+    "window": "continuous_ai_era",
+    "scenario": "random__09__0004",
+    "v1": {
+      "final_wealth_multiple": 1.5867366076839489,
+      "max_drawdown": 0.16621882737441074,
+      "account_orders": 29,
+      "annual_turnover": 1.9650681991109873,
+      "fees": 7234.90043210288,
+      "slippage_cost": 14112.926199999358
+    },
+    "v2": {
+      "final_wealth_multiple": 1.2823362148894828,
+      "max_drawdown": 0.25584945514995816,
+      "account_orders": 36,
+      "annual_turnover": 2.2015868273494936,
+      "fees": 8308.0751230356,
+      "slippage_cost": 15811.985097999363
+    }
+  },
+  {
+    "window": "continuous_ai_era",
+    "scenario": "remove-all-core",
+    "v1": {
+      "final_wealth_multiple": 1.9750409153867359,
+      "max_drawdown": 0.30440947949566444,
+      "account_orders": 82,
+      "annual_turnover": 5.9866024930447725,
+      "fees": 24181.03789953142,
+      "slippage_cost": 42995.42432699784
+    },
+    "v2": {
+      "final_wealth_multiple": 2.1682084073308507,
+      "max_drawdown": 0.29253951902170305,
+      "account_orders": 99,
+      "annual_turnover": 7.149457869789874,
+      "fees": 28668.59827630325,
+      "slippage_cost": 51347.187061996905
+    }
+  },
+  {
+    "window": "continuous_ai_era",
+    "scenario": "remove-one__sz300308",
+    "v1": {
+      "final_wealth_multiple": 2.4822240374500777,
+      "max_drawdown": 0.2832884223140597,
+      "account_orders": 81,
+      "annual_turnover": 6.949871920222558,
+      "fees": 28147.86338784912,
+      "slippage_cost": 49914.09971199719
+    },
+    "v2": {
+      "final_wealth_multiple": 2.4307660019059103,
+      "max_drawdown": 0.24713107712654814,
+      "account_orders": 85,
+      "annual_turnover": 5.840656287098684,
+      "fees": 24122.10106818236,
+      "slippage_cost": 41949.45911999771
+    }
+  },
+  {
+    "window": "continuous_ai_era",
+    "scenario": "remove-one__sz300394",
+    "v1": {
+      "final_wealth_multiple": 18.112863871705983,
+      "max_drawdown": 0.2507192092659628,
+      "account_orders": 72,
+      "annual_turnover": 11.173587583831507,
+      "fees": 52506.52460703749,
+      "slippage_cost": 80281.03298099787
+    },
+    "v2": {
+      "final_wealth_multiple": 3.4756126959882168,
+      "max_drawdown": 0.2826902791270469,
+      "account_orders": 101,
+      "annual_turnover": 6.706020289083152,
+      "fees": 28017.38317456704,
+      "slippage_cost": 48166.44584899782
+    }
+  },
+  {
+    "window": "continuous_ai_era",
+    "scenario": "remove-one__sz300502",
+    "v1": {
+      "final_wealth_multiple": 9.649076261327762,
+      "max_drawdown": 0.256266471144484,
+      "account_orders": 94,
+      "annual_turnover": 10.283630556178112,
+      "fees": 45104.43431147886,
+      "slippage_cost": 73872.58203299758
+    },
+    "v2": {
+      "final_wealth_multiple": 32.84176101446124,
+      "max_drawdown": 0.26641594180417116,
+      "account_orders": 37,
+      "annual_turnover": 13.80715261941595,
+      "fees": 69748.39886151861,
+      "slippage_cost": 99224.31221599913
+    }
+  },
+  {
+    "window": "continuous_ai_era",
+    "scenario": "tradable-no-optical",
+    "v1": {
+      "final_wealth_multiple": 2.0331082579104356,
+      "max_drawdown": 0.33103002621462463,
+      "account_orders": 100,
+      "annual_turnover": 6.532170227952127,
+      "fees": 26528.64760913038,
+      "slippage_cost": 46914.99856999779
+    },
+    "v2": {
+      "final_wealth_multiple": 2.071188197802868,
+      "max_drawdown": 0.29253951902170305,
+      "account_orders": 88,
+      "annual_turnover": 6.842642082101113,
+      "fees": 27517.11755826683,
+      "slippage_cost": 49143.57883599733
+    }
+  },
+  {
+    "window": "h1_2024",
+    "scenario": "full",
+    "v1": {
+      "final_wealth_multiple": 0.9690420058832476,
+      "max_drawdown": 0.1005695504749925,
+      "account_orders": 21,
+      "annual_turnover": 8.343397120498187,
+      "fees": 4047.36712750516,
+      "slippage_cost": 8136.135105999594
+    },
+    "v2": {
+      "final_wealth_multiple": 0.8931618477384792,
+      "max_drawdown": 0.14582160843711245,
+      "account_orders": 15,
+      "annual_turnover": 7.3895946368703385,
+      "fees": 3568.841423042,
+      "slippage_cost": 7205.963099999551
+    }
+  },
+  {
+    "window": "h2_2024",
+    "scenario": "full",
+    "v1": {
+      "final_wealth_multiple": 1.144810136346511,
+      "max_drawdown": 0.10094921640836318,
+      "account_orders": 11,
+      "annual_turnover": 4.07747459460308,
+      "fees": 1655.2141219781,
+      "slippage_cost": 4210.299184999723
+    },
+    "v2": {
+      "final_wealth_multiple": 0.929147325677633,
+      "max_drawdown": 0.18452265290458525,
+      "account_orders": 10,
+      "annual_turnover": 5.785178541586313,
+      "fees": 2550.20663573434,
+      "slippage_cost": 5974.439008999682
+    }
+  }
+]

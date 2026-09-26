@@ -565,7 +565,7 @@ def test_daily_failure_preserves_account_and_recoverable_rendering(monkeypatch, 
     _state(path)
     before = path.read_bytes()
     if failure == 'render':
-        def fail_render(*args):
+        def fail_render(*args, **kwargs):
             raise ValueError('render failed')
         monkeypatch.setattr(cli, 'render_daily_html', fail_render)
         with pytest.raises(ValueError, match='render failed'):
@@ -574,11 +574,12 @@ def test_daily_failure_preserves_account_and_recoverable_rendering(monkeypatch, 
         assert not (tmp_path / 'daily.md').exists()
         return
     if failure == 'account_after_replace':
-        original_save = cli.save_account
+        import uquant.account.transaction as transaction
+        original_save = transaction.save_account
         def uncertain_save(account, destination):
             original_save(account, destination)
             raise OSError('directory sync failed after replace')
-        monkeypatch.setattr(cli, 'save_account', uncertain_save)
+        monkeypatch.setattr(transaction, 'save_account', uncertain_save)
     else:
         original_write = cli.atomic_write_text
         def fail_publish(destination, content, **kwargs):
@@ -592,6 +593,12 @@ def test_daily_failure_preserves_account_and_recoverable_rendering(monkeypatch, 
     assert len(ready) == (2 if failure == 'account_after_replace' else 1)
     assert all('fake-decision' in p.read_text() for p in ready)
     assert 'daily' in capsys.readouterr().err
+    monkeypatch.undo()
+    committed = path.read_bytes()
+    assert main(_daily_args(tmp_path)) == 0
+    assert path.read_bytes() == committed
+    assert 'fake-decision' in (tmp_path / 'daily.html').read_text()
+    assert not list(tmp_path.glob('daily.*.ready-*'))
 
 
 @pytest.mark.parametrize('alias', ['account', 'markdown', 'config', 'data', 'hardlink'])

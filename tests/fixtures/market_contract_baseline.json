@@ -9,9 +9,9 @@
     "keys": ["sh000300", "sh000682", "sz300308"],
     "raw_shape": [2892, 6],
     "raw_columns": ["open", "high", "low", "close", "volume", "amount"],
-    "raw_sha256": "366f498426be3e626d8e2787ea19cdd9184e7d19107464a32681dd4392e8e345",
+    "raw_sha256": "6e1f93d058a9a9bfef8d755b04d7e99e674a13cf1d4ceef69427fc4f664256d0",
     "feature_shape": [2892, 33],
-    "feature_sha256": "d37dbe85ed6cc43fdfaa06e9b3aaf91a8d5ddc6ad0fc2fd6f5dcc1febb99161e",
+    "feature_sha256": "15cf91a5a7367a61cfa3b0d30b049e33145a2831d98da31399f694a1f174d3b8",
     "index_first": "2014-01-02",
     "index_last": "2026-08-05"
   },
@@ -43,7 +43,7 @@
     "index_last": "2026-08-05"
   },
   "manifest": {
-    "digest": "bef611cac5b8bf011d67bec1458b68daf65bc6e3bb288a5dd45732a4ace43482",
+    "digest": "eb57f4ba2a611f009f99dba609aec916e0d82aac8d7fa2c7f69725ca55214733",
     "start": "2024-01-02",
     "end": "2026-06-26",
     "symbol_count": 36

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import replace
 
 import pandas as pd
@@ -32,10 +33,13 @@ from uquant.types import (
 
 
 def test_fee_formula_is_recomputable():
-    commission, stamp, transfer = fee_components("SELL", 100_000, DEFAULT_CONFIG)
+    commission, stamp, transfer = fee_components("SELL", 100_000, DEFAULT_CONFIG, "2023-08-28")
     assert commission == 25
     assert stamp == 50
     assert transfer == 1
+    assert fee_components("SELL", 100_000, DEFAULT_CONFIG, "2023-08-25")[1] == 100
+    assert fee_components("BUY", 100_000, DEFAULT_CONFIG, "2022-04-28")[2] == 2
+    assert fee_components("SELL", 100_000, DEFAULT_CONFIG.override(stamp_duty=0.0005), "2023-01-03")[1] == 50
 
 def test_sellable_shares_are_tranche_based():
     position = Position(
@@ -143,7 +147,14 @@ def test_sells_release_cash_before_buys():
         _canonical_pending("2026-01-05", "sz002371", "BUY", 0.5, "entry"),
         _canonical_pending("2026-01-05", "sh603986", "SELL", 0.0, "exit"),
     ]
-    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+    auction_account = copy.deepcopy(account)
+    auction = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+        date=pd.Timestamp("2026-01-06"), account=auction_account, panel=panel
+    )
+    # Same-auction sale proceeds are unconfirmed and cannot fund the buy.
+    assert [fill.side for fill in auction] == ["SELL"]
+    assert [order.side for order in auction_account.pending_orders] == ["BUY"]
+    fills = ExecutionPlanner(DEFAULT_CONFIG.override(execution_clock="DAILY_PROXY")).execute_open(
         date=pd.Timestamp("2026-01-06"), account=account, panel=panel
     )
     assert [fill.side for fill in fills] == ["SELL", "BUY"]

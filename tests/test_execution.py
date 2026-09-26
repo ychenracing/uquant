@@ -27,7 +27,7 @@ from uquant.types import (
     Tranche,
     derive_attribution_event_id,
 )
-from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+from uquant.contracts.universe import decision_ai_universe
 
 
 def _attribution_identity(
@@ -42,12 +42,13 @@ def _attribution_identity(
     exit_kind: str = "strategy",
 ) -> dict[str, str | None]:
     lifecycle = "CORE"
-    industry = default_ai_universe().industry_of(symbol, signal_date)
+    universe = decision_ai_universe()
+    industry = universe.industry_of(symbol, signal_date)
     if industry == "unknown":
         # SELL-only unit fixtures may model pre-universe inventory. Production
         # BUY fixtures must use a point-in-time manifest member.
         industry = "legacy_unmapped" if origin_subsystem != OriginSubsystem.LEADER.value else "optical"
-    manifest = REQUIRED_AI_UNIVERSE_SHA256 if industry != "legacy_unmapped" else "0" * 64
+    manifest = universe.sha256 if industry != "legacy_unmapped" else "0" * 64
     fields: dict[str, str | None] = {
         "origin_subsystem": origin_subsystem,
         "mechanism": mechanism,
@@ -834,7 +835,7 @@ def test_large_opening_gap_reprices_target_and_preserves_weight_cap():
     account.pending_orders = [
         _canonical_pending("2026-01-05", "sh603986", "BUY", 0.60, "entry")
     ]
-    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(
+    fills = ExecutionPlanner(DEFAULT_CONFIG.override(execution_clock="DAILY_PROXY")).execute_open(
         date=pd.Timestamp("2026-01-06"), account=account, panel=panel
     )
     assert len(fills) == 1

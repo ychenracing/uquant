@@ -159,7 +159,7 @@ def test_settled_rotation_survives_a_later_rejected_transfer_observation(monkeyp
     ]
     sold = planner.execute_open(date=dates[-2], account=account, panel=panel)
     assert len(sold) == 1 and sold[0].symbol == WEAK and sold[0].side == "SELL"
-    assert sold[0].mechanism == "LEADER_ROTATION" and sold[0].shares == 30_000
+    assert sold[0].mechanism == "LEADER_ROTATION" and sold[0].shares == 29_954
     cash_after_sale = account.cash
     shares_after_sale = {symbol: position.shares for symbol, position in account.positions.items()}
     transfer_clock = f"core_transfer_session:{WEAK}->{CHALLENGER}"

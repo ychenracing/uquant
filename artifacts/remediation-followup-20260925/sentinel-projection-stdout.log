@@ -1,0 +1,474 @@
+....FFFFF...                                                             [100%]
+=================================== FAILURES ===================================
+______ test_source_epoch_v2_preserves_its_sealed_remote_recovery_metadata ______
+
+    def test_source_epoch_v2_preserves_its_sealed_remote_recovery_metadata() -> None:
+        payload = _artifact("source_epoch_v2.json")
+        unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
+        assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
+        assert payload["superseded_by_epoch_id"] == "production_wheel_v3"
+        epoch = payload["source_epoch"]
+        recovery = epoch["remote_recovery"]
+    
+        assert epoch["registered_at_commit"] == recovery["original_local_gate_commit"]
+        assert epoch["production_wheel"]["reproducible_build"]["clean_source"] == (
+            f"git archive {epoch['registered_at_commit']}"
+        )
+        assert recovery["original_local_gate_commit"] == (
+            "f6b75aa809294ebabebf7e6e0cf4cea6dea41da6"
+        )
+        assert re.fullmatch(r"[0-9a-f]{40}", recovery["commit"])
+        assert re.fullmatch(r"[0-9a-f]{40}", recovery["tree_sha"])
+>       assert _git("rev-parse", f"{recovery['commit']}^{{tree}}") == recovery["tree_sha"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/architecture/test_release_acceptance.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/architecture/test_release_acceptance.py:46: in _git
+    completed = subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', 'rev-parse', 'd91cbf3706d2d36db7cf2391d98cbef1dbb0f0a2^{tree}'],)
+kwargs = {'cwd': PosixPath('/workspace/scratch/1adbcc9c7025/uquant'), 'text': True, 'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', 'rev-parse', 'd91cbf3706d2d36db7cf2391d98cbef1dbb0f0a2^{tree}']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+_ test_source_epoch_v3_preserves_its_registered_surfaces_and_production_wheel __
+
+    def test_source_epoch_v3_preserves_its_registered_surfaces_and_production_wheel() -> None:
+        payload = _artifact("source_epoch_v3.json")
+        assert payload["schema"] == "uquant.source-epoch.v1"
+        unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
+        assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
+        assert payload["status"] == "PASS"
+        assert payload["previous_epoch_id"] == "production_wheel_v2"
+        assert payload["change_classification"] == (
+            "NON_ECONOMIC_DOCUMENTATION_AND_BUILD_GOVERNANCE"
+        )
+        assert payload["economic_ast_equal"] is True
+        assert payload["requirements_changed"] is False
+        assert payload["uv_lock_changed"] is False
+        epoch = payload["source_epoch"]
+        assert epoch["epoch_id"] == "production_wheel_v3"
+        assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_at_commit"])
+        assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_tree_sha"])
+>       assert _git("cat-file", "-t", epoch["registered_at_commit"]) == "commit"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/architecture/test_release_acceptance.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/architecture/test_release_acceptance.py:46: in _git
+    completed = subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', 'cat-file', '-t', '89cd79a282a6eca0be35e7eeef251a8e6e39ad1d'],)
+kwargs = {'cwd': PosixPath('/workspace/scratch/1adbcc9c7025/uquant'), 'text': True, 'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', 'cat-file', '-t', '89cd79a282a6eca0be35e7eeef251a8e6e39ad1d']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+_ test_source_epoch_v4_preserves_its_registered_surfaces_and_production_wheel __
+
+    def test_source_epoch_v4_preserves_its_registered_surfaces_and_production_wheel() -> None:
+        payload = _artifact("source_epoch_v4.json")
+        assert payload["schema"] == "uquant.source-epoch.v1"
+        unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
+        assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
+        assert payload["status"] == "PASS"
+        assert payload["previous_epoch_id"] == "production_wheel_v3"
+        assert payload["change_classification"] == (
+            "NON_ECONOMIC_SOURCE_NAMING_AND_COMPATIBILITY"
+        )
+        assert payload["economic_ast_equal"] is False
+        assert payload["requirements_changed"] is False
+        assert payload["uv_lock_changed"] is False
+        epoch = payload["source_epoch"]
+        assert epoch["epoch_id"] == "production_wheel_v4"
+        assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_at_commit"])
+        assert re.fullmatch(r"[0-9a-f]{40}", epoch["registered_tree_sha"])
+>       assert _git("cat-file", "-t", epoch["registered_at_commit"]) == "commit"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/architecture/test_release_acceptance.py:260: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/architecture/test_release_acceptance.py:46: in _git
+    completed = subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', 'cat-file', '-t', '449d12f9b779637ace9ba889e72ca69d28cae39d'],)
+kwargs = {'cwd': PosixPath('/workspace/scratch/1adbcc9c7025/uquant'), 'text': True, 'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', 'cat-file', '-t', '449d12f9b779637ace9ba889e72ca69d28cae39d']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+_________ test_registered_domain_naming_source_and_wheel_remain_sealed _________
+
+root = PosixPath('/workspace/scratch/1adbcc9c7025/uquant')
+arguments = ('rev-parse', '--verify', '--end-of-options', 'c4178fcd1b53d7e9061c6a71a1c6e7f1ddf3428d^{commit}')
+label = 'cannot resolve source surface Git commit'
+
+    def _git_bytes(root: Path, arguments: tuple[str, ...], *, label: str) -> bytes:
+        try:
+>           completed = subprocess.run(
+                [_git_executable(), "-C", str(root), *arguments],
+                check=True,
+                capture_output=True,
+            )  # nosec B603
+
+uquant/infrastructure/git_source.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'rev-parse', '--verify', '--end-of-options', ...],)
+kwargs = {'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'rev-parse', '--verify', '--end-of-options', 'c4178fcd1b53d7e9061c6a71a1c6e7f1ddf3428d^{commit}']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+    def test_registered_domain_naming_source_and_wheel_remain_sealed() -> None:
+        payload = _artifact("source_epoch_v5.json")
+        assert payload["schema"] == "uquant.source-epoch.v1"
+        unsealed = {key: value for key, value in payload.items() if key != "canonical_sha256"}
+        assert payload["canonical_sha256"] == canonical_json_sha256(unsealed)
+        assert payload["status"] == "PASS"
+        assert payload["baseline_commit"] == DOMAIN_NAMING_BASE_COMMIT
+        assert payload["baseline_surfaces"] == {
+>           identifier: git_source_surface_fingerprint(
+                ROOT, DOMAIN_NAMING_BASE_COMMIT, identifier
+            )
+            for identifier in SOURCE_SURFACE_IDS
+        }
+
+tests/architecture/test_release_acceptance.py:337: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+uquant/provenance/fingerprints.py:70: in git_source_surface_fingerprint
+    commit, registry = load_git_source_surface_registry(
+uquant/provenance/surfaces.py:73: in load_git_source_surface_registry
+    commit = resolve_git_commit(
+uquant/infrastructure/git_source.py:95: in resolve_git_commit
+    resolved = _git_bytes(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/workspace/scratch/1adbcc9c7025/uquant')
+arguments = ('rev-parse', '--verify', '--end-of-options', 'c4178fcd1b53d7e9061c6a71a1c6e7f1ddf3428d^{commit}')
+label = 'cannot resolve source surface Git commit'
+
+    def _git_bytes(root: Path, arguments: tuple[str, ...], *, label: str) -> bytes:
+        try:
+            completed = subprocess.run(
+                [_git_executable(), "-C", str(root), *arguments],
+                check=True,
+                capture_output=True,
+            )  # nosec B603
+        except (OSError, subprocess.CalledProcessError) as exc:
+>           raise RuntimeError(label) from exc
+E           RuntimeError: cannot resolve source surface Git commit
+
+uquant/infrastructure/git_source.py:82: RuntimeError
+_____ test_current_release_source_matches_checkout_and_independent_policy ______
+
+    def test_current_release_source_matches_checkout_and_independent_policy() -> None:
+>       identity = verify_run_checkout()
+                   ^^^^^^^^^^^^^^^^^^^^^
+
+tests/architecture/test_release_acceptance.py:459: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+uquant/validation/absolute_generalization/contract.py:284: in verify_run_checkout
+    return {"head": head, "tree": tree, "runtime": runtime_identity()}
+                                                   ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def runtime_identity() -> dict[str, str]:
+        """Require the reviewed interpreter and numerical execution environment."""
+        runtime = runtime_environment_provenance(_ROOT)
+        if runtime != {
+            "python_full_version": "3.12.13", "numpy_version": "2.5.1",
+            "pandas_version": "3.0.5", "uv_version": "0.11.33",
+            "uv_lock_sha256": "4accf16535b5ac95b831c9289e0ad2ff21282dc5dfae3f05dd0fb095089d6a61",
+        }:
+>           raise ValueError("absolute generalization execution runtime differs")
+E           ValueError: absolute generalization execution runtime differs
+
+uquant/validation/absolute_generalization/contract.py:295: ValueError
+=========================== short test summary info ============================
+FAILED tests/architecture/test_release_acceptance.py::test_source_epoch_v2_preserves_its_sealed_remote_recovery_metadata
+FAILED tests/architecture/test_release_acceptance.py::test_source_epoch_v3_preserves_its_registered_surfaces_and_production_wheel
+FAILED tests/architecture/test_release_acceptance.py::test_source_epoch_v4_preserves_its_registered_surfaces_and_production_wheel
+FAILED tests/architecture/test_release_acceptance.py::test_registered_domain_naming_source_and_wheel_remain_sealed
+FAILED tests/architecture/test_release_acceptance.py::test_current_release_source_matches_checkout_and_independent_policy
+5 failed, 7 passed in 10.04s

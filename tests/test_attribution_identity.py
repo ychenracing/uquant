@@ -20,6 +20,7 @@ from uquant.execution import (
     reconcile_account_orders,
 )
 from uquant.portfolio import PortfolioAllocator
+from uquant.contracts.universe import decision_ai_universe
 from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
 
 
@@ -46,7 +47,7 @@ def _identity(
         mechanism=mechanism,
         replaces_symbol=replaces_symbol,
         industry_at_entry=industry_at_entry,
-        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        industry_manifest_sha256=DECISION_UNIVERSE_SHA256,
         reduction_policy=domain.ReductionPolicy.FIFO.value,
         reason_code=reason_code,
         exit_kind=exit_kind,
@@ -58,7 +59,7 @@ def _identity(
         "origin_lifecycle": lifecycle,
         "replaces_symbol": replaces_symbol,
         "industry_at_entry": industry_at_entry,
-        "industry_manifest_sha256": REQUIRED_AI_UNIVERSE_SHA256,
+        "industry_manifest_sha256": DECISION_UNIVERSE_SHA256,
     }
 
 
@@ -449,7 +450,7 @@ def test_buy_identity_round_trips_target_order_fill_and_tranche() -> None:
         assert item.lifecycle == domain.Lifecycle.CORE.value
         assert item.replaces_symbol is None
         assert item.industry_at_entry == "optical"
-        assert item.industry_manifest_sha256 == REQUIRED_AI_UNIVERSE_SHA256
+        assert item.industry_manifest_sha256 == DECISION_UNIVERSE_SHA256
 
 
 def test_partial_multitranche_sell_keeps_each_lot_origin_after_promotion() -> None:
@@ -853,3 +854,5 @@ from _attribution_identity_schema_cases import (
     test_native_schema_rejects_unknown_or_malformed_identity,
     test_repeated_production_decisions_include_byte_identical_causal_metadata,
 )
+
+DECISION_UNIVERSE_SHA256 = decision_ai_universe().sha256

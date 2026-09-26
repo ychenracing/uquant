@@ -16,6 +16,13 @@ from ._owner_transport import (
 _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
     {
         "uquant.account.code_identity",
+        "uquant.account.corporate_actions",
+        "uquant.account.schema_migration",
+        "uquant.account.transaction",
+        "uquant.broker_facts",
+        "uquant.data_check",
+        "uquant.data_update",
+        "uquant.market.valuation",
         "uquant.account.validation_attribution",
         "uquant.application.target_attribution",
         "uquant.application.market_observations",
@@ -48,6 +55,7 @@ _RISK_ARCHITECTURE_AUTHORITY_STALE = frozenset(
         "uquant.validation.production_observation",
         "uquant.validation.production_observation_contract",
         "uquant.validation.promotion_contract",
+        "uquant.validation.pr92_tradeoffs",
         "uquant.validation.parameter_policy",
     }
 )

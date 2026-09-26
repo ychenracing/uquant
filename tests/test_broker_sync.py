@@ -384,6 +384,7 @@ def test_same_day_increment_repeats_prior_fill_with_sequence() -> None:
     )
     first_snapshot = {
         "as_of": "2026-01-06",
+        "sequence": 1,
         "cash": 1_700.0,
         "fills": [partial],
         "positions": [
@@ -404,7 +405,7 @@ def test_same_day_increment_repeats_prior_fill_with_sequence() -> None:
         final=True,
         execution_sequence=2,
     )
-    sync_broker_snapshot(account, _position_snapshot([final, partial]))
+    sync_broker_snapshot(account, {**_position_snapshot([final, partial]), "sequence": 2})
 
     assert [fill.fill_id for fill in account.fills] == ["fill-1", "fill-2"]
     assert account.order_ledger[0].status == OrderStatus.FILLED.value

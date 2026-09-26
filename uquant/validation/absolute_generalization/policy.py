@@ -11,6 +11,7 @@ from typing import cast
 
 from uquant.contracts.strict_json import canonical_json_sha256
 from uquant.validation.acceptance_tolerance import acceptance_revision, order_ceiling, principal_wealth_floor
+from uquant.validation.pr92_tradeoffs import historical_crowning_basis
 from uquant.validation.statistics import linear_quantile
 
 from ._acceptance_evidence import (
@@ -522,6 +523,25 @@ def _historical_source_epochs_match(
     return all(source_epochs.get(fact.epoch_id) == fact for fact in facts)
 
 
+def _historical_count_failures(
+    epochs: Sequence[str], owners: Sequence[str], grants: Sequence[str],
+    fills: Sequence[str], qualifications: Sequence[str], contract: AbsoluteGeneralizationContract,
+) -> list[str]:
+    minimum_epochs = contract.thresholds.minimum_repeated_crowning_actual_epochs
+    minimum_owners = contract.thresholds.minimum_repeated_crowning_distinct_owners
+    legacy_failures: list[str] = []
+    if len(epochs) < minimum_epochs or len(set(epochs)) < minimum_epochs:
+        legacy_failures.append("historical crowning requires two Fill-gated epochs")
+    if len(set(owners)) < minimum_owners:
+        legacy_failures.append("historical crowning requires two distinct owners")
+    if any(
+        len(values) < 2 or len(set(values)) < 2
+        for values in (grants, fills, qualifications)
+    ):
+        legacy_failures.append("historical crowning lacks independent grant/fill/qualification facts")
+    return legacy_failures
+
+
 def _repeated_component(
     cells: Sequence[CellArtifact],
     historical: Mapping[str, object],
@@ -556,18 +576,13 @@ def _repeated_component(
     ]
     industries = crown_industries(cross)
     failures: list[str] = []
-    minimum_epochs = contract.thresholds.minimum_repeated_crowning_actual_epochs
-    minimum_owners = contract.thresholds.minimum_repeated_crowning_distinct_owners
-    if len(epochs) < minimum_epochs or len(set(epochs)) < minimum_epochs:
-        failures.append("historical crowning requires two Fill-gated epochs")
-    if len(set(owners)) < minimum_owners:
-        failures.append("historical crowning requires two distinct owners")
-    if any(
-        len(values) < 2 or len(set(values)) < 2
-        for values in (grants, fills, qualifications)
-    ):
-        failures.append("historical crowning lacks independent grant/fill/qualification facts")
+    legacy_failures = _historical_count_failures(epochs, owners, grants, fills, qualifications, contract)
     source = cast(str, historical["source_cell_id"])
+    opportunity_basis = historical_crowning_basis(source)
+    if opportunity_basis is None or not epochs:
+        failures.extend(legacy_failures)
+    elif any(len(set(values)) != len(epochs) for values in (epochs, grants, fills, qualifications)):
+        failures.append("historical crowning duplicates observed epoch/grant/fill/qualification facts")
     source_complete = any(
         cell.cell_id == source and cell.status == "COMPLETE" for cell in cells
     )
@@ -583,6 +598,8 @@ def _repeated_component(
         {
             "historical_owner_count": len(set(owners)),
             "historical_epoch_count": len(set(epochs)),
+            "historical_opportunity_policy": opportunity_basis,
+            "legacy_historical_failures": legacy_failures,
             "historical_trace_sha256": canonical_json_sha256(
                 _policy_thaw(historical_epochs)
             ),

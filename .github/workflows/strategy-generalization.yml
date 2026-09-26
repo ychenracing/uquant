@@ -7,6 +7,7 @@ permissions:
   contents: read
 
 env:
+  PYTHONPYCACHEPREFIX: /tmp/uquant-pycache
   UV_VERSION: "0.11.33"
 
 jobs:
@@ -37,16 +38,24 @@ jobs:
         run: uv sync --frozen --extra dev
       - name: Run exact official-window shard
         run: >-
+          python -m tools.cloud_guard run --name extended-economic --timeout 7100 --
           uv run python -m uquant.validation generalization-matrix
           --data-dir data/frozen
           --window "${{ matrix.window }}"
           --output "artifacts/generalization/ci/${{ matrix.window }}.json"
+      - name: Preserve command originals
+        if: ${{ always() }}
+        run: >-
+          python -m tools.cloud_guard export --include-private-logs
+          --output artifacts/generalization/ci/command-originals.zip
       - name: Upload window evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ai-era-generalization-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.window }}
-          path: artifacts/generalization/ci/${{ matrix.window }}.json
+          path: |
+            artifacts/generalization/ci/${{ matrix.window }}.json
+            artifacts/generalization/ci/command-originals.zip
           if-no-files-found: warn
 
   generalization-acceptance:
@@ -92,3 +101,46 @@ jobs:
           name: ai-era-generalization-summary-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: artifacts/generalization/ci
           if-no-files-found: warn
+
+  real-company-actions:
+    name: Real distribution snapshot and ledger verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPYCACHEPREFIX: /tmp/uquant-pycache
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12.13"
+      - name: Install locked runtime and data provider
+        run: |
+          python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
+          uv sync --frozen --extra dev
+          uv pip install --python .venv/bin/python baostock==0.9.4
+      - name: Generate separate real-data snapshot
+        run: >-
+          python -m tools.cloud_guard run --name real-distribution-data --timeout 480 --
+          .venv/bin/python -m uquant data-update
+          --output-root artifacts/remediation-followup-20260925/real/snapshots
+          --base-dir data/frozen --symbols sz300308 sz300502 sz300394
+          --start 2024-01-01 --end 2024-12-31
+      - name: Verify actual cash and share events with account readback
+        run: >-
+          python -m tools.cloud_guard run --name real-distribution-ledger --timeout 120 --
+          .venv/bin/python artifacts/remediation-followup-20260925/verify_company_actions.py
+          --snapshot-root artifacts/remediation-followup-20260925/real/snapshots
+          --output artifacts/remediation-followup-20260925/real/result.json
+      - name: Preserve success or failure originals
+        if: ${{ always() }}
+        run: >-
+          python -m tools.cloud_guard export --include-private-logs
+          --output artifacts/remediation-followup-20260925/real-cloud-originals.zip
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: real-company-actions-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: |
+            artifacts/remediation-followup-20260925/real
+            artifacts/remediation-followup-20260925/real-cloud-originals.zip
+          if-no-files-found: error

@@ -2,7 +2,7 @@
 
 ## 公开设置与固定规则
 
-`SystemConfig` 只接受下面 13 个公开设置；`DEFAULT_CONFIG.override(...)` 也只接受这些键。
+`SystemConfig` 只接受下面 15 个公开设置；`DEFAULT_CONFIG.override(...)` 也只接受这些键。
 金额单位为人民币元，费率、滑点、参与率和仓位使用小数比例。未知键、固定规则键、
 非数值、NaN、无穷及越界输入会被拒绝；当前对象保持不可变。
 
@@ -14,12 +14,14 @@
 | `max_positions` | 6 | 可部署持仓数量上限，严格整数 `1..6`（不接受布尔或小数） |
 | `commission_rate` | 0.00025 | 佣金率 |
 | `min_commission` | 5 | 最低佣金 |
-| `stamp_duty` | 0.0005 | 卖出印花税 |
-| `transfer_fee` | 0.00001 | 过户费 |
+| `stamp_duty` | `null` | 卖出印花税；`null` 按成交日适用法定费率（2023-08-28 起 0.05%，此前 0.1%），数值表示固定费率假设 |
+| `transfer_fee` | `null` | 过户费；`null` 按成交日适用费率（2022-04-29 起 0.001%，此前 0.002%），数值表示固定费率假设 |
 | `slippage` | 0.001 | 单边滑点 |
 | `max_volume_participation` | 0.005 | 成交量参与率 |
 | `minimum_median_amount` | 20,000,000 | 中位成交额门槛 |
 | `min_trade_value` | 20,000 | 最小交易金额 |
+| `execution_clock` | `AUCTION` | 开盘前按前收盘定量和限价；`DAILY_PROXY` 为按开盘价定量的旧研究代理 |
+| `auction_limit_buffer` | 0.03 | 竞价买入限价相对前收盘的上浮比例，`[0, 0.2]`，不超过涨停价 |
 | `risk_sentinel_mode` | `FREEZE_ONLY` | 生产冻结；`SHADOW` 用于离线只读诊断 |
 
 ### 日常加载

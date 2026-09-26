@@ -39,6 +39,8 @@ from .ai_era import (
     runtime_environment_provenance,
 )
 from .manifest import verify_data_manifest
+from .pr92_tradeoffs import acceptance_basis as tradeoff_acceptance_basis
+from .pr92_tradeoffs import compare_c3_account, load_fixed_c3
 
 EXECUTION_CONTRACT = _promotion_contract.EXECUTION_CONTRACT
 PROTECTED_INTERVALS = _promotion_contract.PROTECTED_INTERVALS
@@ -204,6 +206,8 @@ def _validate_metric_payload(value: Any, *, label: str) -> None:
     if not isinstance(value, Mapping) or set(value) != _METRIC_FIELDS:
         raise RuntimeError(f"promotion champion metric payload is malformed: {label}")
     for field in _METRIC_FIELDS - {"account_orders", "acute_return"}:
+        if field == "calmar" and value[field] is None and value["max_drawdown"] <= 1e-12:
+            continue
         _finite_number(value[field], label=f"{label}.{field}")
     orders = value["account_orders"]
     if isinstance(orders, bool) or not isinstance(orders, int) or orders < 0:
@@ -571,18 +575,24 @@ def _acute_return(result: Mapping[str, Any], *, start: str, end: str) -> float:
 
 
 def _compact(result: Mapping[str, Any], *, acute: tuple[str, str] | None) -> dict[str, Any]:
-    metrics = {
+    metrics: dict[str, Any] = {
         name: _finite_number(result.get(name), label=f"result.{name}")
         for name in (
             "final_wealth",
             "cagr",
             "max_drawdown",
             "sharpe",
-            "calmar",
             "annual_turnover",
             "gross_turnover",
         )
     }
+    # The production metric is undefined for a flat/no-drawdown path. Preserve
+    # null rather than inventing a score; every economic floor still applies.
+    metrics["calmar"] = (
+        None if "calmar" in result and result["calmar"] is None
+        and metrics["max_drawdown"] <= 1e-12
+        else _finite_number(result.get("calmar"), label="result.calmar")
+    )
     orders = result.get("account_orders")
     if isinstance(orders, bool) or not isinstance(orders, int) or orders < 0:
         raise RuntimeError("promotion replay returned invalid account_orders")
@@ -686,6 +696,7 @@ def current_promotion_acceptance_basis() -> dict[str, Any]:
         "authorized_order_limit": _authorized_order_limit(),
         "acceptance_revision": acceptance_revision(),
         "effective_continuous_minimum_final_wealth": principal_wealth_floor(contract["thresholds"]["champion_minimum_final_wealth"]),
+        "relative_policy": tradeoff_acceptance_basis(),
         "retained_policy": "Original AI_ERA_POLICY retained as evidence; current acceptance_revision supersedes earlier revisions only in its explicit scope. All other obligations retained",
     }
 
@@ -694,6 +705,9 @@ def _promotion_artifact_metric_failures(
     payload: Mapping[str, Any], champion: Mapping[str, Any],
 ) -> list[str]:
     failures: list[str] = []
+    c3_reference = load_fixed_c3()
+    legacy: list[str] = []
+    comparisons: list[dict[str, Any]] = []
     for section, intervals in (("cells", AI_ERA_WINDOWS), ("protected", PROTECTED_INTERVALS)):
         rows = payload.get(section)
         expected = {f"{pool}/{interval}" for pool in REQUIRED_POOLS for interval in intervals}
@@ -716,7 +730,16 @@ def _promotion_artifact_metric_failures(
                     continue
                 gate = AI_ERA_POLICY["official"][interval] if section == "cells" else _protected_gate(interval, pool)
                 failures.extend(_hard_violations(name=name, metrics=metrics, gate=gate))
-                failures.extend(_champion_violations(name=name, metrics=metrics, champion=champion[section][name]))
+                legacy.extend(_champion_violations(name=name, metrics=metrics, champion=champion[section][name]))
+                comparison = compare_c3_account(
+                    f"performance:{name}", metrics, reference=c3_reference,
+                )
+                comparisons.append(comparison)
+                failures.extend(comparison["failures"])
+    if payload.get("legacy_champion_failures") != sorted(legacy):
+        failures.append("performance historical comparison claims differ")
+    if payload.get("fixed_c3_comparisons") != sorted(comparisons, key=lambda row: row["alias"]):
+        failures.append("performance fixed C3 comparison claims differ")
     return failures
 
 
@@ -815,6 +838,9 @@ def run_promotion(
     protected: dict[str, dict[str, Any]] = {}
     failures: list[str] = []
     champion = spec["champion"]
+    c3_reference = load_fixed_c3()
+    c3_comparisons: list[dict[str, Any]] = []
+    legacy_champion_failures: list[str] = []
     with _immutable_validation_inputs(
         baseline_path=baseline_path,
         baseline_sha256=baseline_sha256,
@@ -836,14 +862,10 @@ def run_promotion(
                     raise RuntimeError(f"promotion effective config drifted during replay: {name}")
                 metrics = _compact(raw, acute=AI_ERA_ACUTE_WINDOWS[window])
                 cells[name] = metrics
-                failures.extend(
-                    _hard_violations(
-                        name=name,
-                        metrics=metrics,
-                        gate=AI_ERA_POLICY["official"][window],
-                    )
-                )
-                failures.extend(
+                failures.extend(_hard_violations(
+                    name=name, metrics=metrics, gate=AI_ERA_POLICY["official"][window],
+                ))
+                legacy_champion_failures.extend(
                     _champion_violations(
                         name=name,
                         metrics=metrics,
@@ -857,14 +879,10 @@ def run_promotion(
                     raise RuntimeError(f"promotion effective config drifted during replay: {name}")
                 metrics = _compact(raw, acute=None)
                 protected[name] = metrics
-                failures.extend(
-                    _hard_violations(
-                        name=name,
-                        metrics=metrics,
-                        gate=_protected_gate(interval, pool),
-                    )
-                )
-                failures.extend(
+                failures.extend(_hard_violations(
+                    name=name, metrics=metrics, gate=_protected_gate(interval, pool),
+                ))
+                legacy_champion_failures.extend(
                     _champion_violations(
                         name=name,
                         metrics=metrics,
@@ -872,9 +890,15 @@ def run_promotion(
                     )
                 )
 
+    for name, metrics in {**cells, **protected}.items():
+        comparison = compare_c3_account(f"performance:{name}", metrics, reference=c3_reference)
+        c3_comparisons.append(comparison)
+        failures.extend(comparison["failures"])
     all_metrics = [*cells.values(), *protected.values()]
     if current_promotion_acceptance_basis() != acceptance_basis:
         raise RuntimeError("promotion current acceptance contract changed during replay")
+    if load_fixed_c3() != c3_reference:
+        raise RuntimeError("fixed C3 reference changed during replay")
     generated_at = datetime.now(UTC).isoformat()
     return {
         "schema_version": SCHEMA_VERSION,
@@ -882,6 +906,8 @@ def run_promotion(
         "acceptance_basis": acceptance_basis,
         "passed": not failures,
         "failures": failures,
+        "legacy_champion_failures": sorted(legacy_champion_failures),
+        "fixed_c3_comparisons": sorted(c3_comparisons, key=lambda row: row["alias"]),
         "cells": cells,
         "protected": protected,
         "summary": {

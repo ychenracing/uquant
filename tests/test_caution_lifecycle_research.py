@@ -16,7 +16,7 @@ from uquant.types import Opportunity, Risk, RiskAssessment
 def test_actual_probe_survives_ordinary_exit_until_original_recovery_handoff(recovery_prefix):
     _, snapshots = recovery_prefix
     held, _ = snapshots["2025-04-21"]
-    assert held.positions["sz300308"].shares == 15300
+    assert held.positions["sz300308"].shares == 13000
     assert not any(fill.side == "SELL" for fill in held.fills)
     assert tactical_owner_entry(held, "sz300308") is not None
     promoted, _ = snapshots["2025-05-06"]
@@ -48,7 +48,7 @@ def test_actual_tactical_holding_still_obeys_crisis_liquidation(recovery_prefix)
         prices={s: float(f.loc[date, "close"]) for s, f in panel.items()})
     assert targets and all(target.weight == 0. for target in targets)
     assert not any(e.get("event") == "TACTICAL_RECOVERY_HANDOFF" for e in account.lifecycle_events)
-    assert account.positions["sz300308"].shares == 15300  # allocation never pretends to execute
+    assert account.positions["sz300308"].shares == 13000  # allocation never pretends to execute
 
 
 def test_unbacked_tactical_label_cannot_supply_holding_rights(recovery_prefix):

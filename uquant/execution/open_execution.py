@@ -10,8 +10,9 @@ from typing import Any, cast
 
 import pandas as pd
 
+from ..account.corporate_actions import dividend_tax_on_sale, receivable_total
 from ..config import SystemConfig
-from ..features import scalar
+from ..market.valuation import mark_price
 from ..models.strategic_epoch import record_account_strategic_epoch_fill
 from ..models.strategic_grant import (
     acknowledge_strategic_grant_order,
@@ -30,6 +31,14 @@ from ..types import (
     Tranche,
 )
 from .fees import fee_components
+from .market_constraints import (
+    buy_share_step,
+    legal_buy_shares,
+    legal_sell_shares,
+    price_limits,
+    round_price,
+    security_board,
+)
 from .market_constraints import market_execution_blocked as _blocked
 from .reconciliation import active_order_status as _active_order_status
 from .reconciliation import register_account_order as _register_account_order
@@ -177,8 +186,7 @@ def _eligible_open_row(
         account_order.last_event = "INSUFFICIENT_HISTORY"
         retained.append(order)
         return None
-    previous_close = float(history.iloc[-2]["close"])
-    if _blocked(order.symbol, order.side, row, previous_close):
+    if _blocked(order.symbol, order.side, row, _limit_reference(history), date):
         order.attempts += 1
         account_order.attempts = order.attempts
         account_order.status = _active_order_status(account_order)
@@ -189,28 +197,46 @@ def _eligible_open_row(
     return row
 
 
+def _limit_reference(history: pd.DataFrame) -> float:
+    """Return the exchange limit reference: the supplied ex-rights preclose, else the prior close."""
+
+    row = history.iloc[-1]
+    if "preclose" in history.columns:
+        value = float(row["preclose"])
+        if math.isfinite(value) and value > 0:
+            return value
+    return float(history.iloc[-2]["close"])
+
+
+def _buy_cost(shares: int, price: float, cfg: SystemConfig, date: pd.Timestamp) -> tuple[float, float, float]:
+    gross = shares * price
+    commission, _stamp, transfer = fee_components(Side.BUY.value, gross, cfg, date)
+    return gross, commission, transfer
+
+
 def _bounded_buy_shares(
     *, cfg: SystemConfig, account: AccountState, order: PendingOrder, current: Position,
-    open_equity: float, execution_price: float, shares: int,
+    open_equity: float, execution_price: float, shares: int, cash: float, date: pd.Timestamp,
+    cap_price: float | None = None,
 ) -> int:
-    """Fit the original lot request within cash and user-selected ceilings."""
-    max_by_weight = (
-        int(
-            math.floor(
-                symbol_weight_cap(cfg, account, order.symbol) * open_equity / execution_price / 100.0
-            )
-            * 100
-        )
-        - current.shares
-    )
+    """Fit a buy request within cash and user-selected ceilings at a legal quantity.
+
+    ``execution_price`` budgets cash; ``cap_price`` is the price at which the
+    target weight was sized and bounds the symbol weight (default: the same).
+    """
+    max_by_weight = math.floor(
+        symbol_weight_cap(cfg, account, order.symbol) * open_equity / (cap_price or execution_price)
+    ) - current.shares
     shares = min(shares, max(0, max_by_weight))
     if cfg.max_gross < 1.0:
         gross_room = max(0.0, cfg.max_gross * open_equity - (open_equity - account.cash))
-        shares = min(shares, int(gross_room / execution_price / 100) * 100)
-    while shares >= 100:
-        gross = shares * execution_price
-        commission, _stamp, transfer = fee_components(order.side, gross, cfg)
-        funded = gross + commission + transfer <= account.cash + 1e-8
+        shares = min(shares, int(gross_room / execution_price))
+    per_share = execution_price * (1.0 + cfg.commission_rate + (cfg.transfer_fee or 0.0001))
+    shares = min(shares, int(max(0.0, cash) / per_share) + 1)
+    shares = legal_buy_shares(order.symbol, shares)
+    while shares > 0:
+        gross, commission, transfer = _buy_cost(shares, execution_price, cfg, date)
+        funded = gross + commission + transfer <= cash + 1e-8
         # An opening gap must not turn a lower account limit into extra
         # buying permission. Retained shares themselves are not force-sold.
         within_gross = (cfg.max_gross == 1.0 or
@@ -222,17 +248,13 @@ def _bounded_buy_shares(
                          (open_equity - commission - transfer) + 1e-8)
         if funded and within_gross and within_symbol:
             break
-        shares -= 100
+        shares = legal_buy_shares(order.symbol, shares - buy_share_step(order.symbol, shares))
     return shares
 
 
 def _previous_session_capacity(previous_row: pd.Series, cfg: SystemConfig) -> int:
-    """Estimate opening capacity from the last completed session."""
+    """Estimate opening capacity in shares from the last completed session."""
     volume_shares = float(previous_row.get("volume", 0.0))
-    previous_close = float(previous_row["close"])
-    implied = float(previous_row.get("amount", 0.0)) / max(previous_close, 1e-12)
-    if math.isfinite(implied) and volume_shares > 0 and implied > volume_shares * 50:
-        volume_shares *= 100.0
     if not math.isfinite(volume_shares) or volume_shares <= 0:
         return 0
     return int(math.floor(volume_shares * cfg.max_volume_participation / 100.0) * 100)
@@ -248,6 +270,153 @@ def _risk_target_shortfall(
     )
 
 
+@dataclass(slots=True)
+class _SessionBook:
+    """Per-session execution state shared by every order at one open."""
+
+    auction: bool
+    buy_cash: float
+    capacity_used: dict[str, int]
+    marks: dict[str, float] | None
+
+
+def _session_marks(
+    account: AccountState, panel: dict[str, pd.DataFrame], date: pd.Timestamp, *, auction: bool,
+) -> dict[str, float] | None:
+    """Mark positions for sizing: prior close before the auction, else the open.
+
+    Returns ``None`` when a held position has no valid price at all, which
+    blocks every new buy for the session.
+    """
+
+    marks: dict[str, float] = {}
+    for symbol, position in account.positions.items():
+        if position.shares <= 0:
+            continue
+        mark = _mark_one(panel.get(symbol), date, auction=auction)
+        if mark is None:
+            return None
+        marks[symbol] = mark
+    return marks
+
+
+def _mark_one(frame: pd.DataFrame | None, date: pd.Timestamp, *, auction: bool) -> float | None:
+    if auction:
+        mark = mark_price(frame, date - pd.Timedelta(days=1), field="close")
+    else:
+        mark = mark_price(frame, date, field="open")
+    return None if mark is None else mark.price
+
+
+def _open_prices(
+    *, cfg: SystemConfig, symbol: str, date: pd.Timestamp, row: pd.Series, history: pd.DataFrame,
+    buy: bool, auction: bool,
+) -> tuple[float, float, float, bool]:
+    """Return (budget price, execution price, quantity price, crosses) for one order.
+
+    At the auction the quantity and limit are fixed before the open from the
+    prior close; the open only decides whether the fixed order trades.
+    """
+    open_price = float(row["open"])
+    side = 1.0 + cfg.slippage if buy else 1.0 - cfg.slippage
+    if not auction:
+        return open_price * side, open_price * side, open_price * side, True
+    reference = float(history.iloc[-2]["close"])
+    lower, upper = price_limits(
+        symbol, date, _limit_reference(history), special_treatment=bool(row.get("special_treatment", False)),
+    )
+    if buy:
+        limit = float(min(upper, round_price(reference * (1.0 + cfg.auction_limit_buffer))))
+        budget = limit * (1.0 + cfg.slippage)
+        return budget, min(open_price * side, budget), reference * side, open_price <= limit + 1e-9
+    limit = float(max(lower, round_price(reference * (1.0 - cfg.auction_limit_buffer))))
+    execution = max(open_price * side, limit * (1.0 - cfg.slippage))
+    return reference, execution, reference * side, open_price >= limit - 1e-9
+
+
+def _retain_blocked(
+    order: PendingOrder, account_order: AccountOrder, date_str: str, event: str, retained: list[PendingOrder],
+) -> None:
+    order.attempts += 1
+    account_order.attempts = order.attempts
+    account_order.status = _active_order_status(account_order)
+    account_order.last_update_date = date_str
+    account_order.last_event = event
+    retained.append(order)
+
+
+def _session_open_equity(
+    account: AccountState, panel: dict[str, pd.DataFrame], date: pd.Timestamp, book: _SessionBook,
+) -> float:
+    """Mark the book for sizing; NaN when a held position has no valid price."""
+    if book.marks is None:
+        return math.nan
+    for symbol, position in account.positions.items():
+        if position.shares > 0 and symbol not in book.marks:
+            fresh = _mark_one(panel.get(symbol), date, auction=book.auction)
+            if fresh is None:
+                raise RuntimeError(f"{symbol} filled without a valid session mark")
+            book.marks[symbol] = fresh
+    return account.cash + receivable_total(account) + sum(
+        float(position.shares) * book.marks[symbol]
+        for symbol, position in account.positions.items()
+        if position.shares > 0
+    )
+
+
+def _target_quantities(
+    *, order: PendingOrder, account: AccountState, account_order: AccountOrder, current: Position,
+    open_equity: float, target_price: float, date_str: str,
+) -> tuple[int, int, int]:
+    """Return (requested, target, economic target) shares before capacity and cash."""
+    if math.isfinite(open_equity):
+        desired_shares = math.floor(order.target_weight * open_equity / target_price)
+        if security_board(order.symbol) != "STAR":
+            desired_shares = desired_shares // 100 * 100
+    else:
+        desired_shares = 0 if order.target_weight == 0 else current.shares
+    requested = desired_shares - current.shares
+    if order.side == Side.SELL.value:
+        target_requested = current.shares if order.target_weight == 0 else max(0, -requested)
+        requested = min(target_requested, current.sellable_shares(date_str))
+    else:
+        requested = max(0, requested)
+        target_requested = requested
+    economic_target_requested = target_requested
+    registered_remainder = _registered_remainder_request(account, account_order)
+    if registered_remainder is not None:
+        requested = min(requested, registered_remainder)
+        target_requested = registered_remainder
+    return requested, target_requested, economic_target_requested
+
+
+def _record_unfilled(
+    *, order: PendingOrder, account_order: AccountOrder, current: Position, retained: list[PendingOrder],
+    date_str: str, open_price: float, open_equity: float, crosses: bool, requested: int,
+    target_requested: int, economic_target_requested: int,
+) -> None:
+    if economic_target_requested > 0:
+        account_order.requested_shares = account_order.filled_shares + target_requested
+        account_order.remaining_shares = target_requested
+        order.remaining_shares = target_requested
+        event = (
+            "AUCTION_LIMIT_NOT_REACHED" if not crosses
+            else "T_PLUS_ONE_BLOCKED" if order.side == Side.SELL.value and requested == 0
+            else "LIQUIDITY_PROXY_BLOCKED" if order.side == Side.SELL.value
+            else "CAPACITY_OR_CASH_BLOCKED"
+        )
+        _retain_blocked(order, account_order, date_str, event, retained)
+        return
+    risk_shortfall = math.isfinite(open_equity) and _risk_target_shortfall(order, current, open_price, open_equity)
+    if risk_shortfall:
+        _retain_blocked(order, account_order, date_str, "RISK_TARGET_UNMET_LOT", retained)
+        return
+    account_order.status = OrderStatus.CANCELLED.value
+    account_order.cancel_reason = "target already satisfied"
+    account_order.last_update_date = date_str
+    account_order.last_event = "ZERO_REQUEST"
+
+
 def _size_open_order(
     *,
     cfg: SystemConfig,
@@ -258,87 +427,63 @@ def _size_open_order(
     panel: dict[str, pd.DataFrame],
     row: pd.Series,
     retained: list[PendingOrder],
+    book: _SessionBook,
 ) -> _OpenOrderRequest | None:
     date_str = str(date.date())
     open_price = float(row["open"])
-    execution_price = open_price * (
-        1.0 + cfg.slippage if order.side == Side.BUY.value else 1.0 - cfg.slippage
+    history = panel[order.symbol].loc[:date]
+    buy = order.side == Side.BUY.value
+    sizing_price, execution_price, target_price, crosses = _open_prices(
+        cfg=cfg, symbol=order.symbol, date=date, row=row, history=history, buy=buy, auction=book.auction,
     )
-    open_equity = account.cash + sum(
-        float(position.shares)
-        * (
-            scalar(panel[symbol].loc[date], "open", position.avg_cost)
-            if symbol in panel and date in panel[symbol].index
-            else position.avg_cost
-        )
-        for symbol, position in account.positions.items()
-    )
-    desired_shares = int(math.floor(order.target_weight * open_equity / execution_price / 100.0) * 100)
-    if order.symbol.startswith("sh688") and desired_shares > 0:
-        desired_shares = max(200, desired_shares)
+    if book.marks is None and buy:
+        _retain_blocked(order, account_order, date_str, "VALUATION_BLOCKED", retained)
+        return None
+    open_equity = _session_open_equity(account, panel, date, book)
     current = account.positions.get(order.symbol, Position(symbol=order.symbol))
-    requested = desired_shares - current.shares
-    if order.side == Side.SELL.value:
-        target_requested = max(0, -requested)
-        if order.target_weight == 0:
-            target_requested = current.shares
-        requested = min(
-            target_requested,
-            current.sellable_shares(date_str),
-        )
-    else:
-        requested = max(0, requested)
-        target_requested = requested
-    economic_target_requested = target_requested
-    registered_remainder = _registered_remainder_request(account, account_order)
-    if registered_remainder is not None:
-        requested = min(requested, registered_remainder)
-        target_requested = registered_remainder
-    previous_row = panel[order.symbol].loc[:date].iloc[-2]
+    requested, target_requested, economic_target_requested = _target_quantities(
+        order=order, account=account, account_order=account_order, current=current,
+        open_equity=open_equity, target_price=target_price, date_str=date_str,
+    )
     # Previous-session liquidity is a proxy, not a guarantee of opening auction quantity.
-    shares = min(requested, _previous_session_capacity(previous_row, cfg))
-    if order.side == Side.BUY.value:
+    capacity = max(0, _previous_session_capacity(history.iloc[-2], cfg) - book.capacity_used.get(order.symbol, 0))
+    shares = min(requested, capacity) if crosses else 0
+    if order.side == Side.SELL.value:
+        shares = legal_sell_shares(order.symbol, shares, holding=current.shares)
+    else:
         projected_positions = sum(position.shares > 0 for position in account.positions.values()) + (
             current.shares == 0
         )
         if projected_positions > cfg.max_positions:
-            order.attempts += 1
-            account_order.attempts = order.attempts
-            account_order.status = _active_order_status(account_order)
-            account_order.last_update_date = date_str
-            account_order.last_event = "POSITION_CAP_BLOCKED"
-            retained.append(order)
+            _retain_blocked(order, account_order, date_str, "POSITION_CAP_BLOCKED", retained)
             return None
+        cash = book.buy_cash if book.auction else account.cash
+
+        def payable(quantity: int) -> int:
+            bounded = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
+                open_equity=open_equity, execution_price=sizing_price, shares=quantity,
+                cash=cash, date=date, cap_price=target_price)
+            return bounded if bounded > 0 else quantity
+
+        if book.auction:
+            # The submitted auction quantity is what the preset limit budget can
+            # pay; a trimmed difference was never submitted and is not a remainder.
+            target_requested = payable(target_requested)
+            economic_target_requested = payable(economic_target_requested)
         shares = _bounded_buy_shares(cfg=cfg, account=account, order=order, current=current,
-            open_equity=open_equity, execution_price=execution_price, shares=shares)
+            open_equity=open_equity, execution_price=sizing_price, shares=shares, cash=cash, date=date,
+            cap_price=target_price)
     if shares <= 0:
-        if economic_target_requested > 0:
-            order.attempts += 1
-            account_order.requested_shares = account_order.filled_shares + target_requested
-            account_order.remaining_shares = target_requested
-            order.remaining_shares = target_requested
-            account_order.attempts = order.attempts
-            account_order.status = _active_order_status(account_order)
-            account_order.last_update_date = date_str
-            account_order.last_event = (
-                "T_PLUS_ONE_BLOCKED" if order.side == Side.SELL.value and requested == 0
-                else "LIQUIDITY_PROXY_BLOCKED" if order.side == Side.SELL.value
-                else "CAPACITY_OR_CASH_BLOCKED"
-            )
-            retained.append(order)
-        else:
-            risk_shortfall = _risk_target_shortfall(order, current, open_price, open_equity)
-            if risk_shortfall:
-                order.attempts += 1
-                account_order.attempts = order.attempts
-                account_order.status = _active_order_status(account_order)
-                retained.append(order)
-            else:
-                account_order.status = OrderStatus.CANCELLED.value
-                account_order.cancel_reason = "target already satisfied"
-            account_order.last_update_date = date_str
-            account_order.last_event = "RISK_TARGET_UNMET_LOT" if risk_shortfall else "ZERO_REQUEST"
+        _record_unfilled(
+            order=order, account_order=account_order, current=current, retained=retained, date_str=date_str,
+            open_price=open_price, open_equity=open_equity, crosses=crosses, requested=requested,
+            target_requested=target_requested, economic_target_requested=economic_target_requested,
+        )
         return None
+    book.capacity_used[order.symbol] = book.capacity_used.get(order.symbol, 0) + shares
+    if buy and book.auction:
+        gross, commission, transfer = _buy_cost(shares, execution_price, cfg, date)
+        book.buy_cash -= gross + commission + transfer
     return _OpenOrderRequest(
         order=order,
         account_order=account_order,
@@ -445,6 +590,7 @@ def _apply_sell_fill(
         transfer_fee=transfer,
         slippage_cost=slippage_cost,
     )
+    dividend_tax_on_sale(account, symbol=request.order.symbol, sold_tranches=sold_tranches, sale_date=date_str)
     _rebuild_position_from_tranches(request.current)
     if request.current.shares <= 0:
         account.positions.pop(request.order.symbol, None)
@@ -461,7 +607,7 @@ def _build_open_fill(
     account: AccountState,
 ) -> Fill:
     gross = request.shares * request.execution_price
-    commission, stamp, transfer = fee_components(request.order.side, gross, cfg)
+    commission, stamp, transfer = fee_components(request.order.side, gross, cfg, date_str)
     slippage_cost = request.shares * abs(request.execution_price - request.open_price)
     sold_tranches: list[dict[str, Any]] = []
     if request.order.side == Side.BUY.value:
@@ -597,6 +743,13 @@ class ExecutionPlanner:
             key=lambda item: (item.side != Side.SELL.value, item.symbol),
         )
         ledger = _register_open_orders(account, orders, date_str=date_str)
+        auction = self.cfg.execution_clock == "AUCTION"
+        book = _SessionBook(
+            auction=auction,
+            buy_cash=account.cash,
+            capacity_used={},
+            marks=_session_marks(account, panel, date, auction=auction),
+        )
         for order in orders:
             account_order = ledger[order.order_id]
             row = _eligible_open_row(
@@ -619,6 +772,7 @@ class ExecutionPlanner:
                 panel=panel,
                 row=row,
                 retained=retained,
+                book=book,
             )
             if request is None:
                 continue

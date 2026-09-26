@@ -1,0 +1,1719 @@
+...............................FFFFFFFFFF............................... [ 42%]
+.........................................F.............................. [ 84%]
+...........................                                              [100%]
+=================================== FAILURES ===================================
+____ test_generalization_validator_rejects_missing_and_extra_attempt_shards ____
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_0')
+
+    def test_generalization_validator_rejects_missing_and_extra_attempt_shards(
+        tmp_path: Path,
+    ) -> None:
+        """Catches an incomplete attempt or a broad pattern mixing an extra artifact."""
+    
+        def missing(root: Path) -> None:
+            target = root / f"{PREFIX}-h1_2023" / "h1_2023.json"
+            target.unlink()
+            target.parent.rmdir()
+    
+>       missing_result = _run_generalization(tmp_path / "missing", mutate=missing)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ci_artifact_validation.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+____ test_generalization_validator_rejects_duplicate_cell_and_mixed_window _____
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_1')
+
+    def test_generalization_validator_rejects_duplicate_cell_and_mixed_window(
+        tmp_path: Path,
+    ) -> None:
+        """Catches duplicate evidence or a shard carrying records from another window."""
+    
+        def duplicate(root: Path) -> None:
+            path = root / f"{PREFIX}-h1_2023" / "h1_2023.json"
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload["cells"].append(copy.deepcopy(payload["cells"][0]))
+            _write_json(path, payload)
+    
+>       duplicate_result = _run_generalization(tmp_path / "duplicate", mutate=duplicate)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ci_artifact_validation.py:501: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+______ test_generalization_validator_rejects_stale_exact_head_provenance _______
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_2')
+
+    def test_generalization_validator_rejects_stale_exact_head_provenance(
+        tmp_path: Path,
+    ) -> None:
+        """Catches a complete shard set whose HEAD/provenance belongs to another checkout."""
+    
+        def stale(root: Path) -> None:
+            path = root / f"{PREFIX}-h1_2024" / "h1_2024.json"
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload["provenance"]["head"] = "f" * 40
+            _write_json(path, payload)
+    
+>       result = _run_generalization(tmp_path, mutate=stale)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ci_artifact_validation.py:525: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+_ test_generalization_validator_rejects_replay_policy_and_upstream_failure_with_diagnostics _
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_3')
+
+    def test_generalization_validator_rejects_replay_policy_and_upstream_failure_with_diagnostics(
+        tmp_path: Path,
+    ) -> None:
+        """Catches a changed replay error or upstream failure being hidden by aggregation."""
+    
+        def changed_replay_error(root: Path) -> None:
+            path = root / f"{PREFIX}-continuous_ai_era" / "continuous_ai_era.json"
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            replay_error = next(
+                cell for cell in payload["cells"] if cell["replay_error"] is not None
+            )
+            replay_error["replay_error"]["message"] = "changed replay failure"
+            _write_json(path, payload)
+    
+>       result = _run_generalization(
+            tmp_path / "policy",
+            mutate=changed_replay_error,
+        )
+
+tests/test_ci_artifact_validation.py:544: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+________ test_generalization_validator_rejects_duplicate_shard_json_key ________
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_4')
+
+    def test_generalization_validator_rejects_duplicate_shard_json_key(tmp_path: Path) -> None:
+        """Catches a shard using duplicate JSON keys to make provenance ambiguous."""
+    
+        def duplicate_key(root: Path) -> None:
+            path = root / f"{PREFIX}-h2_2024" / "h2_2024.json"
+            path.write_text('{"cells":[],"cells":[],"provenance":{}}\n', encoding="utf-8")
+    
+>       result = _run_generalization(tmp_path, mutate=duplicate_key)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ci_artifact_validation.py:565: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+___ test_generalization_validator_rejects_every_ambiguous_shard_shape[cells] ___
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+mutation = 'cells'
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_5')
+
+    @pytest.mark.parametrize(
+        "mutation",
+        ("cells", "provenance", "unknown_cell", "malformed_contract"),
+    )
+    def test_generalization_validator_rejects_every_ambiguous_shard_shape(
+        mutation: str,
+        tmp_path: Path,
+    ) -> None:
+        def mutate(root: Path) -> None:
+            path = root / f"{PREFIX}-h1_2023" / "h1_2023.json"
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if mutation == "cells":
+                payload["cells"] = "bad"
+            elif mutation == "provenance":
+                payload["provenance"] = []
+            elif mutation == "unknown_cell":
+                payload["cells"][0]["scenario"] = "unknown"
+            else:
+                payload["cells"][0].pop("symbols")
+            _write_json(path, payload)
+    
+>       result = _run_generalization(tmp_path, mutate=mutate)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ci_artifact_validation.py:591: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+_ test_generalization_validator_rejects_every_ambiguous_shard_shape[provenance] _
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+mutation = 'provenance'
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_6')
+
+    @pytest.mark.parametrize(
+        "mutation",
+        ("cells", "provenance", "unknown_cell", "malformed_contract"),
+    )
+    def test_generalization_validator_rejects_every_ambiguous_shard_shape(
+        mutation: str,
+        tmp_path: Path,
+    ) -> None:
+        def mutate(root: Path) -> None:
+            path = root / f"{PREFIX}-h1_2023" / "h1_2023.json"
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if mutation == "cells":
+                payload["cells"] = "bad"
+            elif mutation == "provenance":
+                payload["provenance"] = []
+            elif mutation == "unknown_cell":
+                payload["cells"][0]["scenario"] = "unknown"
+            else:
+                payload["cells"][0].pop("symbols")
+            _write_json(path, payload)
+    
+>       result = _run_generalization(tmp_path, mutate=mutate)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ci_artifact_validation.py:591: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+_ test_generalization_validator_rejects_every_ambiguous_shard_shape[unknown_cell] _
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+mutation = 'unknown_cell'
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_7')
+
+    @pytest.mark.parametrize(
+        "mutation",
+        ("cells", "provenance", "unknown_cell", "malformed_contract"),
+    )
+    def test_generalization_validator_rejects_every_ambiguous_shard_shape(
+        mutation: str,
+        tmp_path: Path,
+    ) -> None:
+        def mutate(root: Path) -> None:
+            path = root / f"{PREFIX}-h1_2023" / "h1_2023.json"
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if mutation == "cells":
+                payload["cells"] = "bad"
+            elif mutation == "provenance":
+                payload["provenance"] = []
+            elif mutation == "unknown_cell":
+                payload["cells"][0]["scenario"] = "unknown"
+            else:
+                payload["cells"][0].pop("symbols")
+            _write_json(path, payload)
+    
+>       result = _run_generalization(tmp_path, mutate=mutate)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ci_artifact_validation.py:591: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+_ test_generalization_validator_rejects_every_ambiguous_shard_shape[malformed_contract] _
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+mutation = 'malformed_contract'
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_8')
+
+    @pytest.mark.parametrize(
+        "mutation",
+        ("cells", "provenance", "unknown_cell", "malformed_contract"),
+    )
+    def test_generalization_validator_rejects_every_ambiguous_shard_shape(
+        mutation: str,
+        tmp_path: Path,
+    ) -> None:
+        def mutate(root: Path) -> None:
+            path = root / f"{PREFIX}-h1_2023" / "h1_2023.json"
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if mutation == "cells":
+                payload["cells"] = "bad"
+            elif mutation == "provenance":
+                payload["provenance"] = []
+            elif mutation == "unknown_cell":
+                payload["cells"][0]["scenario"] = "unknown"
+            else:
+                payload["cells"][0].pop("symbols")
+            _write_json(path, payload)
+    
+>       result = _run_generalization(tmp_path, mutate=mutate)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ci_artifact_validation.py:591: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ci_artifact_validation.py:451: in _run_generalization
+    shard_root, common = _write_champion_shards(tmp_path)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:419: in _write_champion_shards
+    champion = _champion()
+               ^^^^^^^^^^^
+tests/test_ci_artifact_validation.py:363: in _champion
+    ((evidence_root() / 'artifacts') / "phase2" / "champion-generalization-matrix.json").read_text(
+      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+___ test_generalization_validator_reports_compiled_control_and_outer_errors ____
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_generalization_validator_9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fab3f36d190>
+
+    def test_generalization_validator_reports_compiled_control_and_outer_errors(
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        module = _ci_module()
+        monkeypatch.setattr(module, "_OFFICIAL_WINDOWS", ("changed",))
+>       report = module.run_generalization_validation(
+            shard_root=tmp_path,
+            artifact_prefix=PREFIX,
+            report_output=tmp_path / "report.json",
+            merged_output=tmp_path / "merged.json",
+            upstream_result="success",
+            data_dir=None,
+            expected_common_provenance={},
+        )
+
+tests/test_ci_artifact_validation.py:603: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+uquant/validation/ci_artifacts.py:546: in run_generalization_validation
+    inputs = _generalization_validation_inputs(
+uquant/validation/ci_artifacts.py:325: in _generalization_validation_inputs
+    trusted_baseline = load_generalization_baseline() if baseline is None else baseline
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+uquant/validation/generalization_policy/cells.py:323: in load_generalization_baseline
+    artifact_equality, attribution_neutral_equality = _reviewed_baseline_artifact(
+uquant/validation/generalization_policy/cells.py:259: in _reviewed_baseline_artifact
+    artifact_source = evidence_root() / CHAMPION_MATRIX_PATH if artifact_path is None else Path(artifact_path)
+                      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+_ test_v2_projection_uses_reconstructed_legacy_control_and_only_normalizes_validated_bindings _
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+>               subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+
+uquant/validation/evidence_source.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', ...],)
+kwargs = {'stdout': <_io.BufferedRandom name=12>, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/usr/local/bin/git', '-C', '/workspace/scratch/1adbcc9c7025/uquant', 'archive', '7fcf9562e6c7f96250811acd80c2dd4ee46485e3', '--', 'artifacts', 'benchmarks/current_heads_competitor_matrix.json', 'benchmarks/cross_ai_stage1_baselines.json', 'research/current_heads_competitor_matrix.py', 'benchmarks/strategic_evidence_closure_contract.json']' returned non-zero exit status 128.
+
+/root/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/subprocess.py:571: CalledProcessError
+
+The above exception was the direct cause of the following exception:
+
+    def test_v2_projection_uses_reconstructed_legacy_control_and_only_normalizes_validated_bindings() -> None:
+        frozen = json.loads(
+>           (evidence_root() / "artifacts" / "phase2" / "champion-generalization-matrix.json").read_text(
+             ^^^^^^^^^^^^^^^
+                encoding="utf-8"
+            )
+        )
+
+tests/_generalization_matrix_projection_cases.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @lru_cache(maxsize=1)
+    def evidence_root() -> Path:
+        """Materialize original evidence outside the checkout, without running old code."""
+        git = shutil.which("git")
+        if git is None:
+            raise RuntimeError("Git is required to read the immutable evidence source")
+        with tempfile.TemporaryFile() as archive:
+            try:
+                subprocess.run(
+                    [git, "-C", str(_ROOT), "archive", _SOURCE_COMMIT, "--", "artifacts",
+                     "benchmarks/current_heads_competitor_matrix.json",
+                     "benchmarks/cross_ai_stage1_baselines.json",
+                     "research/current_heads_competitor_matrix.py",
+                     "benchmarks/strategic_evidence_closure_contract.json"],
+                    check=True, stdout=archive, stderr=subprocess.PIPE,
+                )  # nosec B603
+            except subprocess.CalledProcessError as exc:
+>               raise RuntimeError(
+                    f"immutable evidence source unavailable: {_SOURCE_COMMIT}: "
+                    f"{exc.stderr.decode('utf-8', errors='replace').strip()}"
+                ) from exc
+E               RuntimeError: immutable evidence source unavailable: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3: fatal: not a tree object: 7fcf9562e6c7f96250811acd80c2dd4ee46485e3
+
+uquant/validation/evidence_source.py:32: RuntimeError
+=========================== short test summary info ============================
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_missing_and_extra_attempt_shards
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_duplicate_cell_and_mixed_window
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_stale_exact_head_provenance
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_replay_policy_and_upstream_failure_with_diagnostics
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_duplicate_shard_json_key
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_every_ambiguous_shard_shape[cells]
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_every_ambiguous_shard_shape[provenance]
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_every_ambiguous_shard_shape[unknown_cell]
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_rejects_every_ambiguous_shard_shape[malformed_contract]
+FAILED tests/test_ci_artifact_validation.py::test_generalization_validator_reports_compiled_control_and_outer_errors
+FAILED tests/test_generalization_matrix.py::test_v2_projection_uses_reconstructed_legacy_control_and_only_normalizes_validated_bindings
+11 failed, 160 passed in 213.87s (0:03:33)

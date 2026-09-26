@@ -31,7 +31,7 @@ uquant 把数据、信号、风险、组合、执行和账户放在一条可审�
 | [holding_history.py](../uquant/holding_history.py) | 从持仓与真实成交读取连续持有事实，提供当前事件的只读有效恢复权视图 |
 | `portfolio_core.py`、`portfolio/` | 唯一目标组合、硬约束、风险缩减及各持仓生命周期 |
 | `execution/` | 订单规划、市场约束、费用、部分成交、挂单和 tranche |
-| `account/` | schema 8 编解码、账户校验、经济/代码身份和原子持久化 |
+| `account/` | schema 9 编解码与迁移、账户锁内事务、公司行动、账户校验、经济/代码身份和原子持久化 |
 | `contracts/` | 严格 JSON、universe、运行时和 source-surface 合同 |
 | `risk_sentinel/` | 独立风险证据、Coverage、离线 calibration 与窄映射 |
 | `broker.py`、`report.py` | 券商快照/成交对账与只读日报渲染 |
@@ -238,10 +238,13 @@ CORE 推广重验不可变授权中的成员、原路线和 quorum，以当前�
 执行层只能把既有目标转成订单和成交，账户层只能持久化已验证结果。Risk Sentinel 的
 `FREEZE_ONLY` 结论至多阻止新增风险，不能建立第二个仓位、卖出或账户权限。
 
-账户文件使用临时文件、刷盘和原子替换保存。schema 8 记录现金、持仓 tranche、挂单、成交、
+账户文件使用临时文件、刷盘和原子替换保存；读改写在账户文件锁内完成，并以
+`account_revision` 比较交换，拒绝覆盖另一个进程的更新。schema 9 记录现金、持仓 tranche、挂单、成交、
 战略资格观察、授冠意图、所有权 epoch、资本修复 episode、一次性 rearm authorization、
-机会/风险状态、组合生命周期、资本高水位、数据摘要和代码指纹。读取或保存其他整数 schema
-会抛出 `UnsupportedAccountSchemaError`；缺少 schema 8 必需字段会以 `RuntimeError` 失败关闭。
+机会/风险状态、组合生命周期、资本高水位、券商账号绑定与快照登记、外部成交与存取款、
+公司行动、应收股利、红利税批次、数据摘要和代码指纹。schema 8 只能经 `account-schema-migrate`
+升级；读取或保存其他整数 schema 会抛出 `UnsupportedAccountSchemaError`；缺少 schema 9 必需字段
+会以 `RuntimeError` 失败关闭。
 加载时会校验：
 
 - 现金、股数、价格和序号范围；
@@ -289,7 +292,7 @@ holdout 观察不进入 `ProductionEngine.decide()` 或账户状态。
 
 - 数据历史被改写：恢复可信数据后重新校验；
 - 账户与券商不一致：以完整券商快照对账；
-- 代码指纹不一致：先备份 schema 8 账户，再执行 `account-code-migrate` 并核对
+- 代码指纹不一致：先备份 schema 9 账户，再执行 `account-code-migrate` 并核对
   `economic_state_sha256`；
 - 订单引用或成交顺序矛盾：修正快照来源，不猜测成交；
 - 验证证据缺失：补齐经过评审的真实证据，不生成占位值。

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import replace
 from typing import Any
 
@@ -283,9 +284,18 @@ def _synchronized_before_anchor(
     industries: set[str],
     hard_persistent: bool,
     admission_state: str,
+    risk: RiskAssessment,
 ) -> bool:
+    # Same-industry names are one evidence family. Early admission still needs
+    # an observable external market leg that is no longer falling.
+    market = [risk.evidence.get(key) for key in ("broad_ret20", "tech_ret20")]
+    if any(not isinstance(value, (int, float)) or isinstance(value, bool)
+           or not math.isfinite(value) for value in market):
+        return False
+    market_support = max(float(risk.evidence[key]) for key in ("broad_ret20", "tech_ret20"))
     return bool(
         route.anchors_not_yet_armed
+        and market_support >= self.cfg.strategic_transition_impulse_min_market_ret20
         and (hard_persistent or (route.route == "reversal_industry" and route.synchronized_reversal))
         and len(industries) == 1
         and (
@@ -349,6 +359,7 @@ def strategic_qualification_evidence(
         industries=industries,
         hard_persistent=hard_persistent,
         admission_state=admission_state,
+        risk=risk,
     )
     negative_backed = _negative_long_cycle_backed(
         route=route,

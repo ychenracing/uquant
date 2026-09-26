@@ -50,7 +50,9 @@ def test_partial_current_credible_continues_then_score_loss_cancels_without_rest
     original = next(order for order in account.pending_orders if order.symbol == low)
     frame = panel[low]
     set_prior_session_volume(frame, dates[5], 1_000_000.)
-    fills = ExecutionPlanner(DEFAULT_CONFIG).execute_open(date=dates[5], account=account, panel=panel)
+    # Open-sized fills keep the peer at its exact target so only credibility drives the order.
+    cfg = DEFAULT_CONFIG.override(execution_clock="DAILY_PROXY")
+    fills = ExecutionPlanner(cfg).execute_open(date=dates[5], account=account, panel=panel)
     assert any(fill.symbol == low and fill.shares > 0 for fill in fills)
     _decide(policy, account, dates[5], panel, leaders, risk)
     remaining = [o for o in account.pending_orders if o.symbol == low]

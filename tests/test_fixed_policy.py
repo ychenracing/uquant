@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_fixed_policy_rejects_constructor_override_and_instance_assignment() -> None:
     public = {field.name for field in fields(SystemConfig)}
-    assert len(public) == 13
+    assert len(public) == 15
     for name, value in DEFAULT_CONFIG.to_dict().items():
         if name in public:
             continue

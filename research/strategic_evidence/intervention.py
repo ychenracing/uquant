@@ -10,7 +10,7 @@ from math import isfinite
 from typing import Any
 
 from uquant.account import account_from_dict, economic_state_sha256
-from uquant.contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+from uquant.contracts.universe import decision_ai_universe
 from uquant.data import normalize_symbol
 from uquant.execution import reconcile_account_orders
 from uquant.models.strategic_epoch import (
@@ -291,7 +291,7 @@ def _rewrite_account_identity_chain(
         prior_event = pending_order.event_id
         _rewrite_order(pending_order, old, new)
         pending_order.industry_at_entry = forced_industry
-        pending_order.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
+        pending_order.industry_manifest_sha256 = decision_ai_universe().sha256
         pending_order.grant_id = grant_id
         pending_order.epoch_id = epoch_id
         pending_order.event_id = derive_attribution_event_id(
@@ -317,7 +317,7 @@ def _rewrite_account_identity_chain(
         prior_event = account_order.event_id
         _rewrite_account_order(account_order, old, new)
         account_order.industry_at_entry = forced_industry
-        account_order.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
+        account_order.industry_manifest_sha256 = decision_ai_universe().sha256
         account_order.grant_id = grant_id
         account_order.epoch_id = epoch_id
         account_order.event_id = derive_attribution_event_id(
@@ -357,7 +357,7 @@ def _rewrite_account_identity_chain(
             if prior_event in event_rewrites:
                 allocation["event_id"] = event_rewrites[prior_event]
                 allocation["industry_at_entry"] = forced_industry
-                allocation["industry_manifest_sha256"] = REQUIRED_AI_UNIVERSE_SHA256
+                allocation["industry_manifest_sha256"] = decision_ai_universe().sha256
                 allocation["grant_id"] = grant_id
                 allocation["epoch_id"] = epoch_id
     if old in account.positions:
@@ -371,7 +371,7 @@ def _rewrite_account_identity_chain(
                 raise ValueError("forced owner tranche lacks a rewritten originating event")
             tranche.event_id = event_rewrites[tranche.event_id]
             tranche.industry_at_entry = forced_industry
-            tranche.industry_manifest_sha256 = REQUIRED_AI_UNIVERSE_SHA256
+            tranche.industry_manifest_sha256 = decision_ai_universe().sha256
             tranche.grant_id = grant_id
             tranche.epoch_id = epoch_id
         account.positions[new] = position
@@ -491,7 +491,7 @@ class StrategicOwnerIntervention:
             shadow.strategic_cohort_targets[self.owner] = self.target_gross
         else:
             session = self.intervention_date or shadow.last_successful_run or "2023-01-04"
-            forced_industry = default_ai_universe().industry_of(self.owner, session)
+            forced_industry = decision_ai_universe().industry_of(self.owner, session)
             if forced_industry == "unknown":
                 raise ValueError("forced owner has no point-in-time industry membership")
             grant_id = _rewrite_grant(
@@ -563,7 +563,7 @@ class StrategicOwnerIntervention:
         prior_grant = account.strategic_grant
         if prior_grant is None:
             raise ValueError("forced group activation requires an identified grant")
-        industry = default_ai_universe().industry_of(self.owner, decision.date)
+        industry = decision_ai_universe().industry_of(self.owner, decision.date)
         if industry == "unknown":
             raise ValueError("forced owner has no point-in-time industry membership")
         shadow = deepcopy(account)
@@ -597,7 +597,7 @@ class StrategicOwnerIntervention:
         shadow.strategic_qualification.candidate_symbols = [self.owner]
         forced_target = replace(
             original, symbol=self.owner, weight=self.target_gross, event_id="",
-            industry_at_entry=industry, industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            industry_at_entry=industry, industry_manifest_sha256=decision_ai_universe().sha256,
             grant_id=grant_id, epoch_id=epoch_id,
         )
         event_id = derive_attribution_event_id(
@@ -605,13 +605,13 @@ class StrategicOwnerIntervention:
             lifecycle=forced_target.lifecycle, origin_lifecycle=forced_target.origin_lifecycle,
             origin_subsystem=forced_target.origin_subsystem, mechanism=forced_target.mechanism,
             replaces_symbol=forced_target.replaces_symbol, industry_at_entry=industry,
-            industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256, reduction_policy=forced_target.reduction_policy,
+            industry_manifest_sha256=decision_ai_universe().sha256, reduction_policy=forced_target.reduction_policy,
             reason_code=forced_target.reason_code, exit_kind=forced_target.exit_kind,
         )
         forced_target = replace(forced_target, event_id=event_id)
         order = replace(
             template, symbol=self.owner, target_weight=self.target_gross, order_id="", event_id=event_id,
-            industry_at_entry=industry, industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            industry_at_entry=industry, industry_manifest_sha256=decision_ai_universe().sha256,
             grant_id=grant_id, epoch_id=epoch_id,
         )
         shadow.pending_orders = list(reconcile_account_orders(
@@ -664,7 +664,7 @@ class StrategicOwnerIntervention:
             return decision
         shadow = deepcopy(account)
         source_owner = original.symbol
-        forced_industry = default_ai_universe().industry_of(self.owner, decision.date)
+        forced_industry = decision_ai_universe().industry_of(self.owner, decision.date)
         if forced_industry == "unknown":
             raise ValueError("forced owner has no point-in-time industry membership")
         grant_id = _rewrite_grant(
@@ -710,7 +710,7 @@ class StrategicOwnerIntervention:
             symbol=self.owner,
             weight=self.target_gross,
             industry_at_entry=forced_industry,
-            industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            industry_manifest_sha256=decision_ai_universe().sha256,
             grant_id=grant_id,
             epoch_id=epoch_id,
         )
@@ -739,7 +739,7 @@ class StrategicOwnerIntervention:
                 target_weight=self.target_gross,
                 event_id=forced_target.event_id,
                 industry_at_entry=forced_industry,
-                industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+                industry_manifest_sha256=decision_ai_universe().sha256,
                 grant_id=grant_id,
                 epoch_id=epoch_id,
             )

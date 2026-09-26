@@ -123,6 +123,7 @@ def test_decisive_reversal_retains_original_pair_and_requires_synchronized_witne
                for s, score in (('dominant', .70), ('runner', .60), ('reserve', .20))}
     leaders['runner'].components['trend_persistence'] = 1 / 3
     risk = RiskAssessment(Risk.NORMAL, 1., 1, {'tech_ret120': discovery_index_return, 'risk_anchor_symbols': [],
+                          'broad_ret20': .01, 'tech_ret20': -.01,
                           'risk_anchor_group_count': 0, 'configured_user_universe_size': 3}, (), 'NONE')
     account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
     account.account_identity = 'account:primary'

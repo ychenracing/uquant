@@ -46,6 +46,22 @@ python -m tools.cloud_guard run --name focused-tests --timeout 600 -- \
   uv run pytest tests/test_absolute_generalization_artifacts.py
 ```
 
+For local read-only historical audits in a partial clone (`blob:none`), disable
+implicit Git downloads for the command:
+
+```bash
+GIT_NO_LAZY_FETCH=1 GIT_TERMINAL_PROMPT=0 python -m tools.cloud_guard run \
+  --name historical-audit --timeout 600 -- uv run pytest <required-test>
+```
+
+Missing historical blobs then fail explicitly instead of making `git cat-file`
+wait for an unobserved network fetch. Restore only the required frozen objects
+through the authorized Git/file channel, verify each Git blob ID and the restored
+bytes, then rerun the affected check. Keep the original timeout/error evidence.
+Use files to transfer large object bodies; placing them in a shell command can
+exceed the operating system's argument-size limit. These flags apply to read-only
+audits; explicit authorized network operations retain their intended mode.
+
 The default journal is `.cloud-task-journal`, ignored by Git. Set
 `UQUANT_CLOUD_JOURNAL` or `--root` to an existing private persistent volume when
 one is available. Root must be stable across resumption. Do not point it at a
@@ -107,6 +123,14 @@ On resumption: inspect first, verify live process identity and remote writes, th
 resume only missing work. COMMAND_NONZERO_EXIT, SUPERVISOR_TIMEOUT and PROCESS_SIGNAL
 are distinct from model errors. Memory events are cgroup correlation, not proof
 that this child was OOM-killed. All reports keep platform_root_cause=NOT_OBSERVED.
+
+After checking an unfinished **local** command from a changed runtime and saving
+the cache/process reconciliation receipt, use `reconcile-local --id <operation-id>
+--receipt <existing-file>`. It takes the same operation lock and refuses an active
+lock, unchanged runtime, terminal record, or any external/write operation. It
+appends `LOCAL_INTERRUPTION_RECONCILED` while retaining the old status, runtime,
+logs and missing exit code; this is not a successful execution. Then explicitly
+rerun the original operation name using validated caches. It never starts a retry.
 
 ## Platform boundary
 

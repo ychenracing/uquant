@@ -337,9 +337,82 @@ def test_market_data_rejects_infinite_economic_inputs(column, value):
         DataStore._validate(pd.DataFrame([row]), "sz300308")
 
 
-def test_market_data_rejects_negative_turnover_and_keeps_optional_amount_fallback():
+def test_market_data_rejects_negative_turnover_and_keeps_missing_amount_missing():
     row = dict(date="2026-01-05", open=10., high=11., low=9., close=10., volume=100., amount=-1.)
     with pytest.raises(DataContractError, match="turnover"):
         DataStore._validate(pd.DataFrame([row]), "sz300308")
     del row["amount"]
-    assert DataStore._validate(pd.DataFrame([row]), "sz300308")["amount"].iloc[0] == 1000.
+    assert pd.isna(DataStore._validate(pd.DataFrame([row]), "sz300308")["amount"].iloc[0])
+
+
+def test_data_update_publishes_new_immutable_snapshot_and_refuses_bad_data(tmp_path):
+    import pandas as pd
+
+    from uquant.data import DataStore
+    from uquant.data_update import update_snapshot
+
+    dates = [str(item.date()) for item in pd.bdate_range("2026-01-05", periods=5)]
+    base = tmp_path / "base"
+    base.mkdir()
+    for index in ("sh000300", "sh000682"):
+        pd.DataFrame(
+            {"date": dates, "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0, "volume": 1.0}
+        ).to_csv(base / f"{index}.csv", index=False)
+
+    class Provider:
+        name = "fake"
+
+        def __init__(self, close: float, amount: float) -> None:
+            self.close, self.amount = close, amount
+
+        def stock_daily(self, symbol, start, end):
+            frame = pd.DataFrame({
+                "date": dates, "open": self.close, "high": self.close, "low": self.close,
+                "close": self.close, "preclose": self.close, "volume": 100.0,
+                "amount": self.amount, "volume_unit": "shares", "special_treatment": 0,
+            })
+            return frame, []
+
+        def dividends(self, symbol, start, end):
+            return []
+
+        def index_daily(self, symbol, start, end):
+            return pd.read_csv(base / f"{symbol}.csv", dtype={"date": str})
+
+    root = tmp_path / "snapshots"
+    kwargs = {"output_root": root, "base_dir": base, "symbols": ["sz300308"], "start": dates[0], "end": dates[-1]}
+    first = update_snapshot(provider=Provider(10.0, 1_000.0), **kwargs)
+    old_digest = DataStore(root).manifest(["sz300308"]).digest
+    second = update_snapshot(provider=Provider(11.0, 1_100.0), **kwargs)
+    assert first != second and (first / "sz300308.csv").is_file()
+    assert DataStore(root).root == second
+    assert DataStore(root).manifest(["sz300308"]).digest != old_digest
+    assert DataStore(first).manifest(["sz300308"]).digest == old_digest
+    with pytest.raises(RuntimeError, match="not published"):
+        update_snapshot(provider=Provider(12.0, 0.0), **kwargs)
+    assert DataStore(root).root == second and sorted(p.name for p in root.iterdir()) == sorted(
+        ["LATEST", first.name, second.name]
+    )
+
+
+def test_formal_industry_classification_keeps_recorded_versions_resolvable():
+    from uquant.contracts.universe import _resource_bytes as resource_bytes
+    from uquant.contracts.universe import (
+        decision_ai_universe,
+        default_ai_universe,
+        load_industry_classification,
+        registered_ai_universe,
+    )
+
+    base, formal = default_ai_universe(), decision_ai_universe()
+    assert formal.sha256 != base.sha256
+    assert registered_ai_universe(base.sha256) is base and registered_ai_universe(formal.sha256) is formal
+    assert registered_ai_universe("0" * 64) is None
+    assert formal.industry_of("sh688498", "2023-01-03") == "optical"
+    assert base.industry_of("sh688498", "2023-01-03") == "advanced_packaging"
+    assert formal.industry_of("sz002281", "2022-04-15") == "datacenter"
+    assert formal.industry_of("sz002281", "2024-01-02") == "optical"
+    assert base.industry_of("sz002281", "2024-01-02") == "datacenter"
+    tampered = resource_bytes("industry_classification_v2.json").replace(b'"optical"', b'"compute"', 1)
+    with pytest.raises(ValueError, match="seal"):
+        load_industry_classification(tampered)

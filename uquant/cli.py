@@ -13,15 +13,18 @@ import tempfile
 from pathlib import Path
 
 from .account import (
+    account_transaction,
     economic_state_sha256,
-    load_account,
+    migrate_account_schema,
     migrate_code_identity,
-    save_account,
 )
+from .account.corporate_actions import apply_corporate_actions
+from .account.transaction import AccountConflictError, AccountTransaction
 from .broker import sync_broker_snapshot
 from .broker_contract import load_broker_snapshot
 from .config import DEFAULT_CONFIG, SystemConfig, config_fingerprint
 from .config.input import load_public_config
+from .contracts.universe import EVIDENCE_SCOPE
 from .engine import ProductionEngine, code_fingerprint
 from .infrastructure.atomic_files import atomic_write_text, validate_atomic_output_boundary
 from .leader import REFERENCE_UNIVERSE
@@ -62,6 +65,8 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
     sync = sub.add_parser("account-sync")
     sync.add_argument("--account", required=True)
     sync.add_argument("--snapshot", required=True)
+    schema_migrate = sub.add_parser("account-schema-migrate")
+    schema_migrate.add_argument("--account", required=True)
     code_migrate = sub.add_parser("account-code-migrate")
     code_migrate.add_argument("--account", required=True)
     code_migrate.add_argument(
@@ -74,6 +79,16 @@ def _uquant_cli_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="confirm code-identity rebinding with no economic-state changes",
     )
+    data_check = sub.add_parser("data-check")
+    data_check.add_argument("--data-dir", required=True)
+    data_check.add_argument("--symbols", nargs="*", default=None)
+    data_check.add_argument("--as-of", default=None, help="require every file to reach this session")
+    data_update = sub.add_parser("data-update")
+    data_update.add_argument("--output-root", required=True, help="parent directory of published snapshots")
+    data_update.add_argument("--base-dir", required=True, help="snapshot whose index levels are extended")
+    data_update.add_argument("--symbols", nargs="+", required=True)
+    data_update.add_argument("--start", default="2014-01-01")
+    data_update.add_argument("--end", required=True)
     backtest = sub.add_parser("backtest")
     backtest.add_argument("--symbols", nargs="+", required=True)
     backtest.add_argument("--start", required=True)
@@ -153,7 +168,8 @@ def _run_account_init(args: argparse.Namespace) -> int:
     state.data_hash_as_of = snapshot_date
     state.data_hash_symbols = list(manifest.symbols)
     state.code_hash = code_fingerprint()
-    save_account(state, args.output)
+    with account_transaction(args.output, create=True) as transaction:
+        transaction.save(state)
     print(args.output)
     return 0
 
@@ -201,20 +217,72 @@ def _validate_account_config(account: AccountState, cfg: SystemConfig) -> None:
 def _run_daily(args: argparse.Namespace) -> int:
     cfg = load_public_config(args.config)
     exact_inputs, protected = _daily_output_boundary(args)
-    account = load_account(args.account)
+    with account_transaction(args.account) as transaction:
+        return _run_daily_locked(args, cfg, transaction, exact_inputs, protected)
+
+
+def _recover_daily_reports(args: argparse.Namespace, protected: dict[str, tuple[Path, ...]]) -> int:
+    """Publish reports staged before an already committed decision; never decide twice."""
+    account_mtime = Path(args.account).stat().st_mtime
+    recovered = []
+    for path in (item for item in (args.output, args.html_output) if item):
+        target = Path(path)
+        ready = sorted(
+            (item for item in target.parent.glob(target.name + ".ready-*") if item.stat().st_mtime <= account_mtime),
+            key=lambda item: item.stat().st_mtime,
+        )
+        if not ready:
+            continue
+        validate_atomic_output_boundary(path, protected_paths=protected[path])
+        atomic_write_text(path, ready[-1].read_text(encoding="utf-8"), protected_paths=protected[path])
+        for item in ready:
+            item.unlink()
+        recovered.append(path)
+    if not recovered:
+        print(
+            f"{args.date} 的决策已提交到账户，且没有待恢复的已渲染报告；不会重复决策。",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"{args.date} 的决策已提交；已恢复报告：{recovered}，未重复决策。", file=sys.stderr)
+    return 0
+
+
+def _run_daily_locked(
+    args: argparse.Namespace,
+    cfg: SystemConfig,
+    transaction: AccountTransaction,
+    exact_inputs: list[str],
+    protected: dict[str, tuple[Path, ...]],
+) -> int:
+    account = transaction.load()
     _validate_account_config(account, cfg)
+    if account.last_successful_run == args.date:
+        return _recover_daily_reports(args, protected)
     engine = ProductionEngine(args.data_dir, cfg)
+    held = [symbol for symbol, position in account.positions.items() if position.shares > 0]
+    apply_corporate_actions(
+        account,
+        [event for symbol in held for event in engine.data.corporate_actions(symbol)],
+        through=args.date,
+        frames={symbol: engine.data.load(symbol, as_of=args.date) for symbol in held},
+    )
     if args.broker_snapshot:
         snapshot = load_broker_snapshot(args.broker_snapshot)
         sync_broker_snapshot(account, snapshot, cfg=cfg)
     decision = engine.decide(symbols=args.symbols, as_of=args.date, account=account)
     account.pending_orders = list(decision.pending_orders)
-    report = render_daily_report(decision, account)
+    equity = None
+    if account.external_cash_flows:
+        import pandas as pd
+
+        equity = engine.equity(account, pd.Timestamp(args.date))
+    report = render_daily_report(decision, account, equity=equity)
     documents = []
     if args.output:
         documents.append((args.output, report))
     if args.html_output:
-        documents.append((args.html_output, render_daily_html(decision, account)))
+        documents.append((args.html_output, render_daily_html(decision, account, equity=equity)))
     staged = []
     try:
         for path, content in documents:
@@ -227,7 +295,12 @@ def _run_daily(args: argparse.Namespace) -> int:
             Path(temporary).unlink(missing_ok=True)
         raise
     try:
-        save_account(account, args.account)
+        transaction.save(account)
+    except AccountConflictError as exc:
+        for _, temporary in staged:
+            Path(temporary).unlink(missing_ok=True)
+        print(f"账户未保存：{exc}。请基于最新账户重新运行 daily。", file=sys.stderr)
+        return 1
     except Exception as exc:
         print(
             f"账户保存未能确认完成：{args.account}：{exc}。账户文件可能已替换，请先只读核对。"
@@ -248,7 +321,7 @@ def _run_daily(args: argparse.Namespace) -> int:
             print(
                 f"账户已保存：{args.account}；报告已发布：{published}；发布失败：{path}：{exc}。"
                 f"未发布的已渲染文件：{[(p, t) for p, t in staged if p not in published]}。"
-                "恢复时将对应 ready 文件移至报告目标路径；不要重新运行 daily 补报告。",
+                "以同一日期重新运行 daily 会发布这些已渲染报告，不会重复决策。",
                 file=sys.stderr,
             )
             return 1
@@ -258,12 +331,13 @@ def _run_daily(args: argparse.Namespace) -> int:
 
 def _run_account_code_migration(args: argparse.Namespace) -> int:
     destination = args.output or args.account
-    state = migrate_code_identity(
-        args.account,
-        destination,
-        new_code_hash=code_fingerprint(),
-        acknowledge_code_change=args.acknowledge_code_change,
-    )
+    with account_transaction(destination, create=destination != args.account):
+        state = migrate_code_identity(
+            args.account,
+            destination,
+            new_code_hash=code_fingerprint(),
+            acknowledge_code_change=args.acknowledge_code_change,
+        )
     payload = {
         "account": destination,
         "schema_version": state.schema_version,
@@ -284,7 +358,7 @@ def _run_backtest(args: argparse.Namespace) -> int:
             protected_roots=(args.data_dir,),
         )
     engine = ProductionEngine(args.data_dir, cfg)
-    result = engine.backtest(symbols=args.symbols, start=args.start, end=args.end)
+    result = {**EVIDENCE_SCOPE, **engine.backtest(symbols=args.symbols, start=args.start, end=args.end)}
     payload = json.dumps(result, ensure_ascii=False, indent=2)
     if args.output:
         atomic_write_text(args.output, payload, protected_paths=backtest_protected)
@@ -349,18 +423,41 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "daily":
         return _run_daily(args)
     if args.command == "account-sync":
-        account = load_account(args.account)
         cfg = load_public_config(args.config)
-        _validate_account_config(account, cfg)
         snapshot = load_broker_snapshot(args.snapshot)
-        summary = sync_broker_snapshot(account, snapshot, cfg=cfg)
-        save_account(account, args.account)
+        with account_transaction(args.account) as transaction:
+            account = transaction.load()
+            _validate_account_config(account, cfg)
+            summary = sync_broker_snapshot(account, snapshot, cfg=cfg)
+            transaction.save(account)
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "account-schema-migrate":
+        state = migrate_account_schema(args.account, code_hash=code_fingerprint())
+        print(json.dumps({"account": args.account, "schema_version": state.schema_version}, sort_keys=True))
         return 0
     if args.command == "account-code-migrate":
         return _run_account_code_migration(args)
     if args.command == "backtest":
         return _run_backtest(args)
+    if args.command == "data-check":
+        from .data_check import check_snapshot
+
+        report = check_snapshot(args.data_dir, symbols=args.symbols, as_of=args.as_of)
+        print(json.dumps(report, ensure_ascii=False, indent=1))
+        return 0 if report["ok"] else 1
+    if args.command == "data-update":
+        from .data_update import update_snapshot
+
+        published = update_snapshot(
+            output_root=args.output_root,
+            base_dir=args.base_dir,
+            symbols=args.symbols,
+            start=args.start,
+            end=args.end,
+        )
+        print(published)
+        return 0
     if args.command == "holdout-manifest":
         from .validation.holdout import generate_future_holdout_manifest
 

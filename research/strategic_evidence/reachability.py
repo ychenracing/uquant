@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Self
 
 from uquant.account import account_from_dict, economic_state_sha256
-from uquant.contracts.universe import REQUIRED_AI_UNIVERSE_SHA256, default_ai_universe
+from uquant.contracts.universe import decision_ai_universe
 from uquant.types import (
     AccountOrder,
     AccountState,
@@ -961,7 +961,7 @@ def _execute_pending_strategic_entry(account: AccountState, bar: SyntheticBar) -
     if shares <= 0:
         return
     gross_value = shares * bar.open
-    industry = default_ai_universe().industry_of(owner, signal_date)
+    industry = decision_ai_universe().industry_of(owner, signal_date)
     if industry == "unknown":
         raise ValueError("strategic entry industry mapping is unavailable")
     event_id = derive_attribution_event_id(
@@ -974,7 +974,7 @@ def _execute_pending_strategic_entry(account: AccountState, bar: SyntheticBar) -
         mechanism="STRATEGIC_COHORT",
         replaces_symbol=None,
         industry_at_entry=industry,
-        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        industry_manifest_sha256=decision_ai_universe().sha256,
         reduction_policy="FIFO",
         reason_code="strategic_reachability",
         exit_kind="strategy",
@@ -1007,7 +1007,7 @@ def _execute_pending_strategic_entry(account: AccountState, bar: SyntheticBar) -
             origin_lifecycle="CORE",
             replaces_symbol=None,
             industry_at_entry=industry,
-            industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            industry_manifest_sha256=decision_ai_universe().sha256,
         )
     )
     account.fills.append(
@@ -1034,7 +1034,7 @@ def _execute_pending_strategic_entry(account: AccountState, bar: SyntheticBar) -
             origin_lifecycle="CORE",
             replaces_symbol=None,
             industry_at_entry=industry,
-            industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+            industry_manifest_sha256=decision_ai_universe().sha256,
         )
     )
     tranche = Tranche(
@@ -1056,7 +1056,7 @@ def _execute_pending_strategic_entry(account: AccountState, bar: SyntheticBar) -
         origin_lifecycle="CORE",
         replaces_symbol=None,
         industry_at_entry=industry,
-        industry_manifest_sha256=REQUIRED_AI_UNIVERSE_SHA256,
+        industry_manifest_sha256=decision_ai_universe().sha256,
     )
     account.positions[owner] = Position(
         symbol=owner,

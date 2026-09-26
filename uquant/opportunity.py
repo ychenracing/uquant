@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from .config import SystemConfig
-from .features import scalar
+from .features import scalar, signal_close
 from .reference import ReferenceContext
 from .types import AccountState, LeaderScore, Opportunity, Risk
 
@@ -90,8 +90,8 @@ def _collect_opportunity_market_evidence(
         and (scalar(tech_row, "close") < scalar(tech_row, f"ma{cfg.trend_medium}"))
         and (scalar(tech_row, f"ma{cfg.trend_fast}") < scalar(tech_row, f"ma{cfg.trend_medium}"))
     )
-    broad_ret1 = float(broad.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
-    tech_ret1 = float(tech.loc[:date, "close"].pct_change(fill_method=None).iloc[-1])
+    broad_ret1 = float(signal_close(broad).loc[:date].pct_change(fill_method=None).iloc[-1])
+    tech_ret1 = float(signal_close(tech).loc[:date].pct_change(fill_method=None).iloc[-1])
     return _OpportunityMarket(
         bear_trend=bear_trend,
         breadth20_ratio=breadth20_ratio,
@@ -155,11 +155,11 @@ def _evaluate_opportunity_evidence(
     regime = _transition_opportunity_regime(account=account, evidence=evidence, fast_flip=fast_flip, run=run)
     mature_count = sum(item.mature for item in leaders.values())
     score_gap = ranked[0] - ranked[2] if len(ranked) >= 3 else ranked[0] if ranked else 0.0
-    tech_history = tech.loc[:date, "close"]
+    tech_history = signal_close(tech).loc[:date]
     recent_crash = False
     if len(tech_history) >= 60:
         for point in tech_history.tail(cfg.recovery_crash_lookback + 1).index:
-            history = tech.loc[:point, "close"].tail(60)
+            history = signal_close(tech).loc[:point].tail(60)
             if (
                 len(history) >= 20
                 and float(history.iloc[-1] / history.max() - 1.0) <= -cfg.recovery_crash_drawdown

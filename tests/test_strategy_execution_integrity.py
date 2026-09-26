@@ -19,7 +19,7 @@ from uquant.portfolio.strategic.authority import assess_strategic_capital_author
 def test_strategic_partial_retry_keeps_order_quantity_identity_through_restart(next_open: float) -> None:
     account = _account_with_grant()
     original_id = _submit(account)
-    planner = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=0.002))
+    planner = ExecutionPlanner(DEFAULT_CONFIG.override(max_volume_participation=0.002, execution_clock="DAILY_PROXY"))
     planner.execute_open(date=pd.Timestamp('2026-01-06'), account=account,
                          panel={'sz300308': _tradable_rows('2026-01-05', '2026-01-06', volume=100_000)})
     order = account.order_ledger[0]

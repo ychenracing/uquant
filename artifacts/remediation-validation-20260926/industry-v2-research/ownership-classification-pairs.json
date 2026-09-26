@@ -1,0 +1,65 @@
+[
+  {
+    "scenario": "remove-sz300308",
+    "v1": {
+      "final_wealth_multiple": 3.0090461825502843,
+      "max_drawdown": 0.24178993377491342,
+      "account_orders": 86,
+      "annual_turnover": 9.669629188192543,
+      "fees": 38330.73644843301,
+      "slippage_cost": 69448.29745099688
+    },
+    "v2": {
+      "final_wealth_multiple": 1.9480716276939767,
+      "max_drawdown": 0.35384741443585543,
+      "account_orders": 117,
+      "annual_turnover": 5.9886651428010005,
+      "fees": 24434.88781504764,
+      "slippage_cost": 43011.46779699753
+    },
+    "v1_raw_sha256": "21e7959bb327758b32d87a13415485e49b912f3830adb8afe70e9f3c0c4832a3",
+    "v2_raw_sha256": "f16637ab5d936fd8ba49a9f719335a692a0128d44067e328cfe82e4ebdef7625"
+  },
+  {
+    "scenario": "remove-sz300502",
+    "v1": {
+      "final_wealth_multiple": 6.929492321227951,
+      "max_drawdown": 0.24633943903299682,
+      "account_orders": 76,
+      "annual_turnover": 9.903897954565165,
+      "fees": 41958.42306010268,
+      "slippage_cost": 71139.96648399605
+    },
+    "v2": {
+      "final_wealth_multiple": 19.732215750987162,
+      "max_drawdown": 0.3330220905180168,
+      "account_orders": 41,
+      "annual_turnover": 9.444729626442278,
+      "fees": 46767.0480056804,
+      "slippage_cost": 67867.91001999668
+    },
+    "v1_raw_sha256": "a03261352e309239439aa7525ff7d9ec49aa7fe2e41143cba2155b196b66eee0",
+    "v2_raw_sha256": "14e8ff84ca702b0bcbf75450f9acdb8433acf7918cf3b824f360ff0e55e5afd5"
+  },
+  {
+    "scenario": "remove-sz300394",
+    "v1": {
+      "final_wealth_multiple": 25.319534581492725,
+      "max_drawdown": 0.22215572528465755,
+      "account_orders": 91,
+      "annual_turnover": 14.331221208747202,
+      "fees": 67258.16366955463,
+      "slippage_cost": 102973.0343449981
+    },
+    "v2": {
+      "final_wealth_multiple": 3.612130322196753,
+      "max_drawdown": 0.31748724056638833,
+      "account_orders": 91,
+      "annual_turnover": 6.6335102348429364,
+      "fees": 27827.51945849772,
+      "slippage_cost": 47645.964147997525
+    },
+    "v1_raw_sha256": "9313ff39ef716e88a7f373cd0aa51c93342bcf4b8a3612da4c4e4e58636279cb",
+    "v2_raw_sha256": "49b16624fc29841954a87b77ed41f5bada760ddf82a415b34262be22891998c6"
+  }
+]

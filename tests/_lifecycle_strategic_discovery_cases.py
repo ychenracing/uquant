@@ -488,6 +488,8 @@ def test_absolute_ret240_can_admit_without_a_symbol_specific_prior() -> None:
         1,
         {
             "tech_ret120": -0.05,
+            "broad_ret20": 0.01,
+            "tech_ret20": -0.01,
             "risk_anchor_symbols": [],
             "risk_anchor_group_count": 0,
         },
@@ -529,7 +531,8 @@ def test_persistent_startup_exception_defers_an_overextended_cohort() -> None:
         Risk.NORMAL,
         1.0,
         0,
-        {"risk_anchor_symbols": [], "risk_anchor_group_count": 0},
+        {"risk_anchor_symbols": [], "risk_anchor_group_count": 0,
+         "broad_ret20": 0.01, "tech_ret20": -0.01},
         (),
         "NONE",
     )

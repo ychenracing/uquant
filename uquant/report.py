@@ -519,7 +519,7 @@ def _daily_conclusion(buys: int, sells: int, freeze: object) -> str:
     return conclusion
 
 
-def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str, list[str]]]:
+def _daily_sections(decision: Decision, account: AccountState, equity: float | None = None) -> list[tuple[str, list[str]]]:
     summary = decision.risk_summary
     buys = sum(o.side == "BUY" for o in decision.pending_orders)
     sells = sum(o.side == "SELL" for o in decision.pending_orders)
@@ -539,6 +539,12 @@ def _daily_sections(decision: Decision, account: AccountState) -> list[tuple[str
         f"当前持有 {len(held)} 只；目标持有 {decision.target_k} 只；买入意图 {buys} 项；卖出意图 {sells} 项",
         f"现金余额：{account.cash:,.2f} 元；不等于可用买入资金，未成交卖单不释放现金或名额",
     ])]
+    if account.external_cash_flows and equity is not None:
+        net_flow = sum(float(item["amount"]) for item in account.external_cash_flows)
+        sections[0][1].append(
+            f"外部资金净流入：{net_flow:,.2f} 元；投资损益 = 净值 {equity:,.2f} − 初始资金 {account.initial_cash:,.2f} − 净流入 = "
+            f"{equity - account.initial_cash - net_flow:,.2f} 元（入金/出金不计为收益）"
+        )
     actions = _action_lines(decision)
     sections.append(("下一可交易日需要核对的事项", actions))
     unsettled = [o.symbol for o in account.order_ledger if o.status not in {"FILLED", "CANCELLED", "REPLACED"}]
@@ -562,10 +568,10 @@ def _markdown_text(value: str) -> str:
     return value
 
 
-def render_daily_report(decision: Decision, account: AccountState) -> str:
+def render_daily_report(decision: Decision, account: AccountState, *, equity: float | None = None) -> str:
     """Render recorded facts, retaining the complete source evidence for review."""
     lines = [f"# 盘后决策报告 — {_markdown_text(decision.date)}", ""]
-    for title, paragraphs in _daily_sections(decision, account):
+    for title, paragraphs in _daily_sections(decision, account, equity):
         lines.extend([f"## {_markdown_text(title)}", ""])
         lines.extend("- " + _markdown_text(line) for line in paragraphs)
         lines.append("")
@@ -575,10 +581,10 @@ def render_daily_report(decision: Decision, account: AccountState) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_daily_html(decision: Decision, account: AccountState) -> str:
+def render_daily_html(decision: Decision, account: AccountState, *, equity: float | None = None) -> str:
     """Render a standalone offline document from the same read-only facts."""
     sections = []
-    for title, paragraphs in _daily_sections(decision, account):
+    for title, paragraphs in _daily_sections(decision, account, equity):
         body = ''.join(f'<li>{html.escape(line)}</li>' for line in paragraphs)
         sections.append(f'<section><h2>{html.escape(title)}</h2><ul>{body}</ul></section>')
     return ('<!doctype html><html lang="zh-CN"><meta charset="utf-8">'

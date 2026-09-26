@@ -261,7 +261,8 @@ def test_single_scenario_is_diagnostic_and_reuses_only_complete_identity_cache(
         assert isinstance(spec, dict)
         scenario_id = str(spec["scenario_id"])
         calls.append(scenario_id)
-        return {"scenario_id": scenario_id, "status": "PASS"}
+        return {"scenario_id": scenario_id, "status": "PASS", "final_wealth": 4.0,
+                "max_drawdown": .3}
 
     monkeypatch.setattr(ownership_runner, "_execute_scenario", execute)
     output = tmp_path / "scenario.json"

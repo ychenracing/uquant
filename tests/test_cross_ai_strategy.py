@@ -10,11 +10,12 @@ import pytest
 
 def test_principal_removal_cases_remove_all_reference_roles() -> None:
     from research.cross_ai_strategy import case_symbols
-    from uquant.contracts.universe import default_ai_universe
+    from uquant.contracts.universe import decision_ai_universe
 
-    universe = default_ai_universe()
+    universe = decision_ai_universe()
     core = {"sz300308", "sz300502", "sz300394"}
-    optical = {member.symbol for member in universe.members if member.industry == "optical"}
+    optical = {symbol for symbol in universe.symbols_as_of("2023-01-03")
+               if universe.industry_of(symbol, "2023-01-03") == "optical"}
     for case, removed in (("remove_all_three", core), ("no_optical", optical)):
         roles = case_symbols(case, "2023-01-03")
         expected = set(universe.symbols_as_of("2023-01-03")) - removed
@@ -44,7 +45,8 @@ def test_small_champion_replay_uses_real_next_open_and_sealed_evidence(tmp_path:
     assert hashlib.sha256(account_path.read_bytes()).hexdigest() == result["final_account_sha256"]
     account = load_account(account_path)
     assert account.fills
-    assert account.fills[0].fill_date == "2023-01-05"
+    assert account.fills[0].signal_date == "2023-01-05"
+    assert account.fills[0].fill_date == "2023-01-06"
     assert len({fill.fill_date for fill in account.fills}) > 1
     # A partial BUY can fill across sessions under one original economic order.
     assert len(account.order_ledger) == len({order.symbol for order in account.order_ledger})

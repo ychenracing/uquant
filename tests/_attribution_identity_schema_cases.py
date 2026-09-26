@@ -10,8 +10,10 @@ from test_attribution_identity import (
 
 from uquant import types as domain
 from uquant.account import load_account
+from uquant.contracts.universe import decision_ai_universe
 from uquant.engine import ProductionEngine
-from uquant.validation.universe import REQUIRED_AI_UNIVERSE_SHA256
+
+DECISION_UNIVERSE_SHA256 = decision_ai_universe().sha256
 
 
 @pytest.mark.parametrize(
@@ -44,19 +46,20 @@ def test_repeated_production_decisions_include_byte_identical_causal_metadata(
     symbols = ["sz300308", "sz300502", "sz300394", "sh688008", "sh603986"]
     engine = ProductionEngine(data_dir)
     initial = domain.AccountState.empty(2_000_000.0)
-    _, initial = engine.deterministic_decision(
-        symbols=symbols, as_of="2023-01-03", account=initial,
-    )
-    assert not initial.pending_orders
+    for session in ("2023-01-03", "2023-01-04"):
+        _, initial = engine.deterministic_decision(
+            symbols=symbols, as_of=session, account=initial,
+        )
+        assert not initial.pending_orders
 
     first, first_state = engine.deterministic_decision(
         symbols=symbols,
-        as_of="2023-01-04",
+        as_of="2023-01-05",
         account=initial,
     )
     second, second_state = engine.deterministic_decision(
         symbols=list(reversed(symbols)),
-        as_of="2023-01-04",
+        as_of="2023-01-05",
         account=initial,
     )
 
@@ -75,7 +78,7 @@ def test_repeated_production_decisions_include_byte_identical_causal_metadata(
         assert domain.AttributionMechanism(target.mechanism)
         assert target.origin_lifecycle in {item.value for item in domain.Lifecycle}
         assert target.industry_at_entry != ""
-        assert target.industry_manifest_sha256 == REQUIRED_AI_UNIVERSE_SHA256
+        assert target.industry_manifest_sha256 == DECISION_UNIVERSE_SHA256
     by_event = {target.event_id: target for target in first.targets}
     assert len(by_event) == len(first.targets)
     for order in first.pending_orders:

@@ -345,7 +345,7 @@ def test_expected_reference_without_a_session_is_unavailable_not_role_absent(
     shutil.copytree(data_dir, isolated)
     missing_path = isolated / f"{missing_symbol}.csv"
     missing_frame = pd.read_csv(missing_path)
-    missing_frame.loc[missing_frame["date"] != "2023-01-04"].to_csv(
+    missing_frame.loc[missing_frame["date"] != "2023-01-05"].to_csv(
         missing_path,
         index=False,
     )
@@ -361,7 +361,7 @@ def test_expected_reference_without_a_session_is_unavailable_not_role_absent(
         engine = ProductionEngine(frozen_data)
         account = AccountState.empty(DEFAULT_CONFIG.initial_cash)
         decision = None
-        for session in ("2023-01-03", "2023-01-04"):
+        for session in ("2023-01-03", "2023-01-04", "2023-01-05"):
             decision = engine.decide(
                 symbols=role_symbols,
                 as_of=session,
@@ -381,12 +381,12 @@ def test_expected_reference_without_a_session_is_unavailable_not_role_absent(
 
     negative_engine, negative_account, negative = opening_decisions(isolated)
     roles = build_strategic_universe_roles(
-        as_of="2023-01-04",
+        as_of="2023-01-05",
         tradable_symbols=role_symbols,
         qualification_reference_symbols=role_symbols,
         risk_reference_symbols=role_symbols,
         industries={
-            symbol: default_ai_universe().industry_of(symbol, "2023-01-04")
+            symbol: default_ai_universe().industry_of(symbol, "2023-01-05")
             for symbol in role_symbols
         },
         available_symbols=negative.risk_summary["reference_visible_symbols"],
@@ -405,7 +405,7 @@ def test_expected_reference_without_a_session_is_unavailable_not_role_absent(
     assert negative_account.order_ledger == []
     assert negative_account.strategic_epochs == []
     negative_engine.execution.execute_open(
-        date=pd.Timestamp("2023-01-05"),
+        date=pd.Timestamp("2023-01-06"),
         account=negative_account,
         panel={
             symbol: negative_engine.workspace.raw_frame(symbol)

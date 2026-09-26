@@ -1,0 +1,1229 @@
+{
+  "base_sha256": "b6198889097fe73688ff16489ff73f2bc697868783311c0bc332473d7ad1559b",
+  "modules": {
+    "uquant.config_governance": {
+      "classes": {
+        "ConfigGovernance": {
+          "methods": {
+            "entry": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "self"
+                },
+                {
+                  "annotation": "str",
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "field"
+                }
+              ],
+              "return": "ParameterGovernance"
+            }
+          },
+          "properties": [],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": "tuple[ParameterGovernance, ...]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "entries"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "before_total_fields"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "before_economic_fields"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "after_total_fields"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "after_economic_fields"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "current_total_fields"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "current_economic_fields"
+              },
+              {
+                "annotation": "tuple[str, ...]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "removed_fields"
+              },
+              {
+                "annotation": "tuple[str, ...]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "strategy_rule_removals"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "champion_config_sha256"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "candidate_config_sha256"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "artifact_sha256"
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "GovernedConfigMigration": {
+          "methods": {},
+          "properties": [],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "champion_config_sha256"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "candidate_config_sha256"
+              },
+              {
+                "annotation": "tuple[str, ...]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "removed_fields"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "governance_sha256"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "carrier_sha256"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "value",
+                  "value": ""
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "authorization_id"
+              },
+              {
+                "annotation": "tuple[str, ...]",
+                "default": {
+                  "kind": "tuple",
+                  "value": []
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "changed_fields"
+              },
+              {
+                "annotation": "tuple[str, ...]",
+                "default": {
+                  "kind": "tuple",
+                  "value": []
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "added_fields"
+              },
+              {
+                "annotation": "bool",
+                "default": {
+                  "kind": "value",
+                  "value": true
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "behavior_equivalent"
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "ParameterCategory": {
+          "methods": {},
+          "properties": [],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": null,
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "VAR_POSITIONAL",
+                "name": "values"
+              }
+            ],
+            "return": null
+          }
+        },
+        "ParameterGovernance": {
+          "methods": {},
+          "properties": [],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "field"
+              },
+              {
+                "annotation": "ParameterCategory",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "category"
+              },
+              {
+                "annotation": "SubsystemOwner",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "owner"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "rationale"
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "SubsystemOwner": {
+          "methods": {},
+          "properties": [],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": null,
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "VAR_POSITIONAL",
+                "name": "values"
+              }
+            ],
+            "return": null
+          }
+        }
+      },
+      "dataclasses": {
+        "ConfigGovernance": {
+          "fields": [
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "entries",
+              "type": "tuple[ParameterGovernance, ...]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "before_total_fields",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "before_economic_fields",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "after_total_fields",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "after_economic_fields",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "current_total_fields",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "current_economic_fields",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "removed_fields",
+              "type": "tuple[str, ...]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "strategy_rule_removals",
+              "type": "tuple[str, ...]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "champion_config_sha256",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "candidate_config_sha256",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "artifact_sha256",
+              "type": "str"
+            }
+          ]
+        },
+        "GovernedConfigMigration": {
+          "fields": [
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "champion_config_sha256",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "candidate_config_sha256",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "removed_fields",
+              "type": "tuple[str, ...]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "governance_sha256",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "carrier_sha256",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "value",
+                "value": ""
+              },
+              "name": "authorization_id",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "tuple",
+                "value": []
+              },
+              "name": "changed_fields",
+              "type": "tuple[str, ...]"
+            },
+            {
+              "default": {
+                "kind": "tuple",
+                "value": []
+              },
+              "name": "added_fields",
+              "type": "tuple[str, ...]"
+            },
+            {
+              "default": {
+                "kind": "value",
+                "value": true
+              },
+              "name": "behavior_equivalent",
+              "type": "bool"
+            }
+          ]
+        },
+        "ParameterGovernance": {
+          "fields": [
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "field",
+              "type": "str"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "category",
+              "type": "ParameterCategory"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "owner",
+              "type": "SubsystemOwner"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "rationale",
+              "type": "str"
+            }
+          ]
+        }
+      },
+      "enums": {
+        "ParameterCategory": [
+          {
+            "name": "MARKET_RULE",
+            "value": "MARKET_RULE"
+          },
+          {
+            "name": "SAFETY",
+            "value": "SAFETY"
+          },
+          {
+            "name": "ECONOMIC",
+            "value": "ECONOMIC"
+          },
+          {
+            "name": "DERIVED",
+            "value": "DERIVED"
+          },
+          {
+            "name": "COMPATIBILITY",
+            "value": "COMPATIBILITY"
+          }
+        ],
+        "SubsystemOwner": [
+          {
+            "name": "ACCOUNTING",
+            "value": "ACCOUNTING"
+          },
+          {
+            "name": "CONTROL_PLANE",
+            "value": "CONTROL_PLANE"
+          },
+          {
+            "name": "EXECUTION",
+            "value": "EXECUTION"
+          },
+          {
+            "name": "FEATURES",
+            "value": "FEATURES"
+          },
+          {
+            "name": "LEADER_SELECTION",
+            "value": "LEADER_SELECTION"
+          },
+          {
+            "name": "OPPORTUNITY",
+            "value": "OPPORTUNITY"
+          },
+          {
+            "name": "PORTFOLIO",
+            "value": "PORTFOLIO"
+          },
+          {
+            "name": "RECOVERY",
+            "value": "RECOVERY"
+          },
+          {
+            "name": "RISK",
+            "value": "RISK"
+          },
+          {
+            "name": "SECTOR_RISK",
+            "value": "SECTOR_RISK"
+          },
+          {
+            "name": "STRATEGIC",
+            "value": "STRATEGIC"
+          }
+        ]
+      },
+      "functions": {
+        "economic_parameter_names": {
+          "parameters": [],
+          "return": "frozenset[str]"
+        },
+        "load_config_governance": {
+          "parameters": [
+            {
+              "annotation": "str | Path | None",
+              "default": {
+                "kind": "value",
+                "value": null
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "path"
+            }
+          ],
+          "return": "ConfigGovernance"
+        },
+        "validate_governed_config_migration": {
+          "parameters": [
+            {
+              "annotation": "SystemConfig",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "config"
+            },
+            {
+              "annotation": "str | None",
+              "default": {
+                "kind": "value",
+                "value": null
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "authorization_id"
+            }
+          ],
+          "return": "GovernedConfigMigration"
+        }
+      },
+      "path": "uquant/config_governance.py",
+      "public_names": [
+        "CONTROLLED_V2_AUTHORIZATION",
+        "CONTROLLED_V2_CONFIG_PATH",
+        "CONTROLLED_V2_CONFIG_SHA256",
+        "CURRENT_GOVERNANCE_PATH",
+        "CURRENT_GOVERNANCE_SHA256",
+        "ConfigGovernance",
+        "DEFAULT_GOVERNANCE_PATH",
+        "FROZEN_CHAMPION_CONFIG_SHA256",
+        "GOVERNANCE_BASE_COMMIT",
+        "GOVERNANCE_PATH",
+        "GovernedConfigMigration",
+        "POST_REVIEW_FIELDS",
+        "ParameterCategory",
+        "ParameterGovernance",
+        "REMOVAL_ORDER",
+        "REQUIRED_CONFIG_PARAMETER_GOVERNANCE_SHA256",
+        "RETIRED_LEADER_CYCLE_FIELDS",
+        "STRATEGY_RULE_CONTRACT_SHA256",
+        "STRATEGY_RULE_REMOVALS",
+        "SubsystemOwner",
+        "_SHA256",
+        "economic_parameter_names",
+        "load_config_governance",
+        "validate_governed_config_migration"
+      ]
+    },
+    "uquant.validation.absolute_generalization.aggregation": {
+      "classes": {
+        "AcceptanceReport": {
+          "methods": {
+            "to_dict": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "self"
+                }
+              ],
+              "return": "dict[str, object]"
+            }
+          },
+          "properties": [],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "schema_version"
+              },
+              {
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "runner_success"
+              },
+              {
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "capability_pass"
+              },
+              {
+                "annotation": "bool",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "passed"
+              },
+              {
+                "annotation": "tuple[str, ...]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "runner_failures"
+              },
+              {
+                "annotation": "tuple[ComponentResult, ...]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "components"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "expected_cells"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "valid_cells"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "replay_error_cells"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "missing_cells"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "duplicate_cells"
+              },
+              {
+                "annotation": "int",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "complete_metric_cells"
+              },
+              {
+                "annotation": "tuple[tuple[str, float], ...]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "statistics"
+              },
+              {
+                "annotation": "Mapping[str, object]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "provenance"
+              },
+              {
+                "annotation": "str",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "canonical_sha256"
+              }
+            ],
+            "return": "None"
+          }
+        },
+        "ShardManifest": {
+          "methods": {
+            "to_dict": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "default": {
+                    "kind": "required"
+                  },
+                  "kind": "POSITIONAL_OR_KEYWORD",
+                  "name": "self"
+                }
+              ],
+              "return": "dict[str, object]"
+            }
+          },
+          "properties": [
+            "shard",
+            "status"
+          ],
+          "signature": {
+            "parameters": [
+              {
+                "annotation": "Mapping[str, object]",
+                "default": {
+                  "kind": "required"
+                },
+                "kind": "POSITIONAL_OR_KEYWORD",
+                "name": "document"
+              }
+            ],
+            "return": "None"
+          }
+        }
+      },
+      "dataclasses": {
+        "AcceptanceReport": {
+          "fields": [
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "schema_version",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "runner_success",
+              "type": "bool"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "capability_pass",
+              "type": "bool"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "passed",
+              "type": "bool"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "runner_failures",
+              "type": "tuple[str, ...]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "components",
+              "type": "tuple[ComponentResult, ...]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "expected_cells",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "valid_cells",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "replay_error_cells",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "missing_cells",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "duplicate_cells",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "complete_metric_cells",
+              "type": "int"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "statistics",
+              "type": "tuple[tuple[str, float], ...]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "provenance",
+              "type": "Mapping[str, object]"
+            },
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "canonical_sha256",
+              "type": "str"
+            }
+          ]
+        },
+        "ShardManifest": {
+          "fields": [
+            {
+              "default": {
+                "kind": "required"
+              },
+              "name": "document",
+              "type": "Mapping[str, object]"
+            }
+          ]
+        }
+      },
+      "enums": {},
+      "functions": {
+        "aggregate_acceptance": {
+          "parameters": [
+            {
+              "annotation": "Iterable[Mapping[str, object]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "shard_manifests"
+            },
+            {
+              "annotation": "AbsoluteGeneralizationContract",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "contract"
+            },
+            {
+              "annotation": "bool",
+              "default": {
+                "kind": "value",
+                "value": true
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "upstream_success"
+            },
+            {
+              "annotation": "Sequence[str]",
+              "default": {
+                "kind": "tuple",
+                "value": []
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "upstream_failure_codes"
+            }
+          ],
+          "return": "AcceptanceReport"
+        },
+        "aggregate_c3_acceptance": {
+          "parameters": [
+            {
+              "annotation": "Iterable[Mapping[str, object]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "shard_manifests"
+            },
+            {
+              "annotation": "AbsoluteGeneralizationContract",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "contract"
+            },
+            {
+              "annotation": "bool",
+              "default": {
+                "kind": "value",
+                "value": true
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "upstream_success"
+            },
+            {
+              "annotation": "Sequence[str]",
+              "default": {
+                "kind": "tuple",
+                "value": []
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "upstream_failure_codes"
+            }
+          ],
+          "return": "AcceptanceReport"
+        },
+        "build_error_shard_manifest": {
+          "parameters": [
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "shard"
+            },
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "mode"
+            },
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "error"
+            },
+            {
+              "annotation": "object",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "run_id"
+            },
+            {
+              "annotation": "object",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "run_attempt"
+            },
+            {
+              "annotation": "object",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "head"
+            },
+            {
+              "annotation": "object",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "tree"
+            },
+            {
+              "annotation": "AbsoluteGeneralizationContract",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "contract"
+            }
+          ],
+          "return": "dict[str, object]"
+        },
+        "seal_shard_manifest": {
+          "parameters": [
+            {
+              "annotation": "Mapping[str, object]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "raw"
+            },
+            {
+              "annotation": "AbsoluteGeneralizationContract",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "contract"
+            }
+          ],
+          "return": "dict[str, object]"
+        },
+        "validate_shard_manifest": {
+          "parameters": [
+            {
+              "annotation": "Mapping[str, object]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "raw"
+            },
+            {
+              "annotation": "AbsoluteGeneralizationContract",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "contract"
+            }
+          ],
+          "return": "ShardManifest"
+        }
+      },
+      "path": "uquant/validation/absolute_generalization/aggregation.py",
+      "public_names": [
+        "AcceptanceReport",
+        "ShardManifest",
+        "aggregate_acceptance",
+        "aggregate_c3_acceptance",
+        "build_error_shard_manifest",
+        "seal_shard_manifest",
+        "validate_shard_manifest"
+      ]
+    },
+    "uquant.validation.pr92_tradeoffs": {
+      "classes": {},
+      "dataclasses": {},
+      "enums": {},
+      "functions": {
+        "acceptance_basis": {
+          "parameters": [],
+          "return": "dict[str, Any]"
+        },
+        "compare_c3_account": {
+          "parameters": [
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "alias"
+            },
+            {
+              "annotation": "Mapping[str, Any]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "metrics"
+            },
+            {
+              "annotation": "Mapping[str, Mapping[str, Any]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "KEYWORD_ONLY",
+              "name": "reference"
+            }
+          ],
+          "return": "dict[str, Any]"
+        },
+        "compare_c3_subset": {
+          "parameters": [
+            {
+              "annotation": "Mapping[str, Mapping[str, Any]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "accounts"
+            }
+          ],
+          "return": "list[dict[str, Any]]"
+        },
+        "evaluate_c3_matrix": {
+          "parameters": [
+            {
+              "annotation": "list[Mapping[str, Any]]",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "accounts"
+            }
+          ],
+          "return": "dict[str, Any]"
+        },
+        "historical_crowning_basis": {
+          "parameters": [
+            {
+              "annotation": "str",
+              "default": {
+                "kind": "required"
+              },
+              "kind": "POSITIONAL_OR_KEYWORD",
+              "name": "source_cell_id"
+            }
+          ],
+          "return": "dict[str, Any] | None"
+        },
+        "load_fixed_c3": {
+          "parameters": [],
+          "return": "dict[str, dict[str, Any]]"
+        }
+      },
+      "path": "uquant/validation/pr92_tradeoffs.py",
+      "public_names": [
+        "CONTRACT_PATH",
+        "CONTRACT_SHA256",
+        "NATIVE_SHA256",
+        "acceptance_basis",
+        "compare_c3_account",
+        "compare_c3_subset",
+        "evaluate_c3_matrix",
+        "historical_crowning_basis",
+        "load_fixed_c3"
+      ]
+    }
+  },
+  "result_sha256": "fe6efc76496ab559a00939af38705977eba3bed157af0611946b04634387d311"
+}

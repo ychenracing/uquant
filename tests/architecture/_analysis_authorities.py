@@ -275,6 +275,7 @@ MODULE_AUTHORITIES = {
     "uquant.validation.manifest": "validation_runner",
     "uquant.validation._promotion_cache": "validation_runner",
     "uquant.validation.acceptance_tolerance": "validation_runner",
+    "uquant.validation.pr92_tradeoffs": "validation_runner",
     "uquant.validation.promotion": "validation_runner",
     "uquant.validation.promotion_contract": "validation_runner",
     "uquant.validation.production_observation": "validation_runner",

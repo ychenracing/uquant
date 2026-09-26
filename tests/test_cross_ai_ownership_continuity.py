@@ -348,14 +348,15 @@ def test_current_continuity_keeps_literal_drawdown_failures(drawdown: float) -> 
     (("sz300308",), "fewer than two actual epochs"),
     (("sz300308", "sz300308"), "fewer than two owners"),
 ])
-def test_source_still_requires_two_real_epochs_and_distinct_owners(
+def test_conditional_history_keeps_legacy_two_owner_failure_visible(
     owners: tuple[str, ...], reason: str,
 ) -> None:
     contract = runner.load_contract()
     summary = runner._continuity_summary(contract, continuity_replay(owners))
 
-    with pytest.raises(RuntimeError, match=reason):
-        runner._validate_repeated(contract, summary=summary, same_industry=False)
+    runner._validate_repeated(contract, summary=summary, same_industry=False)
+    assert any(reason in failure for failure in summary["legacy_historical_failures"])
+    assert summary["historical_opportunity_policy"]["historical_two_owner_coverage"] == "INSUFFICIENT"
 
 
 @pytest.mark.parametrize("alias", [False, True])

@@ -1,9 +1,61 @@
 # 当前验收链
 
+## PR92：固定 C3 的累计比较政策
+
+2026-09-26 连续任务授权的比较规则已接入现有 Economic、Performance、Absolute
+final 与 Ownership 分片入口。冻结合同为
+`artifacts/remediation-validation-20260926/industry-v2-research/continuous/CONTRACT_V1.json`；
+其中事先要求补齐的原生 LOO/Ownership 参照在同目录 `C3_NATIVE_REQUESTS.json`。
+固定 307 个别名按请求身份去重为 272 个账户，六族为完整池 6、全剔除 34、
+仅交易剔除/子行业 67、短窗 39、随机池 120、压力 6。族内等权、族间等权；
+Ownership 全剔除不能与 Economic 仅交易剔除合并。
+
+| 规则 | 当前有效判定 | 旧结果处理 |
+|---|---|---|
+| 历史 champion 逐项不退化 | 替换为相对固定 C3 财富比≥0.95、回撤增量≤0.01 | 仍计算并保留原失败，不改写历史原件 |
+| 六族累计预算 | 财富几何比≥0.98、平均回撤不升、纯退化权重≤20% | 缺账户不能通过；重复账户不能稀释损失 |
+| 主账户/冠军财富 | 15×硬底线 | 23.28417871275582×仅保留历史判定 |
+| 绝对风险与收益 | 原窗口回撤、急跌、随机尾部、正收益、容量和执行规则继续生效 | 不能因新相对政策而豁免 |
+| Performance A / year_2024 | 当前实际 protected gate 的有效财富底线1.55826×继续生效 | 来源虽为冻结参照，当前调用属于受保护硬门，不能再打折 |
+| 配置迁移 | 仅精确匹配 `benchmarks/pr92_v2_config_migration.json` 的授权变化 | `behavior_equivalent=false`，不把当前经济结果伪装为旧 champion |
+| 固定历史必须两 owner | `remove-sz300502` 的独立 C3 审计证明无合法确认机会时，允许一条真实完整链 | 明示历史两 owner覆盖不足和旧失败；受控真实接替能力仍为硬门 |
+
+逐指标持平容差为冻结合同中的绝对 `1e-12`。财富下降且风险下降是受控交换，
+须有事先经济目的；双优改善须有对应真实事件证据。未优化 V2 的累计变化、
+同输入 main 比较、全部原始账户、成本/换手/集中和旧硬门，仍是独立交付义务。
+
+`uquant.validation.pr92_tradeoffs.evaluate_c3_matrix` 聚合原生验证后导出的账户。
+每条记录含 `alias`、`metrics`、经济源码 `economic_source_sha256`、原件
+`raw_sha256`，改善另附 `causal_evidence`，交换另附 `preregistered_purpose`。
+这里的经济源码身份不是含验证器的 Performance/Economic 整体源码摘要。
+使用现有 CI 产物入口计算完整取舍预算：
+
+```bash
+uv run python -m uquant.validation.ci_artifacts c3-budget \
+  --accounts /tmp/uquant-acceptance/native-validated-accounts.json \
+  --report-output /tmp/uquant-acceptance/c3-budget.json
+```
+
+输入是 `{"accounts": [...]}`。该命令只计算取舍预算，明确输出
+`native_evidence_validation=REQUIRED_SEPARATELY`、`final_acceptance=false`。
+调用者须先通过各原生入口验证原始账户、请求/配置/数据/运行环境与真实生产者，
+不能把手工填入的指标或该命令退出0当作完整验收。最终合并仍须所有原生硬门、
+六族预算、事件归因、V2/main 对照、必要工程检查与仓库保护共同满足。
+
+历史机会审计原件由 `C3_OPPORTUNITY_AUDIT.json` 摘要绑定。四账户各观察869个会话，
+宽口径机会最长连续1日，未达到原规则3日确认；另一次候选出现时新风险被冻结。
+此结论不由新候选资格收窄产生，也不代表未来没有接替机会。Absolute 的原七项
+字面政策函数仍可重评历史；正式 final 使用 `aggregate_c3_acceptance`，将逐账户
+预算绑定到完整指标组件并保留流式读取，受控跨行业接替和失败恢复仍独立验证。
+
+本轮 C4–C8 与消融均未达到全部有效硬门，不能合并。失败策略保持在独立研究分支；
+当前 PR 生产策略继续保持 C3 和行业 V2。最新实证与原件索引沿用 PR92 顶部记录。
+
 跨年份旧账户恢复任务使用预登记的 [CROSS_VINTAGE_CONTRACT.json](../artifacts/branch-integration/CROSS_VINTAGE_CONTRACT.json)，并沿用原 23 场景的固定门槛与相对基线。[交付报告](../artifacts/branch-integration/start-date-research/CROSS_VINTAGE_DELIVERY_REPORT.md) 记录原生账户、真实旧 checkpoint 升级、成本、确认、先前失败及其原始生产者。R26 也修正了普通持仓被误算为第二个战略 cohort 成员的问题；已观察的备用确认不冒称新的未见数据。原件回执和实际合并状态另行记录。此范围通过不代表完整 Absolute 矩阵通过，也不替代仓库保护。
 
-`benchmarks/absolute_generalization_acceptance_contract.json` 是唯一 Absolute 政策文件。
-其独立摘要保护窗口、34 只证券、分片成员、数值约束和输入身份。候选身份在加载时从实际
+`benchmarks/absolute_generalization_acceptance_contract.json` 保留 Absolute 原数值与输入合同，
+PR92的比较方式和条件历史语义由上述固定C3规则补充。其独立摘要保护窗口、34 只证券、
+分片成员、数值约束和输入身份。候选身份在加载时从实际
 checkout 验证取得，不写回政策，也不改变判定规则。
 
 ## 预检

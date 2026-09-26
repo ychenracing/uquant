@@ -1,0 +1,165 @@
+{
+  "authorization": "PR92 master prompt section4.3; conditional capability, never forced historical rotation",
+  "current_minimum_observed_epoch": 1,
+  "definition": "Independent C3 ordinary_core_entry READY challenger distinct from actual epoch owner; owner close<MA20 and ret20<0; original three successive sessions, risk and settled funding still required. This is a broad opportunity screen, before edge/funding filters.",
+  "historical_policy_source_cell": "remove-sz300502",
+  "historical_two_owner_coverage": "INSUFFICIENT",
+  "legacy_historical_minimum_epochs": 2,
+  "legacy_historical_minimum_owners": 2,
+  "observations": [
+    {
+      "all_equity_and_metrics_equal": true,
+      "damaged_owner_opportunities": [],
+      "first_session": "2023-01-03",
+      "fixed_required_confirmation_sessions": 3,
+      "last_session": "2026-08-05",
+      "legal_confirmed_opportunities": 0,
+      "maximum_consecutive_candidate_and_damage_sessions": 0,
+      "native_successor_observed_sessions": null,
+      "native_successor_qualification_ready_sessions": null,
+      "observation_gzip_sha256": "395840f82f5b686a27059915af68069e5dd63c81c81e301f982c752b65987065",
+      "observed_sessions": 869,
+      "observer_sha256": "2072a1215574b76dbfcd9a35988ce889f8cbe8a2260b728d0c80c5fa927f1b6f",
+      "original_raw_sha256": "47aedd0425342705bcb25bafa2878db05bbf7c29b9d34f06c209255dd8e19b9d",
+      "ready_new_symbol_days": 394,
+      "scenario": "full"
+    },
+    {
+      "all_equity_and_metrics_equal": true,
+      "damaged_owner_opportunities": [
+        {
+          "cash": 212194.08207275814,
+          "damaged_owners": [
+            "sh688766"
+          ],
+          "date": "2023-02-14",
+          "independently_ready_challengers": [
+            "sh688300",
+            "sz300054",
+            "sh688110"
+          ],
+          "market_confirmed": false
+        },
+        {
+          "cash": 516319.5864983981,
+          "damaged_owners": [
+            "sh688766"
+          ],
+          "date": "2023-02-16",
+          "independently_ready_challengers": [
+            "sh688300",
+            "sh688037",
+            "sz300054",
+            "sz300666"
+          ],
+          "market_confirmed": false
+        }
+      ],
+      "first_session": "2023-01-03",
+      "fixed_required_confirmation_sessions": 3,
+      "last_session": "2026-08-05",
+      "legal_confirmed_opportunities": 0,
+      "maximum_consecutive_candidate_and_damage_sessions": 1,
+      "native_successor_observed_sessions": 869,
+      "native_successor_qualification_ready_sessions": 0,
+      "observation_gzip_sha256": "60df27193102a770066c4d9754b70182a41b08cb542c9c54b742109e382311e0",
+      "observed_sessions": 869,
+      "observer_sha256": "2072a1215574b76dbfcd9a35988ce889f8cbe8a2260b728d0c80c5fa927f1b6f",
+      "original_raw_sha256": "8fd4c8fd0cdb794600f479d53140cd5ff540832308178c89230dba67e8b90a91",
+      "ready_new_symbol_days": 456,
+      "scenario": "remove-sz300308"
+    },
+    {
+      "all_equity_and_metrics_equal": true,
+      "damaged_owner_opportunities": [
+        {
+          "cash": 212194.08207275814,
+          "damaged_owners": [
+            "sh688766"
+          ],
+          "date": "2023-02-14",
+          "independently_ready_challengers": [
+            "sh688300",
+            "sz300054",
+            "sh688110"
+          ],
+          "market_confirmed": false
+        },
+        {
+          "cash": 516319.5864983981,
+          "damaged_owners": [
+            "sh688766"
+          ],
+          "date": "2023-02-16",
+          "independently_ready_challengers": [
+            "sh688300",
+            "sh688037",
+            "sz300054",
+            "sz300666"
+          ],
+          "market_confirmed": false
+        }
+      ],
+      "first_session": "2023-01-03",
+      "fixed_required_confirmation_sessions": 3,
+      "last_session": "2026-08-05",
+      "legal_confirmed_opportunities": 0,
+      "maximum_consecutive_candidate_and_damage_sessions": 1,
+      "native_successor_observed_sessions": 869,
+      "native_successor_qualification_ready_sessions": 0,
+      "observation_gzip_sha256": "a814cf698f127544738b15912d4a64e040065699319cf4d7254e38c88c9ba9b7",
+      "observed_sessions": 869,
+      "observer_sha256": "2072a1215574b76dbfcd9a35988ce889f8cbe8a2260b728d0c80c5fa927f1b6f",
+      "original_raw_sha256": "f53fef21b19df971586763cf1103a1a04f058ad282226de4ffc516023384519d",
+      "ready_new_symbol_days": 384,
+      "scenario": "remove-sz300394"
+    },
+    {
+      "all_equity_and_metrics_equal": true,
+      "damaged_owner_opportunities": [
+        {
+          "cash": 3049009.461726986,
+          "damaged_owners": [
+            "sz300308"
+          ],
+          "date": "2024-07-22",
+          "independently_ready_challengers": [
+            "sz300604",
+            "sh688037"
+          ],
+          "market_confirmed": false
+        }
+      ],
+      "extra_block_on_2024_07_22": {
+        "capital_budget_level": 1,
+        "new_risk_frozen": true,
+        "ordinary_market_confirmed": false
+      },
+      "first_session": "2023-01-03",
+      "fixed_required_confirmation_sessions": 3,
+      "last_session": "2026-08-05",
+      "legal_confirmed_opportunities": 0,
+      "maximum_consecutive_candidate_and_damage_sessions": 1,
+      "native_successor_observed_sessions": 869,
+      "native_successor_qualification_ready_sessions": 0,
+      "observation_gzip_sha256": "bf1883ca14fb15ca1c051c22bb628111c68f9b4b74c6c7a3fd6743f38b8aef8a",
+      "observed_sessions": 869,
+      "observer_sha256": "2072a1215574b76dbfcd9a35988ce889f8cbe8a2260b728d0c80c5fa927f1b6f",
+      "original_raw_sha256": "2414a9fb6d0155ad54be62461b2f55eee0217012b2fcf4e8e7cbd45dccfc1e7d",
+      "ready_new_symbol_days": 386,
+      "scenario": "remove-sz300502"
+    }
+  ],
+  "policy_source_functions": [
+    "uquant/portfolio/pipeline.py:_core_candidates",
+    "uquant/portfolio/pipeline.py:_degraded_transfer",
+    "uquant/portfolio/pipeline.py:_observe_transfer"
+  ],
+  "required_controlled_capability": "independent cross-industry production qualification, real next-open fills, predecessor settlement, failure/retry and healthy retention checks remain mandatory",
+  "source_archive": {
+    "library_file_id": "libfile_7354f55e1e88819184b908cde4f617a8",
+    "sha256": "73591d420a7532d01858d6a7c7cee33ec078a99ff53b21b9df0ee4560b3743df",
+    "version": 2
+  },
+  "source_economic_sha256": "d3920c53d8db0f6c21d4dd181582b723ced13ff73308f1d93644929e0706c50a"
+}

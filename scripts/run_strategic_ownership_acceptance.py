@@ -74,6 +74,7 @@ from uquant.validation.absolute_generalization.metrics import (
 )
 from uquant.validation.acceptance_tolerance import principal_wealth_floor
 from uquant.validation.manifest import verify_data_manifest
+from uquant.validation.pr92_tradeoffs import compare_c3_subset, historical_crowning_basis
 
 CONTRACT_PATH = ROOT / "benchmarks" / "strategic_ownership_acceptance_contract.json"
 GRANT_CONTRACT_PATH = ROOT / "benchmarks" / "strategic_grant_acceptance_contract.json"
@@ -955,6 +956,14 @@ def _continuity_summary(contract: Mapping[str, Any], result: ReplayResult) -> di
     summary["continuity"] = {
         "basis": _continuity_basis(), "raw_sha256": _canonical_sha256(raw), "admissions": admissions,
     }
+    owners = {fact.owner_symbol for fact in facts}
+    summary["historical_opportunity_policy"] = historical_crowning_basis(_CONTINUITY_SOURCE)
+    summary["legacy_historical_failures"] = [
+        reason for failed, reason in (
+            (len(facts) < 2, "repeated-crowning replay has fewer than two actual epochs"),
+            (len(owners) < 2, "repeated-crowning replay has fewer than two owners"),
+        ) if failed
+    ]
     return summary
 
 
@@ -1015,9 +1024,14 @@ def _validate_repeated(
     thresholds = _mapping(contract["thresholds"], label="thresholds")
     epochs = _sequence(summary["epochs"], label="repeated-crowning epochs")
     owners = [str(_mapping(item, label="repeated epoch")["owner_symbol"]) for item in epochs]
-    if len(epochs) < int(thresholds["minimum_strategic_epochs"]):
+    opportunity_basis = historical_crowning_basis(_CONTINUITY_SOURCE)
+    minimum_epochs = (opportunity_basis["minimum_observed_epochs"] if opportunity_basis
+                      else int(thresholds["minimum_strategic_epochs"]))
+    minimum_owners = (opportunity_basis["minimum_observed_owners"] if opportunity_basis
+                      else int(thresholds["minimum_distinct_owners"]))
+    if len(epochs) < minimum_epochs:
         raise RuntimeError("repeated-crowning replay has fewer than two actual epochs")
-    if len(set(owners)) < int(thresholds["minimum_distinct_owners"]):
+    if len(set(owners)) < minimum_owners:
         raise RuntimeError("repeated-crowning replay has fewer than two owners")
     _validate_complete_epoch_predecessors(raw)
     witness = None
@@ -1513,6 +1527,7 @@ def run_acceptance_shard(
     identity_context = _cache_identity_context(contract)
     by_id: dict[str, dict[str, Any]] = {}
     rows: list[dict[str, Any]] = []
+    c3_comparisons: list[dict[str, Any]] = []
     cache_metadata: dict[str, dict[str, object]] = {}
     for spec in execution_specs:
         scenario_id = str(spec["scenario_id"])
@@ -1544,6 +1559,10 @@ def run_acceptance_shard(
                 else:
                     row = cached
                     row["cache_hit"] = True
+                if spec["kind"] in {"champion", "report", "full_removal"}:
+                    metrics = row["metrics"] if spec["kind"] == "champion" else row
+                    compared = compare_c3_subset({f"ownership:{scenario_id}": metrics})[0]
+                    c3_comparisons.append(compared)
                 if spec["kind"] == "full_removal" and scenario_id == "remove-sz300502":
                     with _retain_failed_replay(_continuity_result(row["raw_replay"])):
                         _validate_repeated(contract, summary=row, same_industry=False)
@@ -1582,8 +1601,10 @@ def run_acceptance_shard(
         "contract_sha256": _canonical_sha256(contract),
         "production_source_identity": code_fingerprint(),
         "scenarios": rows,
+        "fixed_c3_comparisons": c3_comparisons,
         "shard": shard,
-        "status": "PASS" if all(row.get("status") == "PASS" for row in rows) else "FAIL",
+        "status": "PASS" if all(row.get("status") == "PASS" for row in rows)
+        and all(row["per_account_budget_passed"] for row in c3_comparisons) else "FAIL",
     }
     if scenario is not None:
         selected_metadata = cache_metadata[scenario]

@@ -45,4 +45,16 @@ def remediation_api_projection(contract):
                 else:
                     target[item] = value
     assert canonical_sha256(expected) == delta["result_sha256"]
+    # PR92 explicitly authorizes controlled migration and fixed-C3 validation.
+    # Preserve the old sealed snapshot and bind exactly these three API changes.
+    raw = (path.parent / "pr92_api_delta.json").read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == "f7a83fcfa8d06859e75ae4dfd3fa40eea200d32a3b0360ca8ab1ce0f37b67346"
+    current = json.loads(raw)
+    assert canonical_sha256(expected) == current["base_sha256"]
+    assert set(current["modules"]) == {
+        "uquant.config_governance", "uquant.validation.absolute_generalization.aggregation",
+        "uquant.validation.pr92_tradeoffs",
+    }
+    expected["modules"].update(current["modules"])
+    assert canonical_sha256(expected) == current["result_sha256"]
     return expected

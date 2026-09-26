@@ -270,6 +270,85 @@ def test_governed_config_migration_rejects_any_remaining_field_change() -> None:
         validate_governed_config_migration(changed)
 
 
+def test_controlled_v2_migration_preserves_complete_config_and_real_identity() -> None:
+    from uquant.config import config_fingerprint
+
+    migration = validate_governed_config_migration(
+        SystemConfig(), authorization_id=governance_module.CONTROLLED_V2_AUTHORIZATION,
+    )
+    contract = json.loads(governance_module.CONTROLLED_V2_CONFIG_PATH.read_bytes())
+    assert migration.behavior_equivalent is False
+    assert migration.candidate_config_sha256 == config_fingerprint(SystemConfig())
+    assert migration.champion_config_sha256 == governance_module.FROZEN_CHAMPION_CONFIG_SHA256
+    assert migration.candidate_config_sha256 != migration.champion_config_sha256
+    assert _canonical_sha256(SystemConfig().to_dict()) == contract["candidate_complete_export_sha256"]
+    assert "risk_sentinel_causal_confirmation_enabled" in SystemConfig().to_dict()
+    assert set(migration.changed_fields) == {"stamp_duty", "transfer_fee"}
+    assert (len(migration.added_fields), len(migration.removed_fields)) == (9, 25)
+
+
+@pytest.mark.parametrize("change", ({"initial_cash": 1_000_000.0}, {"commission_rate": .0002}))
+def test_controlled_v2_migration_rejects_unrecorded_changes(change) -> None:
+    with pytest.raises(ValueError, match="exact controlled configuration"):
+        validate_governed_config_migration(
+            SystemConfig().override(**change),
+            authorization_id=governance_module.CONTROLLED_V2_AUTHORIZATION,
+        )
+
+
+def test_controlled_v2_migration_rejects_unknown_authority_and_tampered_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(ValueError, match="unknown controlled configuration authorization"):
+        validate_governed_config_migration(SystemConfig(), authorization_id="unreviewed")
+    original = governance_module.CONTROLLED_V2_CONFIG_PATH
+    edited = tmp_path / "edited.json"
+    edited.write_bytes(original.read_bytes() + b"\n")
+    monkeypatch.setattr(governance_module, "CONTROLLED_V2_CONFIG_PATH", edited)
+    with pytest.raises(RuntimeError, match="differs from compiled authority"):
+        validate_governed_config_migration(
+            SystemConfig(), authorization_id=governance_module.CONTROLLED_V2_AUTHORIZATION,
+        )
+
+
+def test_economic_config_migration_never_relabels_raw_evidence_as_champion() -> None:
+    from uquant.validation.generalization_policy.projection import _apply_raw_config_migration
+
+    migration = validate_governed_config_migration(
+        SystemConfig(), authorization_id=governance_module.CONTROLLED_V2_AUTHORIZATION,
+    )
+    evidence = {"effective_config_sha256": migration.candidate_config_sha256}
+    original = dict(evidence)
+    _apply_raw_config_migration(evidence, source_schema=2, config_migration=migration)
+    assert evidence == original
+    with pytest.raises(ValueError, match="differs from governed config migration carrier"):
+        _apply_raw_config_migration(
+            {"effective_config_sha256": migration.champion_config_sha256},
+            source_schema=2, config_migration=migration,
+        )
+
+
+@pytest.mark.parametrize("reference_matches", (False, True))
+def test_economic_evaluator_only_recognizes_the_authorized_config_pair(reference_matches) -> None:
+    from types import SimpleNamespace
+
+    from uquant.config import config_fingerprint
+    from uquant.validation.generalization_policy.evaluation_stages import _identify_config_migration
+
+    state = SimpleNamespace(
+        schema_version=2, expected_config=SystemConfig(), config_migration=None,
+        provenance={"effective_config_sha256": config_fingerprint(SystemConfig())},
+        baseline=SimpleNamespace(provenance={
+            "effective_config_sha256": governance_module.FROZEN_CHAMPION_CONFIG_SHA256
+            if reference_matches else "f" * 64,
+        }),
+    )
+    _identify_config_migration(state)
+    assert (state.config_migration is not None) is reference_matches
+    if reference_matches:
+        assert state.config_migration.behavior_equivalent is False
+
+
 @pytest.mark.parametrize(
     "parameters",
     [

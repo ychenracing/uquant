@@ -115,13 +115,17 @@ class ConfigGovernance:
 
 @dataclass(frozen=True, slots=True)
 class GovernedConfigMigration:
-    """Exact, compile-anchored identity carrier for an authorized deletion prefix."""
+    """Exact, compile-anchored configuration authorization and comparison scope."""
 
     champion_config_sha256: str
     candidate_config_sha256: str
     removed_fields: tuple[str, ...]
     governance_sha256: str
     carrier_sha256: str
+    authorization_id: str = ""
+    changed_fields: tuple[str, ...] = ()
+    added_fields: tuple[str, ...] = ()
+    behavior_equivalent: bool = True
 
 
 def _reject_config_governance_duplicate_keys(
@@ -418,11 +422,15 @@ def _load_historical_governance(path: str | Path | None = None) -> ConfigGoverna
     )
 
 
-def validate_governed_config_migration(config: SystemConfig) -> GovernedConfigMigration:
-    """Prove the trusted candidate is the exact reviewed post-deletion configuration."""
+def validate_governed_config_migration(
+    config: SystemConfig, *, authorization_id: str | None = None,
+) -> GovernedConfigMigration:
+    """Prove the exact reviewed deletion or explicitly authorized economic change."""
 
     if not isinstance(config, SystemConfig):
         raise ValueError("governed config migration requires a trusted SystemConfig")
+    if authorization_id is not None:
+        return _controlled_v2_config_migration(config, authorization_id)
     governance = _load_historical_governance(None)
     if not governance.removed_fields:
         raise ValueError("governed config migration requires an authorized field deletion")
@@ -441,6 +449,54 @@ def validate_governed_config_migration(config: SystemConfig) -> GovernedConfigMi
         removed_fields=governance.removed_fields,
         governance_sha256=governance.artifact_sha256,
         carrier_sha256=_canonical_sha256(cast(dict[str, Any], carrier)),
+    )
+
+
+CONTROLLED_V2_AUTHORIZATION: Final = "pr92-v2-continuous-20260926-v1"
+CONTROLLED_V2_CONFIG_PATH: Final = DEFAULT_GOVERNANCE_PATH.parent / "pr92_v2_config_migration.json"
+CONTROLLED_V2_CONFIG_SHA256: Final = "13cecdf1d59438fee75202dc439f29f7a3738d34ff7aa6d353d779df0b462019"
+
+
+def _controlled_v2_config_migration(config: SystemConfig, authorization_id: str) -> GovernedConfigMigration:
+    """Authorize the recorded economic change without claiming behavioral equality."""
+    if authorization_id != CONTROLLED_V2_AUTHORIZATION:
+        raise ValueError("unknown controlled configuration authorization")
+    if CONTROLLED_V2_CONFIG_PATH.is_symlink() or not CONTROLLED_V2_CONFIG_PATH.is_file():
+        raise RuntimeError("controlled configuration contract is missing or not a regular file")
+    raw = CONTROLLED_V2_CONFIG_PATH.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != CONTROLLED_V2_CONFIG_SHA256:
+        raise RuntimeError("controlled configuration contract differs from compiled authority")
+    contract = json.loads(raw)
+    before = contract["champion_config"]
+    after = dict(before)
+    for field, previous in contract["removed"].items():
+        if after.pop(field) != previous:
+            raise RuntimeError("controlled configuration deletion differs")
+    for field, change in contract["changed"].items():
+        if after[field] != change["before"]:
+            raise RuntimeError("controlled configuration prior value differs")
+        after[field] = change["after"]
+    if set(after) & set(contract["added"]):
+        raise RuntimeError("controlled configuration addition overwrites an existing field")
+    after.update(contract["added"])
+    if (contract["authorization_id"] != authorization_id or contract["behavior_equivalent"] is not False
+            or _canonical_sha256(before) != contract["champion_config_sha256"]
+            or _canonical_sha256(after) != contract["candidate_complete_export_sha256"]
+            or config.to_dict() != after or config_fingerprint(config) != contract["candidate_config_sha256"]):
+        raise ValueError("trusted config differs from exact controlled configuration")
+    governance = load_config_governance()
+    for name in after:
+        governance.entry(name)
+    return GovernedConfigMigration(
+        champion_config_sha256=contract["champion_config_sha256"],
+        candidate_config_sha256=contract["candidate_config_sha256"],
+        removed_fields=tuple(sorted(contract["removed"])),
+        governance_sha256=governance.artifact_sha256,
+        carrier_sha256=CONTROLLED_V2_CONFIG_SHA256,
+        authorization_id=authorization_id,
+        changed_fields=tuple(sorted(contract["changed"])),
+        added_fields=tuple(sorted(contract["added"])),
+        behavior_equivalent=False,
     )
 
 

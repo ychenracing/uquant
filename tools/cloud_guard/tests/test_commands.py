@@ -1,6 +1,9 @@
 """Fault injection: no network, broker writes, or genuine memory exhaustion."""
 import hashlib
+import json
 import os
+import subprocess
+import sys
 
 from tools.cloud_guard import journal as guard
 from tools.cloud_guard.report import summarize
@@ -8,6 +11,23 @@ from tools.cloud_guard.tests.base import Base
 
 
 class GuardTests(Base):
+    def test_live_progress_keeps_child_output_private_and_stdout_json(self):
+        result = subprocess.run([
+            sys.executable, "-m", "tools.cloud_guard", "--root", str(self.root),
+            "run", "--name", "progress", "--timeout", "3", "--heartbeat", ".02",
+            "--cwd", str(self.root), "--", sys.executable, "-c",
+            "import time; print('private-child-marker', flush=True); time.sleep(.15)",
+        ], capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        final = json.loads(result.stdout)
+        progress = [json.loads(line) for line in result.stderr.splitlines()]
+        self.assertEqual(len(progress), 1)
+        self.assertEqual(progress[0]["event"], "process_alive")
+        self.assertEqual(progress[0]["operation_id"], final["operation_id"])
+        self.assertNotIn(b"private-child-marker", result.stdout + result.stderr)
+        self.assertEqual((self.root / final["operation_id"] / "stdout.private.log").read_text(),
+                         "private-child-marker\n")
+
     def test_success_and_log_integrity(self):
         result = self.run_code("print('hello')")
         self.assertEqual(result["finding"], "COMMAND_OK")

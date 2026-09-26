@@ -1,0 +1,58 @@
+{
+  "repository": "ychenracing/uquant",
+  "branch": "codex/daily-report-pipeline",
+  "commit": "1304a2be5e183ca4070d1bea616bedd534d686a5",
+  "verification": "Actual immutable GitHub fetch_file UTF-8 responses were reconstructed independently and programmatically compared against local original bytes; length, SHA-256 and Git blob identity verified.",
+  "checked_at": "2026-09-23T02:58:42.034211+00:00",
+  "files": [
+    {
+      "path": "scripts/daily_scan_market.py",
+      "bytes": 6217,
+      "sha256": "0d7583162b154ba1836d0c1b2e14606940bcdea386396e3edf235b45b54479a6",
+      "git_blob_sha": "aedd09bd51659eb95d2e982f8c1d765b2c20816f",
+      "byte_equal": true
+    },
+    {
+      "path": "scripts/daily_scan.py",
+      "bytes": 10976,
+      "sha256": "265fa1ec67655567e80e257e8a200ed98d9be95cb6506c40b0f9e595e3d53f3e",
+      "git_blob_sha": "0977fe58272724ff853b46d47c051608749068fd",
+      "byte_equal": true
+    },
+    {
+      "path": "scripts/daily_scan_report.py",
+      "bytes": 8504,
+      "sha256": "bea00133f94fb273fd3ee1535040c1f898f6db2e3cb2b81ade45d0b2b715fba1",
+      "git_blob_sha": "952624ef142cf04cd649c7c2cd9a180a50e8eb4b",
+      "byte_equal": true
+    },
+    {
+      "path": "scripts/daily_scan_store.py",
+      "bytes": 9740,
+      "sha256": "6ad2686e473d6fe9e4c0ca157172f995a17568d2ac68da2a6c633344ac266283",
+      "git_blob_sha": "5b3b7474b6d01456456f618cfac3d43a9130654c",
+      "byte_equal": true
+    },
+    {
+      "path": "tests/test_daily_scan.py",
+      "bytes": 8812,
+      "sha256": "51d12687a11d13ed51e61b884b83821657cc19a28fc8abc62102680d0624d7e3",
+      "git_blob_sha": "aa5db939fdffbbec5c34d7db0eefd754d0e06c8c",
+      "byte_equal": true
+    },
+    {
+      "path": "docs/DAILY_SCAN.md",
+      "bytes": 6170,
+      "sha256": "8db080f9abf8eae7f67910c5845429a03d86f3cfde9c616aabc23071a7123270",
+      "git_blob_sha": "9c245fd4873139ec4e33931ef75266e22da60551",
+      "byte_equal": true
+    },
+    {
+      "path": ".github/workflows/daily-scan-check.yml",
+      "bytes": 2571,
+      "sha256": "18867b964ceb33c1434533d3a114bafa0bcf88ce34ec94caa3ea61363d788a50",
+      "git_blob_sha": "55ed5f0f7c708184068911fb1253d244de2f8005",
+      "byte_equal": true
+    }
+  ]
+}
